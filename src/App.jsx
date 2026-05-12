@@ -22,6 +22,7 @@ export {
   COLORS, BOARDS, LANGS, SUBS, LANG_RULES, UI_STRINGS, li,
   AI_PROVIDERS, getAIConfig, setAIConfig, callAI,
   buildSystemPrompt, parseAIObject, parseAIArray, checkStudentQuery,
+  TEACHER_PERSONAS, updateBhool, getBhoolStats,
 } from './shared.js'
 
 import { COLORS, AI_PROVIDERS, setAIConfig } from './shared.js'

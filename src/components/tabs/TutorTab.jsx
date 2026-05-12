@@ -6,8 +6,9 @@ const MODES = [
   { key: "adaptive",  icon: "🧠", label: "Adaptive" },
   { key: "socratic",  icon: "🤔", label: "Socratic" },
   { key: "explain",   icon: "💡", label: "Explain"  },
-  { key: "homework",  icon: "📝", label: "Homework" },
-  { key: "voice",     icon: "🎤", label: "Voice"    },
+  { key: "homework",  icon: "📝", label: "Homework" },  { key: "bahas",     icon: "⚔️",  label: "Debate"   },
+  { key: "kahani",    icon: "📖", label: "Story"    },
+  { key: "kyun",      icon: "💭", label: "Why?"     },  { key: "voice",     icon: "🎤", label: "Voice"    },
   { key: "draw",      icon: "✏️", label: "Draw"     },
 ]
 
@@ -50,6 +51,41 @@ Tone: patient and collaborative — we're doing this together, not just showing 
 - Walk through each part they drew and explain its role in simple terms
 - Point out one thing they drew really well, then gently note anything that might be missing — without making them feel bad
 - Give 2 exam-style questions about this diagram that their board might ask`,
+
+  bahas: `BAHAS (DEBATE) MODE — you are a respectful but relentless intellectual challenger:
+- The student states a position. YOU must immediately take the OPPOSITE position — always.
+- Challenge every argument with evidence: "But this ignores...", "History shows the opposite...", "That assumes..."
+- Acknowledge strong points briefly: "Fair point — but what about...?" before your counter
+- Never be condescending. Be a tough-but-fair debate coach who genuinely wants them to get sharper
+- After 5+ exchanges: step OUT of debate character. Give a balanced 3-line summary of both sides. Then grade their argument: Evidence Used / Logical Consistency / Counter-argument Response — each out of 10
+- Works for: History controversies, Science debates, Civics, Ethics, Literature analysis
+- Open with: "Interesting position. I respectfully but completely disagree — and here's why..."
+- ALWAYS debate in the student's chosen language`,
+
+  kahani: `KAHANI (STORY) MODE — you are a master storyteller who teaches through immersive narrative:
+- Convert ANY educational topic into a vivid, cinematic, immersive story
+- History: "The year is 1526. I am Babur, and I am terrified. My cavalry of 12,000 faces Lodi's 100,000 soldiers at Panipat..."
+- Science: "You have just been shrunk to the size of a glucose molecule. The liver cell wall looms before you like a fortress gate..."
+- Chemistry: "Antoine Lavoisier holds his breath and lights the candle for the 200th time. Today he will finally prove what fire really is..."
+- Physics: "Imagine you are standing on the surface of a neutron star. Your weight is now 100 billion times what it is on Earth..."
+- ALL curriculum-relevant facts MUST be woven naturally into the story — never listed, never bullet-pointed
+- End every story with 3 story-quiz questions that test the content from the narrative
+- Keep stories to 400–500 words — engaging but completable
+- WRITE THE ENTIRE STORY in the student's chosen language`,
+
+  kyun: `KYUN (WHY?) MODE — you reveal the hidden mathematical and scientific truth behind formulas and rules:
+- The student asks WHY something works. Your job: reveal the beautiful intuition that school textbooks always skip.
+- NEVER just explain WHAT — always reveal WHY it MUST be true
+- Use the "origin story": how did ancient scientists or mathematicians first discover or derive this?
+- Use visual thought experiments: "Imagine cutting a circle into infinite pizza slices, then rearranging them into a rectangle..."
+- Show the mathematical intuition BEFORE the formula — let the formula fall out naturally from the reasoning
+- Connect to Indian mathematical heritage where genuinely relevant: Aryabhata (trigonometry, zero, value of pi), Brahmagupta (quadratic equations), Madhava of Sangamagrama (infinite series for pi — 200 years before Europe!), Ramanujan
+- Flow naturally through:
+  1. Hook: "Most students memorize this formula for years and never know the beautiful reason WHY it works..."
+  2. Thought experiment: a visual, physical, or historical reasoning that builds intuition step by step
+  3. The Aha! moment: the formula/rule emerges naturally from the reasoning — never from thin air
+  4. Challenge: "Now — can you figure out WHY [a closely related formula] works the same way?"
+- Write in the student's chosen language`,
 }
 
 const STARTERS = {
@@ -59,6 +95,9 @@ const STARTERS = {
   homework:  ["Solve: 2x + 5 = 15", "Find the area of a triangle with base 6cm, height 4cm", "If train travels 60km/h for 2.5h, find distance"],
   voice:     ["I'm confused about fractions", "Can you explain percentages?", "Help me with algebra"],
   draw:      ["I drew a plant cell", "I drew a water cycle diagram", "I drew a circuit diagram"],
+  bahas:     ["Partition of India was the right decision — argue the opposite", "Nuclear energy is our only hope for clean energy — challenge this", "Exams are the best way to judge students — prove me wrong"],
+  kahani:    ["Tell me the story of photosynthesis from inside a leaf", "Make me live through the First Battle of Panipat", "Tell the story of Newton and the falling apple"],
+  kyun:      ["Why does πr² give the exact area of a circle?", "Why does the Pythagorean theorem work?", "Why does compound interest grow so much faster than simple interest?"],
 }
 
 export default function TutorTab({ profile, addXp, docCtx }) {
@@ -74,6 +113,8 @@ export default function TutorTab({ profile, addXp, docCtx }) {
   const drawing   = useRef(false)
   const lastPos   = useRef({ x: 0, y: 0 })
   const chatEndRef = useRef(null)
+  // Debate mode (Bahas)
+  const [debateVerdict, setDebateVerdict] = useState(false)
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -92,6 +133,7 @@ export default function TutorTab({ profile, addXp, docCtx }) {
     setMode(m)
     setMessages([])
     setInput("")
+    setDebateVerdict(false)
   }
 
   // ── Get mode-specific system prompt ───────────────────────
@@ -199,6 +241,21 @@ export default function TutorTab({ profile, addXp, docCtx }) {
     setDrawLoading(false)
   }
 
+  // ── Debate verdict ────────────────────────────────────────
+  const requestVerdict = async () => {
+    if (loading) return
+    setLoading(true)
+    setDebateVerdict(true)
+    const sys = getModeSystem()
+    const res = await callAI(
+      "Step out of debate mode now. Give a balanced 3-line summary showing what's true on both sides. Then fairly grade my argumentation out of 10 for: Evidence Used, Logical Consistency, Counter-argument Response. Be specific about what I did well and where I can improve.",
+      sys, messages
+    )
+    setMessages(m => [...m, { role: "user", content: "🏆 Requesting debate verdict…" }, { role: "assistant", content: res }])
+    addXp(10)
+    setLoading(false)
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 130px)" }}>
       {/* Mode tabs */}
@@ -239,6 +296,33 @@ export default function TutorTab({ profile, addXp, docCtx }) {
 
       {/* Chat / draw area */}
       <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
+
+        {/* ── Bahas (Debate) mode: round tracker + verdict button ── */}
+        {mode === "bahas" && messages.length > 0 && (
+          <div style={{
+            background: `${COLORS.red}10`, border: `1px solid ${COLORS.red}25`,
+            borderRadius: 12, padding: "10px 14px", marginBottom: 12,
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+          }}>
+            <div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.red }}>
+                ⚔️ Debate Round {Math.floor(messages.length / 2)}
+              </span>
+              {Math.floor(messages.length / 2) >= 5 && !debateVerdict && (
+                <span style={{ fontSize: 11, color: COLORS.muted, marginLeft: 8 }}>Ready for verdict!</span>
+              )}
+            </div>
+            {Math.floor(messages.length / 2) >= 3 && !debateVerdict && (
+              <button onClick={requestVerdict} disabled={loading} style={{
+                background: `${COLORS.yellow}20`, border: `1px solid ${COLORS.yellow}40`,
+                borderRadius: 8, padding: "5px 12px", fontSize: 11, fontWeight: 700,
+                color: COLORS.yellow, cursor: "pointer", fontFamily: "Sora, sans-serif",
+              }}>
+                🏆 Get Verdict
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Draw mode canvas */}
         {mode === "draw" && (

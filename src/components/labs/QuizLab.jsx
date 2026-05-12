@@ -4,6 +4,36 @@ import { getDeviceId, apiSaveQuizResult, apiGetQuizStats } from '../../api.js'
 
 const DIFFICULTIES = ["Easy", "Medium", "Hard"]
 
+// ── Bhool Curve: track every concept answered in localStorage ─
+function _updateBhool(subject, concept, correct) {
+  if (!concept) return
+  try {
+    const data = JSON.parse(localStorage.getItem('eduvyai_bhool') || '{}')
+    const key = `${subject}:${concept}`
+    const ex = data[key] || { stability: 1, streak: 0 }
+    if (correct) {
+      ex.streak = (ex.streak || 0) + 1
+      ex.stability = Math.min(30, Math.max(1, (ex.stability || 1) * 2))
+    } else {
+      ex.streak = 0
+      ex.stability = 1
+    }
+    ex.lastReviewed = Date.now()
+    ex.concept = concept
+    ex.subject = subject
+    data[key] = ex
+    localStorage.setItem('eduvyai_bhool', JSON.stringify(data))
+  } catch {}
+}
+
+const ERROR_TYPE_LABELS = {
+  CONCEPT_GAP:         { label: "Concept Gap",          color: "#FF6B6B" },
+  CALCULATION_ERROR:   { label: "Calculation Error",     color: "#FFD166" },
+  MISSING_PREREQUISITE:{ label: "Missing Prerequisite",  color: "#FF6B35" },
+  MISREAD_QUESTION:    { label: "Misread Question",      color: "#7B9CFF" },
+  CARELESS:            { label: "Careless Mistake",      color: "#6868a0" },
+}
+
 export default function QuizLab({ profile, addXp, userId, onBack }) {
   const uid            = userId || getDeviceId()
   const subjects       = profile.subjects?.length ? profile.subjects : (SUBS[profile.standard] || [])
@@ -14,6 +44,9 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
   const [selected, setSelected]     = useState(null)  // "A" | "B" | "C" | "D"
   const [score, setScore]           = useState({ correct: 0, total: 0 })
   const [error, setError]           = useState("")
+  // Galti Doctor — error diagnosis
+  const [galtiDiag, setGaltiDiag]   = useState(null)
+  const [galtiLoad, setGaltiLoad]   = useState(false)
 
   // Load cumulative stats from backend for the current subject
   useEffect(() => {
@@ -33,6 +66,7 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
     setLoading(true)
     setQuestion(null)
     setSelected(null)
+    setGaltiDiag(null)
     setError("")
 
     const isEnglishSubject = selSub === 'English' && profile.language !== 'English'
@@ -53,9 +87,11 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
   const answerQuestion = (letter) => {
     if (selected) return  // already answered
     setSelected(letter)
+    setGaltiDiag(null)
     const correct = letter === question.c
     setScore(s => ({ correct: s.correct + (correct ? 1 : 0), total: s.total + 1 }))
     addXp(correct ? 5 : 1)
+    _updateBhool(selSub, question.concept, correct)
     // Persist to backend (best-effort)
     apiSaveQuizResult(uid, {
       subject: selSub,
@@ -63,6 +99,26 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
       correct: correct ? 1 : 0,
       total: 1,
     }).catch(() => {})
+  }
+
+  // ── Galti Doctor: diagnose root cause of wrong answer ─────
+  const diagnoseError = async () => {
+    if (!question || selected === question.c) return
+    setGaltiLoad(true)
+    setGaltiDiag(null)
+    const opts = ["A","B","C","D"]
+    const correctOpt = question.o[opts.indexOf(question.c)] || ""
+    const wrongOpt   = question.o[opts.indexOf(selected)]   || ""
+    const sys = buildSystemPrompt(profile, `You are Galti Doctor — a specialist who diagnoses the ROOT CAUSE of a student's wrong answer.
+Analyze the error and respond ONLY in ${profile.language} with this exact JSON (no markdown):
+{"type":"CONCEPT_GAP|CALCULATION_ERROR|MISSING_PREREQUISITE|MISREAD_QUESTION|CARELESS","diagnosis":"one sentence: exactly what went wrong in the student's thinking","fix":"one specific actionable thing to do right now to prevent this mistake again","similar":"one short practice question to try next"}`)
+    const res = await callAI(
+      `Question: "${question.q}"\nCorrect answer: ${question.c}) ${correctOpt}\nStudent chose: ${selected}) ${wrongOpt}\nDiagnose my error.`,
+      sys, [], 2, 500
+    )
+    const parsed = parseAIObject(res)
+    setGaltiDiag(parsed?.type ? parsed : { type: "CONCEPT_GAP", diagnosis: res, fix: "", similar: "" })
+    setGaltiLoad(false)
   }
 
   const optionStyle = (letter) => {
@@ -260,6 +316,60 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
                   </div>
                   <p style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.6 }}>{question.e}</p>
                 </div>
+
+                {/* ── Galti Doctor (wrong answers only) ── */}
+                {selected !== question.c && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {!galtiDiag && !galtiLoad && (
+                      <button onClick={diagnoseError} style={{
+                        background: `${COLORS.orange}15`,
+                        border: `1px solid ${COLORS.orange}35`,
+                        borderRadius: 12, padding: "11px 14px", width: "100%",
+                        fontSize: 13, fontWeight: 700, color: COLORS.orange,
+                        cursor: "pointer", fontFamily: "Sora, sans-serif",
+                        textAlign: "left", display: "flex", alignItems: "center", gap: 8,
+                      }}>
+                        <span style={{ fontSize: 18 }}>🩺</span>
+                        <div>
+                          <div>Galti Doctor</div>
+                          <div style={{ fontSize: 11, fontWeight: 500, color: COLORS.muted }}>Why did I get this wrong?</div>
+                        </div>
+                      </button>
+                    )}
+                    {galtiLoad && (
+                      <div style={{ textAlign: "center", color: COLORS.muted, fontSize: 12, padding: 14 }}>
+                        🩺 Diagnosing your mistake…
+                      </div>
+                    )}
+                    {galtiDiag && (() => {
+                      const typeInfo = ERROR_TYPE_LABELS[galtiDiag.type] || { label: galtiDiag.type, color: COLORS.muted }
+                      return (
+                        <div style={{ background: `${typeInfo.color}10`, border: `1px solid ${typeInfo.color}30`, borderRadius: 12, padding: 14 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                            <span style={{ fontSize: 18 }}>🩺</span>
+                            <span style={{ fontSize: 13, fontWeight: 800, color: typeInfo.color }}>Galti Doctor</span>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: typeInfo.color, borderRadius: 6, padding: "2px 8px" }}>
+                              {typeInfo.label}
+                            </span>
+                          </div>
+                          <p style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.6, margin: "0 0 8px" }}>
+                            <strong>What went wrong:</strong> {galtiDiag.diagnosis}
+                          </p>
+                          {galtiDiag.fix && (
+                            <p style={{ fontSize: 13, color: COLORS.green, lineHeight: 1.5, margin: "0 0 8px" }}>
+                              ✅ <strong>Fix:</strong> {galtiDiag.fix}
+                            </p>
+                          )}
+                          {galtiDiag.similar && (
+                            <p style={{ fontSize: 12, color: COLORS.muted, lineHeight: 1.5, margin: 0, fontStyle: "italic" }}>
+                              🎯 Try this: {galtiDiag.similar}
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
 
                 <button onClick={generateQuestion} disabled={loading} style={primaryBtn}>
                   {loading ? "Generating…" : "Next Question →"}

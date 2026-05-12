@@ -48,17 +48,34 @@ export const SUBS = {
 
 // ─── Language Rules ───────────────────────────────────────────
 export const LANG_RULES = {
-  English:  "Respond in English only.",
-  Hindi:    "RESPOND ONLY IN HINDI USING DEVANAGARI SCRIPT (हिंदी). हर शब्द हिंदी में लिखो। कोई भी English word मत use करो।",
-  Gujarati: "RESPOND ONLY IN GUJARATI USING GUJARATI SCRIPT (ગુજરાતી). સંપૂર્ણ જવાબ ગુજરાતી સ્ક્રિપ્ટમાં જ આપો. English અથવા Hindi નહીં.",
-  Marathi:  "RESPOND ONLY IN MARATHI USING DEVANAGARI SCRIPT (मराठी). संपूर्ण उत्तर मराठीत द्या. कोणतेही English शब्द वापरू नका.",
-  Tamil:    "RESPOND ONLY IN TAMIL USING TAMIL SCRIPT (தமிழ்). முழு பதிலும் தமிழில் மட்டுமே இருக்க வேண்டும்.",
-  Telugu:   "RESPOND ONLY IN TELUGU USING TELUGU SCRIPT (తెలుగు). మొత్తం సమాధానం తెలుగులో మాత్రమే ఉండాలి.",
-  Kannada:  "RESPOND ONLY IN KANNADA USING KANNADA SCRIPT (ಕನ್ನಡ). ಸಂಪೂರ್ಣ ಉತ್ತರ ಕನ್ನಡದಲ್ಲಿ ಮಾತ್ರ ಇರಬೇಕು.",
-  Bengali:  "RESPOND ONLY IN BENGALI USING BENGALI SCRIPT (বাংলা). সম্পূর্ণ উত্তর শুধুমাত্র বাংলায় লিখুন।",
-  Punjabi:  "RESPOND ONLY IN PUNJABI USING GURMUKHI SCRIPT (ਪੰਜਾਬੀ). ਪੂਰਾ ਜਵਾਬ ਕੇਵਲ ਪੰਜਾਬੀ ਵਿੱਚ ਲਿਖੋ।",
-  Odia:     "RESPOND ONLY IN ODIA USING ODIA SCRIPT (ଓଡ଼ିଆ). ସମ୍ପୂର୍ଣ୍ଣ ଉତ୍ତର କେବଳ ଓଡ଼ିଆରେ ଲେଖନ୍ତୁ।",
-  Urdu:     "RESPOND ONLY IN URDU USING NASTALIQ SCRIPT (اردو). پورا جواب صرف اردو میں لکھیں۔",
+  English:  "Respond in English only. Use only Latin script (A-Z). NEVER mix in Devanagari, Cyrillic, or any other script.",
+  Hindi:    "RESPOND ONLY IN HINDI USING DEVANAGARI SCRIPT (हिंदी). हर शब्द शुद्ध देवनागरी लिपि में लिखो (Unicode U+0900–U+097F). CRITICAL WARNING: Cyrillic letters जैसे п, р, в, д आदि कभी मत use करो — वे देवनागरी जैसे दिखते हैं लेकिन WRONG हैं। कोई भी English या Cyrillic अक्षर मत use करो।",
+  Gujarati: "RESPOND ONLY IN GUJARATI USING GUJARATI SCRIPT (ગુજરાતી). સંપૂર્ણ જવાબ ગુજરાતી સ્ક્રિપ્ટ (Unicode U+0A80–U+0AFF) માં જ આપો. English, Hindi, Cyrillic — કોઈ પણ ભાષા નહીં.",
+  Marathi:  "RESPOND ONLY IN MARATHI USING DEVANAGARI SCRIPT (मराठी). संपूर्ण उत्तर शुद्ध देवनागरी लिपीत द्या (Unicode U+0900–U+097F). CRITICAL WARNING: Cyrillic अक्षरे (п, р, в, д इत्यादी) कधीही वापरू नका — ती देवनागरीसारखी दिसतात पण चुकीची आहेत. कोणतेही English किंवा Cyrillic शब्द वापरू नका.",
+  Tamil:    "RESPOND ONLY IN TAMIL USING TAMIL SCRIPT (தமிழ்). முழு பதிலும் தமிழ் எழுத்துக்களில் மட்டுமே (Unicode U+0B80–U+0BFF). Cyrillic அல்லது Latin எழுத்துக்கள் கூடாது.",
+  Telugu:   "RESPOND ONLY IN TELUGU USING TELUGU SCRIPT (తెలుగు). మొత్తం సమాధానం తెలుగు అక్షరాలలో మాత్రమే (Unicode U+0C00–U+0C7F). Cyrillic లేదా Latin అక్షరాలు వాడకండి.",
+  Kannada:  "RESPOND ONLY IN KANNADA USING KANNADA SCRIPT (ಕನ್ನಡ). ಸಂಪೂರ್ಣ ಉತ್ತರ ಕನ್ನಡ ಅಕ್ಷರಗಳಲ್ಲಿ ಮಾತ್ರ (Unicode U+0C80–U+0CFF). Cyrillic ಅಥವಾ Latin ಅಕ್ಷರಗಳನ್ನು ಬಳಸಬೇಡಿ.",
+  Bengali:  "RESPOND ONLY IN BENGALI USING BENGALI SCRIPT (বাংলা). সম্পূর্ণ উত্তর বাংলা হরফে লিখুন (Unicode U+0980–U+09FF). Cyrillic বা Latin অক্ষর ব্যবহার করবেন না।",
+  Punjabi:  "RESPOND ONLY IN PUNJABI USING GURMUKHI SCRIPT (ਪੰਜਾਬੀ). ਪੂਰਾ ਜਵਾਬ ਕੇਵਲ ਗੁਰਮੁਖੀ ਲਿਪੀ ਵਿੱਚ ਲਿਖੋ (Unicode U+0A00–U+0A7F). Cyrillic ਜਾਂ Latin ਅੱਖਰ ਨਾ ਵਰਤੋ।",
+  Odia:     "RESPOND ONLY IN ODIA USING ODIA SCRIPT (ଓଡ଼ିଆ). ସମ୍ପୂର୍ଣ୍ଣ ଉତ୍ତର ଓଡ଼ିଆ ଅକ୍ଷରରେ ଲେଖନ୍ତୁ (Unicode U+0B00–U+0B7F). Cyrillic ବା Latin ଅକ୍ଷର ବ୍ୟବହାର କରନ୍ତୁ ନାହିଁ।",
+  Urdu:     "RESPOND ONLY IN URDU USING NASTALIQ/ARABIC SCRIPT (اردو). پورا جواب صرف عربی-اردو رسم الخط میں لکھیں (Unicode U+0600–U+06FF). Cyrillic یا Latin حروف استعمال نہ کریں۔",
+}
+
+// ─── Shadow Teacher Personas ─────────────────────────────────
+// Each language medium gets a culturally-rooted teacher identity.
+// Used in buildSystemPrompt to personalise every AI interaction.
+export const TEACHER_PERSONAS = {
+  English:  { name: "Vidya",        desc: "a warm, experienced Indian school teacher who loves her subject" },
+  Hindi:    { name: "Sharma Sir",   desc: "a warm Delhi school teacher who uses cricket and chai analogies, says 'bilkul sahi' when proud, and has been teaching for 22 years" },
+  Gujarati: { name: "Beni Ben",     desc: "a patient, motherly Ahmedabad teacher who uses Navratri and kirana store examples and makes every student feel they can achieve anything" },
+  Marathi:  { name: "Patil Sir",    desc: "an enthusiastic Pune teacher who uses Maharashtra geography examples and rewards curiosity with 'shabash!'" },
+  Tamil:    { name: "Vijay Anna",   desc: "an energetic Chennai teacher who uses cricket and local examples and brings a competitive spirit that makes students want to excel" },
+  Telugu:   { name: "Ravi Garu",    desc: "a methodical Hyderabad teacher who uses tech examples for modern topics and is extremely patient with repeated questions" },
+  Kannada:  { name: "Suresh Sir",   desc: "a calm Bengaluru teacher who uses startup and engineering examples and rewards analytical thinking" },
+  Bengali:  { name: "Didi",         desc: "an intellectual Kolkata teacher who draws from Tagore and history stories and encourages deep thinking" },
+  Punjabi:  { name: "Gurpreet Sir", desc: "an energetic Amritsar teacher who uses farming metaphors and makes learning feel like a celebration" },
+  Odia:     { name: "Mishra Sir",   desc: "a gentle Bhubaneswar teacher who uses local examples and is incredibly patient" },
+  Urdu:     { name: "Ustad Ji",     desc: "an eloquent Lucknow teacher who uses poetry as memory hooks and brings wisdom that goes beyond the syllabus" },
 }
 
 // ─── UI Strings ───────────────────────────────────────────────
@@ -139,6 +156,7 @@ export const AI_PROVIDERS = {
 
 // ─── Module-level AI config (no prop drilling needed) ─────────
 let _aiConfig = { provider: "gemini", apiKey: "", model: "gemini-2.0-flash" }
+let _currentLanguage = "English"  // updated by buildSystemPrompt each call
 export const getAIConfig = () => _aiConfig
 export const setAIConfig = (cfg) => {
   _aiConfig = cfg
@@ -162,6 +180,27 @@ async function _checkBackend() {
 
 // ─── Sleep helper ─────────────────────────────────────────────
 const sleep = ms => new Promise(r => setTimeout(r, ms))
+
+// ─── Cyrillic → Script Sanitiser ─────────────────────────────
+// Some AI models accidentally mix Cyrillic lookalikes into Devanagari/other scripts.
+// Cyrillic chars visually similar to Devanagari: п→प, р→र, о→ो, etc.
+// We strip stray Cyrillic from non-Russian responses as a last-resort safety net.
+// For Devanagari languages (Hindi, Marathi) we use char-range filtering.
+const _DEVANAGARI_LANGS = new Set(["Hindi", "Marathi"])
+function _sanitiseResponse(text, language) {
+  if (!text || typeof text !== "string") return text
+  if (!_DEVANAGARI_LANGS.has(language)) return text
+  // If >80% of non-ASCII chars are Devanagari → strip any Cyrillic that slipped in
+  const nonAscii = text.replace(/[\x00-\x7F]/g, "")
+  if (!nonAscii.length) return text
+  const devCount = (nonAscii.match(/[\u0900-\u097F]/g) || []).length
+  const cyrCount = (nonAscii.match(/[\u0400-\u04FF]/g) || []).length
+  if (cyrCount > 0 && devCount / nonAscii.length > 0.4) {
+    // Remove Cyrillic characters from the response
+    return text.replace(/[\u0400-\u04FF]/g, "")
+  }
+  return text
+}
 
 // ─── Multi-provider AI Caller ─────────────────────────────────
 // Routes through FastAPI backend when available (keeps API keys server-side).
@@ -196,7 +235,7 @@ export async function callAI(prompt, systemPrompt, history = [], retries = 3, ma
       })
       if (res.ok) {
         const data = await res.json()
-        return data.text || "No response. Please try again."
+        return _sanitiseResponse(data.text, _currentLanguage) || "No response. Please try again."
       }
       // Non-ok HTTP from backend — fall through to direct call
     } catch {
@@ -293,7 +332,7 @@ export async function callAI(prompt, systemPrompt, history = [], retries = 3, ma
         text = data.choices?.[0]?.message?.content
       }
 
-      return text || "No response. Please try again."
+      return _sanitiseResponse(text, _currentLanguage) || "No response. Please try again."
 
     } catch {
       if (attempt < retries - 1) { await sleep(2000); continue }
@@ -350,8 +389,10 @@ export function checkStudentQuery(text, profile) {
 
 // ─── System Prompt Builder ────────────────────────────────────
 export function buildSystemPrompt(profile, modeInstructions = "") {
+  _currentLanguage = profile.language || "English"  // track for sanitiser
   const name = profile.name || "beta"
-  return `You are Vidya — a real, warm, experienced Indian school teacher who has taught Class ${profile.standard} students for 15 years. You are NOT a chatbot, NOT an AI assistant. You are a person — a caring teacher who genuinely wants this student to succeed.
+  const _persona = TEACHER_PERSONAS[profile.language] || TEACHER_PERSONAS.English
+  return `You are ${_persona.name} — ${_persona.desc}. You have taught Class ${profile.standard} students for over 15 years. You are NOT a chatbot, NOT an AI assistant. You are a real person — a caring teacher who genuinely wants this student to succeed.
 
 YOUR PERSONALITY AND SPEAKING STYLE:
 - Speak like a real desi teacher who loves their subject and loves their students
@@ -519,6 +560,46 @@ export function parseAIArray(text) {
     if (start === -1 || end === -1) throw new Error("No JSON array found")
     return JSON.parse(clean.slice(start, end + 1))
   } catch { return null }
+}
+
+// ─── Bhool Curve (Spaced-Repetition Memory Tracker) ──────────
+// SM-2-inspired forgetting curve. Stored in localStorage.
+// Key: 'eduvyai_bhool'  →  { "Subject:Concept": { subject, concept, stability, lastReviewed, streak } }
+export function updateBhool(subject, concept, correct) {
+  if (!subject || !concept) return
+  try {
+    const data = JSON.parse(localStorage.getItem('eduvyai_bhool') || '{}')
+    const key = `${subject}:${concept}`
+    const ex = data[key] || { stability: 1, streak: 0 }
+    if (correct) {
+      ex.streak = (ex.streak || 0) + 1
+      ex.stability = Math.min(30, Math.max(1, (ex.stability || 1) * 2)) // double, cap 30 days
+    } else {
+      ex.streak = 0
+      ex.stability = 1 // reset: review again tomorrow
+    }
+    ex.lastReviewed = Date.now()
+    ex.concept = concept
+    ex.subject = subject
+    data[key] = ex
+    localStorage.setItem('eduvyai_bhool', JSON.stringify(data))
+  } catch {}
+}
+
+export function getBhoolStats() {
+  try {
+    const data = JSON.parse(localStorage.getItem('eduvyai_bhool') || '{}')
+    const now = Date.now()
+    const overdue = [], soon = [], fresh = []
+    for (const item of Object.values(data)) {
+      const dueAt = (item.lastReviewed || 0) + (item.stability || 1) * 86400000
+      const hoursLeft = (dueAt - now) / 3600000
+      if (hoursLeft <= 0) overdue.push(item)
+      else if (hoursLeft <= 48) soon.push(item)
+      else fresh.push(item)
+    }
+    return { overdue, soon, fresh }
+  } catch { return { overdue: [], soon: [], fresh: [] } }
 }
 
 // ─── YOUTUBE + INSTAGRAM DISCOVERY ────────────────────────────────────────

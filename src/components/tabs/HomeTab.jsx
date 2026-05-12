@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react'
-import { COLORS, callAI, buildSystemPrompt, SUBS } from '../../shared.js'
+import { COLORS, callAI, buildSystemPrompt, SUBS, getBhoolStats, parseAIObject } from '../../shared.js'
 import { getDeviceId, apiGetMastery } from '../../api.js'
+
+// ── Bhool Curve stats (reads localStorage) ───────────────────
+function useBhoolStats() {
+  const [stats, setStats] = useState({ overdue: [], soon: [], fresh: [] })
+  useEffect(() => {
+    setStats(getBhoolStats())
+  }, [])
+  return stats
+}
 
 // Subject emoji map for visual flair
 const SUB_ICONS = {
@@ -55,6 +64,24 @@ export default function HomeTab({ profile, xp, streak, addXp, setTab }) {
   const [oracleDeep, setOracleDeep]       = useState("")
   const [deepLoading, setDeepLoading]     = useState(false)
 
+  // ── Mood Check ──────────────────────────────────────────────
+  const [mood, setMood] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('eduvyai_mood') || 'null')
+      if (saved && saved.date === new Date().toDateString()) return saved.value
+    } catch {}
+    return null
+  })
+
+  // ── Mera Sawaal (daily problem) ────────────────────────────
+  const [dailyQ, setDailyQ]         = useState(null)
+  const [dailyAns, setDailyAns]     = useState(false)
+  const [dailyQLoad, setDailyQLoad] = useState(false)
+
+  // ── Bhool Curve ─────────────────────────────────────────────
+  const bhool = useBhoolStats()
+  const bhoolDue = bhool.overdue.length + bhool.soon.length
+
   const subjects = profile.subjects?.length ? profile.subjects : (SUBS[profile.standard] || [])
 
   // ── Load mastery from backend on mount ─────────────────────
@@ -69,20 +96,61 @@ export default function HomeTab({ profile, xp, streak, addXp, setTab }) {
   const masteryValues = subjects.map(s => masteries[s] ?? 0)
   const avgMastery = Math.round(masteryValues.reduce((a, b) => a + b, 0) / (masteryValues.length || 1))
 
-  // ── Daily Brief ────────────────────────────────────────────
+  const saveMood = (m) => {
+    setMood(m)
+    try { localStorage.setItem('eduvyai_mood', JSON.stringify({ date: new Date().toDateString(), value: m })) } catch {}
+  }
+
+  // ── Daily Brief (mood-aware) ────────────────────────────────
   const generateBrief = async () => {
+    const moodNote = mood === 'stressed'
+      ? 'The student is feeling STRESSED today. Focus on quick wins, review of already-known topics, and include one breathing tip. Be extra gentle and encouraging.'
+      : mood === 'tired'
+      ? 'The student is TIRED today. Suggest only 2-3 short 20-minute study blocks. Recommend story-mode learning (Tutor → Story tab). Skip hard new topics.'
+      : mood === 'fresh'
+      ? 'The student is FRESH and energized! This is the perfect time for hard new topics. Challenge them and set ambitious goals for today.'
+      : 'Normal paced study plan.'
     setBriefLoading(true)
     setBrief("")
-    const sys = buildSystemPrompt(profile, `Generate a personalized 90-second morning study plan for today. Include:
-- Focus topic for today
-- A board-specific exam tip for ${profile.board}
-- A motivational message
-- One concept to master tonight
-Keep it warm, energetic, and in ${profile.language}.`)
+    const sys = buildSystemPrompt(profile, `Generate a personalized 90-second morning study plan for today. ${moodNote}
+Include: focus topic for today, a board-specific exam tip for ${profile.board}, a motivational message, and one concept to master tonight. Keep it warm, energetic, and in ${profile.language}.`)
     const res = await callAI(`Create my daily brain brief for today. I study ${subjects.slice(0,3).join(", ")}.`, sys)
     setBrief(res)
     addXp(5)
     setBriefLoading(false)
+  }
+
+  // ── Mera Sawaal: daily hyper-local problem ─────────────────
+  const generateDailyQ = async () => {
+    setDailyQLoad(true)
+    setDailyQ(null)
+    setDailyAns(false)
+    const localExamples = {
+      'Gujarati': 'kirana store, Navratri, Surat textile market, groundnut oil, sugarcane fields',
+      'Hindi': 'chai stall, cricket match, Delhi metro, mango season, Diwali crackers',
+      'Marathi': 'Pune traffic, sugarcane, Ganpati festival, coconut, Mumbai dabbawalas',
+      'Tamil': 'rice paddy, Chennai marina, auto-rickshaw, Pongal harvest, coconut trees',
+      'Telugu': 'Hyderabad biryani, Charminar, paddy fields, Sankranti kite flying, IT Park',
+      'Kannada': 'Bengaluru traffic, coffee plantation, Mysore palace, Dasara festival, silk saree',
+      'Bengali': 'Durga Puja, mustard fields, Kolkata tram, hilsa fish, Sundarbans',
+      'Punjabi': 'wheat harvest, bhangra, langar, tractor, Golden Temple',
+      'Odia': 'Rath Yatra, Mahanadi river, paddy, Puri beach, Odissi dance',
+      'Urdu': 'biryani, rickshaw, Lucknow tehzeeb, jasmine flowers, Eid celebration',
+      'English': 'cricket match, chai, auto-rickshaw, Diwali, ISRO rocket launch',
+    }
+    const examples = localExamples[profile.language] || localExamples.English
+    const subject = subjects[Math.floor(Math.random() * Math.min(subjects.length, 4))] || subjects[0] || 'Mathematics'
+    const sys = buildSystemPrompt(profile, `Generate ONE application problem for ${profile.standard} ${profile.board} ${subject}.
+Use a real, hyper-local Indian example from: ${examples}. The numbers must be realistic and grounded.
+Respond ONLY in ${profile.language} with this JSON (no markdown):
+{"q":"the full problem","a":"step-by-step solution","concept":"concept being tested","subject":"${subject}"}`)
+    const res = await callAI(`Generate a daily challenge problem for ${subject} using local Indian examples.`, sys, [], 2, 600)
+    const parsed = parseAIObject(res)
+    if (parsed?.q) {
+      setDailyQ(parsed)
+      addXp(3)
+    }
+    setDailyQLoad(false)
   }
 
   // ── Subject mastery tap ────────────────────────────────────
@@ -145,6 +213,53 @@ Write entirely in ${profile.language}.`)
 
   return (
     <div style={{ padding: "16px 16px 24px", maxWidth: 720, margin: "0 auto" }}>
+
+      {/* ── Mood Check (fresh each day) ───────────────────── */}
+      {!mood ? (
+        <div style={{
+          background: COLORS.card, border: `1px solid ${COLORS.border}`,
+          borderRadius: 18, padding: "16px 16px 14px", marginBottom: 14,
+        }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text, marginBottom: 12 }}>
+            How are you feeling today? 🌱
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            {[
+              { key: "fresh",    icon: "😄", label: "Fresh",    color: COLORS.green  },
+              { key: "okay",     icon: "😐", label: "Okay",     color: COLORS.blue   },
+              { key: "stressed", icon: "😟", label: "Stressed", color: COLORS.yellow },
+              { key: "tired",    icon: "😴", label: "Tired",    color: COLORS.muted  },
+            ].map(m => (
+              <button key={m.key} onClick={() => saveMood(m.key)} style={{
+                flex: 1, background: `${m.color}15`, border: `1px solid ${m.color}30`,
+                borderRadius: 12, padding: "10px 4px", cursor: "pointer",
+                fontFamily: "Sora, sans-serif",
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+              }}>
+                <span style={{ fontSize: 22 }}>{m.icon}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: m.color }}>{m.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div style={{
+          background: COLORS.card2, border: `1px solid ${COLORS.border}`,
+          borderRadius: 14, padding: "10px 14px", marginBottom: 14,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+        }}>
+          <span style={{ fontSize: 13, color: COLORS.muted }}>
+            {mood === "fresh"    && "😄 You're fresh — tackle the hard topics today! 🚀"}
+            {mood === "okay"     && "😐 You're doing okay — steady progress wins. 💪"}
+            {mood === "stressed" && "😟 You're stressed — quick wins only, no new topics. 🧘"}
+            {mood === "tired"    && "😴 You're tired — try Story Mode in the Tutor tab. 📖"}
+          </span>
+          <button onClick={() => { setMood(null); localStorage.removeItem('eduvyai_mood') }} style={{
+            background: "transparent", border: "none", fontSize: 11,
+            color: COLORS.muted, cursor: "pointer", fontFamily: "Sora, sans-serif",
+          }}>change</button>
+        </div>
+      )}
 
       {/* ── Hero Card ──────────────────────────────────────── */}
       <div style={{
@@ -228,14 +343,105 @@ Write entirely in ${profile.language}.`)
             <div style={aiCard}>
               <p style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.8, whiteSpace: "pre-wrap", margin: 0 }}>{brief}</p>
             </div>
-            <button
-              onClick={generateBrief}
-              disabled={briefLoading}
-              style={{ ...ghostBtn, marginTop: 10 }}
-            >
+            <button onClick={generateBrief} disabled={briefLoading} style={{ ...ghostBtn, marginTop: 10 }}>
               {briefLoading ? "Refreshing…" : "↺ Refresh Brief"}
             </button>
           </>
+        )}
+      </Section>
+
+      {/* ── Bhool Curve Memory Health ─────────────────────── */}
+      {bhoolDue > 0 && (
+        <Section title="🧠 Memory Health — Bhool Curve">
+          <p style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>
+            Based on spaced repetition science — these concepts need review before you forget them
+          </p>
+          <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+            {bhool.overdue.length > 0 && (
+              <div style={{ flex: 1, background: `${COLORS.red}12`, border: `1px solid ${COLORS.red}30`, borderRadius: 12, padding: "10px 12px", textAlign: "center" }}>
+                <div style={{ fontSize: 20, marginBottom: 4 }}>🔴</div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.red }}>{bhool.overdue.length}</div>
+                <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2 }}>Forget today</div>
+              </div>
+            )}
+            {bhool.soon.length > 0 && (
+              <div style={{ flex: 1, background: `${COLORS.yellow}12`, border: `1px solid ${COLORS.yellow}30`, borderRadius: 12, padding: "10px 12px", textAlign: "center" }}>
+                <div style={{ fontSize: 20, marginBottom: 4 }}>🟡</div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.yellow }}>{bhool.soon.length}</div>
+                <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2 }}>Due in 48h</div>
+              </div>
+            )}
+            {bhool.fresh.length > 0 && (
+              <div style={{ flex: 1, background: `${COLORS.green}10`, border: `1px solid ${COLORS.green}25`, borderRadius: 12, padding: "10px 12px", textAlign: "center" }}>
+                <div style={{ fontSize: 20, marginBottom: 4 }}>🟢</div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.green }}>{bhool.fresh.length}</div>
+                <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2 }}>Fresh</div>
+              </div>
+            )}
+          </div>
+          <div style={{ marginBottom: 10 }}>
+            {bhool.overdue.slice(0, 4).map((item, i) => (
+              <div key={i} style={{
+                display: "flex", alignItems: "center", gap: 8,
+                background: COLORS.card2, borderRadius: 8, padding: "7px 10px", marginBottom: 6,
+                border: `1px solid ${COLORS.red}20`,
+              }}>
+                <span style={{ fontSize: 10, background: COLORS.red, color: "#fff", borderRadius: 4, padding: "1px 6px", fontWeight: 700 }}>REVIEW</span>
+                <span style={{ fontSize: 12, color: COLORS.text, fontWeight: 600 }}>{item.concept}</span>
+                <span style={{ fontSize: 11, color: COLORS.muted, marginLeft: "auto" }}>{item.subject}</span>
+              </div>
+            ))}
+          </div>
+          <button onClick={() => setTab('labs')} style={primaryBtn}>
+            ⚡ Quick Revise Now
+          </button>
+        </Section>
+      )}
+
+      {/* ── Mera Sawaal — Hyper-local Daily Problem ──────── */}
+      <Section title="🎯 Mera Sawaal — Today's Challenge">
+        <p style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>
+          A real-world problem using examples from your own state and culture
+        </p>
+        {!dailyQ ? (
+          <button onClick={generateDailyQ} disabled={dailyQLoad} style={primaryBtn}>
+            {dailyQLoad ? "🎲 Generating…" : "🎲 Get Today's Problem"}
+          </button>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{
+              background: COLORS.card2, border: `1px solid ${COLORS.blue}25`,
+              borderRadius: 14, padding: 14,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.blue, background: `${COLORS.blue}18`, borderRadius: 6, padding: "2px 8px" }}>
+                  {dailyQ.subject}
+                </span>
+                <span style={{ fontSize: 11, color: COLORS.muted }}>{dailyQ.concept}</span>
+              </div>
+              <p style={{ fontSize: 14, color: COLORS.text, fontWeight: 600, lineHeight: 1.6, margin: 0 }}>
+                {dailyQ.q}
+              </p>
+            </div>
+            {!dailyAns ? (
+              <button onClick={() => { setDailyAns(true); addXp(8) }} style={{
+                ...primaryBtn,
+                background: `${COLORS.yellow}20`,
+                border: `1px solid ${COLORS.yellow}40`,
+                color: COLORS.yellow,
+              }}>
+                💡 Show Solution (+8 XP)
+              </button>
+            ) : (
+              <div style={{ background: `${COLORS.green}10`, border: `1px solid ${COLORS.green}25`, borderRadius: 12, padding: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.green, marginBottom: 6 }}>✅ Solution</div>
+                <p style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.7, whiteSpace: "pre-wrap", margin: 0 }}>{dailyQ.a}</p>
+              </div>
+            )}
+            <button onClick={generateDailyQ} disabled={dailyQLoad} style={ghostBtn}>
+              {dailyQLoad ? "Generating…" : "↺ New Problem"}
+            </button>
+          </div>
         )}
       </Section>
 
