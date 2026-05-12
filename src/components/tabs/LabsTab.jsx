@@ -1,0 +1,77 @@
+import { useState } from 'react'
+import { COLORS } from '../../App.jsx'
+import PodcastLab from '../labs/PodcastLab.jsx'
+import QuizLab from '../labs/QuizLab.jsx'
+import EssayLab from '../labs/EssayLab.jsx'
+import MentalLab from '../labs/MentalLab.jsx'
+
+const LABS = [
+  { key: "podcast", icon: "🎙️", label: "AI Podcast Studio",   desc: "Two AI hosts debate your syllabus topics like a real podcast", color: "#FFD166" },
+  { key: "quiz",    icon: "🎯", label: "Quiz Arena",           desc: "Adaptive board-exam MCQ practice with instant explanations",  color: "#00E5A0" },
+  { key: "essay",   icon: "✍️",  label: "Essay Grader",         desc: "AI board examiner grades your writing with detailed feedback", color: "#7B9CFF" },
+  { key: "mental",  icon: "🧘", label: "Mental Wellness Coach", desc: "Exam anxiety, motivation, burnout — your personal counselor",  color: "#FF6B35" },
+]
+
+export default function LabsTab(props) {
+  const [activeLab, setActiveLab] = useState(null)
+
+  if (activeLab === "podcast") return <PodcastLab {...props} onBack={() => setActiveLab(null)} />
+  if (activeLab === "quiz")    return <QuizLab    {...props} onBack={() => setActiveLab(null)} />
+  if (activeLab === "essay")   return <EssayLab   {...props} onBack={() => setActiveLab(null)} />
+  if (activeLab === "mental")  return <MentalLab  {...props} onBack={() => setActiveLab(null)} />
+
+  return (
+    <div style={{ padding: 16 }}>
+      <h2 style={{ fontSize: 18, fontWeight: 800, color: COLORS.text, marginBottom: 4 }}>⚗️ Labs</h2>
+      <p style={{ fontSize: 13, color: COLORS.muted, marginBottom: 20 }}>
+        AI-powered learning experiments
+      </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {LABS.map(lab => (
+          <button
+            key={lab.key}
+            onClick={() => setActiveLab(lab.key)}
+            style={{
+              background: COLORS.card,
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 18,
+              padding: 18,
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              cursor: "pointer",
+              textAlign: "left",
+              fontFamily: "Sora, sans-serif",
+              width: "100%",
+            }}
+          >
+            <div style={{
+              width: 56,
+              height: 56,
+              borderRadius: 16,
+              background: `${lab.color}20`,
+              border: `1.5px solid ${lab.color}40`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 26,
+              flexShrink: 0,
+            }}>
+              {lab.icon}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.text, marginBottom: 4 }}>
+                {lab.label}
+              </div>
+              <div style={{ fontSize: 12, color: COLORS.muted, lineHeight: 1.4 }}>
+                {lab.desc}
+              </div>
+            </div>
+            <span style={{ fontSize: 18, color: COLORS.muted, flexShrink: 0 }}>›</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}

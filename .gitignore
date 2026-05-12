@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+
+# Build output
+dist/
+
+# Env files — never commit real keys
+.env
+backend/.env
+*.env
+
+# Vite cache
+.vite/

@@ -1,0 +1,5 @@
+cd "d:\Geteway Group\AI\ai\backend" ; python -m uvicorn main:app --port 8000 --host 0.0.0.0  --reload
+cd "d:\Geteway Group\AI\ai" ; npm run dev
+
+
+In notebook tab the studio not proper we need to think on that we need the make it better find out the bug and think what we can do.

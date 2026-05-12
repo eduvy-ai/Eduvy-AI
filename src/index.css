@@ -1,0 +1,180 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&display=swap');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  background: #04040e;
+  color: #eeeeff;
+  font-family: 'Sora', sans-serif;
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body, input, textarea, select, button {
+  font-family: 'Sora', sans-serif;
+}
+
+button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Scrollbars ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 0; height: 0; }
+
+/* ── Animations ─────────────────────────────────────────── */
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.85); }
+  50%       { opacity: 1;   transform: scale(1); }
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes soundbar {
+  from { height: 4px;  opacity: 0.5; }
+  to   { height: 14px; opacity: 1;   }
+}
+
+input, textarea, select { outline: none; border: none; }
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE LAYOUT  (default — < 768 px)
+   Single-column, bottom nav, full-width card
+   ═══════════════════════════════════════════════════════ */
+
+#root {
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  background: #04040e;
+}
+
+.app-shell {
+  width: 100%;
+  max-width: 480px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #04040e;
+  position: relative;
+}
+
+/* Bottom nav visible on mobile, hidden on desktop */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  background: #0b0b1c;
+  border-top: 1px solid #ffffff08;
+  display: flex;
+  z-index: 100;
+}
+
+/* Sidebar nav — hidden on mobile */
+.side-nav { display: none; }
+
+/* Main content padding for bottom nav */
+.tab-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 72px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TABLET / DESKTOP LAYOUT  (≥ 768 px)
+   Left sidebar nav + right content panel, centered max 1200px
+   ═══════════════════════════════════════════════════════ */
+
+@media (min-width: 768px) {
+  #root {
+    align-items: stretch;
+    background: #020209;
+  }
+
+  .app-shell {
+    max-width: 1200px;
+    width: 100%;
+    flex-direction: row;
+    min-height: 100vh;
+    margin: 0 auto;
+    border-left: 1px solid #ffffff08;
+    border-right: 1px solid #ffffff08;
+  }
+
+  /* Hide bottom nav, show sidebar */
+  .bottom-nav { display: none; }
+
+  .side-nav {
+    display: flex;
+    flex-direction: column;
+    width: 220px;
+    min-height: 100vh;
+    background: #0b0b1c;
+    border-right: 1px solid #ffffff08;
+    padding: 24px 12px 24px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  /* Main content — no bottom padding, fills remaining width */
+  .tab-content {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 32px;
+    min-width: 0;
+  }
+
+  /* App header spans full width on desktop */
+  .app-header {
+    width: 100%;
+  }
+}
+
+/* ── Wide desktop (≥ 1024px): slightly wider sidebar ─────── */
+@media (min-width: 1024px) {
+  .side-nav {
+    width: 260px;
+    padding: 28px 16px;
+  }
+}
+
+/* ── Safe area for notch phones ─────────────────────────── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ── Admin panel: full-viewport takeover, escapes student app constraints ── */
+.admin-panel-root {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1000;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Sora', sans-serif;
+}
