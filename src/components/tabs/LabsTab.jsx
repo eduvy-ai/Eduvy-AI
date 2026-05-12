@@ -4,21 +4,27 @@ import PodcastLab from '../labs/PodcastLab.jsx'
 import QuizLab from '../labs/QuizLab.jsx'
 import EssayLab from '../labs/EssayLab.jsx'
 import MentalLab from '../labs/MentalLab.jsx'
+import ExaminerLab from '../labs/ExaminerLab.jsx'
+import SamjhaoLab from '../labs/SamjhaoLab.jsx'
 
 const LABS = [
-  { key: "podcast", icon: "🎙️", label: "AI Podcast Studio",   desc: "Two AI hosts debate your syllabus topics like a real podcast", color: "#FFD166" },
-  { key: "quiz",    icon: "🎯", label: "Quiz Arena",           desc: "Adaptive board-exam MCQ practice with instant explanations",  color: "#00E5A0" },
-  { key: "essay",   icon: "✍️",  label: "Essay Grader",         desc: "AI board examiner grades your writing with detailed feedback", color: "#7B9CFF" },
-  { key: "mental",  icon: "🧘", label: "Mental Wellness Coach", desc: "Exam anxiety, motivation, burnout — your personal counselor",  color: "#FF6B35" },
+  { key: "examiner", icon: "🎯", label: "Marks Hunter",          desc: "AI grades your written answer exactly like a real board examiner — keyword by keyword", color: "#FFD166" },
+  { key: "samjhao",  icon: "🧪", label: "Samjhao Mode",          desc: "Explain any concept in your own words — get your Feynman Score and patch gaps instantly", color: "#7B9CFF" },
+  { key: "quiz",     icon: "⚡", label: "Quiz Arena",             desc: "Adaptive board-exam MCQ practice with instant explanations + Galti Doctor",             color: "#00E5A0" },
+  { key: "podcast",  icon: "🎙️", label: "AI Podcast Studio",     desc: "Two AI hosts debate your syllabus topics like a real podcast",                          color: "#FF6B35" },
+  { key: "essay",    icon: "✍️",  label: "Essay Grader",          desc: "AI board examiner grades your writing with detailed feedback",                          color: "#FF6B6B" },
+  { key: "mental",   icon: "🧘", label: "Mental Wellness Coach",  desc: "Exam anxiety, motivation, burnout — your personal counselor",                          color: "#00E5A0" },
 ]
 
 export default function LabsTab(props) {
   const [activeLab, setActiveLab] = useState(null)
 
-  if (activeLab === "podcast") return <PodcastLab {...props} onBack={() => setActiveLab(null)} />
-  if (activeLab === "quiz")    return <QuizLab    {...props} onBack={() => setActiveLab(null)} />
-  if (activeLab === "essay")   return <EssayLab   {...props} onBack={() => setActiveLab(null)} />
-  if (activeLab === "mental")  return <MentalLab  {...props} onBack={() => setActiveLab(null)} />
+  if (activeLab === "podcast")  return <PodcastLab  {...props} onBack={() => setActiveLab(null)} />
+  if (activeLab === "quiz")     return <QuizLab     {...props} onBack={() => setActiveLab(null)} />
+  if (activeLab === "essay")    return <EssayLab    {...props} onBack={() => setActiveLab(null)} />
+  if (activeLab === "mental")   return <MentalLab   {...props} onBack={() => setActiveLab(null)} />
+  if (activeLab === "examiner") return <ExaminerLab {...props} onBack={() => setActiveLab(null)} />
+  if (activeLab === "samjhao")  return <SamjhaoLab  {...props} onBack={() => setActiveLab(null)} />
 
   return (
     <div style={{ padding: 16 }}>
