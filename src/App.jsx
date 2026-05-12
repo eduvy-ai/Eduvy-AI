@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom'
-import Splash from './components/Splash.jsx'
+import LandingPage from './components/LandingPage.jsx'
 import Onboard from './components/Onboard.jsx'
 import AuthScreen from './components/AuthScreen.jsx'
 import AdminPanel from './components/AdminPanel.jsx'
@@ -207,9 +207,7 @@ export default function App() {
   const [aiConfig,       setAiConfigState]  = useState(DEFAULT_AI)
   const [savedAiKeys,    setSavedAiKeys]    = useState({})
 
-  // Splash coordination: wait for animation + auth check
-  const [splashDone,  setSplashDone]  = useState(false)
-  const [_nextPath,   setNextPath]    = useState(null)
+  // (splash coordination removed — LandingPage handles auth check itself)
 
   // ── Hydrate from profile row ──────────────────────────────
   const hydrateProfile = (data) => {
@@ -246,6 +244,8 @@ export default function App() {
   }
 
   // ── Auth check on mount ───────────────────────────────────
+  // Note: the landing page (/) handles its own auth redirect.
+  // This effect only handles /app/* and /auth routes.
   useEffect(() => {
     async function load() {
       const token = getAuthToken()
@@ -256,10 +256,9 @@ export default function App() {
             hydrateProfile(data)
             // Admin routes manage their own auth — don't redirect them
             if (location.pathname.startsWith('/admin')) return
-            // If on splash (/) → wait for animation, then go to app
-            if (location.pathname === '/') {
-              setNextPath('/app/home')
-            } else if (location.pathname.startsWith('/auth')) {
+            // Landing page manages its own redirect — skip it here
+            if (location.pathname === '/') return
+            if (location.pathname.startsWith('/auth')) {
               // Already had valid token, go to app
               navigate('/app/home', { replace: true })
             }
@@ -271,24 +270,15 @@ export default function App() {
       }
       // Not authenticated — admin routes manage their own auth
       if (location.pathname.startsWith('/admin')) return
-      if (location.pathname === '/') {
-        setNextPath('/auth')
-      } else if (location.pathname.startsWith('/app')) {
+      // Landing page manages its own state
+      if (location.pathname === '/') return
+      if (location.pathname.startsWith('/app')) {
         navigate('/auth', { replace: true })
       }
     }
     load()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  // Advance from splash once animation + auth check both done
-  useEffect(() => {
-    if (splashDone && _nextPath) {
-      const target = _nextPath
-      setNextPath(null)          // consume it so this effect never fires again
-      navigate(target, { replace: true })
-    }
-  }, [splashDone, _nextPath, navigate])
 
   // ── Handlers ─────────────────────────────────────────────
   const handleAuth = (data) => {
@@ -346,8 +336,8 @@ export default function App() {
   // ── Routes ────────────────────────────────────────────────
   return (
     <Routes>
-      {/* Splash — always entry point for fresh visits */}
-      <Route path="/" element={<Splash onDone={() => setSplashDone(true)} />} />
+      {/* Landing page — shown to unauthenticated visitors */}
+      <Route path="/" element={<LandingPage />} />
 
       {/* Auth */}
       <Route path="/auth" element={<AuthScreen onAuth={handleAuth} />} />

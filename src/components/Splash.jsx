@@ -49,24 +49,24 @@ export default function Splash({ onDone }) {
           🎓
         </div>
 
-        <div style={{ textAlign: "center" }}>
-          <div style={{
-            fontSize: 36,
-            fontWeight: 900,
-            color: COLORS.text,
-            letterSpacing: -1,
-          }}>
-            Vidy<span style={{ color: COLORS.green }}>AI</span>
+          <div style={{ textAlign: "center" }}>
+            <div style={{
+              fontSize: 36,
+              fontWeight: 900,
+              color: COLORS.text,
+              letterSpacing: -1,
+            }}>
+              Eduvy<span style={{ color: COLORS.green }}>-AI</span>
+            </div>
+            <div style={{
+              fontSize: 13,
+              color: COLORS.muted,
+              marginTop: 4,
+              fontWeight: 500,
+            }}>
+              विद्या + AI = आपका भविष्य
+            </div>
           </div>
-          <div style={{
-            fontSize: 13,
-            color: COLORS.muted,
-            marginTop: 4,
-            fontWeight: 500,
-          }}>
-            विद्या + AI = आपका भविष्य
-          </div>
-        </div>
       </div>
 
       {/* Tagline */}
