@@ -299,10 +299,12 @@ export default function SathiTab({ profile, userId }) {
   const [aiPeerLoading,  setAiPeerLoading]  = useState(false)
   const [silentSince,    setSilentSince]    = useState(Date.now())
   const [leaving,        setLeaving]        = useState(false)
+  const [silenceTick,    setSilenceTick]    = useState(0)  // forces re-render for silence check
 
-  const messagesEnd = useRef(null)
-  const pollTimer   = useRef(null)
-  const inputRef    = useRef(null)
+  const messagesEnd   = useRef(null)
+  const pollTimer     = useRef(null)
+  const inputRef      = useRef(null)
+  const lastMsgIdRef  = useRef(0)  // always-current value for polling closure
 
   // ── Scroll to bottom ───────────────────────────────────────
   const scrollBottom = useCallback(() => {
@@ -341,29 +343,51 @@ export default function SathiTab({ profile, userId }) {
       pollMessages(squad.id)
     }, POLL_MS)
     return () => clearInterval(pollTimer.current)
-  }, [squad?.id, lastMsgId])  // eslint-disable-line
+  }, [squad?.id])  // eslint-disable-line — uses lastMsgIdRef to avoid stale closures
+
+  // ── Silence tick — forces re-render every 15s so AI Peer button can appear ──
+  useEffect(() => {
+    if (!squad) return
+    const t = setInterval(() => setSilenceTick(n => n + 1), 15000)
+    return () => clearInterval(t)
+  }, [!!squad])  // eslint-disable-line
 
   // ── Helpers ───────────────────────────────────────────────
   const loadMessages = async (squadId, since, initial = false) => {
     try {
       const data = await apiGetSquadMessages(squadId, since)
       if (data.messages?.length) {
-        setMessages(prev => initial ? data.messages : [...prev, ...data.messages])
+        if (initial) {
+          setMessages(data.messages)
+        } else {
+          setMessages(prev => {
+            const real = prev.filter(m => !m._optimistic)
+            const existingIds = new Set(real.map(m => m.id))
+            const toAdd = data.messages.filter(m => !existingIds.has(m.id))
+            return [...real, ...toAdd]
+          })
+        }
         const lastId = data.messages[data.messages.length - 1].id
         setLastMsgId(lastId)
-        setSilentSince(Date.now())
-        if (!initial) scrollBottom()
+        lastMsgIdRef.current = lastId
+        scrollBottom()  // always scroll (initial or not)
       }
     } catch { /* silent */ }
   }
 
   const pollMessages = async (squadId) => {
     try {
-      const data = await apiGetSquadMessages(squadId, lastMsgId)
+      const data = await apiGetSquadMessages(squadId, lastMsgIdRef.current)
       if (data.messages?.length) {
-        setMessages(prev => [...prev, ...data.messages])
+        setMessages(prev => {
+          const real = prev.filter(m => !m._optimistic)
+          const existingIds = new Set(real.map(m => m.id))
+          const toAdd = data.messages.filter(m => !existingIds.has(m.id))
+          return [...real, ...toAdd]
+        })
         const lastId = data.messages[data.messages.length - 1].id
         setLastMsgId(lastId)
+        lastMsgIdRef.current = lastId
         setSilentSince(Date.now())
         scrollBottom()
       }
@@ -441,8 +465,13 @@ export default function SathiTab({ profile, userId }) {
         .join('\n')
 
       const lang = profile?.language || 'English'
-      const langRule = `IMPORTANT: Respond only in ${lang}. `
-      const sysPrompt = `${langRule}You are Gyaani, a confused but curious Class ${(profile?.standard || 'Class 10').replace('Class ', '')} student studying ${squad.focus_subject}. You ask thoughtful follow-up questions, admit when you don't understand, and sometimes make small mistakes that show you're genuinely learning. You NEVER act like a teacher. Keep responses short (2-3 sentences max). Use simple, friendly language a student would use.`
+      const langRule = LANG_RULES[lang] || LANG_RULES['English']
+      const sysPrompt = `🚨 LANGUAGE RULE — MANDATORY — NEVER BREAK:
+${langRule}
+YOU MUST write your ENTIRE response in ${lang} ONLY.
+NEVER mix languages.
+
+You are Gyaani, a confused but curious Class ${(profile?.standard || 'Class 10').replace('Class ', '')} student studying ${squad.focus_subject}. You ask thoughtful follow-up questions, admit when you don't understand, and sometimes make small mistakes that show you're genuinely learning. You NEVER act like a teacher. Keep responses short (2-3 sentences max). Use simple, friendly language a student would use.`
 
       const prompt = recent
         ? `The squad was just discussing:\n${recent}\n\nAs a confused student, react to this conversation or ask a follow-up question.`
@@ -459,7 +488,7 @@ export default function SathiTab({ profile, userId }) {
 
   // ── Create challenge ───────────────────────────────────────
   const handleCreateChallenge = async () => {
-    if (!squad) return
+    if (!squad || (showChallenge && challenge)) return
     try {
       await apiCreateChallenge(squad.id)
       await loadChallenge(squad.id)
@@ -471,11 +500,9 @@ export default function SathiTab({ profile, userId }) {
   // ── Submit challenge ───────────────────────────────────────
   const handleSubmitChallenge = async (explanation) => {
     if (!challenge) return null
+    // Don’t clear challenge/banner here — let ChallengeBanner show the
+    // “Challenge complete!” feedback for 2.5s then call onDismiss.
     const res = await apiSubmitChallenge(squad.id, challenge.id, explanation)
-    if (res?.completed) {
-      setChallenge(null)
-      setShowChallenge(false)
-    }
     return res
   }
 
@@ -489,6 +516,7 @@ export default function SathiTab({ profile, userId }) {
       setMessages([])
       setMembers([])
       setLastMsgId(0)
+      lastMsgIdRef.current = 0
     } catch { /* silent */ }
     finally { setLeaving(false) }
   }
@@ -569,7 +597,7 @@ export default function SathiTab({ profile, userId }) {
           <ChallengeBanner
             challenge={challenge}
             onSubmit={handleSubmitChallenge}
-            onDismiss={() => setShowChallenge(false)}
+            onDismiss={() => { setShowChallenge(false); setChallenge(null) }}
           />
         </div>
       )}
@@ -589,7 +617,7 @@ export default function SathiTab({ profile, userId }) {
           <Bubble
             key={m.id}
             msg={m}
-            isMine={m.user_id === userId}
+            isMine={m.user_id === userId && m.msg_type !== 'ai_peer'}
             memberName={memberMap[m.user_id]?.name}
           />
         ))}
