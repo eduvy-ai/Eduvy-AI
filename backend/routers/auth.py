@@ -6,6 +6,7 @@ POST /api/auth/login     → verify email+password, return JWT + profile
 GET  /api/auth/me        → verify token, return profile (used on app load)
 """
 import os
+import re
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -17,6 +18,9 @@ import bcrypt
 import json
 
 from database import get_db, row_to_dict
+
+# Strict email regex — rejects clearly malformed addresses
+_EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
 
 router = APIRouter()
 
@@ -103,12 +107,16 @@ def _safe_profile(row: dict) -> dict:
 @router.post("/auth/register", status_code=201)
 async def register(data: RegisterRequest):
     email = data.email.strip().lower()
-    if not email or "@" not in email:
-        raise HTTPException(status_code=422, detail="Valid email required")
-    if len(data.password) < 6:
-        raise HTTPException(status_code=422, detail="Password must be at least 6 characters")
+    if not email or not _EMAIL_RE.match(email):
+        raise HTTPException(status_code=422, detail="Valid email address required")
+    if len(data.password) < 8:
+        raise HTTPException(status_code=422, detail="Password must be at least 8 characters")
+    if len(data.password) > 128:
+        raise HTTPException(status_code=422, detail="Password too long")
     if not data.name.strip():
         raise HTTPException(status_code=422, detail="Name required")
+    if len(data.name.strip()) > 100:
+        raise HTTPException(status_code=422, detail="Name too long")
 
     conn = get_db()
     try:
@@ -144,16 +152,18 @@ async def register(data: RegisterRequest):
 @router.post("/auth/login")
 async def login(data: LoginRequest):
     email = data.email.strip().lower()
+    # Generic error message — prevents user enumeration (OWASP A07)
+    _INVALID = "Invalid email or password"
     conn = get_db()
     try:
         cur = conn.cursor()
         cur.execute("SELECT * FROM users WHERE email = %s", (email,))
         row = cur.fetchone()
         if not row:
-            raise HTTPException(status_code=401, detail="Email not found")
+            raise HTTPException(status_code=401, detail=_INVALID)
         row = row_to_dict(row)
         if not row.get("password_hash") or not verify_password(data.password, row["password_hash"]):
-            raise HTTPException(status_code=401, detail="Incorrect password")
+            raise HTTPException(status_code=401, detail=_INVALID)
         token = _make_token(row["id"])
         return {"token": token, "profile": _safe_profile(row)}
     finally:

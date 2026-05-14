@@ -43,6 +43,8 @@ def init_db():
             ai_model        TEXT DEFAULT 'gemini-2.0-flash',
             ai_key          TEXT DEFAULT '',
             ai_keys         TEXT DEFAULT '{}',
+            plan            TEXT DEFAULT 'free',
+            plan_expires_at TEXT DEFAULT '',
             created_at      TEXT DEFAULT CURRENT_DATE
         )
     """)
@@ -55,6 +57,24 @@ def init_db():
                 WHERE table_name = 'users' AND column_name = 'ai_keys'
             ) THEN
                 ALTER TABLE users ADD COLUMN ai_keys TEXT DEFAULT '{}';
+            END IF;
+        END $$;
+    """)
+    # --- Add plan columns if missing (existing DBs) ---
+    cur.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = 'plan'
+            ) THEN
+                ALTER TABLE users ADD COLUMN plan TEXT DEFAULT 'free';
+            END IF;
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = 'plan_expires_at'
+            ) THEN
+                ALTER TABLE users ADD COLUMN plan_expires_at TEXT DEFAULT '';
             END IF;
         END $$;
     """)
@@ -143,6 +163,17 @@ def init_db():
             extra       TEXT NOT NULL DEFAULT '',
             updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (user_id, draft_key)
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS ai_usage (
+            id                  SERIAL PRIMARY KEY,
+            user_id             TEXT NOT NULL,
+            date                TEXT NOT NULL,
+            call_count          INTEGER DEFAULT 0,
+            prompt_tokens       INTEGER DEFAULT 0,
+            completion_tokens   INTEGER DEFAULT 0,
+            UNIQUE (user_id, date)
         )
     """)
     # ── Curriculum / Admin tables ─────────────────────────────────

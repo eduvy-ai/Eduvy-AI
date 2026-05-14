@@ -18,6 +18,54 @@ export const COLORS = {
   muted:  "#6868a0",
 }
 
+// ─── Subscription Plans ───────────────────────────────────────
+// Defines what each plan tier can access. Tab keys match NAV_ITEMS keys.
+// Lab keys match LABS keys in LabsTab.
+export const PLANS = {
+  free: {
+    label:          'Free',
+    icon:           '🆓',
+    color:          '#6868a0',
+    tabs:           ['home', 'tutor'],
+    labs:           [],
+    aiCallsPerDay:  10,
+  },
+  basic: {
+    label:          'Basic',
+    icon:           '⭐',
+    color:          '#FFD166',
+    tabs:           ['home', 'tutor', 'videos', 'notebook'],
+    labs:           [],
+    aiCallsPerDay:  50,
+  },
+  pro: {
+    label:          'Pro',
+    icon:           '🚀',
+    color:          '#7B9CFF',
+    tabs:           ['home', 'tutor', 'videos', 'notebook', 'learntv', 'labs'],
+    labs:           ['quiz', 'examiner', 'samjhao'],
+    aiCallsPerDay:  200,
+  },
+  premium: {
+    label:          'Premium',
+    icon:           '👑',
+    color:          '#00E5A0',
+    tabs:           ['home', 'tutor', 'videos', 'notebook', 'learntv', 'labs', 'discover'],
+    labs:           ['quiz', 'examiner', 'samjhao', 'podcast', 'essay', 'mental'],
+    aiCallsPerDay:  Infinity,
+  },
+}
+
+/** Returns true if the given plan has access to the tab key. */
+export function planHasTab(plan, tabKey) {
+  return (PLANS[plan] || PLANS.free).tabs.includes(tabKey)
+}
+
+/** Returns true if the given plan has access to the lab key. */
+export function planHasLab(plan, labKey) {
+  return (PLANS[plan] || PLANS.free).labs.includes(labKey)
+}
+
 // ─── Boards ──────────────────────────────────────────────────
 export const BOARDS = [
   "CBSE","ICSE","GSEB","MSBSHSE","RBSE",
@@ -163,19 +211,9 @@ export const setAIConfig = (cfg) => {
   // Config is persisted in the backend DB — no localStorage
 }
 
-// ─── Backend availability cache ───────────────────────────────
-// We check once per session; if backend responds we use it for all calls.
-let _backendAvailable = null  // null = not checked yet
-
-async function _checkBackend() {
-  if (_backendAvailable !== null) return _backendAvailable
-  try {
-    const res = await fetch("/api/health", { signal: AbortSignal.timeout(2000) })
-    _backendAvailable = res.ok
-  } catch {
-    _backendAvailable = false
-  }
-  return _backendAvailable
+// ─── Auth token helper (read from localStorage) ───────────────
+function _getAuthToken() {
+  try { return localStorage.getItem('eduvyai_token') || '' } catch { return '' }
 }
 
 // ─── Sleep helper ─────────────────────────────────────────────
@@ -203,142 +241,68 @@ function _sanitiseResponse(text, language) {
 }
 
 // ─── Multi-provider AI Caller ─────────────────────────────────
-// Routes through FastAPI backend when available (keeps API keys server-side).
-// Falls back to direct browser calls if backend is down.
+// All calls go through the backend proxy — API keys are NEVER sent
+// to or from the browser.  The backend enforces plan-based rate limits
+// and routes to the cheapest model for free/basic plans automatically.
 export async function callAI(prompt, systemPrompt, history = [], retries = 3, maxTokens = 1200) {
-  const { provider, apiKey, model } = _aiConfig
+  const { provider, model } = _aiConfig
+  const token = _getAuthToken()
 
-  const messages = [
-    ...history.slice(-8).map(m => ({
-      role: m.role === "assistant" ? "assistant" : "user",
-      content: String(m.content || ""),
-    })),
-  ]
-
-  // ── Try backend first ────────────────────────────────────────
-  const useBackend = await _checkBackend()
-  if (useBackend) {
-    try {
-      const res = await fetch("/api/ai/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider, model,
-          prompt: String(prompt),
-          systemPrompt: String(systemPrompt),
-          history: messages,
-          maxTokens,
-          // Only send key if user typed one (backend may already have it in .env)
-          apiKey: apiKey || undefined,
-        }),
-        signal: AbortSignal.timeout(60000),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        return _sanitiseResponse(data.text, _currentLanguage) || "No response. Please try again."
-      }
-      // Non-ok HTTP from backend — fall through to direct call
-    } catch {
-      // Backend timeout/network error — fall through to direct call
-      _backendAvailable = false
-    }
-  }
-
-  // ── Direct browser call (fallback / no backend) ──────────────
-  if (!apiKey) {
-    return "⚠️ No API key set. Tap ⚙️ in the header to open Settings and add your key."
-  }
-
-  const allMessages = [...messages, { role: "user", content: String(prompt) }]
+  const messages = history.slice(-8).map(m => ({
+    role: m.role === "assistant" ? "assistant" : "user",
+    content: String(m.content || ""),
+  }))
 
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      let res, data, text
+      const res = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          provider, model,
+          prompt:       String(prompt),
+          systemPrompt: String(systemPrompt),
+          history:      messages,
+          maxTokens,
+        }),
+        signal: AbortSignal.timeout(90000),
+      })
 
-      // ── Anthropic ───────────────────────────────────────────
-      if (provider === "anthropic") {
-        res = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": apiKey,
-            "anthropic-version": "2023-06-01",
-            "anthropic-dangerous-allow-browser": "true",
-          },
-          body: JSON.stringify({ model, max_tokens: maxTokens, system: String(systemPrompt), messages: allMessages }),
-        })
-        data = await res.json()
-        if (data.error?.type === "rate_limit_error" || data.error?.type === "exceeded_limit" || res.status === 429 || res.status === 529) {
-          if (attempt < retries - 1) { await sleep((attempt + 1) * 3000); continue }
-          return "⚠️ Rate limit. Please wait 10 seconds and retry."
-        }
-        if (data.error) return "⚠️ " + (data.error.message || "Unknown error")
-        text = data.content?.[0]?.text
-
-      // ── OpenAI ──────────────────────────────────────────────
-      } else if (provider === "openai") {
-        res = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-          body: JSON.stringify({ model, max_tokens: maxTokens, messages: [{ role: "system", content: String(systemPrompt) }, ...allMessages] }),
-        })
-        data = await res.json()
-        if (res.status === 429) {
-          if (attempt < retries - 1) { await sleep((attempt + 1) * 3000); continue }
-          return "⚠️ Rate limit. Please wait and retry."
-        }
-        if (data.error) return "⚠️ " + (data.error.message || "Unknown error")
-        text = data.choices?.[0]?.message?.content
-
-      // ── Google Gemini ───────────────────────────────────────
-      } else if (provider === "gemini") {
-        const geminiContents = allMessages.map(m => ({
-          role: m.role === "assistant" ? "model" : "user",
-          parts: [{ text: m.content }],
-        }))
-        res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              system_instruction: { parts: [{ text: String(systemPrompt) }] },
-              contents: geminiContents,
-              generationConfig: { maxOutputTokens: maxTokens },
-            }),
-          }
-        )
-        data = await res.json()
-        if (res.status === 429 || data.error?.code === 429) {
-          if (attempt < retries - 1) { await sleep((attempt + 1) * 3000); continue }
-          return "⚠️ Rate limit. Please wait and retry."
-        }
-        if (data.error) return "⚠️ " + (data.error.message || "Unknown error")
-        text = data.candidates?.[0]?.content?.parts?.[0]?.text
-
-      // ── Groq (OpenAI-compatible) ────────────────────────────
-      } else if (provider === "groq") {
-        res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-          body: JSON.stringify({ model, max_tokens: maxTokens, messages: [{ role: "system", content: String(systemPrompt) }, ...allMessages] }),
-        })
-        data = await res.json()
-        if (res.status === 429) {
-          if (attempt < retries - 1) { await sleep((attempt + 1) * 3000); continue }
-          return "⚠️ Rate limit. Please wait and retry."
-        }
-        if (data.error) return "⚠️ " + (data.error.message || "Unknown error")
-        text = data.choices?.[0]?.message?.content
+      // ── Rate limit hit ─────────────────────────────────────
+      if (res.status === 429) {
+        const data = await res.json().catch(() => ({}))
+        const detail = data.detail || {}
+        const used  = detail.used  || 0
+        const limit = detail.limit || 0
+        const plan  = detail.plan  || 'free'
+        return `⚠️ Daily limit reached (${used}/${limit} calls used on your ${plan.charAt(0).toUpperCase() + plan.slice(1)} plan). Your limit resets at midnight. Upgrade your plan for more calls.`
       }
 
-      return _sanitiseResponse(text, _currentLanguage) || "No response. Please try again."
+      // ── Not authenticated ──────────────────────────────────
+      if (res.status === 401) {
+        return "⚠️ Session expired. Please log in again."
+      }
 
-    } catch {
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "")
+        if (attempt < retries - 1) { await sleep((attempt + 1) * 2000); continue }
+        return `⚠️ Server error (${res.status}). Please try again.`
+      }
+
+      const data = await res.json()
+      return _sanitiseResponse(data.text, _currentLanguage) || "No response. Please try again."
+
+    } catch (err) {
+      // Network / timeout
       if (attempt < retries - 1) { await sleep(2000); continue }
-      return "⚠️ Network error. Check your connection."
+      return "⚠️ Network error. Check your connection and try again."
     }
   }
+
+  return "⚠️ Failed to get a response. Please try again."
 }
 
 // ─── Student Safety Guard ────────────────────────────────────

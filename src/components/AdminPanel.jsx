@@ -890,11 +890,318 @@ function CurriculumTab({ toast }) {
   )
 }
 
+// ── AI Usage Analytics Tab ────────────────────────────────────
+const PLAN_COLORS = {
+  free:    '#6868a0',
+  basic:   '#FFD166',
+  pro:     '#7B9CFF',
+  premium: '#00E5A0',
+}
+
+function UsageTab({ toast }) {
+  const [summary, setSummary] = useState(null)
+  const [topUsers, setTopUsers] = useState([])
+  const [days, setDays] = useState(7)
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [loading, setLoading] = useState(false)
+
+  const loadSummary = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [sRes, uRes] = await Promise.all([
+        API(`/admin/usage/summary?days=${days}`),
+        API(`/admin/usage/users?date=${date}`),
+      ])
+      if (sRes.ok) setSummary(await sRes.json())
+      if (uRes.ok) setTopUsers((await uRes.json()).rows || [])
+    } finally {
+      setLoading(false)
+    }
+  }, [days, date])
+
+  useEffect(() => { loadSummary() }, [loadSummary])
+
+  const fmtK = n => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n || 0)
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* Controls */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <label style={{ fontSize: 12, color: C.muted }}>Period:</label>
+          <select
+            style={{ ...inp.background && inp, width: 120 }}
+            value={days}
+            onChange={e => setDays(Number(e.target.value))}
+          >
+            {[7, 14, 30].map(d => <option key={d} value={d}>Last {d} days</option>)}
+          </select>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <label style={{ fontSize: 12, color: C.muted }}>Day detail:</label>
+          <input
+            type="date"
+            style={{ ...inp, width: 160 }}
+            value={date}
+            onChange={e => setDate(e.target.value)}
+          />
+        </div>
+        <button style={{ ...ghostBtn, padding: "8px 14px", fontSize: 12 }} onClick={loadSummary}>
+          {loading ? "…" : "↺ Refresh"}
+        </button>
+      </div>
+
+      {/* All-time totals */}
+      {summary && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
+          {[
+            { label: "Total Calls (all time)", value: fmtK(summary.all_time?.calls), color: C.blue },
+            { label: "Total Tokens (all time)", value: fmtK(summary.all_time?.tokens), color: C.green },
+            { label: `Calls (${days}d)`, value: fmtK(summary.daily?.reduce((s, d) => s + (d.calls || 0), 0)), color: C.yellow },
+            { label: `Tokens (${days}d)`, value: fmtK(summary.daily?.reduce((s, d) => s + (d.tokens || 0), 0)), color: C.orange },
+          ].map(stat => (
+            <div key={stat.label} style={{
+              background: C.card2, borderRadius: 12, padding: 16,
+              border: `1px solid ${C.border}`,
+            }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: stat.color }}>{stat.value}</div>
+              <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{stat.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Per-plan breakdown */}
+      {summary?.by_plan?.length > 0 && (
+        <div style={{ background: C.card2, borderRadius: 14, padding: 20 }}>
+          <h3 style={{ color: C.text, margin: "0 0 14px", fontSize: 14 }}>By Plan (last {days} days)</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {summary.by_plan.map(row => (
+              <div key={row.plan} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13 }}>
+                <span style={{ width: 70, fontWeight: 700, color: PLAN_COLORS[row.plan] || C.muted }}>
+                  {row.plan?.charAt(0).toUpperCase() + row.plan?.slice(1)}
+                </span>
+                <span style={{ color: C.text, width: 80 }}>{fmtK(row.calls)} calls</span>
+                <span style={{ color: C.muted, width: 90 }}>{fmtK(row.tokens)} tokens</span>
+                <span style={{ color: C.muted, fontSize: 11 }}>{row.active_users} users</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Daily chart (simple text bars) */}
+      {summary?.daily?.length > 0 && (
+        <div style={{ background: C.card2, borderRadius: 14, padding: 20 }}>
+          <h3 style={{ color: C.text, margin: "0 0 14px", fontSize: 14 }}>Daily Calls</h3>
+          {(() => {
+            const maxCalls = Math.max(...summary.daily.map(d => d.calls || 0), 1)
+            return summary.daily.map(d => (
+              <div key={d.date} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                <span style={{ fontSize: 11, color: C.muted, width: 80, flexShrink: 0 }}>{d.date?.slice(5)}</span>
+                <div style={{ flex: 1, height: 10, background: C.card, borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%",
+                    width: `${Math.round((d.calls / maxCalls) * 100)}%`,
+                    background: C.blue,
+                    borderRadius: 4,
+                  }} />
+                </div>
+                <span style={{ fontSize: 11, color: C.text, width: 50, textAlign: "right" }}>{d.calls}</span>
+              </div>
+            ))
+          })()}
+        </div>
+      )}
+
+      {/* Top users for selected date */}
+      <div>
+        <h3 style={{ color: C.text, margin: "0 0 12px", fontSize: 14 }}>Users — {date}</h3>
+        {topUsers.length === 0 ? (
+          <p style={{ color: C.muted, fontSize: 13 }}>No usage recorded for this date.</p>
+        ) : (
+          <Table
+            cols={[
+              { key: "name",          label: "Name" },
+              { key: "email",         label: "Email" },
+              { key: "plan",          label: "Plan", render: v => <span style={{ color: PLAN_COLORS[v] || C.muted, fontWeight: 700 }}>{v}</span> },
+              { key: "call_count",    label: "Calls" },
+              { key: "total_tokens",  label: "Tokens" },
+            ]}
+            rows={topUsers}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Users Tab ─────────────────────────────────────────────────
+const PLAN_OPTIONS = ['free', 'basic', 'pro', 'premium']
+const PLAN_META = {
+  free:    { label: 'Free',    icon: '🆓', color: '#6868a0' },
+  basic:   { label: 'Basic',   icon: '⭐', color: '#FFD166' },
+  pro:     { label: 'Pro',     icon: '🚀', color: '#7B9CFF' },
+  premium: { label: 'Premium', icon: '👑', color: '#00E5A0' },
+}
+
+function UsersTab({ toast }) {
+  const [users,   setUsers]   = useState([])
+  const [search,  setSearch]  = useState("")
+  const [planFilter, setPlanFilter] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [editing, setEditing] = useState(null)   // { id, name, email, plan, plan_expires_at }
+  const [editPlan,    setEditPlan]    = useState('free')
+  const [editExpiry,  setEditExpiry]  = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (search)     params.set('search', search)
+      if (planFilter) params.set('plan', planFilter)
+      const res = await API(`/admin/users?${params}`)
+      if (res.ok) setUsers(await res.json())
+    } finally {
+      setLoading(false)
+    }
+  }, [search, planFilter])
+
+  useEffect(() => { load() }, [load])
+
+  const openEdit = (user) => {
+    setEditing(user)
+    setEditPlan(user.plan || 'free')
+    setEditExpiry(user.plan_expires_at || '')
+  }
+
+  const savePlan = async () => {
+    if (!editing) return
+    setSaving(true)
+    try {
+      const res = await API(`/admin/users/${editing.id}/plan`, {
+        method: 'PUT',
+        body: JSON.stringify({ plan: editPlan, plan_expires_at: editExpiry }),
+      })
+      if (res.ok) {
+        toast(`Plan updated for ${editing.name}`)
+        setEditing(null)
+        load()
+      } else {
+        const d = await res.json()
+        toast(d.detail || 'Failed to update plan', 'error')
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Edit Plan Modal */}
+      {editing && (
+        <div style={{
+          position: "fixed", inset: 0, background: "#000a", zIndex: 999,
+          display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+        }}>
+          <div style={{ background: C.card, borderRadius: 18, padding: 28, width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", gap: 16 }}>
+            <h3 style={{ color: C.text, margin: 0, fontSize: 16 }}>Change Plan — {editing.name}</h3>
+            <div style={{ fontSize: 12, color: C.muted }}>{editing.email}</div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <label style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>Plan</label>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {PLAN_OPTIONS.map(p => {
+                  const m = PLAN_META[p]
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setEditPlan(p)}
+                      style={{
+                        padding: "8px 16px", borderRadius: 10, fontFamily: "Sora, sans-serif",
+                        fontWeight: 700, fontSize: 13, cursor: "pointer",
+                        background: editPlan === p ? `${m.color}25` : "transparent",
+                        border: `2px solid ${editPlan === p ? m.color : C.border}`,
+                        color: editPlan === p ? m.color : C.muted,
+                      }}
+                    >{m.icon} {m.label}</button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <label style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>
+                Expires on (leave blank = no expiry)
+              </label>
+              <input
+                type="date"
+                style={inp}
+                value={editExpiry}
+                onChange={e => setEditExpiry(e.target.value)}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button style={btn()} onClick={savePlan} disabled={saving}>
+                {saving ? "Saving…" : "Save Plan"}
+              </button>
+              <button style={ghostBtn} onClick={() => setEditing(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filters */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <input
+          style={{ ...inp, flex: "1 1 200px", minWidth: 0 }}
+          placeholder="Search by name or email…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        <select
+          style={{ ...inp, width: 160, flex: "0 0 160px" }}
+          value={planFilter}
+          onChange={e => setPlanFilter(e.target.value)}
+        >
+          <option value="">All Plans</option>
+          {PLAN_OPTIONS.map(p => (
+            <option key={p} value={p}>{PLAN_META[p].icon} {PLAN_META[p].label}</option>
+          ))}
+        </select>
+        <span style={{ color: C.muted, fontSize: 12, whiteSpace: "nowrap" }}>
+          {loading ? "Loading…" : `${users.length} users`}
+        </span>
+      </div>
+
+      {/* Table */}
+      <Table
+        cols={[
+          { key: "name",  label: "Name" },
+          { key: "email", label: "Email" },
+          { key: "standard", label: "Class" },
+          { key: "plan",  label: "Plan", render: (v) => {
+            const m = PLAN_META[v] || PLAN_META.free
+            return <span style={{ color: m.color, fontWeight: 700 }}>{m.icon} {m.label}</span>
+          }},
+          { key: "plan_expires_at", label: "Expires", render: v => v || "—" },
+          { key: "xp",   label: "XP" },
+          { key: "created_at", label: "Joined" },
+        ]}
+        rows={users}
+        onEdit={openEdit}
+      />
+    </div>
+  )
+}
+
 // ── Main Admin Panel ──────────────────────────────────────────
 export default function AdminPanel() {
   const navigate  = useNavigate()
   const { section = 'curriculum' } = useParams()
-  const activeTab = ['curriculum','boards','standards','mediums'].includes(section)
+  const activeTab = ['curriculum','boards','standards','mediums','users','usage'].includes(section)
     ? section : 'curriculum'
 
   const [authed, setAuthed]   = useState(!!localStorage.getItem('eduvyai_admin_token'))
@@ -937,6 +1244,8 @@ export default function AdminPanel() {
     { id: "boards",     label: "🏫 Boards",       short: "🏫" },
     { id: "standards",  label: "🎓 Standards",    short: "🎓" },
     { id: "mediums",    label: "🌐 Mediums",       short: "🌐" },
+    { id: "users",      label: "👥 Users",         short: "👥" },
+    { id: "usage",      label: "📊 AI Usage",      short: "📊" },
   ]
 
   const contentMap = {
@@ -944,6 +1253,8 @@ export default function AdminPanel() {
     boards:     <BoardsTab     toast={showToast} />,
     standards:  <StandardsTab  toast={showToast} />,
     mediums:    <MediumsTab    toast={showToast} />,
+    users:      <UsersTab      toast={showToast} />,
+    usage:      <UsageTab      toast={showToast} />,
   }
 
   // Shared title bar rendered inside content area for all breakpoints

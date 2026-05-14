@@ -13,7 +13,7 @@ import LearnTVTab from './components/tabs/LearnTVTab.jsx'
 import SettingsModal from './components/SettingsModal.jsx'
 import {
   getDeviceId, apiAddXp, apiUpdateStreak,
-  apiSaveAIConfig, apiUpdateProfile, computeStreak,
+  apiUpdateProfile, computeStreak,
   getAuthToken, setAuthToken, clearAuth, apiGetMe,
 } from './api.js'
 
@@ -23,15 +23,17 @@ export {
   AI_PROVIDERS, getAIConfig, setAIConfig, callAI,
   buildSystemPrompt, parseAIObject, parseAIArray, checkStudentQuery,
   TEACHER_PERSONAS, updateBhool, getBhoolStats,
+  PLANS, planHasTab, planHasLab,
 } from './shared.js'
 
-import { COLORS, AI_PROVIDERS, setAIConfig } from './shared.js'
+import { COLORS, AI_PROVIDERS, setAIConfig, PLANS, planHasTab } from './shared.js'
 
 // ─── Defaults ────────────────────────────────────────────────
-const DEFAULT_PROFILE = { name: '', standard: 'Class 10', board: 'CBSE', language: 'English', subjects: [] }
+const DEFAULT_PROFILE = { name: '', standard: 'Class 10', board: 'CBSE', language: 'English', subjects: [], plan: 'free', plan_expires_at: '' }
 const DEFAULT_AI = { provider: 'groq', apiKey: '', model: 'llama-3.3-70b-versatile' }
 
-const NAV_ITEMS = [
+// All possible nav items — filtered at render time by plan.
+const ALL_NAV_ITEMS = [
   { key: 'home',     icon: '🏠', label: 'Home'     },
   { key: 'notebook', icon: '📓', label: 'Notebook'  },
   { key: 'tutor',    icon: '🤖', label: 'Tutor'    },
@@ -56,6 +58,10 @@ function AppShell({
   const providerInfo = AI_PROVIDERS[aiConfig.provider] || AI_PROVIDERS.gemini
   const sharedProps = { profile, userId, xp, streak, addXp, docCtx, setDocCtx, docName, setDocName, setTab }
 
+  // Filter nav items based on the user's plan
+  const userPlan = profile.plan || 'free'
+  const NAV_ITEMS = ALL_NAV_ITEMS.filter(n => planHasTab(userPlan, n.key))
+
   const tabs = {
     home:     <HomeTab     {...sharedProps} />,
     notebook: <NotebookTab {...sharedProps} />,
@@ -65,8 +71,8 @@ function AppShell({
     labs:     <LabsTab     {...sharedProps} />,
   }
 
-  // Unknown tab → redirect to home
-  if (!tabs[tab]) return <Navigate to="/app/home" replace />
+  // If tab is not in the user's plan, redirect to home
+  if (!tabs[tab] || !planHasTab(userPlan, tab)) return <Navigate to="/app/home" replace />
 
   return (
     <div className="app-shell">
@@ -103,6 +109,20 @@ function AppShell({
               🔥 {streak}
             </div>
           </div>
+          {/* Plan badge */}
+          {(() => {
+            const planInfo = PLANS[userPlan] || PLANS.free
+            return (
+              <div style={{
+                background: `${planInfo.color}15`, border: `1px solid ${planInfo.color}40`,
+                borderRadius: 10, padding: '7px 12px', display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                <span style={{ fontSize: 14 }}>{planInfo.icon}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: planInfo.color }}>{planInfo.label}</span>
+                <span style={{ fontSize: 10, color: COLORS.muted, marginLeft: 'auto' }}>Plan</span>
+              </div>
+            )
+          })()}
           <button onClick={() => setShowSettings(true)} style={{
             background: `${providerInfo.color}12`, border: `1px solid ${providerInfo.color}40`,
             borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center',
@@ -213,13 +233,15 @@ export default function App() {
   // ── Hydrate from profile row ──────────────────────────────
   const hydrateProfile = (data) => {
     const p = {
-      name:          data.name,
-      standard:      data.standard,
-      board:         data.board,
-      language:      data.language,
-      subjects:      Array.isArray(data.subjects) ? data.subjects : [],
-      mobile:        data.mobile || '',
-      parent_mobile: data.parent_mobile || '',
+      name:            data.name,
+      standard:        data.standard,
+      board:           data.board,
+      language:        data.language,
+      subjects:        Array.isArray(data.subjects) ? data.subjects : [],
+      mobile:          data.mobile || '',
+      parent_mobile:   data.parent_mobile || '',
+      plan:            data.plan || 'free',
+      plan_expires_at: data.plan_expires_at || '',
     }
     setProfile(p)
     setUserId(data.id)
@@ -300,12 +322,9 @@ export default function App() {
   }
 
   const handleAIConfigSave = (cfg) => {
-    const updatedKeys = { ...savedAiKeys }
-    if (cfg.apiKey) updatedKeys[cfg.provider] = cfg.apiKey
-    setSavedAiKeys(updatedKeys)
+    // AI config is server-managed — only update local state/localStorage
     setAIConfig(cfg)
     setAiConfigState(cfg)
-    apiSaveAIConfig(userId || getDeviceId(), { ...cfg, aiKeys: updatedKeys }).catch(() => {})
   }
 
   const handleLogout = () => {

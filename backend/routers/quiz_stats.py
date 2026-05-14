@@ -1,8 +1,15 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from database import get_db
+from routers.auth import get_current_user
+from fastapi import HTTPException
 
 router = APIRouter()
+
+
+def _require_own(user_id: str, current_user: str):
+    if user_id != current_user:
+        raise HTTPException(status_code=403, detail="Access denied")
 
 
 class QuizResult(BaseModel):
@@ -13,8 +20,9 @@ class QuizResult(BaseModel):
 
 
 @router.post("/quiz/{user_id}/result", status_code=201)
-async def save_quiz_result(user_id: str, data: QuizResult):
+async def save_quiz_result(user_id: str, data: QuizResult, current_user: str = Depends(get_current_user)):
     """Save one quiz answer result."""
+    _require_own(user_id, current_user)
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -30,8 +38,9 @@ async def save_quiz_result(user_id: str, data: QuizResult):
 
 
 @router.get("/quiz/{user_id}/stats")
-async def get_quiz_stats(user_id: str):
+async def get_quiz_stats(user_id: str, current_user: str = Depends(get_current_user)):
     """Returns per-subject stats: { subject: { total, correct, accuracy } }"""
+    _require_own(user_id, current_user)
     conn = get_db()
     try:
         cur = conn.cursor()

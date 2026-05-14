@@ -1,8 +1,14 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from database import get_db
+from routers.auth import get_current_user
 
 router = APIRouter()
+
+
+def _require_own(user_id: str, current_user: str):
+    if user_id != current_user:
+        raise HTTPException(status_code=403, detail="Access denied")
 
 
 # ─── Chat Sessions (TutorTab per-mode, MentalLab) ────────────
@@ -13,7 +19,8 @@ class ChatMsg(BaseModel):
 
 
 @router.get("/chat-session/{user_id}/{session}")
-async def get_session(user_id: str, session: str):
+async def get_session(user_id: str, session: str, current_user: str = Depends(get_current_user)):
+    _require_own(user_id, current_user)
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -27,7 +34,8 @@ async def get_session(user_id: str, session: str):
 
 
 @router.post("/chat-session/{user_id}/{session}", status_code=201)
-async def append_message(user_id: str, session: str, data: ChatMsg):
+async def append_message(user_id: str, session: str, data: ChatMsg, current_user: str = Depends(get_current_user)):
+    _require_own(user_id, current_user)
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -50,7 +58,8 @@ async def append_message(user_id: str, session: str, data: ChatMsg):
 
 
 @router.delete("/chat-session/{user_id}/{session}")
-async def clear_session(user_id: str, session: str):
+async def clear_session(user_id: str, session: str, current_user: str = Depends(get_current_user)):
+    _require_own(user_id, current_user)
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -72,7 +81,8 @@ class Draft(BaseModel):
 
 
 @router.get("/draft/{user_id}/{key}")
-async def get_draft(user_id: str, key: str):
+async def get_draft(user_id: str, key: str, current_user: str = Depends(get_current_user)):
+    _require_own(user_id, current_user)
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -87,7 +97,8 @@ async def get_draft(user_id: str, key: str):
 
 
 @router.put("/draft/{user_id}/{key}")
-async def save_draft(user_id: str, key: str, data: Draft):
+async def save_draft(user_id: str, key: str, data: Draft, current_user: str = Depends(get_current_user)):
+    _require_own(user_id, current_user)
     conn = get_db()
     try:
         cur = conn.cursor()

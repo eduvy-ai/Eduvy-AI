@@ -159,6 +159,16 @@ input, textarea, select { outline: none; border: none; }
   }
 }
 
+/* ── Landing page nav pricing link — hidden on mobile, visible on wider screens ── */
+@media (min-width: 480px) {
+  .nav-pricing-link {
+    display: inline-block !important;
+  }
+  .nav-pricing-link:hover {
+    color: #eeeeff !important;
+  }
+}
+
 /* ── Safe area for notch phones ─────────────────────────── */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .bottom-nav {

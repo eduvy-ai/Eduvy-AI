@@ -68,15 +68,7 @@ export async function apiGetMe() {
 
 
 // ── Profile ───────────────────────────────────────────────────
-
-export async function apiGetProfile(deviceId) {
-  const res = await fetch(`/api/profile/${deviceId}`, {
-    signal: AbortSignal.timeout(5000),
-  })
-  if (res.status === 404) return null
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
-}
+// NOTE: apiGetProfile (device-ID) removed — use apiGetMe() for auth flow.
 
 export async function apiCreateProfile(data) {
   const res = await fetch('/api/profile', {
@@ -89,10 +81,10 @@ export async function apiCreateProfile(data) {
   return res.json()
 }
 
-export async function apiUpdateProfile(deviceId, data) {
-  const res = await fetch(`/api/profile/${deviceId}`, {
+export async function apiUpdateProfile(userId, data) {
+  const res = await fetch(`/api/profile/${userId}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify(data),
     signal: AbortSignal.timeout(8000),
   })
@@ -102,10 +94,10 @@ export async function apiUpdateProfile(deviceId, data) {
 
 // ── XP ────────────────────────────────────────────────────────
 
-export async function apiAddXp(deviceId, points) {
-  const res = await fetch(`/api/profile/${deviceId}/xp`, {
+export async function apiAddXp(userId, points) {
+  const res = await fetch(`/api/profile/${userId}/xp`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ points }),
     signal: AbortSignal.timeout(5000),
   })
@@ -126,27 +118,8 @@ export async function apiUpdateStreak(deviceId, streak) {
   return res.json()   // { streak: number }
 }
 
-// ── AI Config ─────────────────────────────────────────────────
-
-export async function apiSaveAIConfig(deviceId, config) {
-  // config = { provider, model, apiKey, aiKeys }
-  const res = await fetch(`/api/profile/${deviceId}/ai-config`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(config),
-    signal: AbortSignal.timeout(5000),
-  })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
-}
-
-export async function apiGetAIKeys(deviceId) {
-  const res = await fetch(`/api/profile/${deviceId}/ai-keys`, {
-    signal: AbortSignal.timeout(5000),
-  })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json() // { aiKeys: { gemini: "...", groq: "...", ... } }
-}
+// NOTE: apiSaveAIConfig and apiGetAIKeys removed.
+// AI provider/model/keys are managed server-side only — never exposed to clients.
 
 // ── Streak helper ─────────────────────────────────────────────
 // Computes the correct streak value based on last_active date from backend.
@@ -161,18 +134,19 @@ export function computeStreak(lastActive, currentStreak) {
 
 // ── Mastery ───────────────────────────────────────────────────
 
-export async function apiGetMastery(deviceId) {
-  const res = await fetch(`/api/mastery/${deviceId}`, {
+export async function apiGetMastery(userId) {
+  const res = await fetch(`/api/mastery/${userId}`, {
+    headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()   // { subject: score, ... }
 }
 
-export async function apiSetMastery(deviceId, subject, score) {
-  const res = await fetch(`/api/mastery/${deviceId}`, {
+export async function apiSetMastery(userId, subject, score) {
+  const res = await fetch(`/api/mastery/${userId}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ subject, score }),
     signal: AbortSignal.timeout(5000),
   })
@@ -182,10 +156,10 @@ export async function apiSetMastery(deviceId, subject, score) {
 
 // ── Quiz Stats ────────────────────────────────────────────────
 
-export async function apiSaveQuizResult(deviceId, { subject, difficulty, correct, total = 1 }) {
-  const res = await fetch(`/api/quiz/${deviceId}/result`, {
+export async function apiSaveQuizResult(userId, { subject, difficulty, correct, total = 1 }) {
+  const res = await fetch(`/api/quiz/${userId}/result`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ subject, difficulty, correct, total }),
     signal: AbortSignal.timeout(5000),
   })
@@ -193,8 +167,9 @@ export async function apiSaveQuizResult(deviceId, { subject, difficulty, correct
   return res.json()
 }
 
-export async function apiGetQuizStats(deviceId) {
-  const res = await fetch(`/api/quiz/${deviceId}/stats`, {
+export async function apiGetQuizStats(userId) {
+  const res = await fetch(`/api/quiz/${userId}/stats`, {
+    headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -203,18 +178,19 @@ export async function apiGetQuizStats(deviceId) {
 
 // ─── Notebook ────────────────────────────────────────────────
 
-export async function apiGetSources(deviceId) {
-  const res = await fetch(`/api/notebook/${deviceId}/sources`, {
+export async function apiGetSources(userId) {
+  const res = await fetch(`/api/notebook/${userId}/sources`, {
+    headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()   // [{ id, name, type, content, icon, added_at }, ...]
 }
 
-export async function apiSaveSource(deviceId, source) {
-  const res = await fetch(`/api/notebook/${deviceId}/sources`, {
+export async function apiSaveSource(userId, source) {
+  const res = await fetch(`/api/notebook/${userId}/sources`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({
       id: source.id,
       name: source.name,
@@ -229,27 +205,29 @@ export async function apiSaveSource(deviceId, source) {
   return res.json()
 }
 
-export async function apiDeleteSource(deviceId, sourceId) {
-  const res = await fetch(`/api/notebook/${deviceId}/sources/${sourceId}`, {
+export async function apiDeleteSource(userId, sourceId) {
+  const res = await fetch(`/api/notebook/${userId}/sources/${sourceId}`, {
     method: 'DELETE',
+    headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
 }
 
-export async function apiGetNotebookChat(deviceId) {
-  const res = await fetch(`/api/notebook/${deviceId}/chat`, {
+export async function apiGetNotebookChat(userId) {
+  const res = await fetch(`/api/notebook/${userId}/chat`, {
+    headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()   // [{ role, content }, ...]
 }
 
-export async function apiSaveChatMessage(deviceId, role, content) {
-  const res = await fetch(`/api/notebook/${deviceId}/chat`, {
+export async function apiSaveChatMessage(userId, role, content) {
+  const res = await fetch(`/api/notebook/${userId}/chat`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ role, content }),
     signal: AbortSignal.timeout(5000),
   })
@@ -257,27 +235,29 @@ export async function apiSaveChatMessage(deviceId, role, content) {
   return res.json()
 }
 
-export async function apiClearNotebookChat(deviceId) {
-  const res = await fetch(`/api/notebook/${deviceId}/chat`, {
+export async function apiClearNotebookChat(userId) {
+  const res = await fetch(`/api/notebook/${userId}/chat`, {
     method: 'DELETE',
+    headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
 }
 
-export async function apiGetStudioOutputs(deviceId) {
-  const res = await fetch(`/api/notebook/${deviceId}/studio`, {
+export async function apiGetStudioOutputs(userId) {
+  const res = await fetch(`/api/notebook/${userId}/studio`, {
+    headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()   // [{ id, type, output_json, created_at }, ...]
 }
 
-export async function apiSaveStudioOutput(deviceId, type, outputJson) {
-  const res = await fetch(`/api/notebook/${deviceId}/studio`, {
+export async function apiSaveStudioOutput(userId, type, outputJson) {
+  const res = await fetch(`/api/notebook/${userId}/studio`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ type, output_json: outputJson }),
     signal: AbortSignal.timeout(5000),
   })
@@ -287,18 +267,19 @@ export async function apiSaveStudioOutput(deviceId, type, outputJson) {
 
 // ─── Chat Sessions (TutorTab, MentalLab) ─────────────────────
 
-export async function apiGetSession(deviceId, session) {
-  const res = await fetch(`/api/chat-session/${deviceId}/${session}`, {
+export async function apiGetSession(userId, session) {
+  const res = await fetch(`/api/chat-session/${userId}/${session}`, {
+    headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()   // [{ role, content }, ...]
 }
 
-export async function apiSaveToSession(deviceId, session, role, content) {
-  const res = await fetch(`/api/chat-session/${deviceId}/${session}`, {
+export async function apiSaveToSession(userId, session, role, content) {
+  const res = await fetch(`/api/chat-session/${userId}/${session}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ role, content }),
     signal: AbortSignal.timeout(5000),
   })
@@ -306,9 +287,10 @@ export async function apiSaveToSession(deviceId, session, role, content) {
   return res.json()
 }
 
-export async function apiClearSession(deviceId, session) {
-  const res = await fetch(`/api/chat-session/${deviceId}/${session}`, {
+export async function apiClearSession(userId, session) {
+  const res = await fetch(`/api/chat-session/${userId}/${session}`, {
     method: 'DELETE',
+    headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -317,19 +299,20 @@ export async function apiClearSession(deviceId, session) {
 
 // ─── User Drafts (EssayLab, VideosTab, PodcastLab) ───────────
 
-export async function apiGetDraft(deviceId, key) {
-  const res = await fetch(`/api/draft/${deviceId}/${key}`, {
+export async function apiGetDraft(userId, key) {
+  const res = await fetch(`/api/draft/${userId}/${key}`, {
+    headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
-  if (res.status === 404 || res.status === 200 && res.headers.get('content-length') === '4') return null
+  if (res.status === 404 || (res.status === 200 && res.headers.get('content-length') === '4')) return null
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()   // { content, extra } or null
 }
 
-export async function apiSaveDraft(deviceId, key, content, extra = '') {
-  const res = await fetch(`/api/draft/${deviceId}/${key}`, {
+export async function apiSaveDraft(userId, key, content, extra = '') {
+  const res = await fetch(`/api/draft/${userId}/${key}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ content, extra }),
     signal: AbortSignal.timeout(5000),
   })

@@ -1,10 +1,17 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, List
 import json
 from database import get_db, row_to_dict
+from routers.auth import get_current_user
 
 router = APIRouter()
+
+# ── IDOR guard ────────────────────────────────────────────────
+def _require_own(user_id: str, current_user: str):
+    """Raises 403 if the URL user_id does not match the authenticated user."""
+    if user_id != current_user:
+        raise HTTPException(status_code=403, detail="Access denied")
 
 
 # --- Request models ------------------------------------------
@@ -73,7 +80,8 @@ async def create_profile(data: ProfileCreate):
 
 
 @router.get("/profile/{user_id}")
-async def get_profile(user_id: str):
+async def get_profile(user_id: str, current_user: str = Depends(get_current_user)):
+    _require_own(user_id, current_user)
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -87,7 +95,8 @@ async def get_profile(user_id: str):
 
 
 @router.put("/profile/{user_id}")
-async def update_profile(user_id: str, data: ProfileUpdate):
+async def update_profile(user_id: str, data: ProfileUpdate, current_user: str = Depends(get_current_user)):
+    _require_own(user_id, current_user)
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -112,7 +121,10 @@ async def update_profile(user_id: str, data: ProfileUpdate):
 
 
 @router.post("/profile/{user_id}/xp")
-async def add_xp(user_id: str, data: XpRequest):
+async def add_xp(user_id: str, data: XpRequest, current_user: str = Depends(get_current_user)):
+    _require_own(user_id, current_user)
+    if data.points < 0 or data.points > 1000:
+        raise HTTPException(status_code=400, detail="Invalid XP value")
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -129,7 +141,10 @@ async def add_xp(user_id: str, data: XpRequest):
 
 
 @router.put("/profile/{user_id}/streak")
-async def update_streak(user_id: str, data: StreakRequest):
+async def update_streak(user_id: str, data: StreakRequest, current_user: str = Depends(get_current_user)):
+    _require_own(user_id, current_user)
+    if data.streak < 0 or data.streak > 36500:
+        raise HTTPException(status_code=400, detail="Invalid streak value")
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -147,7 +162,8 @@ async def update_streak(user_id: str, data: StreakRequest):
 
 
 @router.put("/profile/{user_id}/ai-config")
-async def update_ai_config(user_id: str, data: AIConfigRequest):
+async def update_ai_config(user_id: str, data: AIConfigRequest, current_user: str = Depends(get_current_user)):
+    _require_own(user_id, current_user)
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -176,22 +192,5 @@ async def update_ai_config(user_id: str, data: AIConfigRequest):
         return {"provider": data.provider, "model": data.model}
     finally:
         conn.close()
-
-
-@router.get("/profile/{user_id}/ai-keys")
-async def get_ai_keys(user_id: str):
-    """Return saved per-provider API keys for this user."""
-    conn = get_db()
-    try:
-        cur = conn.cursor()
-        cur.execute("SELECT ai_keys FROM users WHERE id = %s", (user_id,))
-        row = cur.fetchone()
-        if not row:
-            raise HTTPException(status_code=404, detail="Profile not found")
-        try:
-            keys = json.loads(row.get("ai_keys") or "{}")
-        except Exception:
-            keys = {}
-        return {"aiKeys": keys}
-    finally:
-        conn.close()
+# NOTE: /profile/{user_id}/ai-keys endpoint removed — server manages all AI keys.
+# Returning stored API keys to clients is a security risk.
