@@ -10,6 +10,10 @@ import TutorTab from './components/tabs/TutorTab.jsx'
 import VideosTab from './components/tabs/VideosTab.jsx'
 import LabsTab from './components/tabs/LabsTab.jsx'
 import LearnTVTab from './components/tabs/LearnTVTab.jsx'
+import SathiTab from './components/tabs/SathiTab.jsx'
+import BhoolBazaarTab from './components/tabs/BhoolBazaarTab.jsx'
+import MuqablaTab from './components/tabs/MuqablaTab.jsx'
+import ParentDashboard from './components/ParentDashboard.jsx'
 import SettingsModal from './components/SettingsModal.jsx'
 import {
   getDeviceId, apiAddXp, apiUpdateStreak,
@@ -39,7 +43,10 @@ const ALL_NAV_ITEMS = [
   { key: 'tutor',    icon: '🤖', label: 'Tutor'    },
   { key: 'videos',   icon: '🎬', label: 'Videos'   },
   { key: 'learntv',  icon: '📺', label: 'Learn TV' },
-  { key: 'labs',     icon: '⚗️', label: 'Labs'     },
+  { key: 'sathi',    icon: '🤝', label: 'Sathi'     },
+  { key: 'bhool',    icon: '📛', label: 'Bhool'     },
+  { key: 'muqabla',  icon: '⚔️',  label: 'Muqabla'  },
+  { key: 'labs',     icon: '⚗️',  label: 'Labs'     },
 ]
 
 // ─── AppShell ─────────────────────────────────────────────────
@@ -68,7 +75,10 @@ function AppShell({
     tutor:    <TutorTab    {...sharedProps} />,
     videos:   <VideosTab   {...sharedProps} />,
     learntv:  <LearnTVTab  {...sharedProps} />,
-    labs:     <LabsTab     {...sharedProps} />,
+    sathi:    <SathiTab        {...sharedProps} />,
+    bhool:    <BhoolBazaarTab  {...sharedProps} />,
+    muqabla:  <MuqablaTab      {...sharedProps} />,
+    labs:     <LabsTab         {...sharedProps} />,
   }
 
   // If tab is not in the user's plan, redirect to home
@@ -372,6 +382,9 @@ export default function App() {
       {/* Admin — redirect bare /admin to login; AdminPanel handles auth */}
       <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
       <Route path="/admin/:section" element={<AdminPanel />} />
+
+      {/* Parent Dashboard — public, no auth */}
+      <Route path="/parent/:pin" element={<ParentDashboard />} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

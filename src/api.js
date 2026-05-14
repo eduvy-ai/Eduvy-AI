@@ -132,6 +132,341 @@ export function computeStreak(lastActive, currentStreak) {
   return { streak: newStreak, changed: true }
 }
 
+// ── Sathi Study Squads ────────────────────────────────────────
+
+export async function apiGetMySquad() {
+  const res = await fetch('/api/squads/mine', {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(6000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()   // { squad: { id, name, focus_subject, members, message_count } | null }
+}
+
+export async function apiMatchSquad() {
+  const res = await fetch('/api/squads/match', {
+    method: 'POST',
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()   // { squad_id, status: 'joined'|'created'|'already_matched' }
+}
+
+export async function apiGetSquadMessages(squadId, sinceId = 0) {
+  const res = await fetch(`/api/squads/${squadId}/messages?since_id=${sinceId}`, {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(5000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()   // { messages: [{ id, user_id, display_name, content, msg_type, created_at }] }
+}
+
+export async function apiSendSquadMessage(squadId, content, displayName, msgType = 'chat') {
+  const res = await fetch(`/api/squads/${squadId}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ content, display_name: displayName, msg_type: msgType }),
+    signal: AbortSignal.timeout(6000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiGetSquadMembers(squadId) {
+  const res = await fetch(`/api/squads/${squadId}/members`, {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(5000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()   // { members: [{ user_id, name, role, online, last_seen_at, standard }] }
+}
+
+export async function apiGetSquadChallenge(squadId) {
+  const res = await fetch(`/api/squads/${squadId}/challenge`, {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(5000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()   // { challenge: { id, subject, concept, status } | null }
+}
+
+export async function apiCreateChallenge(squadId) {
+  const res = await fetch(`/api/squads/${squadId}/challenge/create`, {
+    method: 'POST',
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()   // { challenge_id, subject, concept }
+}
+
+export async function apiSubmitChallenge(squadId, challengeId, explanation) {
+  const res = await fetch(`/api/squads/${squadId}/challenge/${challengeId}/submit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ explanation }),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()   // { completed, xp_awarded }
+}
+
+export async function apiLeaveSquad(squadId) {
+  const res = await fetch(`/api/squads/${squadId}/leave`, {
+    method: 'DELETE',
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(5000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+// ── Bhool Bazaar ──────────────────────────────────────────────
+
+export async function apiCreateBhoolCard(data) {
+  const res = await fetch('/api/bhool/cards', {
+    method: 'POST',
+    headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiGetMyBhoolCards() {
+  const res = await fetch('/api/bhool/cards/mine', {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiUpdateBhoolCard(cardId, data) {
+  const res = await fetch(`/api/bhool/cards/${cardId}`, {
+    method: 'PUT',
+    headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiDeleteBhoolCard(cardId) {
+  const res = await fetch(`/api/bhool/cards/${cardId}`, {
+    method: 'DELETE',
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiGetBhoolMarketplace({ subject, standard, sort, offset, limit } = {}) {
+  const params = new URLSearchParams()
+  if (subject)  params.set('subject', subject)
+  if (standard) params.set('standard', standard)
+  if (sort)     params.set('sort', sort)
+  if (offset !== undefined) params.set('offset', String(offset))
+  if (limit  !== undefined) params.set('limit',  String(limit))
+  const res = await fetch(`/api/bhool/marketplace?${params}`, {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiGetBhoolTop(subject) {
+  const params = subject ? `?subject=${encodeURIComponent(subject)}` : ''
+  const res = await fetch(`/api/bhool/marketplace/top${params}`, {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiCollectBhoolCard(cardId) {
+  const res = await fetch(`/api/bhool/cards/${cardId}/collect`, {
+    method: 'POST',
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiReactBhoolCard(cardId, emoji) {
+  const res = await fetch(`/api/bhool/cards/${cardId}/react`, {
+    method: 'POST',
+    headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ emoji }),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiGetMyBhoolCollections() {
+  const res = await fetch('/api/bhool/collections', {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+// ── Muqabla Battles ──────────────────────────────────────────
+
+export async function apiCreateMuqablaChallenge(data) {
+  const res = await fetch('/api/muqabla/challenge', {
+    method: 'POST',
+    headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    signal: AbortSignal.timeout(30000), // AI generates questions
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiJoinMuqabalaBattle(battleId) {
+  const res = await fetch(`/api/muqabla/battles/${battleId}/join`, {
+    method: 'POST',
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(10000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiDeclineMuqabalaBattle(battleId) {
+  const res = await fetch(`/api/muqabla/battles/${battleId}/decline`, {
+    method: 'DELETE',
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiSubmitMuqablaAnswers(battleId, data) {
+  const res = await fetch(`/api/muqabla/battles/${battleId}/answer`, {
+    method: 'POST',
+    headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    signal: AbortSignal.timeout(10000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiGetMuqabalaBattle(battleId) {
+  const res = await fetch(`/api/muqabla/battles/${battleId}`, {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiGetOpenMuqabalaBattles() {
+  const res = await fetch('/api/muqabla/open', {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiGetPendingMuqabalaBattles() {
+  const res = await fetch('/api/muqabla/pending', {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiGetActiveMuqabalaBattles() {
+  const res = await fetch('/api/muqabla/active', {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiGetMuqabalaHistory() {
+  const res = await fetch('/api/muqabla/history', {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiGetMuqabalaLeaderboard() {
+  const res = await fetch('/api/muqabla/leaderboard', {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiGetMuqabalaSchoolLeaderboard() {
+  const res = await fetch('/api/muqabla/school-leaderboard', {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+// ── Parent Dashboard ─────────────────────────────────────────
+
+export async function apiGetParentPin() {
+  const res = await fetch('/api/parent/pin', {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiCreateParentPin() {
+  const res = await fetch('/api/parent/pin', {
+    method: 'POST',
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiRevokeParentPin() {
+  const res = await fetch('/api/parent/pin', {
+    method: 'DELETE',
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+// Public — no auth header needed
+export async function apiGetParentView(pin) {
+  const res = await fetch(`/api/parent/view/${encodeURIComponent(pin)}`, {
+    signal: AbortSignal.timeout(10000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
 // ── Mastery ───────────────────────────────────────────────────
 
 export async function apiGetMastery(userId) {

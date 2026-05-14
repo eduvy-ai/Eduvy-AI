@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { COLORS, BOARDS, LANGS, PLANS } from '../shared.js'
+import { apiGetParentPin, apiCreateParentPin, apiRevokeParentPin } from '../api.js'
 
 const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
 
@@ -19,18 +20,34 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
   const [usageLoading, setUsageLoading] = useState(false)
 
   // ── Profile edit state ───────────────────────────────────────
-  const [pName, setPName]   = useState(profile?.name || "")
-  const [pStd, setPStd]     = useState(profile?.standard || "Class 10")
-  const [pBoard, setPBoard] = useState(profile?.board || "CBSE")
-  const [pLang, setPLang]   = useState(profile?.language || "English")
+  const [pName, setPName]     = useState(profile?.name || "")
+  const [pStd, setPStd]       = useState(profile?.standard || "Class 10")
+  const [pBoard, setPBoard]   = useState(profile?.board || "CBSE")
+  const [pLang, setPLang]     = useState(profile?.language || "English")
+  const [pSchool, setPSchool] = useState(profile?.school || "")
   const [profileSaved, setProfileSaved] = useState(false)
+
+  // ── Parent PIN state ─────────────────────────────────────────
+  const [parentPin,     setParentPin]     = useState(null)
+  const [parentExpires, setParentExpires] = useState(null)
+  const [pinLoading,    setPinLoading]    = useState(false)
+  const [pinCopied,     setPinCopied]     = useState(false)
 
   const saveProfile = () => {
     if (!pName.trim()) return
-    onProfileSave?.({ name: pName.trim(), standard: pStd, board: pBoard, language: pLang })
+    onProfileSave?.({ name: pName.trim(), standard: pStd, board: pBoard, language: pLang, school: pSchool.trim() })
     setProfileSaved(true)
     setTimeout(() => setProfileSaved(false), 2000)
   }
+
+  // Fetch usage when AI tab is active
+  useEffect(() => {
+    if (activeTab === 'profile') {
+      apiGetParentPin()
+        .then(r => { setParentPin(r.pin); setParentExpires(r.expires_at) })
+        .catch(() => {})
+    }
+  }, [activeTab])
 
   // Fetch usage when AI tab is active
   useEffect(() => {
@@ -126,9 +143,97 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                   {LANGS.map(l => <option key={l} value={l}>{l}</option>)}
                 </select>
               </div>
+              <div>
+                <label style={labelStyle}>SCHOOL NAME (for Muqabla Battles)</label>
+                <input style={inputStyle} type="text" value={pSchool} onChange={e => setPSchool(e.target.value)} placeholder="e.g. Delhi Public School" maxLength={100} />
+              </div>
               <button onClick={saveProfile} style={primaryBtn}>
                 {profileSaved ? "✅ Saved!" : "💾 Save Profile"}
               </button>
+
+              {/* ── Share with Parent ── */}
+              <div style={{
+                marginTop: 8,
+                background: `${COLORS.green}0d`,
+                border: `1px solid ${COLORS.green}33`,
+                borderRadius: 14, padding: '16px',
+              }}>
+                <div style={{ fontWeight: 700, color: COLORS.green, fontSize: 14, marginBottom: 6 }}>
+                  👨‍👩‍👦 Share with Parent
+                </div>
+                <p style={{ color: COLORS.muted, fontSize: 12, margin: '0 0 12px' }}>
+                  Generate a PIN so your parent can view your progress — no account needed.
+                </p>
+                {parentPin ? (
+                  <>
+                    <div style={{
+                      background: COLORS.card2, borderRadius: 10, padding: '10px 14px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      marginBottom: 8,
+                    }}>
+                      <div>
+                        <div style={{ color: COLORS.muted, fontSize: 10, marginBottom: 2 }}>PARENT LINK</div>
+                        <div style={{
+                          fontFamily: 'monospace', fontSize: 16, fontWeight: 900,
+                          color: COLORS.yellow, letterSpacing: 3,
+                        }}>{parentPin}</div>
+                        <div style={{ color: COLORS.muted, fontSize: 10, marginTop: 2 }}>
+                          {window.location.origin}/parent/{parentPin}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard?.writeText(`${window.location.origin}/parent/${parentPin}`)
+                          setPinCopied(true)
+                          setTimeout(() => setPinCopied(false), 2000)
+                        }}
+                        style={{
+                          background: pinCopied ? `${COLORS.green}22` : COLORS.card,
+                          border: `1px solid ${pinCopied ? COLORS.green : COLORS.border}`,
+                          color: pinCopied ? COLORS.green : COLORS.text,
+                          borderRadius: 10, padding: '6px 12px', fontSize: 12, cursor: 'pointer',
+                        }}
+                      >{pinCopied ? '✅ Copied!' : '📋 Copy'}</button>
+                    </div>
+                    {parentExpires && (
+                      <div style={{ color: COLORS.muted, fontSize: 11, marginBottom: 8 }}>
+                        ⏰ Valid until {new Date(parentExpires).toLocaleDateString()}
+                      </div>
+                    )}
+                    <button
+                      disabled={pinLoading}
+                      onClick={async () => {
+                        setPinLoading(true)
+                        try {
+                          const r = await apiRevokeParentPin()
+                          if (r.revoked) { setParentPin(null); setParentExpires(null) }
+                        } finally { setPinLoading(false) }
+                      }}
+                      style={{
+                        background: `${COLORS.red}15`, border: `1px solid ${COLORS.red}33`,
+                        color: COLORS.red, borderRadius: 10, padding: '6px 14px',
+                        fontSize: 12, cursor: 'pointer', width: '100%',
+                      }}
+                    >{pinLoading ? 'Revoking…' : '🗑 Revoke Access'}</button>
+                  </>
+                ) : (
+                  <button
+                    disabled={pinLoading}
+                    onClick={async () => {
+                      setPinLoading(true)
+                      try {
+                        const r = await apiCreateParentPin()
+                        setParentPin(r.pin); setParentExpires(r.expires_at)
+                      } finally { setPinLoading(false) }
+                    }}
+                    style={{
+                      background: `${COLORS.green}22`, border: `1px solid ${COLORS.green}44`,
+                      color: COLORS.green, borderRadius: 10, padding: '10px',
+                      fontSize: 14, fontWeight: 700, cursor: 'pointer', width: '100%',
+                    }}
+                  >{pinLoading ? 'Generating…' : '🔗 Generate Parent Link'}</button>
+                )}
+              </div>
             </div>
           )}
 

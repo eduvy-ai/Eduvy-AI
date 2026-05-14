@@ -225,6 +225,140 @@ def init_db():
             UNIQUE (board_id, standard_id, medium_id)
         )
     """)
+
+    # ── Sathi Study Squads ────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS squads (
+            id             SERIAL PRIMARY KEY,
+            name           TEXT NOT NULL,
+            focus_subject  TEXT NOT NULL DEFAULT 'General',
+            created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            is_active      BOOLEAN DEFAULT TRUE
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS squad_members (
+            squad_id     INT NOT NULL REFERENCES squads(id) ON DELETE CASCADE,
+            user_id      TEXT NOT NULL,
+            role         TEXT DEFAULT 'learner',
+            joined_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (squad_id, user_id)
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS squad_messages (
+            id           SERIAL PRIMARY KEY,
+            squad_id     INT NOT NULL,
+            user_id      TEXT NOT NULL,
+            display_name TEXT NOT NULL DEFAULT 'Student',
+            content      TEXT NOT NULL,
+            msg_type     TEXT DEFAULT 'chat',
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS squad_challenges (
+            id               SERIAL PRIMARY KEY,
+            squad_id         INT NOT NULL,
+            teacher_user_id  TEXT NOT NULL,
+            subject          TEXT NOT NULL,
+            concept          TEXT NOT NULL,
+            status           TEXT DEFAULT 'pending',
+            explanation      TEXT DEFAULT '',
+            xp_awarded       INT DEFAULT 0,
+            created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # ── Muqabla Battles ──────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS muqabla_battles (
+            id                  SERIAL PRIMARY KEY,
+            challenger_id       TEXT NOT NULL,
+            challenger_name     TEXT NOT NULL DEFAULT 'Student',
+            challenger_school   TEXT NOT NULL DEFAULT '',
+            opponent_id         TEXT DEFAULT NULL,
+            opponent_name       TEXT DEFAULT '',
+            opponent_school     TEXT DEFAULT '',
+            subject             TEXT NOT NULL,
+            standard            TEXT NOT NULL DEFAULT 'Class 10',
+            difficulty          TEXT NOT NULL DEFAULT 'Medium',
+            questions_json      TEXT NOT NULL DEFAULT '[]',
+            challenger_score    INTEGER DEFAULT NULL,
+            challenger_answers  TEXT DEFAULT NULL,
+            challenger_time     INTEGER DEFAULT NULL,
+            opponent_score      INTEGER DEFAULT NULL,
+            opponent_answers    TEXT DEFAULT NULL,
+            opponent_time       INTEGER DEFAULT NULL,
+            winner_id           TEXT DEFAULT NULL,
+            xp_awarded          INTEGER DEFAULT 0,
+            status              TEXT NOT NULL DEFAULT 'open',
+            created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at          TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '24 hours'),
+            completed_at        TIMESTAMP DEFAULT NULL
+        )
+    """)
+    cur.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = 'school'
+            ) THEN
+                ALTER TABLE users ADD COLUMN school TEXT DEFAULT '';
+            END IF;
+        END $$;
+    """)
+
+    # ── Parent Dashboard Pins ─────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS parent_pins (
+            id          SERIAL PRIMARY KEY,
+            user_id     TEXT NOT NULL,
+            pin         TEXT NOT NULL UNIQUE,
+            label       TEXT NOT NULL DEFAULT 'Parent',
+            expires_at  TIMESTAMP NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '90 days'),
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # ── Bhool Bazaar — Mistake Marketplace ────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS bhool_cards (
+            id              SERIAL PRIMARY KEY,
+            user_id         TEXT NOT NULL,
+            subject         TEXT NOT NULL,
+            standard        TEXT NOT NULL DEFAULT 'Class 10',
+            question        TEXT NOT NULL,
+            wrong_answer    TEXT NOT NULL,
+            correct_answer  TEXT NOT NULL,
+            why_wrong       TEXT NOT NULL DEFAULT '',
+            is_published    BOOLEAN DEFAULT FALSE,
+            bhool_coins     INTEGER DEFAULT 0,
+            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS bhool_collections (
+            id          SERIAL PRIMARY KEY,
+            user_id     TEXT NOT NULL,
+            card_id     INT NOT NULL REFERENCES bhool_cards(id) ON DELETE CASCADE,
+            collected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (user_id, card_id)
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS bhool_reactions (
+            id          SERIAL PRIMARY KEY,
+            user_id     TEXT NOT NULL,
+            card_id     INT NOT NULL REFERENCES bhool_cards(id) ON DELETE CASCADE,
+            emoji       TEXT NOT NULL DEFAULT 'same',
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (user_id, card_id)
+        )
+    """)
+
     conn.commit()
     cur.close()
     conn.close()

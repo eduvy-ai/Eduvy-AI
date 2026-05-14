@@ -18,6 +18,10 @@ from routers.sessions import router as sessions_router
 from routers.auth import router as auth_router
 from routers.curriculum import router as curriculum_router
 from routers.admin import router as admin_router
+from routers.squads import router as squads_router
+from routers.bhool import router as bhool_router
+from routers.muqabla import router as muqabla_router
+from routers.parent import router as parent_router
 
 load_dotenv()
 
@@ -110,6 +114,10 @@ app.include_router(sessions_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
 app.include_router(curriculum_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
+app.include_router(squads_router, prefix="/api")
+app.include_router(bhool_router, prefix="/api")
+app.include_router(muqabla_router, prefix="/api")
+app.include_router(parent_router, prefix="/api")
 
 
 # ── Health check ──────────────────────────────────────────────

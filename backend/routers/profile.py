@@ -35,6 +35,7 @@ class ProfileUpdate(BaseModel):
     board: Optional[str] = None
     language: Optional[str] = None
     subjects: Optional[List[str]] = None
+    school: Optional[str] = None
 
 
 class XpRequest(BaseModel):
