@@ -149,67 +149,55 @@ export default function LandingPage() {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      width: '100%',
       background: COLORS.bg,
       fontFamily: 'Sora, sans-serif',
       color: COLORS.text,
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
       opacity: visible ? 1 : 0,
       transition: 'opacity 0.5s ease',
     }}>
-      <div style={{ width: '100%', maxWidth: 820, padding: '0 18px' }}>
 
-        {/* ── Top Nav ── */}
-        <nav style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '18px 0', borderBottom: `1px solid ${COLORS.border}`,
-        }}>
+      {/* ── Sticky Nav ── */}
+      <nav className="lp-nav">
+        <div className="lp-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
-              width: 38, height: 38, borderRadius: 12,
+              width: 36, height: 36, borderRadius: 10,
               background: `linear-gradient(135deg, ${COLORS.green}, #33cc88)`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 20, boxShadow: `0 0 18px ${COLORS.green}44`,
+              fontSize: 18, boxShadow: `0 0 14px ${COLORS.green}44`,
             }}>🎓</div>
-            <span style={{ fontSize: 20, fontWeight: 900, letterSpacing: -0.5 }}>
+            <span style={{ fontSize: 18, fontWeight: 900, letterSpacing: -0.5 }}>
               Eduvy<span style={{ color: COLORS.green }}>-AI</span>
             </span>
           </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <a href="#pricing" style={{
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <a href="#pricing" className="nav-pricing-link" style={{
               fontSize: 13, fontWeight: 600, color: COLORS.muted,
-              textDecoration: 'none', padding: '8px 14px',
-              display: 'none',  // hidden on tiny screens — CSS media query below overrides on ≥480px
-            }}
-              className="nav-pricing-link"
-            >Pricing</a>
+              textDecoration: 'none', padding: '8px 14px', display: 'none',
+            }}>Pricing</a>
             <button onClick={() => navigate('/auth')} style={{
               background: 'transparent',
               border: `1.5px solid ${COLORS.border}`,
-              borderRadius: 10, padding: '8px 18px',
+              borderRadius: 10, padding: '8px 16px',
               color: COLORS.text, fontSize: 13, fontWeight: 600,
               cursor: 'pointer', fontFamily: 'Sora, sans-serif',
             }}>Sign In</button>
             <button onClick={() => navigate('/auth')} style={{
               background: `linear-gradient(135deg, ${COLORS.green}, #33cc88)`,
-              border: 'none', borderRadius: 10, padding: '8px 20px',
+              border: 'none', borderRadius: 10, padding: '8px 18px',
               color: '#04040e', fontSize: 13, fontWeight: 800,
               cursor: 'pointer', fontFamily: 'Sora, sans-serif',
             }}>Get Started Free</button>
           </div>
-        </nav>
+        </div>
+      </nav>
 
-        {/* ── Hero ── */}
-        <section style={{
-          textAlign: 'center', paddingTop: 64, paddingBottom: 56,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24,
-        }}>
-          {/* Board pill */}
-          <div style={{
-            display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center',
-          }}>
+      {/* ── Hero ── */}
+      <section className="lp-hero">
+        <div className="lp-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, textAlign: 'center' }}>
+          {/* Board pills */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
             {BOARDS.map(b => (
               <span key={b} style={{
                 background: `${COLORS.blue}15`, border: `1px solid ${COLORS.blue}30`,
@@ -219,30 +207,32 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* Main headline */}
+          {/* Headline */}
           <div>
             <h1 style={{
-              fontSize: 'clamp(32px, 6vw, 54px)',
-              fontWeight: 900, lineHeight: 1.1,
-              letterSpacing: -1, margin: 0,
+              fontSize: 'clamp(34px, 5.5vw, 64px)',
+              fontWeight: 900, lineHeight: 1.08,
+              letterSpacing: -1.5, margin: 0,
             }}>
               India's Smartest<br />
               <span style={{ color: COLORS.green }}>AI Tutor</span>
             </h1>
             <p style={{
-              fontSize: 18, color: COLORS.muted, marginTop: 14,
-              fontWeight: 500, lineHeight: 1.5,
+              fontSize: 'clamp(15px, 2vw, 19px)',
+              color: COLORS.muted, marginTop: 16,
+              fontWeight: 500, lineHeight: 1.55, margin: '16px auto 0',
+              maxWidth: 540,
             }}>
               For every Indian student — Class 1 to 12<br />
               Powered by AI, delivered in your language
             </p>
           </div>
 
-          {/* Animated language display */}
+          {/* Animated language */}
           <div style={{
             background: COLORS.card, border: `1px solid ${COLORS.border}`,
             borderRadius: 14, padding: '12px 28px',
-            display: 'flex', alignItems: 'center', gap: 10,
+            display: 'inline-flex', alignItems: 'center', gap: 10,
           }}>
             <span style={{ fontSize: 13, color: COLORS.muted, fontWeight: 500 }}>Responding in</span>
             <span style={{
@@ -257,17 +247,17 @@ export default function LandingPage() {
             <button onClick={() => navigate('/auth')} style={{
               background: `linear-gradient(135deg, ${COLORS.green}, #33cc88)`,
               border: 'none', borderRadius: 14,
-              padding: '15px 36px',
+              padding: '16px 40px',
               color: '#04040e', fontSize: 16, fontWeight: 900,
               cursor: 'pointer', fontFamily: 'Sora, sans-serif',
-              boxShadow: `0 0 30px ${COLORS.green}44`,
+              boxShadow: `0 0 32px ${COLORS.green}44`,
             }}>
               Start Learning Free 🚀
             </button>
             <button onClick={() => navigate('/auth')} style={{
               background: 'transparent',
               border: `1.5px solid ${COLORS.border}`,
-              borderRadius: 14, padding: '15px 28px',
+              borderRadius: 14, padding: '16px 28px',
               color: COLORS.text, fontSize: 15, fontWeight: 700,
               cursor: 'pointer', fontFamily: 'Sora, sans-serif',
             }}>
@@ -275,22 +265,19 @@ export default function LandingPage() {
             </button>
           </div>
 
-          {/* Trust strip */}
           <p style={{ fontSize: 12, color: COLORS.muted, fontWeight: 500 }}>
             Free to use · No credit card · Works in 11 Indian languages
           </p>
-        </section>
+        </div>
+      </section>
 
-        {/* ── Features grid ── */}
-        <section style={{ paddingBottom: 60 }}>
-          <h2 style={{ textAlign: 'center', fontSize: 22, fontWeight: 800, marginBottom: 28, letterSpacing: -0.3 }}>
+      {/* ── Features grid ── */}
+      <section style={{ paddingBottom: 72, background: COLORS.card2 }}>
+        <div className="lp-container" style={{ paddingTop: 56, paddingBottom: 8 }}>
+          <h2 style={{ textAlign: 'center', fontSize: 'clamp(18px, 2.5vw, 24px)', fontWeight: 800, marginBottom: 28, letterSpacing: -0.3 }}>
             Everything a student needs, in one app
           </h2>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-            gap: 14,
-          }}>
+          <div className="lp-grid-features">
             {FEATURES.map(f => (
               <div key={f.title} style={{
                 background: COLORS.card,
@@ -303,12 +290,14 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* ── Pricing ── */}
-        <section id="pricing" style={{ paddingBottom: 64 }}>
+      {/* ── Pricing ── */}
+      <section id="pricing" style={{ paddingBottom: 72 }}>
+        <div className="lp-container" style={{ paddingTop: 60 }}>
           <div style={{ textAlign: 'center', marginBottom: 36 }}>
-            <h2 style={{ fontSize: 'clamp(22px, 4vw, 30px)', fontWeight: 900, margin: '0 0 10px', letterSpacing: -0.5 }}>
+            <h2 style={{ fontSize: 'clamp(20px, 3vw, 30px)', fontWeight: 900, margin: '0 0 10px', letterSpacing: -0.5 }}>
               Simple, transparent pricing
             </h2>
             <p style={{ fontSize: 14, color: COLORS.muted, margin: 0 }}>
@@ -316,25 +305,14 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Plan cards */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-            gap: 16,
-            alignItems: 'start',
-          }}>
+          <div className="lp-grid-pricing">
             {PLANS_PRICING.map(plan => (
               <div key={plan.key} style={{
                 background: plan.popular ? `${plan.color}0d` : COLORS.card,
                 border: `1.5px solid ${plan.popular ? plan.color : COLORS.border}`,
-                borderRadius: 20,
-                padding: '24px 20px',
-                position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 0,
+                borderRadius: 20, padding: '24px 20px',
+                position: 'relative', display: 'flex', flexDirection: 'column',
               }}>
-                {/* Popular badge */}
                 {plan.popular && (
                   <div style={{
                     position: 'absolute', top: -13, left: '50%',
@@ -345,8 +323,6 @@ export default function LandingPage() {
                     letterSpacing: '0.06em', whiteSpace: 'nowrap',
                   }}>⭐ MOST POPULAR</div>
                 )}
-
-                {/* Plan header */}
                 <div style={{ marginBottom: 18 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                     <span style={{ fontSize: 22 }}>{plan.icon}</span>
@@ -358,9 +334,7 @@ export default function LandingPage() {
                   </div>
                   <p style={{ fontSize: 12, color: COLORS.muted, margin: 0, lineHeight: 1.4 }}>{plan.tagline}</p>
                 </div>
-
-                {/* Feature list */}
-                <ul style={{ listStyle: 'none', margin: '0 0 22px', padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <ul style={{ listStyle: 'none', margin: '0 0 22px', padding: 0, display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
                   {plan.features.map((f, i) => (
                     <li key={i} style={{
                       display: 'flex', alignItems: 'flex-start', gap: 8,
@@ -375,74 +349,65 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-
-                {/* CTA button */}
-                <button
-                  onClick={() => navigate('/auth')}
-                  style={{
-                    marginTop: 'auto',
-                    background: plan.popular
-                      ? `linear-gradient(135deg, ${plan.color}, #4466ee)`
-                      : plan.key === 'free'
-                        ? `linear-gradient(135deg, ${COLORS.green}, #33cc88)`
-                        : `${plan.color}18`,
-                    border: plan.popular || plan.key === 'free' ? 'none' : `1.5px solid ${plan.color}50`,
-                    borderRadius: 12,
-                    padding: '11px 16px',
-                    color: plan.popular || plan.key === 'free' ? (plan.popular ? '#fff' : '#04040e') : plan.color,
-                    fontSize: 13,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    fontFamily: 'Sora, sans-serif',
-                    width: '100%',
-                    letterSpacing: '0.01em',
-                  }}
-                >{plan.cta}</button>
+                <button onClick={() => navigate('/auth')} style={{
+                  marginTop: 'auto',
+                  background: plan.popular
+                    ? `linear-gradient(135deg, ${plan.color}, #4466ee)`
+                    : plan.key === 'free'
+                      ? `linear-gradient(135deg, ${COLORS.green}, #33cc88)`
+                      : `${plan.color}18`,
+                  border: plan.popular || plan.key === 'free' ? 'none' : `1.5px solid ${plan.color}50`,
+                  borderRadius: 12, padding: '11px 16px',
+                  color: plan.popular || plan.key === 'free' ? (plan.popular ? '#fff' : '#04040e') : plan.color,
+                  fontSize: 13, fontWeight: 800,
+                  cursor: 'pointer', fontFamily: 'Sora, sans-serif',
+                  width: '100%', letterSpacing: '0.01em',
+                }}>{plan.cta}</button>
               </div>
             ))}
           </div>
-
-          {/* Compare note */}
           <p style={{ textAlign: 'center', fontSize: 12, color: COLORS.muted, marginTop: 22 }}>
             All plans include access on web &amp; mobile · Plans managed by admin · No hidden charges
           </p>
-        </section>
+        </div>
+      </section>
 
-        {/* ── Language strip ── */}
-        <section style={{
-          background: COLORS.card, border: `1px solid ${COLORS.border}`,
-          borderRadius: 20, padding: '28px 24px',
-          textAlign: 'center', marginBottom: 60,
-        }}>
-          <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>
-            Speaks your language — literally
-          </h3>
-          <p style={{ fontSize: 13, color: COLORS.muted, marginBottom: 18 }}>
-            Every explanation, quiz, note, and podcast — in your medium
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
-            {LANGS.map(l => (
-              <span key={l} style={{
-                background: `${COLORS.green}12`, border: `1px solid ${COLORS.green}30`,
-                borderRadius: 10, padding: '6px 14px',
-                fontSize: 14, fontWeight: 700, color: COLORS.green,
-              }}>{l}</span>
-            ))}
+      {/* ── Language strip ── */}
+      <section style={{ background: COLORS.card2, paddingTop: 48, paddingBottom: 48 }}>
+        <div className="lp-container">
+          <div style={{
+            background: COLORS.card, border: `1px solid ${COLORS.border}`,
+            borderRadius: 20, padding: '32px 28px', textAlign: 'center',
+          }}>
+            <h3 style={{ fontSize: 'clamp(16px, 2vw, 20px)', fontWeight: 800, marginBottom: 8 }}>
+              Speaks your language — literally
+            </h3>
+            <p style={{ fontSize: 13, color: COLORS.muted, marginBottom: 20 }}>
+              Every explanation, quiz, note, and podcast — in your medium
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+              {LANGS.map(l => (
+                <span key={l} style={{
+                  background: `${COLORS.green}12`, border: `1px solid ${COLORS.green}30`,
+                  borderRadius: 10, padding: '6px 14px',
+                  fontSize: 14, fontWeight: 700, color: COLORS.green,
+                }}>{l}</span>
+              ))}
+            </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* ── Final CTA ── */}
-        <section style={{
-          textAlign: 'center', paddingBottom: 64,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18,
-        }}>
+      {/* ── Final CTA ── */}
+      <section style={{ paddingTop: 72, paddingBottom: 80 }}>
+        <div className="lp-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, textAlign: 'center' }}>
           <div style={{
             width: 72, height: 72, borderRadius: 22,
             background: `linear-gradient(135deg, ${COLORS.green}, #33cc88)`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 36, boxShadow: `0 0 32px ${COLORS.green}44`,
           }}>🎓</div>
-          <h2 style={{ fontSize: 26, fontWeight: 900, letterSpacing: -0.5, margin: 0 }}>
+          <h2 style={{ fontSize: 'clamp(22px, 3vw, 30px)', fontWeight: 900, letterSpacing: -0.5, margin: 0 }}>
             Ready to start learning?
           </h2>
           <p style={{ fontSize: 14, color: COLORS.muted, margin: 0 }}>
@@ -450,20 +415,20 @@ export default function LandingPage() {
           </p>
           <button onClick={() => navigate('/auth')} style={{
             background: `linear-gradient(135deg, ${COLORS.green}, #33cc88)`,
-            border: 'none', borderRadius: 14,
-            padding: '15px 48px',
+            border: 'none', borderRadius: 14, padding: '16px 52px',
             color: '#04040e', fontSize: 16, fontWeight: 900,
             cursor: 'pointer', fontFamily: 'Sora, sans-serif',
             boxShadow: `0 0 30px ${COLORS.green}44`,
           }}>
             Create Free Account 🚀
           </button>
-        </section>
+        </div>
+      </section>
 
-        {/* ── Footer ── */}
-        <footer style={{
-          borderTop: `1px solid ${COLORS.border}`,
-          padding: '18px 0 32px',
+      {/* ── Footer ── */}
+      <footer style={{ borderTop: `1px solid ${COLORS.border}` }}>
+        <div className="lp-container" style={{
+          padding: '20px 18px 32px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           flexWrap: 'wrap', gap: 8,
         }}>
@@ -473,8 +438,8 @@ export default function LandingPage() {
           <span style={{ fontSize: 12, color: COLORS.muted }}>
             CBSE · ICSE · GSEB · MSBSHSE · RBSE · UP Board · TN Board · KAR Board · PSEB · BSEB
           </span>
-        </footer>
-      </div>
+        </div>
+      </footer>
     </div>
   )
 }
