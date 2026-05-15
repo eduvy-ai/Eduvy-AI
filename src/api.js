@@ -222,6 +222,89 @@ export async function apiLeaveSquad(squadId) {
   return res.json()
 }
 
+// ── Sathi — Doubts Board ──────────────────────────────────────
+export async function apiGetSquadDoubts(squadId) {
+  const res = await fetch(`/api/squads/${squadId}/doubts`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+export async function apiGetDoubtQuota(squadId) {
+  const res = await fetch(`/api/squads/${squadId}/doubts/quota`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+export async function apiPostDoubt(squadId, data) {
+  const res = await fetch(`/api/squads/${squadId}/doubts`, {
+    method: 'POST', headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(data), signal: AbortSignal.timeout(5000),
+  })
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || `HTTP ${res.status}`) }
+  return res.json()
+}
+export async function apiGetDoubtAnswers(squadId, doubtId) {
+  const res = await fetch(`/api/squads/${squadId}/doubts/${doubtId}/answers`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+export async function apiPostAnswer(squadId, doubtId, data) {
+  const res = await fetch(`/api/squads/${squadId}/doubts/${doubtId}/answers`, {
+    method: 'POST', headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(data), signal: AbortSignal.timeout(5000),
+  })
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || `HTTP ${res.status}`) }
+  return res.json()
+}
+export async function apiUpvoteAnswer(squadId, doubtId, answerId) {
+  const res = await fetch(`/api/squads/${squadId}/doubts/${doubtId}/answers/${answerId}/upvote`, {
+    method: 'POST', headers: _authHeaders(), signal: AbortSignal.timeout(5000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiPatchVerdict(squadId, doubtId, answerId, aiVerdict, aiNote) {
+  const res = await fetch(`/api/squads/${squadId}/doubts/${doubtId}/answers/${answerId}/verdict`, {
+    method: 'PATCH',
+    headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ai_verdict: aiVerdict, ai_note: aiNote }),
+    signal: AbortSignal.timeout(5000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+// ── Sathi — Streak + Daily + Session ─────────────────────────
+export async function apiGetSquadStreak(squadId) {
+  const res = await fetch(`/api/squads/${squadId}/streak`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+export async function apiGetDailyConcept(squadId) {
+  const res = await fetch(`/api/squads/${squadId}/daily`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+export async function apiSubmitDailyExplain(squadId, explanation, xpOverride, aiVerdict, aiNote) {
+  const body = { explanation }
+  if (xpOverride)  body.xp_override = xpOverride
+  if (aiVerdict)   body.ai_verdict  = aiVerdict
+  if (aiNote)      body.ai_note     = aiNote
+  const res = await fetch(`/api/squads/${squadId}/daily/explain`, {
+    method: 'POST', headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(body), signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || `HTTP ${res.status}`) }
+  return res.json()
+}
+export async function apiStartSession(squadId, displayName, minutes = 25) {
+  const res = await fetch(`/api/squads/${squadId}/session/start`, {
+    method: 'POST', headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ display_name: displayName, minutes }), signal: AbortSignal.timeout(5000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
 // ── Bhool Bazaar ──────────────────────────────────────────────
 
 export async function apiCreateBhoolCard(data) {

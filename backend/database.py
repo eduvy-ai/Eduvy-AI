@@ -232,6 +232,8 @@ def init_db():
             id             SERIAL PRIMARY KEY,
             name           TEXT NOT NULL,
             focus_subject  TEXT NOT NULL DEFAULT 'General',
+            standard       TEXT NOT NULL DEFAULT 'Class 10',
+            medium         TEXT NOT NULL DEFAULT 'English',
             created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             is_active      BOOLEAN DEFAULT TRUE
         )
@@ -310,6 +312,23 @@ def init_db():
             END IF;
         END $$;
     """)
+    cur.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'squads' AND column_name = 'standard'
+            ) THEN
+                ALTER TABLE squads ADD COLUMN standard TEXT NOT NULL DEFAULT 'Class 10';
+            END IF;
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'squads' AND column_name = 'medium'
+            ) THEN
+                ALTER TABLE squads ADD COLUMN medium TEXT NOT NULL DEFAULT 'English';
+            END IF;
+        END $$;
+    """)
 
     # ── Parent Dashboard Pins ─────────────────────────────────
     cur.execute("""
@@ -357,6 +376,85 @@ def init_db():
             created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE (user_id, card_id)
         )
+    """)
+
+    # ── Sathi — Squad Doubts ──────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS squad_doubts (
+            id           SERIAL PRIMARY KEY,
+            squad_id     INT NOT NULL REFERENCES squads(id) ON DELETE CASCADE,
+            user_id      TEXT NOT NULL,
+            display_name TEXT NOT NULL DEFAULT 'Student',
+            question     TEXT NOT NULL,
+            subject      TEXT NOT NULL DEFAULT '',
+            status       TEXT NOT NULL DEFAULT 'open',
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS squad_doubt_answers (
+            id           SERIAL PRIMARY KEY,
+            doubt_id     INT NOT NULL REFERENCES squad_doubts(id) ON DELETE CASCADE,
+            squad_id     INT NOT NULL,
+            user_id      TEXT NOT NULL,
+            display_name TEXT NOT NULL DEFAULT 'Student',
+            answer       TEXT NOT NULL,
+            upvotes      INT NOT NULL DEFAULT 0,
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS squad_doubt_upvotes (
+            answer_id  INT NOT NULL REFERENCES squad_doubt_answers(id) ON DELETE CASCADE,
+            user_id    TEXT NOT NULL,
+            PRIMARY KEY (answer_id, user_id)
+        )
+    """)
+    # ── Sathi — AI verdict columns on squad_doubt_answers ─────
+    cur.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'squad_doubt_answers' AND column_name = 'ai_verdict'
+            ) THEN
+                ALTER TABLE squad_doubt_answers
+                    ADD COLUMN ai_verdict TEXT DEFAULT NULL,
+                    ADD COLUMN ai_note    TEXT DEFAULT NULL;
+            END IF;
+        END$$;
+    """)
+    # ── Sathi — AI verdict columns on squad_challenges (daily) ─
+    cur.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'squad_challenges' AND column_name = 'ai_verdict'
+            ) THEN
+                ALTER TABLE squad_challenges
+                    ADD COLUMN ai_verdict TEXT DEFAULT NULL,
+                    ADD COLUMN ai_note    TEXT DEFAULT NULL;
+            END IF;
+        END$$;
+    """)
+    # ── Sathi — Squad streak columns ──────────────────────────
+    cur.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'squads' AND column_name = 'streak'
+            ) THEN
+                ALTER TABLE squads ADD COLUMN streak INT NOT NULL DEFAULT 0;
+            END IF;
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'squads' AND column_name = 'last_active_date'
+            ) THEN
+                ALTER TABLE squads ADD COLUMN last_active_date DATE DEFAULT NULL;
+            END IF;
+        END $$;
     """)
 
     conn.commit()

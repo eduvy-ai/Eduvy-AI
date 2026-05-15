@@ -156,7 +156,7 @@ function AppShell({
       </nav>
 
       {/* ── Right panel ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
         {/* Mobile top header */}
         <div className="app-header" style={{
           background: COLORS.card, borderBottom: `1px solid ${COLORS.border}`,
@@ -228,10 +228,22 @@ export default function App() {
   const location   = useLocation()
 
   // ── App state ─────────────────────────────────────────────
-  const [profile,        setProfile]        = useState(DEFAULT_PROFILE)
-  const [userId,         setUserId]         = useState(null)
-  const [xp,             setXp]             = useState(0)
-  const [streak,         setStreak]         = useState(1)
+  const [profile,        setProfile]        = useState(() => {
+    try {
+      const cached = localStorage.getItem('eduvyai_profile')
+      if (cached) return { ...DEFAULT_PROFILE, ...JSON.parse(cached) }
+    } catch {}
+    return DEFAULT_PROFILE
+  })
+  const [userId,         setUserId]         = useState(() => {
+    try { return JSON.parse(localStorage.getItem('eduvyai_profile') || 'null')?.id || null } catch { return null }
+  })
+  const [xp,             setXp]             = useState(() => {
+    try { return JSON.parse(localStorage.getItem('eduvyai_profile') || 'null')?.xp || 0 } catch { return 0 }
+  })
+  const [streak,         setStreak]         = useState(() => {
+    try { return JSON.parse(localStorage.getItem('eduvyai_profile') || 'null')?.streak || 1 } catch { return 1 }
+  })
   const [docCtx,         setDocCtx]         = useState('')
   const [docName,        setDocName]        = useState('')
   const [showSettings,   setShowSettings]   = useState(false)
@@ -255,7 +267,7 @@ export default function App() {
     }
     setProfile(p)
     setUserId(data.id)
-    try { localStorage.setItem('eduvyai_profile', JSON.stringify(p)) } catch {}
+    try { localStorage.setItem('eduvyai_profile', JSON.stringify({ ...p, id: data.id, xp: data.xp || 0, streak: data.streak || 1 })) } catch {}
     setXp(data.xp || 0)
 
     const { streak: newStreak, changed } = computeStreak(data.last_active || '', data.streak || 1)
@@ -282,28 +294,33 @@ export default function App() {
   useEffect(() => {
     async function load() {
       const token = getAuthToken()
-      if (token) {
-        try {
-          const data = await apiGetMe()
-          if (data) {
-            hydrateProfile(data)
-            // Admin routes manage their own auth — don't redirect them
-            if (location.pathname.startsWith('/admin')) return
-            // Landing page manages its own redirect — skip it here
-            if (location.pathname === '/') return
-            if (location.pathname.startsWith('/auth')) {
-              // Already had valid token, go to app
-              navigate('/app/home', { replace: true })
-            }
-            // Already on /app/* — stay there, state is now hydrated
-            return
-          }
-        } catch { /* token expired */ }
-        clearAuth()
+      if (!token) {
+        if (location.pathname.startsWith('/app')) navigate('/auth', { replace: true })
+        return
       }
-      // Not authenticated — admin routes manage their own auth
+
+      let data = null
+      try {
+        data = await apiGetMe()
+      } catch {
+        // Network error / backend down — stay on current page with cached profile
+        return
+      }
+
+      if (data) {
+        hydrateProfile(data)
+        // Admin routes manage their own auth — don't redirect them
+        if (location.pathname.startsWith('/admin')) return
+        if (location.pathname === '/') return
+        if (location.pathname.startsWith('/auth')) {
+          navigate('/app/home', { replace: true })
+        }
+        return
+      }
+
+      // data is null → 401/404 → token is genuinely invalid
+      clearAuth()
       if (location.pathname.startsWith('/admin')) return
-      // Landing page manages its own state
       if (location.pathname === '/') return
       if (location.pathname.startsWith('/app')) {
         navigate('/auth', { replace: true })
@@ -349,7 +366,13 @@ export default function App() {
   const addXp = (pts) => {
     setXp(prev => {
       const next = prev + pts
-      apiAddXp(userId || getDeviceId(), pts).then(res => setXp(res.xp)).catch(() => {})
+      apiAddXp(userId || getDeviceId(), pts).then(res => {
+        setXp(res.xp)
+        try {
+          const cached = JSON.parse(localStorage.getItem('eduvyai_profile') || '{}')
+          localStorage.setItem('eduvyai_profile', JSON.stringify({ ...cached, xp: res.xp }))
+        } catch {}
+      }).catch(() => {})
       return next
     })
   }

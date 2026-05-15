@@ -11,6 +11,7 @@ html, body {
   color: #eeeeff;
   font-family: 'Sora', sans-serif;
   height: 100%;
+  overflow: hidden;
   overscroll-behavior: none;
 }
 
@@ -60,28 +61,26 @@ input, textarea, select { outline: none; border: none; }
 #root {
   display: flex;
   justify-content: center;
-  min-height: 100vh;
+  height: 100%;
   background: #04040e;
 }
 
 .app-shell {
   width: 100%;
-  max-width: 480px;
-  min-height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: #04040e;
   position: relative;
+  overflow: hidden;
 }
 
 /* Bottom nav visible on mobile, hidden on desktop */
 .bottom-nav {
   position: fixed;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   width: 100%;
-  max-width: 480px;
   background: #0b0b1c;
   border-top: 1px solid #ffffff08;
   display: flex;
@@ -95,7 +94,9 @@ input, textarea, select { outline: none; border: none; }
 .tab-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-bottom: 72px;
+  min-height: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -107,16 +108,13 @@ input, textarea, select { outline: none; border: none; }
   #root {
     align-items: stretch;
     background: #020209;
+    height: 100%;
   }
 
   .app-shell {
-    max-width: 1200px;
     width: 100%;
     flex-direction: row;
-    min-height: 100vh;
-    margin: 0 auto;
-    border-left: 1px solid #ffffff08;
-    border-right: 1px solid #ffffff08;
+    height: 100%;
   }
 
   /* Hide bottom nav, show sidebar */
@@ -126,14 +124,11 @@ input, textarea, select { outline: none; border: none; }
     display: flex;
     flex-direction: column;
     width: 220px;
-    min-height: 100vh;
     background: #0b0b1c;
     border-right: 1px solid #ffffff08;
     padding: 24px 12px 24px;
     flex-shrink: 0;
-    position: sticky;
-    top: 0;
-    height: 100vh;
+    height: 100%;
     overflow-y: auto;
   }
 
@@ -141,8 +136,10 @@ input, textarea, select { outline: none; border: none; }
   .tab-content {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding-bottom: 32px;
     min-width: 0;
+    min-height: 0;
   }
 
   /* App header spans full width on desktop */
