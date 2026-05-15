@@ -73,6 +73,11 @@ const COLORS = {
 Core: `users`, `study_sessions`, `quiz_stats`, `mastery_scores`, `notebook_sources`, `notebook_messages`
 Curriculum: `boards`, `standards`, `mediums`, `curriculum`, `admin_users`
 Squads: `squads`, `squad_members`, `squad_messages`, `squad_challenges`
+  - `squads` extra cols: `standard`, `medium`, `streak`, `last_active_date`
+  - `squad_challenges` extra cols: `ai_verdict`, `ai_note` (from Daily Concept AI grading)
+  - `squad_doubts` — doubt posts per squad (status: open | answered)
+  - `squad_doubt_answers` — answers with `upvotes`, `ai_verdict`, `ai_note`
+  - `squad_doubt_upvotes` — (answer_id, user_id) composite PK prevents double-votes
 Bhool Bazaar: `bhool_cards`, `bhool_collections`, `bhool_reactions`
 Muqabla: `muqabla_battles`
 Parent: `parent_pins`
@@ -137,6 +142,25 @@ Never show raw API errors to students. Auto-retry 3× with backoff. See `.github
 ### 11. school Column
 `users` table has a `school TEXT DEFAULT ''` column added via DO $$ migration. Always include `school` in profile updates via `PUT /api/profile`.
 
+### 12. AI Grading — Award Dynamic XP
+When AI grades a student answer (Daily Concept, Doubts Board), use three tiers:
+```
+correct   → 30 XP  (full understanding)
+partial   → 15 XP  (some gaps)
+incorrect →  5 XP  (participation credit — never 0, never punish trying)
+```
+AI call is best-effort — always wrap in try/catch and fall back to a default XP if AI is unavailable. Never block submission on AI failure.
+
+### 13. Per-Day Limits (Doubts Board)
+Doubts posting is rate-limited by plan on the backend (`DOUBT_DAILY_LIMITS` in `squads.py`):
+```
+free: 2/day · basic: 5/day · pro: 15/day · premium: unlimited
+```
+Frontend reads `/squads/{id}/doubts/quota` and shows remaining count. Backend returns HTTP 429 when limit exceeded.
+
+### 14. Brand Names — Do Not Translate Nav Labels
+`Sathi`, `Bhool`, `Muqabla` are product brand names (like "Reels" or "Shorts"). Do NOT translate them into tab labels for different languages. Translate all content *inside* each tab via `LANG_RULES`, not the tab names themselves.
+
 ## File Structure
 ```
 src/
@@ -161,7 +185,7 @@ src/
       LearnTVTab.jsx
       LabsTab.jsx
       DiscoverTab.jsx
-      SathiTab.jsx       # Sathi Study Squads chat + challenges
+      SathiTab.jsx       # Sathi Study Squads — 3 sub-tabs: Chat | Doubts Board | Daily Concept
       BhoolBazaarTab.jsx # Mistake Marketplace (4 sub-tabs)
       MuqablaTab.jsx     # Battle Arena (Arena / Rankings / History)
     labs/
@@ -191,7 +215,7 @@ backend/
     quiz_stats.py        # Quiz results + history
     mastery.py           # Subject mastery scores
     sessions.py          # Study sessions
-    squads.py            # Sathi Study Squads (match, chat, challenges)
+    squads.py            # Sathi Study Squads (match by standard+medium, chat, challenges, doubts, daily concept, streak)
     bhool.py             # Bhool Bazaar (cards, marketplace, collect, react)
     muqabla.py           # Muqabla Battles (challenge, join, answer, leaderboard)
     parent.py            # Parent Dashboard PIN (generate, view, revoke)

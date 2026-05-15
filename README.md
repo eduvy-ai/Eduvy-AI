@@ -23,7 +23,11 @@ AI-powered education platform for Indian students (Class 1–12). Every AI respo
 - **Mental Wellness Coach** — Handles exam stress, anxiety, and motivation
 
 ### Social & Competitive
-- **🤝 Sathi Study Squads** — Group chat with AI peer "Gyaani", teach-back challenges, +50 XP rewards
+- **🤝 Sathi Study Squads** — 3-tab squad experience:
+  - **Chat** — Group chat with AI peer "Gyaani", teach-back challenges (+50 XP), squad streak
+  - **Doubts Board** — Post doubts, squad answers, AI auto-verifies each answer (✅ Correct / ⚠️ Partial / ✗ Incorrect), upvote best answers (+15 XP); per-day posting limits by plan (Free: 2, Basic: 5, Pro: 15, Premium: ∞)
+  - **Daily Concept** — One concept/day from squad's focus subject; students write explanations in their own words; AI grades and awards XP dynamically (correct→+30, partial→+15, incorrect→+5); one submission per student per day
+  - Squad matching by class + medium; squad streak tracks daily activity
 - **📛 Bhool Bazaar** — Mistake Marketplace: turn wrong answers into published learning cards with Bhool Coins economy
 - **⚔️ Muqabla Battles** — Student vs Student + School vs School battles; AI generates 5 MCQ questions per battle; weekly leaderboard
 
@@ -85,7 +89,7 @@ src/
         ├── LearnTVTab.jsx
         ├── LabsTab.jsx
         ├── DiscoverTab.jsx
-        ├── SathiTab.jsx       # Study Squads chat
+        ├── SathiTab.jsx       # Study Squads — Chat / Doubts Board / Daily Concept (3 sub-tabs)
         ├── BhoolBazaarTab.jsx # Mistake Marketplace
         └── MuqablaTab.jsx     # Battle Arena
         └── labs/
