@@ -20,13 +20,19 @@ from jose import jwt, JWTError
 import os
 
 from database import get_db
-from services.ai_service import call_ai, resolve_provider_model
+from services.ai_service import call_ai, resolve_provider_model, load_plan_routing
 
 router = APIRouter()
 _bearer = HTTPBearer(auto_error=False)
 
 _JWT_SECRET    = os.getenv("JWT_SECRET", "eduvyai-change-me")
 _JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+
+# Load plan routing from DB at module init (non-fatal if DB not ready yet)
+try:
+    load_plan_routing()
+except Exception:
+    pass
 
 # ── Daily call quota per plan ─────────────────────────────────
 PLANS_QUOTA = {
@@ -56,7 +62,10 @@ def _get_user(creds: HTTPAuthorizationCredentials = Depends(_bearer)) -> dict:
     conn = get_db()
     try:
         cur = conn.cursor()
-        cur.execute("SELECT id, plan, plan_expires_at FROM users WHERE id = %s", (uid,))
+        cur.execute(
+            "SELECT id, plan, plan_expires_at, ai_provider, ai_model, ai_admin_override FROM users WHERE id = %s",
+            (uid,),
+        )
         row = cur.fetchone()
         if not row:
             raise HTTPException(status_code=401, detail="User not found")
@@ -65,7 +74,13 @@ def _get_user(creds: HTTPAuthorizationCredentials = Depends(_bearer)) -> dict:
         expiry = row["plan_expires_at"] or ""
         if expiry and expiry < _today():
             plan = "free"
-        return {"id": uid, "plan": plan}
+        return {
+            "id": uid,
+            "plan": plan,
+            "ai_provider": row["ai_provider"] or "gemini",
+            "ai_model": row["ai_model"] or "gemini-2.0-flash",
+            "ai_admin_override": bool(row["ai_admin_override"]),
+        }
     finally:
         conn.close()
 
@@ -165,8 +180,13 @@ async def chat(req: AIRequest, user: dict = Depends(_get_user)):
             },
         )
 
-    # ── Route provider/model by plan ─────────────────────────
-    provider, model = resolve_provider_model(plan, req.provider, req.model)
+    # ── Route provider/model by plan (or admin override) ─────
+    if user.get("ai_admin_override"):
+        # Admin has explicitly set a provider+model for this user — honour it
+        provider = user["ai_provider"]
+        model    = user["ai_model"]
+    else:
+        provider, model = resolve_provider_model(plan, req.provider, req.model)
 
     history = [{"role": m.role, "content": m.content} for m in req.history]
 

@@ -399,11 +399,9 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
   const runAIVerdict = async (answerId, question, subject, answerText) => {
     try {
       const lang = profile?.language || 'English'
-      const prompt = [
-        { role: 'system', content: `You are a strict education evaluator. Reply ONLY with valid JSON, no explanation outside it. Language: ${lang}.` },
-        { role: 'user',   content: `Subject: ${subject}\nDoubt: ${question}\nStudent answer: ${answerText}\n\nEvaluate accuracy. Reply ONLY: {"verdict":"correct"|"partial"|"incorrect","note":"one sentence feedback"}` },
-      ]
-      const raw = await callAI(prompt)
+      const sysPrompt = `You are a strict education evaluator. Reply ONLY with valid JSON, no explanation outside it. ${LANG_RULES[lang] || ''}`
+      const userMsg = `Subject: ${subject}\nDoubt: ${question}\nStudent answer: ${answerText}\n\nEvaluate accuracy. Reply ONLY: {"verdict":"correct"|"partial"|"incorrect","note":"one sentence feedback"}`
+      const raw = await callAI(userMsg, sysPrompt, [], 2, 400)
       // Safe parse
       const match = raw.match(/\{[^}]+\}/s)
       if (!match) return
@@ -727,11 +725,9 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
     let aiVerdict = null, aiNote = null, xpOverride = null
     try {
       const lang = profile?.language || 'English'
-      const prompt = [
-        { role: 'system', content: `You are a strict education evaluator. Language: ${lang}. Reply ONLY with valid JSON, nothing else.` },
-        { role: 'user',   content: `Concept: ${data?.concept} (Subject: ${data?.subject})\nStudent explanation: ${text.trim()}\n\nEvaluate accuracy. Reply ONLY: {"verdict":"correct"|"partial"|"incorrect","note":"one sentence feedback","xp":30|15|5}\nRules: correct=full understanding→30, partial=some gaps→15, incorrect=misunderstood→5` },
-      ]
-      const raw = await callAI(prompt)
+      const sysPrompt = `You are a strict education evaluator. ${LANG_RULES[lang] || ''} Reply ONLY with valid JSON, nothing else.`
+      const userMsg = `Concept: ${data?.concept} (Subject: ${data?.subject})\nStudent explanation: ${text.trim()}\n\nEvaluate accuracy. Reply ONLY: {"verdict":"correct"|"partial"|"incorrect","note":"one sentence feedback","xp":30|15|5}\nRules: correct=full understanding→30, partial=some gaps→15, incorrect=misunderstood→5`
+      const raw = await callAI(userMsg, sysPrompt, [], 2, 400)
       const match = raw.match(/\{[\s\S]*?\}/)
       if (match) {
         const obj = JSON.parse(match[0])
@@ -879,7 +875,7 @@ export default function SathiTab({ profile, userId, addXp }) {
   const [aiPeerLoading,  setAiPeerLoading]  = useState(false)
   const [silentSince,    setSilentSince]    = useState(Date.now())
   const [leaving,        setLeaving]        = useState(false)
-  const [silenceTick,    setSilenceTick]    = useState(0)  // forces re-render for silence check
+  const [, setSilenceTick] = useState(0)  // forces re-render for silence check
   const [activePanel,    setActivePanel]    = useState('chat')   // chat|doubts|daily
   const [squadStreak,    setSquadStreak]    = useState(0)
 

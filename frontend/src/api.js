@@ -110,7 +110,7 @@ export async function apiAddXp(userId, points) {
 export async function apiUpdateStreak(deviceId, streak) {
   const res = await fetch(`/api/profile/${deviceId}/streak`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ streak }),
     signal: AbortSignal.timeout(5000),
   })

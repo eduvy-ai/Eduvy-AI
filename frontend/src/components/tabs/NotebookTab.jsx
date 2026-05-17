@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { COLORS, callAI, buildSystemPrompt, parseAIArray, parseAIObject, SUBS, checkStudentQuery } from '../../App.jsx'
 import {
-  getDeviceId,
   apiGetSources, apiSaveSource, apiDeleteSource,
   apiGetNotebookChat, apiSaveChatMessage, apiClearNotebookChat,
   apiSaveStudioOutput,
@@ -53,8 +52,7 @@ async function fetchUrlContent(url) {
   } catch { return null }
 }
 
-export default function NotebookTab({ profile, addXp, docCtx, setDocCtx, docName, setDocName }) {
-  const deviceId = getDeviceId()
+export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx, docName, setDocName }) {
 
   // ── View state ──────────────────────────────────────────────
   const [view, setView]       = useState("sources") // sources | chat | studio
@@ -188,7 +186,8 @@ export default function NotebookTab({ profile, addXp, docCtx, setDocCtx, docName
 
   // ── Load sources + chat from backend on mount ────────────────
   useEffect(() => {
-    apiGetSources(deviceId)
+    if (!userId) return
+    apiGetSources(userId)
       .then(rows => {
         const loaded = rows.map(r => ({
           id: r.id, name: r.name, type: r.type,
@@ -199,11 +198,11 @@ export default function NotebookTab({ profile, addXp, docCtx, setDocCtx, docName
       .catch(() => {})
       .finally(() => setSourcesLoaded(true))
 
-    apiGetNotebookChat(deviceId)
+    apiGetNotebookChat(userId)
       .then(rows => setMessages(rows))
       .catch(() => {})
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [userId])
 
   // ── Combined source context ──────────────────────────────────
   const getContext = () => {
@@ -231,7 +230,7 @@ export default function NotebookTab({ profile, addXp, docCtx, setDocCtx, docName
     }
     const src = { id: newId(), name: file.name, type: "file", content, icon: "📄", addedAt: Date.now() }
     setSources(p => [...p, src])
-    apiSaveSource(deviceId, src).catch(() => {})
+    apiSaveSource(userId, src).catch(() => {})
     setAddOpen(false)
     e.target.value = ""
   }
@@ -242,7 +241,7 @@ export default function NotebookTab({ profile, addXp, docCtx, setDocCtx, docName
     const name = pasteTitle.trim() || `Note ${sources.length + 1}`
     const src = { id: newId(), name, type: "text", content: pasteText.trim().slice(0, 10000), icon: "📝", addedAt: Date.now() }
     setSources(p => [...p, src])
-    apiSaveSource(deviceId, src).catch(() => {})
+    apiSaveSource(userId, src).catch(() => {})
     setPasteText(""); setPasteTitle(""); setAddOpen(false)
   }
 
@@ -258,13 +257,13 @@ export default function NotebookTab({ profile, addXp, docCtx, setDocCtx, docName
     const name = url.replace(/https?:\/\/(www\.)?/, "").slice(0, 40)
     const src = { id: newId(), name, type: "url", content, icon: isYT ? "▶️" : "🌐", addedAt: Date.now() }
     setSources(p => [...p, src])
-    apiSaveSource(deviceId, src).catch(() => {})
+    apiSaveSource(userId, src).catch(() => {})
     setUrlInput(""); setUrlLoading(false); setAddOpen(false)
   }
 
   const removeSource = (id) => {
     setSources(p => p.filter(s => s.id !== id))
-    apiDeleteSource(deviceId, id).catch(() => {})
+    apiDeleteSource(userId, id).catch(() => {})
   }
 
   // ── Chat ─────────────────────────────────────────────────────
@@ -279,7 +278,7 @@ export default function NotebookTab({ profile, addXp, docCtx, setDocCtx, docName
     }    const userMsg = { role: "user", content: chatInput.trim() }
     const newMsgs = [...messages, userMsg]
     setMessages(newMsgs); setChatInput(""); setChatLoading(true)
-    apiSaveChatMessage(deviceId, "user", userMsg.content).catch(() => {})
+    apiSaveChatMessage(userId, "user", userMsg.content).catch(() => {})
     const ctx = getContext()
     const sys = buildSystemPrompt(profile, `You are a research assistant helping the student understand their uploaded sources.
 
@@ -293,7 +292,7 @@ INSTRUCTIONS:
 - Write in ${profile.language}`)
     const res = await callAI(chatInput.trim(), sys, newMsgs, 3, 1500)
     setMessages(m => [...m, { role: "assistant", content: res }])
-    apiSaveChatMessage(deviceId, "assistant", res).catch(() => {})
+    apiSaveChatMessage(userId, "assistant", res).catch(() => {})
     addXp(2); setChatLoading(false)
   }
 
@@ -348,7 +347,7 @@ Return ONLY valid JSON: {"title":"...","exchanges":[{"h":"Priya","t":"..."},{"h"
       setStudioOutput(res); _savedJson = res
     }
     addXp(10); setStudioLoading(false)
-    if (_savedJson) apiSaveStudioOutput(deviceId, type, _savedJson).catch(() => {})
+    if (_savedJson) apiSaveStudioOutput(userId, type, _savedJson).catch(() => {})
   }
 
   // ── Podcast speech — uses pre-built voice cache ───────────────
