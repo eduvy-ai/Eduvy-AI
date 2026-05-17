@@ -73,6 +73,58 @@ const ghostBtn = {
   cursor: "pointer",
 }
 
+// ── Modal ─────────────────────────────────────────────────────
+function Modal({ title, onClose, children }) {
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "#000b", zIndex: 1000,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+    }} onClick={onClose}>
+      <div style={{
+        background: C.card, border: `1px solid ${C.border}`,
+        borderRadius: 18, padding: 28, width: "100%", maxWidth: 480,
+        display: "flex", flexDirection: "column", gap: 16,
+        boxShadow: "0 8px 40px #000a",
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h3 style={{ color: C.text, margin: 0, fontSize: 17, fontWeight: 800 }}>{title}</h3>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", color: C.muted, fontSize: 20,
+            cursor: "pointer", lineHeight: 1, padding: "0 4px",
+          }}>✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// ── Confirm Dialog ────────────────────────────────────────────
+function ConfirmDialog({ message, onConfirm, onCancel }) {
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "#000b", zIndex: 1100,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+    }}>
+      <div style={{
+        background: C.card, border: `1px solid ${C.border}`,
+        borderRadius: 18, padding: 28, width: "100%", maxWidth: 400,
+        display: "flex", flexDirection: "column", gap: 20,
+        boxShadow: "0 8px 40px #000a",
+      }}>
+        <div>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>⚠️</div>
+          <p style={{ color: C.text, margin: 0, fontSize: 15, lineHeight: 1.5 }}>{message}</p>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button style={btn(C.red)} onClick={onConfirm}>Yes, Delete</button>
+          <button style={ghostBtn} onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Toast ─────────────────────────────────────────────────────
 function Toast({ msg, type, onDone }) {
   useEffect(() => {
@@ -314,6 +366,8 @@ function BoardsTab({ toast }) {
   const [search, setSearch]     = useState("")
   const [form, setForm]         = useState({ id: "", name: "", sort_order: 0, is_active: true })
   const [editing, setEditing]   = useState(null)
+  const [showModal, setShowModal] = useState(false)
+  const [confirmRow, setConfirmRow] = useState(null)
   const [importJson, setImport] = useState("")
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
@@ -327,6 +381,12 @@ function BoardsTab({ toast }) {
     !search || b.name.toLowerCase().includes(search.toLowerCase()) || b.id.includes(search.toLowerCase())
   )
 
+  const openAdd = () => {
+    setEditing(null)
+    setForm({ id: "", name: "", sort_order: 0, is_active: true })
+    setShowModal(true)
+  }
+
   const save = async () => {
     if (!form.id.trim() || !form.name.trim()) { toast("ID and Name required", "error"); return }
     const method = editing ? 'PUT' : 'POST'
@@ -339,6 +399,7 @@ function BoardsTab({ toast }) {
     }) })
     if (res.ok) {
       toast(editing ? "Board updated" : "Board created")
+      setShowModal(false)
       setEditing(null)
       setForm({ id: "", name: "", sort_order: 0, is_active: true })
       load()
@@ -348,15 +409,16 @@ function BoardsTab({ toast }) {
     }
   }
 
-  const del = async (row) => {
-    if (!confirm(`Soft-delete board "${row.name}"?`)) return
-    await API(`/admin/boards/${row.id}`, { method: 'DELETE' })
-    toast("Board deactivated"); load()
+  const del = async () => {
+    if (!confirmRow) return
+    await API(`/admin/boards/${confirmRow.id}`, { method: 'DELETE' })
+    toast("Board deactivated"); setConfirmRow(null); load()
   }
 
   const edit = (row) => {
     setEditing(row)
     setForm({ id: row.id, name: row.name, sort_order: row.sort_order, is_active: row.is_active })
+    setShowModal(true)
   }
 
   const doImport = async () => {
@@ -374,27 +436,44 @@ function BoardsTab({ toast }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Add/Edit form */}
-      <div style={{ background: C.card2, borderRadius: 14, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
-        <h3 style={{ color: C.text, margin: 0, fontSize: 15 }}>{editing ? "Edit Board" : "Add Board"}</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10 }}>
-          <input style={inp} placeholder="ID slug (e.g. cbse)"
-            value={form.id} onChange={e => setForm(f => ({ ...f, id: e.target.value }))}
-            disabled={!!editing} />
-          <input style={inp} placeholder="Display name (e.g. CBSE)"
-            value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <input style={{ ...inp, width: 120, flex: "0 0 120px" }} type="number" placeholder="Sort order"
-            value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))} />
-          <label style={{ display: "flex", alignItems: "center", gap: 6, color: C.muted, fontSize: 13, flex: 1 }}>
-            <input type="checkbox" checked={form.is_active}
-              onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
-            Active
-          </label>
-          <button style={btn()} onClick={save}>{editing ? "Update" : "Add Board"}</button>
-          {editing && <button style={ghostBtn} onClick={() => { setEditing(null); setForm({ id: "", name: "", sort_order: 0, is_active: true }) }}>Cancel</button>}
-        </div>
+      {/* Add/Edit Modal */}
+      {showModal && (
+        <Modal title={editing ? "Edit Board" : "Add Board"} onClose={() => setShowModal(false)}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10 }}>
+            <input style={inp} placeholder="ID slug (e.g. cbse)"
+              value={form.id} onChange={e => setForm(f => ({ ...f, id: e.target.value }))}
+              disabled={!!editing} />
+            <input style={inp} placeholder="Display name (e.g. CBSE)"
+              value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <input style={{ ...inp, width: 120, flex: "0 0 120px" }} type="number" placeholder="Sort order"
+              value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))} />
+            <label style={{ display: "flex", alignItems: "center", gap: 6, color: C.muted, fontSize: 13, flex: 1 }}>
+              <input type="checkbox" checked={form.is_active}
+                onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
+              Active
+            </label>
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button style={btn()} onClick={save}>{editing ? "Update Board" : "Add Board"}</button>
+            <button style={ghostBtn} onClick={() => setShowModal(false)}>Cancel</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Confirm Delete */}
+      {confirmRow && (
+        <ConfirmDialog
+          message={`Deactivate board "${confirmRow.name}"? It will be hidden from students but not permanently deleted.`}
+          onConfirm={del}
+          onCancel={() => setConfirmRow(null)}
+        />
+      )}
+
+      {/* Top action bar */}
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <button style={btn()} onClick={openAdd}>+ Add Board</button>
       </div>
 
       {/* Bulk Import */}
@@ -436,7 +515,7 @@ function BoardsTab({ toast }) {
         ]}
         rows={filtered}
         onEdit={edit}
-        onDelete={del}
+        onDelete={row => setConfirmRow(row)}
       />
     </div>
   )
@@ -448,6 +527,8 @@ function StandardsTab({ toast }) {
   const [search, setSearch]     = useState("")
   const [form, setForm]         = useState({ id: "", name: "", grade_num: "", sort_order: 0, is_active: true })
   const [editing, setEditing]   = useState(null)
+  const [showModal, setShowModal] = useState(false)
+  const [confirmRow, setConfirmRow] = useState(null)
   const [importJson, setImport] = useState("")
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
@@ -460,6 +541,12 @@ function StandardsTab({ toast }) {
   const filtered = stds.filter(s =>
     !search || s.name.toLowerCase().includes(search.toLowerCase()) || s.id.includes(search.toLowerCase())
   )
+
+  const openAdd = () => {
+    setEditing(null)
+    setForm({ id: "", name: "", grade_num: "", sort_order: 0, is_active: true })
+    setShowModal(true)
+  }
 
   const save = async () => {
     if (!form.id.trim() || !form.name.trim() || form.grade_num === "") {
@@ -476,6 +563,7 @@ function StandardsTab({ toast }) {
     }) })
     if (res.ok) {
       toast(editing ? "Standard updated" : "Standard created")
+      setShowModal(false)
       setEditing(null)
       setForm({ id: "", name: "", grade_num: "", sort_order: 0, is_active: true })
       load()
@@ -484,15 +572,16 @@ function StandardsTab({ toast }) {
     }
   }
 
-  const del = async row => {
-    if (!confirm(`Soft-delete "${row.name}"?`)) return
-    await API(`/admin/standards/${row.id}`, { method: 'DELETE' })
-    toast("Standard deactivated"); load()
+  const del = async () => {
+    if (!confirmRow) return
+    await API(`/admin/standards/${confirmRow.id}`, { method: 'DELETE' })
+    toast("Standard deactivated"); setConfirmRow(null); load()
   }
 
   const edit = row => {
     setEditing(row)
     setForm({ id: row.id, name: row.name, grade_num: row.grade_num, sort_order: row.sort_order, is_active: row.is_active })
+    setShowModal(true)
   }
 
   const doImport = async () => {
@@ -510,29 +599,46 @@ function StandardsTab({ toast }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Add/Edit form */}
-      <div style={{ background: C.card2, borderRadius: 14, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
-        <h3 style={{ color: C.text, margin: 0, fontSize: 15 }}>{editing ? "Edit Standard" : "Add Standard"}</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10 }}>
-          <input style={inp} placeholder="ID (e.g. class-10)"
-            value={form.id} onChange={e => setForm(f => ({ ...f, id: e.target.value }))}
-            disabled={!!editing} />
-          <input style={inp} placeholder="Name (e.g. Class 10)"
-            value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <input style={{ ...inp, width: 120, flex: "0 0 120px" }} type="number" placeholder="Grade #"
-            value={form.grade_num} onChange={e => setForm(f => ({ ...f, grade_num: e.target.value }))} />
-          <input style={{ ...inp, width: 120, flex: "0 0 120px" }} type="number" placeholder="Sort order"
-            value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))} />
-          <label style={{ display: "flex", alignItems: "center", gap: 6, color: C.muted, fontSize: 13, flex: 1 }}>
-            <input type="checkbox" checked={form.is_active}
-              onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
-            Active
-          </label>
-          <button style={btn()} onClick={save}>{editing ? "Update" : "Add Standard"}</button>
-          {editing && <button style={ghostBtn} onClick={() => { setEditing(null); setForm({ id: "", name: "", grade_num: "", sort_order: 0, is_active: true }) }}>Cancel</button>}
-        </div>
+      {/* Add/Edit Modal */}
+      {showModal && (
+        <Modal title={editing ? "Edit Standard" : "Add Standard"} onClose={() => setShowModal(false)}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10 }}>
+            <input style={inp} placeholder="ID (e.g. class-10)"
+              value={form.id} onChange={e => setForm(f => ({ ...f, id: e.target.value }))}
+              disabled={!!editing} />
+            <input style={inp} placeholder="Name (e.g. Class 10)"
+              value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+          </div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <input style={{ ...inp, width: 120, flex: "0 0 120px" }} type="number" placeholder="Grade #"
+              value={form.grade_num} onChange={e => setForm(f => ({ ...f, grade_num: e.target.value }))} />
+            <input style={{ ...inp, width: 120, flex: "0 0 120px" }} type="number" placeholder="Sort order"
+              value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))} />
+            <label style={{ display: "flex", alignItems: "center", gap: 6, color: C.muted, fontSize: 13, flex: 1 }}>
+              <input type="checkbox" checked={form.is_active}
+                onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
+              Active
+            </label>
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button style={btn()} onClick={save}>{editing ? "Update Standard" : "Add Standard"}</button>
+            <button style={ghostBtn} onClick={() => setShowModal(false)}>Cancel</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Confirm Delete */}
+      {confirmRow && (
+        <ConfirmDialog
+          message={`Deactivate standard "${confirmRow.name}"? It will be hidden from students but not permanently deleted.`}
+          onConfirm={del}
+          onCancel={() => setConfirmRow(null)}
+        />
+      )}
+
+      {/* Top action bar */}
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <button style={btn()} onClick={openAdd}>+ Add Standard</button>
       </div>
 
       {/* Bulk Import */}
@@ -575,7 +681,7 @@ function StandardsTab({ toast }) {
         ]}
         rows={filtered}
         onEdit={edit}
-        onDelete={del}
+        onDelete={row => setConfirmRow(row)}
       />
     </div>
   )
@@ -587,6 +693,8 @@ function MediumsTab({ toast }) {
   const [search, setSearch]     = useState("")
   const [form, setForm]         = useState({ id: "", name: "", sort_order: 0, is_active: true })
   const [editing, setEditing]   = useState(null)
+  const [showModal, setShowModal] = useState(false)
+  const [confirmRow, setConfirmRow] = useState(null)
   const [importJson, setImport] = useState("")
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
@@ -600,6 +708,12 @@ function MediumsTab({ toast }) {
     !search || m.name.toLowerCase().includes(search.toLowerCase()) || m.id.includes(search.toLowerCase())
   )
 
+  const openAdd = () => {
+    setEditing(null)
+    setForm({ id: "", name: "", sort_order: 0, is_active: true })
+    setShowModal(true)
+  }
+
   const save = async () => {
     if (!form.id.trim() || !form.name.trim()) { toast("ID and Name required", "error"); return }
     const method = editing ? 'PUT' : 'POST'
@@ -612,6 +726,7 @@ function MediumsTab({ toast }) {
     }) })
     if (res.ok) {
       toast(editing ? "Medium updated" : "Medium created")
+      setShowModal(false)
       setEditing(null)
       setForm({ id: "", name: "", sort_order: 0, is_active: true })
       load()
@@ -620,15 +735,16 @@ function MediumsTab({ toast }) {
     }
   }
 
-  const del = async row => {
-    if (!confirm(`Soft-delete medium "${row.name}"?`)) return
-    await API(`/admin/mediums/${row.id}`, { method: 'DELETE' })
-    toast("Medium deactivated"); load()
+  const del = async () => {
+    if (!confirmRow) return
+    await API(`/admin/mediums/${confirmRow.id}`, { method: 'DELETE' })
+    toast("Medium deactivated"); setConfirmRow(null); load()
   }
 
   const edit = row => {
     setEditing(row)
     setForm({ id: row.id, name: row.name, sort_order: row.sort_order, is_active: row.is_active })
+    setShowModal(true)
   }
 
   const doImport = async () => {
@@ -646,27 +762,44 @@ function MediumsTab({ toast }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Add/Edit form */}
-      <div style={{ background: C.card2, borderRadius: 14, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
-        <h3 style={{ color: C.text, margin: 0, fontSize: 15 }}>{editing ? "Edit Medium" : "Add Medium"}</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10 }}>
-          <input style={inp} placeholder="ID (e.g. gujarati)"
-            value={form.id} onChange={e => setForm(f => ({ ...f, id: e.target.value }))}
-            disabled={!!editing} />
-          <input style={inp} placeholder="Display name (e.g. Gujarati)"
-            value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <input style={{ ...inp, width: 120, flex: "0 0 120px" }} type="number" placeholder="Sort order"
-            value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))} />
-          <label style={{ display: "flex", alignItems: "center", gap: 6, color: C.muted, fontSize: 13, flex: 1 }}>
-            <input type="checkbox" checked={form.is_active}
-              onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
-            Active
-          </label>
-          <button style={btn()} onClick={save}>{editing ? "Update" : "Add Medium"}</button>
-          {editing && <button style={ghostBtn} onClick={() => { setEditing(null); setForm({ id: "", name: "", sort_order: 0, is_active: true }) }}>Cancel</button>}
-        </div>
+      {/* Add/Edit Modal */}
+      {showModal && (
+        <Modal title={editing ? "Edit Medium" : "Add Medium"} onClose={() => setShowModal(false)}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10 }}>
+            <input style={inp} placeholder="ID (e.g. gujarati)"
+              value={form.id} onChange={e => setForm(f => ({ ...f, id: e.target.value }))}
+              disabled={!!editing} />
+            <input style={inp} placeholder="Display name (e.g. Gujarati)"
+              value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <input style={{ ...inp, width: 120, flex: "0 0 120px" }} type="number" placeholder="Sort order"
+              value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))} />
+            <label style={{ display: "flex", alignItems: "center", gap: 6, color: C.muted, fontSize: 13, flex: 1 }}>
+              <input type="checkbox" checked={form.is_active}
+                onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
+              Active
+            </label>
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button style={btn()} onClick={save}>{editing ? "Update Medium" : "Add Medium"}</button>
+            <button style={ghostBtn} onClick={() => setShowModal(false)}>Cancel</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Confirm Delete */}
+      {confirmRow && (
+        <ConfirmDialog
+          message={`Deactivate medium "${confirmRow.name}"? It will be hidden from students but not permanently deleted.`}
+          onConfirm={del}
+          onCancel={() => setConfirmRow(null)}
+        />
+      )}
+
+      {/* Top action bar */}
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <button style={btn()} onClick={openAdd}>+ Add Medium</button>
       </div>
 
       {/* Bulk Import */}
@@ -708,7 +841,7 @@ function MediumsTab({ toast }) {
         ]}
         rows={filtered}
         onEdit={edit}
-        onDelete={del}
+        onDelete={row => setConfirmRow(row)}
       />
     </div>
   )
@@ -723,6 +856,8 @@ function CurriculumTab({ toast }) {
   const [filter, setFilter]   = useState({ board: "", standard: "", medium: "" })
   const [form, setForm]       = useState({ board_id: "", standard_id: "", medium_id: "", subjects: "", is_active: true })
   const [editing, setEditing] = useState(null)
+  const [showModal, setShowModal] = useState(false)
+  const [confirmRow, setConfirmRow] = useState(null)
   const [importJson, setImport] = useState("")
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
@@ -743,6 +878,12 @@ function CurriculumTab({ toast }) {
     (!filter.medium   || r.medium_id   === filter.medium)
   )
 
+  const openAdd = () => {
+    setEditing(null)
+    setForm({ board_id: "", standard_id: "", medium_id: "", subjects: "", is_active: true })
+    setShowModal(true)
+  }
+
   const save = async () => {
     const subjects = form.subjects.split(',').map(s => s.trim()).filter(Boolean)
     if (!form.board_id || !form.standard_id || !form.medium_id || !subjects.length) {
@@ -753,28 +894,29 @@ function CurriculumTab({ toast }) {
         method: 'PUT',
         body: JSON.stringify({ subjects, is_active: form.is_active }),
       })
-      if (res.ok) { toast("Updated"); setEditing(null); setForm({ board_id: "", standard_id: "", medium_id: "", subjects: "", is_active: true }); load() }
+      if (res.ok) { toast("Updated"); setShowModal(false); setEditing(null); setForm({ board_id: "", standard_id: "", medium_id: "", subjects: "", is_active: true }); load() }
       else { const d = await res.json(); toast(d.detail || "Error", "error") }
     } else {
       const res = await API('/admin/curriculum', {
         method: 'POST',
         body: JSON.stringify({ board_id: form.board_id, standard_id: form.standard_id, medium_id: form.medium_id, subjects, is_active: form.is_active }),
       })
-      if (res.ok) { toast("Created"); setForm({ board_id: "", standard_id: "", medium_id: "", subjects: "", is_active: true }); load() }
+      if (res.ok) { toast("Created"); setShowModal(false); setForm({ board_id: "", standard_id: "", medium_id: "", subjects: "", is_active: true }); load() }
       else { const d = await res.json(); toast(d.detail || "Error", "error") }
     }
   }
 
-  const del = async row => {
-    if (!confirm(`Delete curriculum for ${row.board_name} / ${row.standard_name} / ${row.medium_name}?`)) return
-    await API(`/admin/curriculum/${row.id}`, { method: 'DELETE' })
-    toast("Deleted"); load()
+  const del = async () => {
+    if (!confirmRow) return
+    await API(`/admin/curriculum/${confirmRow.id}`, { method: 'DELETE' })
+    toast("Deleted"); setConfirmRow(null); load()
   }
 
   const edit = row => {
     setEditing(row)
     setForm({ board_id: row.board_id, standard_id: row.standard_id, medium_id: row.medium_id,
       subjects: (Array.isArray(row.subjects) ? row.subjects : []).join(", "), is_active: row.is_active })
+    setShowModal(true)
   }
 
   const doImport = async () => {
@@ -792,41 +934,56 @@ function CurriculumTab({ toast }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Add/Edit form */}
-      <div style={{ background: C.card2, borderRadius: 14, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
-        <h3 style={{ color: C.text, margin: 0, fontSize: 15 }}>{editing ? "Edit Curriculum Row" : "Add Curriculum Row"}</h3>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <select style={{ ...inp, flex: "1 1 120px" }} value={form.board_id}
-            onChange={e => setForm(f => ({ ...f, board_id: e.target.value }))} disabled={!!editing}>
-            <option value="">Board…</option>
-            {boards.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
-          <select style={{ ...inp, flex: "1 1 120px" }} value={form.standard_id}
-            onChange={e => setForm(f => ({ ...f, standard_id: e.target.value }))} disabled={!!editing}>
-            <option value="">Standard…</option>
-            {stds.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-          <select style={{ ...inp, flex: "1 1 120px" }} value={form.medium_id}
-            onChange={e => setForm(f => ({ ...f, medium_id: e.target.value }))} disabled={!!editing}>
-            <option value="">Medium…</option>
-            {meds.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-          </select>
-        </div>
-        <textarea
-          style={{ ...inp, minHeight: 80, resize: "vertical" }}
-          placeholder="Subjects (comma-separated): Mathematics, Science, English…"
-          value={form.subjects}
-          onChange={e => setForm(f => ({ ...f, subjects: e.target.value }))}
+      {/* Add/Edit Modal */}
+      {showModal && (
+        <Modal title={editing ? "Edit Curriculum Row" : "Add Curriculum Row"} onClose={() => setShowModal(false)}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <select style={{ ...inp, flex: "1 1 120px" }} value={form.board_id}
+              onChange={e => setForm(f => ({ ...f, board_id: e.target.value }))} disabled={!!editing}>
+              <option value="">Board…</option>
+              {boards.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+            <select style={{ ...inp, flex: "1 1 120px" }} value={form.standard_id}
+              onChange={e => setForm(f => ({ ...f, standard_id: e.target.value }))} disabled={!!editing}>
+              <option value="">Standard…</option>
+              {stds.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            <select style={{ ...inp, flex: "1 1 120px" }} value={form.medium_id}
+              onChange={e => setForm(f => ({ ...f, medium_id: e.target.value }))} disabled={!!editing}>
+              <option value="">Medium…</option>
+              {meds.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </select>
+          </div>
+          <textarea
+            style={{ ...inp, minHeight: 80, resize: "vertical" }}
+            placeholder="Subjects (comma-separated): Mathematics, Science, English…"
+            value={form.subjects}
+            onChange={e => setForm(f => ({ ...f, subjects: e.target.value }))}
+          />
+          <label style={{ display: "flex", alignItems: "center", gap: 6, color: C.muted, fontSize: 13 }}>
+            <input type="checkbox" checked={form.is_active}
+              onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
+            Active
+          </label>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button style={btn()} onClick={save}>{editing ? "Update Row" : "Add Row"}</button>
+            <button style={ghostBtn} onClick={() => setShowModal(false)}>Cancel</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Confirm Delete */}
+      {confirmRow && (
+        <ConfirmDialog
+          message={`Permanently delete curriculum for ${confirmRow.board_name} / ${confirmRow.standard_name} / ${confirmRow.medium_name}?`}
+          onConfirm={del}
+          onCancel={() => setConfirmRow(null)}
         />
-        <label style={{ display: "flex", alignItems: "center", gap: 6, color: C.muted, fontSize: 13 }}>
-          <input type="checkbox" checked={form.is_active}
-            onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
-          Active
-        </label>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button style={btn()} onClick={save}>{editing ? "Update" : "Add Row"}</button>
-          {editing && <button style={ghostBtn} onClick={() => { setEditing(null); setForm({ board_id: "", standard_id: "", medium_id: "", subjects: "", is_active: true }) }}>Cancel</button>}
-        </div>
+      )}
+
+      {/* Top action bar */}
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <button style={btn()} onClick={openAdd}>+ Add Row</button>
       </div>
 
       {/* Bulk Import */}
@@ -883,8 +1040,8 @@ function CurriculumTab({ toast }) {
           { key: "is_active",     label: "Active", render: v => v ? "✓" : "—" },
         ]}
         rows={filtered}
-        onEdit={edit}
-        onDelete={del}
+        onEdit={row => edit(row)}
+        onDelete={row => setConfirmRow(row)}
       />
     </div>
   )
