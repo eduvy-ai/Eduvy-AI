@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { COLORS, callAI, buildSystemPrompt, parseAIObject, checkStudentQuery } from '../../App.jsx'
-import { getDeviceId, apiGetDraft, apiSaveDraft } from '../../api.js'
+import { apiGetDraft, apiSaveDraft } from '../../api.js'
 
 const LANG_VOICE = {
   English:'en-IN', Hindi:'hi-IN', Gujarati:'gu-IN', Marathi:'mr-IN',
@@ -1693,8 +1693,7 @@ function DiagramBoard({ type, elements, spec, accent, dark, dur }) {
 // ----------------------------------------------------------------
 // MAIN COMPONENT
 // ----------------------------------------------------------------
-export default function VideosTab({ profile, addXp }) {
-  const deviceId = getDeviceId()
+export default function VideosTab({ profile, userId, addXp }) {
 
   const [question,      setQuestion]      = useState('')
   const [lesson,        setLesson]        = useState(null)
@@ -1757,11 +1756,12 @@ export default function VideosTab({ profile, addXp }) {
 
   // Load saved lesson on mount
   useEffect(() => {
-    apiGetDraft(deviceId, 'video_lesson')
+    if (!userId) return
+    apiGetDraft(userId, 'video_lesson')
       .then(d => { if (d?.content) try { setLesson(JSON.parse(d.content)) } catch {} })
       .catch(() => {})
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [userId])
 
   useEffect(() => () => {
     stopSpeech(); clearInterval(typeRef.current)
@@ -2145,7 +2145,7 @@ Return 10 scenes:
         if (!parsed.key_formula && intel.key_formula) parsed.key_formula = intel.key_formula
         // Accept partial lessons (truncated responses may have 6-9 scenes instead of 10)
         setLesson(parsed); lessonRef.current = parsed
-        apiSaveDraft(deviceId, 'video_lesson', JSON.stringify(parsed)).catch(() => {})
+        apiSaveDraft(userId, 'video_lesson', JSON.stringify(parsed)).catch(() => {})
         addXp(8)
       } else {
         const preview = (res||'').slice(0,200)

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { COLORS, callAI, buildSystemPrompt, SUBS, getBhoolStats, parseAIObject } from '../../shared.js'
-import { getDeviceId, apiGetMastery } from '../../api.js'
+import { apiGetMastery } from '../../api.js'
 
 // ── Bhool Curve stats (reads localStorage) ───────────────────
 function useBhoolStats() {
@@ -51,7 +51,7 @@ const QUICK_ACTIONS = [
   { icon: "🧘", label: "Wellness Coach", tab: "labs",     grad: "linear-gradient(135deg,#00E5A022,#7B9CFF08)", accent: "#00E5A0" },
 ]
 
-export default function HomeTab({ profile, xp, streak, addXp, setTab }) {
+export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) {
   const [briefLoading, setBriefLoading]   = useState(false)
   const [brief, setBrief]                 = useState("")
   const [masteries, setMasteries]         = useState({})
@@ -86,11 +86,11 @@ export default function HomeTab({ profile, xp, streak, addXp, setTab }) {
 
   // ── Load mastery from backend on mount ─────────────────────
   useEffect(() => {
-    const deviceId = getDeviceId()
-    apiGetMastery(deviceId)
+    if (!userId) return
+    apiGetMastery(userId)
       .then(data => { if (data && Object.keys(data).length) setMasteries(data) })
       .catch(() => {})
-  }, [])
+  }, [userId])
 
   // Overall mastery average (0% for untouched subjects)
   const masteryValues = subjects.map(s => masteries[s] ?? 0)

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { COLORS, callAI, buildSystemPrompt, checkStudentQuery } from '../../App.jsx'
-import { getDeviceId, apiGetSession, apiSaveToSession } from '../../api.js'
+import { apiGetSession, apiSaveToSession } from '../../api.js'
 
 const MODES = [
   { key: "adaptive",  icon: "🧠", label: "Adaptive" },
@@ -100,8 +100,7 @@ const STARTERS = {
   kyun:      ["Why does πr² give the exact area of a circle?", "Why does the Pythagorean theorem work?", "Why does compound interest grow so much faster than simple interest?"],
 }
 
-export default function TutorTab({ profile, addXp, docCtx }) {
-  const deviceId = getDeviceId()
+export default function TutorTab({ profile, userId, addXp, docCtx }) {
   const [mode, setMode]         = useState("adaptive")
   const [messages, setMessages] = useState([])
   const [input, setInput]       = useState("")
@@ -122,11 +121,12 @@ export default function TutorTab({ profile, addXp, docCtx }) {
 
   // ── Load chat history from backend when mode changes ────────
   useEffect(() => {
-    apiGetSession(deviceId, `tutor_${mode}`)
+    if (!userId) return
+    apiGetSession(userId, `tutor_${mode}`)
       .then(msgs => { if (msgs.length) setMessages(msgs) })
       .catch(() => {})
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode])
+  }, [mode, userId])
 
   // ── Change mode → clear chat ──────────────────────────────
   const switchMode = m => {
@@ -157,10 +157,10 @@ export default function TutorTab({ profile, addXp, docCtx }) {
     setMessages(newMsgs)
     setInput("")
     setLoading(true)
-    apiSaveToSession(deviceId, `tutor_${mode}`, "user", text).catch(() => {})
+    apiSaveToSession(userId, `tutor_${mode}`, "user", text).catch(() => {})
     const res = await callAI(text, getModeSystem(), newMsgs)
     setMessages(m => [...m, { role: "assistant", content: res }])
-    apiSaveToSession(deviceId, `tutor_${mode}`, "assistant", res).catch(() => {})
+    apiSaveToSession(userId, `tutor_${mode}`, "assistant", res).catch(() => {})
     addXp(2)
     setLoading(false)
   }
@@ -235,8 +235,8 @@ export default function TutorTab({ profile, addXp, docCtx }) {
     const sys = getModeSystem()
     const res = await callAI(`I drew a diagram: ${drawDesc}. Identify it, label each part, explain how it works, and give 2 exam questions about it.`, sys)
     setMessages(m => [...m, { role: "user", content: `[Drew diagram: ${drawDesc}]` }, { role: "assistant", content: res }])
-    apiSaveToSession(deviceId, `tutor_draw`, "user", `[Drew diagram: ${drawDesc}]`).catch(() => {})
-    apiSaveToSession(deviceId, `tutor_draw`, "assistant", res).catch(() => {})
+    apiSaveToSession(userId, `tutor_draw`, "user", `[Drew diagram: ${drawDesc}]`).catch(() => {})
+    apiSaveToSession(userId, `tutor_draw`, "assistant", res).catch(() => {})
     addXp(5)
     setDrawLoading(false)
   }
