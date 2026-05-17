@@ -1,5 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { COLORS, callAI, buildSystemPrompt, parseAIObject, checkStudentQuery } from '../../App.jsx'
+import { getStarters } from '../../shared.js'
 import { apiGetDraft, apiSaveDraft } from '../../api.js'
 
 const LANG_VOICE = {
@@ -46,17 +47,6 @@ const SCENE_PALETTE = {
   marker: ['#0a7a15','#1a3aaa','#7a5a00','#8a2500','#7a0030','#5a1a8a','#0a6a5a','#8a1a0a','#1a4a8a','#2a6a0a'],
   color:  ['#00E5A0','#7B9CFF','#FFD166','#FF6B35','#FF6B6B','#BB86FC','#03DAC6','#FF8A80','#82B1FF','#CCFF90'],
 }
-
-const SUGGESTED = [
-  { q:'How does electricity flow in a circuit?', icon:'⚡' },
-  { q:'What is the French Revolution?',          icon:'🏰' },
-  { q:'Explain Pythagoras theorem',              icon:'📐' },
-  { q:'How does photosynthesis work?',           icon:'🌱' },
-  { q:"Explain Newton's third law",              icon:'🚀' },
-  { q:'What causes earthquakes?',                icon:'🌍' },
-  { q:'How does the human heart work?',          icon:'❤️' },
-  { q:'What is GDP?',                            icon:'📈' },
-]
 
 const u16 = s => [...(s||'')].reduce((n,c) => n + (c.codePointAt(0) > 0xFFFF ? 2 : 1), 0)
 
@@ -2357,7 +2347,7 @@ Return 10 scenes:
           <div style={{ padding:'14px' }}>
             <div style={{ fontSize:11, color:COLORS.muted, fontWeight:700, letterSpacing:1, marginBottom:10 }}>POPULAR LESSONS</div>
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              {SUGGESTED.map(s => (
+              {getStarters(profile?.language, 'videos').map(s => (
                 <button key={s.q} onClick={() => { setQuestion(s.q); generate(s.q) }} style={{
                   background:COLORS.card, border:`1px solid ${COLORS.border}`, borderRadius:12,
                   padding:'12px 14px', color:COLORS.text, fontSize:13, cursor:'pointer',

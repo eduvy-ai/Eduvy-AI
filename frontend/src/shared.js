@@ -99,7 +99,7 @@ export const LANG_RULES = {
   English:  "Respond in English only. Use only Latin script (A-Z). NEVER mix in Devanagari, Cyrillic, or any other script.",
   Hindi:    "RESPOND ONLY IN HINDI USING DEVANAGARI SCRIPT (हिंदी). हर शब्द शुद्ध देवनागरी लिपि में लिखो (Unicode U+0900–U+097F). CRITICAL WARNING: Cyrillic letters जैसे п, р, в, д आदि कभी मत use करो — वे देवनागरी जैसे दिखते हैं लेकिन WRONG हैं। कोई भी English या Cyrillic अक्षर मत use करो।",
   Gujarati: "RESPOND ONLY IN GUJARATI USING GUJARATI SCRIPT (ગુજરાતી). સંપૂર્ણ જવાબ ગુજરાતી સ્ક્રિપ્ટ (Unicode U+0A80–U+0AFF) માં જ આપો. English, Hindi, Cyrillic — કોઈ પણ ભાષા નહીં.",
-  Marathi:  "RESPOND ONLY IN MARATHI USING DEVANAGARI SCRIPT (मराठी). संपूर्ण उत्तर शुद्ध देवनागरी लिपीत द्या (Unicode U+0900–U+097F). CRITICAL WARNING: Cyrillic अक्षरे (п, р, в, д इत्यादी) कधीही वापरू नका — ती देवनागरीसारखी दिसतात पण चुकीची आहेत. कोणतेही English किंवा Cyrillic शब्द वापरू नका.",
+  Marathi:  "RESPOND ONLY IN MARATHI (मराठी) USING DEVANAGARI SCRIPT. संपूर्ण उत्तर शुद्ध मराठी भाषेत द्या (Unicode U+0900–U+097F). ⚠️ CRITICAL: मराठी आणि हिंदी दोन्ही देवनागरी वापरतात, पण या वेगळ्या भाषा आहेत. हिंदी शब्द कधीही वापरू नका जसे: है, हैं, हो, था, थे, की, का, के, में, पर, से, और, भी, तो, यह, वह, कि, जो, नहीं, मैं, आप, हम, तुम, क्या, कैसे, बहुत, अच्छा. मराठी वापरा: आहे, आहेत, होते, आणि, मध्ये, वर, पासून, हे, ते, नाही, मी, तुम्ही, आम्ही, काय, कसे, खूप, चांगले. CRITICAL WARNING: Cyrillic अक्षरे (п, р, в, д इत्यादी) कधीही वापरू नका.",
   Tamil:    "RESPOND ONLY IN TAMIL USING TAMIL SCRIPT (தமிழ்). முழு பதிலும் தமிழ் எழுத்துக்களில் மட்டுமே (Unicode U+0B80–U+0BFF). Cyrillic அல்லது Latin எழுத்துக்கள் கூடாது.",
   Telugu:   "RESPOND ONLY IN TELUGU USING TELUGU SCRIPT (తెలుగు). మొత్తం సమాధానం తెలుగు అక్షరాలలో మాత్రమే (Unicode U+0C00–U+0C7F). Cyrillic లేదా Latin అక్షరాలు వాడకండి.",
   Kannada:  "RESPOND ONLY IN KANNADA USING KANNADA SCRIPT (ಕನ್ನಡ). ಸಂಪೂರ್ಣ ಉತ್ತರ ಕನ್ನಡ ಅಕ್ಷರಗಳಲ್ಲಿ ಮಾತ್ರ (Unicode U+0C80–U+0CFF). Cyrillic ಅಥವಾ Latin ಅಕ್ಷರಗಳನ್ನು ಬಳಸಬೇಡಿ.",
@@ -144,6 +144,150 @@ export const UI_STRINGS = {
 // ─── Language helper ──────────────────────────────────────────
 export const li = lang => UI_STRINGS[lang] || UI_STRINGS.English
 
+// ─── Localised Starter Suggestions ───────────────────────────
+// Shown as quick-tap chips before the student types anything.
+// Keyed by language, then by feature area.
+export const STARTERS_L10N = {
+  English: {
+    tutor:    ["What is photosynthesis?", "Explain Newton's laws", "How does democracy work?"],
+    socratic: ["Help me understand electricity", "Why does rain fall?", "What is gravity?"],
+    explain:  ["Explain osmosis", "What is the water cycle?", "Define photosynthesis"],
+    homework: ["Solve: 2x + 5 = 15", "Area of triangle: base 6cm, height 4cm", "Train travels 60km/h for 2.5h — find distance"],
+    voice:    ["I'm confused about fractions", "Explain percentages please", "Help me with algebra"],
+    bahas:    ["Partition of India was right — argue opposite", "Nuclear energy is our only hope — challenge this", "Exams judge students best — prove me wrong"],
+    kahani:   ["Story of photosynthesis from inside a leaf", "Make me live through Battle of Panipat", "Story of Newton and the apple"],
+    kyun:     ["Why does πr² give area of a circle?", "Why does Pythagorean theorem work?", "Why does compound interest grow so fast?"],
+    mental:   ["I'm really stressed about exams 😔", "I can't seem to focus on studying", "My parents have very high expectations", "I feel burned out and exhausted", "I'm scared I'll fail", "I keep comparing myself to classmates"],
+    videos:   [{q:"How does electricity flow?",icon:"⚡"},{q:"What is the French Revolution?",icon:"🏰"},{q:"Explain Pythagoras theorem",icon:"📐"},{q:"How does photosynthesis work?",icon:"🌱"},{q:"Newton's third law",icon:"🚀"},{q:"What causes earthquakes?",icon:"🌍"},{q:"How does the human heart work?",icon:"❤️"},{q:"What is GDP?",icon:"📈"}],
+  },
+  Hindi: {
+    tutor:    ["प्रकाश संश्लेषण क्या है?", "न्यूटन के नियम समझाओ", "लोकतंत्र कैसे काम करता है?"],
+    socratic: ["बिजली को समझने में मदद करो", "बारिश क्यों होती है?", "गुरुत्वाकर्षण क्या है?"],
+    explain:  ["परासरण समझाओ", "जल चक्र क्या है?", "प्रकाश संश्लेषण की परिभाषा"],
+    homework: ["हल करो: 2x + 5 = 15", "त्रिभुज का क्षेत्रफल: आधार 6सेमी, ऊँचाई 4सेमी", "ट्रेन 60किमी/घंटा की रफ्तार से 2.5 घंटे चली — दूरी बताओ"],
+    voice:    ["मुझे भिन्न में उलझन है", "प्रतिशत समझाओ", "बीजगणित में मदद चाहिए"],
+    bahas:    ["भारत का विभाजन सही था — विपरीत तर्क दो", "परमाणु ऊर्जा ही एकमात्र उपाय है — चुनौती दो", "परीक्षा सबसे अच्छा तरीका है — गलत साबित करो"],
+    kahani:   ["एक पत्ते के अंदर से प्रकाश संश्लेषण की कहानी", "पानीपत की पहली लड़ाई में ले जाओ मुझे", "न्यूटन और सेब की कहानी"],
+    kyun:     ["πr² से वृत्त का क्षेत्रफल क्यों निकलता है?", "पाइथागोरस प्रमेय काम क्यों करती है?", "चक्रवृद्धि ब्याज इतनी तेजी से क्यों बढ़ता है?"],
+    mental:   ["परीक्षा की बहुत चिंता हो रही है 😔", "पढ़ाई में ध्यान नहीं लग रहा", "माँ-पाप की उम्मीदें बहुत ज्यादा हैं", "थकान और burnout महसूस हो रहा है", "डर है कि फेल हो जाऊँगा", "खुद को दोस्तों से कम समझता हूँ"],
+    videos:   [{q:"बिजली कैसे बहती है?",icon:"⚡"},{q:"फ्रांसीसी क्रांति क्या थी?",icon:"🏰"},{q:"पाइथागोरस प्रमेय",icon:"📐"},{q:"प्रकाश संश्लेषण कैसे काम करता है?",icon:"🌱"},{q:"न्यूटन का तीसरा नियम",icon:"🚀"},{q:"भूकंप क्यों आते हैं?",icon:"🌍"},{q:"मानव हृदय कैसे काम करता है?",icon:"❤️"},{q:"GDP क्या है?",icon:"📈"}],
+  },
+  Marathi: {
+    tutor:    ["प्रकाशसंश्लेषण म्हणजे काय?", "न्यूटनचे नियम सांगा", "लोकशाही कशी काम करते?"],
+    socratic: ["वीज समजण्यास मदत करा", "पाऊस का पडतो?", "गुरुत्वाकर्षण म्हणजे काय?"],
+    explain:  ["परासरण समजावून सांगा", "जलचक्र म्हणजे काय?", "प्रकाशसंश्लेषणाची व्याख्या"],
+    homework: ["सोडवा: 2x + 5 = 15", "त्रिकोणाचे क्षेत्रफळ: तळ 6से.मी., उंची 4से.मी.", "ट्रेन 60किमी/तास वेगाने 2.5 तास गेली — अंतर काढा"],
+    voice:    ["अपूर्णांकांबद्दल गोंधळ आहे", "टक्केवारी समजावून सांगा", "बीजगणितात मदत हवी"],
+    bahas:    ["भारताची फाळणी योग्य होती — विरुद्ध बाजू मांडा", "अणुऊर्जाच एकमेव उपाय आहे — आव्हान द्या", "परीक्षा हा सर्वोत्तम मार्ग आहे — खोडून काढा"],
+    kahani:   ["पानाच्या आतून प्रकाशसंश्लेषणाची गोष्ट", "पानिपतच्या पहिल्या लढाईत घेऊन चला", "न्यूटन आणि सफरचंदाची गोष्ट"],
+    kyun:     ["πr² ने वर्तुळाचे क्षेत्रफळ का मिळते?", "पायथागोरस प्रमेय का काम करते?", "चक्रवाढ व्याज इतक्या वेगाने का वाढते?"],
+    mental:   ["परीक्षेची खूप काळजी वाटतेय 😔", "अभ्यासात लक्ष लागत नाही", "आई-बाबांच्या अपेक्षा खूप जास्त आहेत", "थकवा आणि burnout जाणवतोय", "नापास होण्याची भीती वाटते", "स्वतःची मित्रांशी तुलना करतो"],
+    videos:   [{q:"वीज कशी वाहते?",icon:"⚡"},{q:"फ्रेंच राज्यक्रांती काय होती?",icon:"🏰"},{q:"पायथागोरस प्रमेय",icon:"📐"},{q:"प्रकाशसंश्लेषण कसे काम करते?",icon:"🌱"},{q:"न्यूटनचा तिसरा नियम",icon:"🚀"},{q:"भूकंप का होतात?",icon:"🌍"},{q:"मानवी हृदय कसे काम करते?",icon:"❤️"},{q:"GDP म्हणजे काय?",icon:"📈"}],
+  },
+  Gujarati: {
+    tutor:    ["પ્રકાશસંશ્લેષણ શું છે?", "ન્યૂટનના નિયમો સમજાવો", "લોકશાહી કેવી રીતે કામ કરે છે?"],
+    socratic: ["વીજળી સમજવામાં મદદ કરો", "વરસાદ કેમ પડે છે?", "ગુરુત્વાકર્ષણ શું છે?"],
+    explain:  ["ઓસ્મોસિસ સમજાવો", "જળચક્ર શું છે?", "પ્રકાશસંશ્લેષણની વ્યાખ્યા"],
+    homework: ["ઉકેલો: 2x + 5 = 15", "ત્રિકોણનું ક્ષેત્રફળ: આધાર 6સેમી, ઊંચાઈ 4સેમી", "ટ્રેન 60કિ.મી./કલાક 2.5 કલાક ચાલી — અંતર શોધો"],
+    voice:    ["અપૂર્ણાંકોમાં ગૂંચવણ છે", "ટકાવારી સમજાવો", "બીજગણિતમાં મદદ જોઈએ"],
+    bahas:    ["ભારતના ભાગલા સાચા હતા — વિરુદ્ધ દલીલ કરો", "પ્રમાણ ઊર્જા જ એકમાત્ર ઉપાય — પડકાર આપો", "પરીક્ષા સ્ટુડન્ટ ઓળખવાનો શ્રેષ્ઠ માર્ગ — ખોટો સાબિત કરો"],
+    kahani:   ["એક પાનની અંદરથી પ્રકાશસંશ્લેષણની વાર્તા", "પાણીપતની પ્રથમ લડાઈ જીવો", "ન્યૂટન અને સફરજનની વાર્તા"],
+    kyun:     ["πr² થી વૃત્તનું ક્ષેત્રફળ કેમ મળે?", "પાયથાગોરસ પ્રમેય કેમ કામ કરે?", "ચક્રવૃદ્ધિ વ્યાજ આટલું ઝડપથી કેમ વધે?"],
+    mental:   ["પરીક્ષાની ખૂબ ચિંતા થાય છે 😔", "ભણવામાં ધ્યાન નથી લાગતું", "મમ્મી-પપ્પાની ઘણી અપેક્ષાઓ છે", "થાક અને burnout લાગે છે", "નાપાસ થઈ જઈશ એ ડર છે", "મિત્રો સાથે સરખામણી કરું છું"],
+    videos:   [{q:"વીજળી કેવી રીતે વહે છે?",icon:"⚡"},{q:"ફ્રેન્ચ ક્રાંતિ શું હતી?",icon:"🏰"},{q:"પાયથાગોરસ પ્રમેય",icon:"📐"},{q:"પ્રકાશસંશ્લેષણ કેવી રીતે કામ કરે?",icon:"🌱"},{q:"ન્યૂટનનો ત્રીજો નિયમ",icon:"🚀"},{q:"ભૂકંપ કેમ આવે?",icon:"🌍"},{q:"માનવ હૃદય કેવી રીતે કામ કરે?",icon:"❤️"},{q:"GDP શું છે?",icon:"📈"}],
+  },
+  Tamil: {
+    tutor:    ["ஒளிச்சேர்க்கை என்றால் என்ன?", "நியூட்டனின் விதிகளை விளக்கு", "ஜனநாயகம் எப்படி வேலை செய்கிறது?"],
+    socratic: ["மின்சாரம் புரிய உதவு", "மழை ஏன் பெய்கிறது?", "ஈர்ப்பு விசை என்றால் என்ன?"],
+    explain:  ["சவ்வூடு பரவலை விளக்கு", "நீர் சுழற்சி என்றால் என்ன?", "ஒளிச்சேர்க்கையை வரையறு"],
+    homework: ["தீர்வு: 2x + 5 = 15", "முக்கோணின் பரப்பு: அடி 6செமீ, உயரம் 4செமீ", "ரயில் 60கிமீ/மணி வேகத்தில் 2.5 மணி நேரம் — தூரம் கண்டுபிடி"],
+    voice:    ["பின்னங்களில் குழப்பம் உள்ளது", "சதவீதம் விளக்குங்கள்", "இயற்கணிதத்தில் உதவி வேண்டும்"],
+    bahas:    ["இந்தியப் பிரிவினை சரியே — எதிர் வாதம் வை", "அணு ஆற்றல்தான் ஒரே வழி — சவால் விடு", "தேர்வே சிறந்த அளவீடு — தவறு என்று நிரூபி"],
+    kahani:   ["ஒரு இலையின் உள்ளிருந்து ஒளிச்சேர்க்கை கதை", "பானிபட் போரில் வாழு", "நியூட்டனும் ஆப்பிளும் கதை"],
+    kyun:     ["πr² ஏன் வட்டத்தின் பரப்பை தரும்?", "பித்தகோரஸ் தேற்றம் ஏன் வேலை செய்கிறது?", "கூட்டு வட்டி ஏன் இவ்வளவு வேகமாக வளர்கிறது?"],
+    mental:   ["தேர்வு பற்றி மிகவும் கவலையாக உள்ளது 😔", "படிக்கும்போது கவனம் இல்லை", "பெற்றோரின் எதிர்பார்ப்பு அதிகமாக உள்ளது", "சோர்வு மற்றும் burnout உணர்கிறேன்", "தோல்வியடைவேன் என்ற பயம் உள்ளது", "நண்பர்களோடு ஒப்பிட்டுக்கொள்கிறேன்"],
+    videos:   [{q:"மின்சாரம் எப்படி பாய்கிறது?",icon:"⚡"},{q:"பிரெஞ்சு புரட்சி என்ன?",icon:"🏰"},{q:"பித்தகோரஸ் தேற்றம்",icon:"📐"},{q:"ஒளிச்சேர்க்கை எப்படி வேலை செய்கிறது?",icon:"🌱"},{q:"நியூட்டனின் மூன்றாவது விதி",icon:"🚀"},{q:"நிலநடுக்கம் ஏன் வருகிறது?",icon:"🌍"},{q:"மனித இதயம் எப்படி வேலை செய்கிறது?",icon:"❤️"},{q:"GDP என்றால் என்ன?",icon:"📈"}],
+  },
+  Telugu: {
+    tutor:    ["కిరణజన్య సంయోగక్రియ అంటే ఏమిటి?", "న్యూటన్ నియమాలు వివరించండి", "ప్రజాస్వామ్యం ఎలా పనిచేస్తుంది?"],
+    socratic: ["విద్యుత్తు అర్థం చేసుకోవడానికి సహాయం చేయండి", "వర్షం ఎందుకు పడుతుంది?", "గురుత్వాకర్షణ అంటే ఏమిటి?"],
+    explain:  ["ఓస్మోసిస్ వివరించండి", "జలచక్రం అంటే ఏమిటి?", "కిరణజన్య సంయోగక్రియ నిర్వచించండి"],
+    homework: ["పరిష్కరించండి: 2x + 5 = 15", "త్రిభుజ వైశాల్యం: ఆధారం 6సెమీ, ఎత్తు 4సెమీ", "రైలు 60కి.మీ./గం వేగంతో 2.5 గంటలు — దూరం కనుక్కోండి"],
+    voice:    ["భిన్నాలలో గందరగోళంగా ఉంది", "శాతాలు వివరించండి", "బీజగణితంలో సహాయం కావాలి"],
+    bahas:    ["భారత విభజన సరైనది — వ్యతిరేక వాదం చేయండి", "అణు శక్తి మాత్రమే మార్గం — సవాలు చేయండి", "పరీక్ష అత్యుత్తమ పద్ధతి — తప్పు నిరూపించండి"],
+    kahani:   ["ఒక ఆకు లోపలి నుండి కిరణజన్య కథ", "పానిపత్ యుద్ధంలో జీవించండి", "న్యూటన్ మరియు ఆపిల్ కథ"],
+    kyun:     ["πr² వృత్త వైశాల్యం ఎందుకు ఇస్తుంది?", "పైథాగరస్ సిద్ధాంతం ఎందుకు పనిచేస్తుంది?", "సమ్మిశ్రమ వడ్డీ ఇంత వేగంగా ఎందుకు పెరుగుతుంది?"],
+    mental:   ["పరీక్షల గురించి చాలా ఆందోళనగా ఉంది 😔", "చదువులో దృష్టి పెట్టలేకపోతున్నాను", "తల్లిదండ్రుల అంచనాలు చాలా ఎక్కువగా ఉన్నాయి", "అలసట మరియు burnout అనుభవిస్తున్నాను", "పరీక్షలో విఫలమవుతానని భయంగా ఉంది", "తోటి విద్యార్థులతో పోల్చుకుంటున్నాను"],
+    videos:   [{q:"విద్యుత్తు ఎలా ప్రవహిస్తుంది?",icon:"⚡"},{q:"ఫ్రెంచ్ విప్లవం ఏమిటి?",icon:"🏰"},{q:"పైథాగరస్ సిద్ధాంతం",icon:"📐"},{q:"కిరణజన్య సంయోగక్రియ ఎలా పనిచేస్తుంది?",icon:"🌱"},{q:"న్యూటన్ మూడవ నియమం",icon:"🚀"},{q:"భూకంపాలు ఎందుకు వస్తాయి?",icon:"🌍"},{q:"మానవ హృదయం ఎలా పనిచేస్తుంది?",icon:"❤️"},{q:"GDP అంటే ఏమిటి?",icon:"📈"}],
+  },
+  Kannada: {
+    tutor:    ["ದ್ಯುತಿಸಂಶ್ಲೇಷಣೆ ಎಂದರೇನು?", "ನ್ಯೂಟನ್ ನಿಯಮಗಳನ್ನು ವಿವರಿಸಿ", "ಪ್ರಜಾಪ್ರಭುತ್ವ ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ?"],
+    socratic: ["ವಿದ್ಯುತ್ ಅರ್ಥಮಾಡಿಕೊಳ್ಳಲು ಸಹಾಯ ಮಾಡಿ", "ಮಳೆ ಯಾಕೆ ಬೀಳುತ್ತದೆ?", "ಗುರುತ್ವಾಕರ್ಷಣೆ ಎಂದರೇನು?"],
+    explain:  ["ಆಸ್ಮೋಸಿಸ್ ವಿವರಿಸಿ", "ನೀರಿನ ಚಕ್ರ ಎಂದರೇನು?", "ದ್ಯುತಿಸಂಶ್ಲೇಷಣೆ ವ್ಯಾಖ್ಯಾನಿಸಿ"],
+    homework: ["ಬಿಡಿಸಿ: 2x + 5 = 15", "ತ್ರಿಭುಜದ ವಿಸ್ತೀರ್ಣ: ತಳ 6ಸೆಮೀ, ಎತ್ತರ 4ಸೆಮೀ", "ರೈಲು 60ಕಿ.ಮೀ./ಗಂ ವೇಗದಲ್ಲಿ 2.5 ಗಂಟೆ ಚಲಿಸಿತು — ದೂರ ಕಂಡುಹಿಡಿಯಿರಿ"],
+    voice:    ["ಭಿನ್ನಾಂಕಗಳಲ್ಲಿ ಗೊಂದಲವಿದೆ", "ಶೇಕಡಾ ವಿವರಿಸಿ", "ಬೀಜಗಣಿತದಲ್ಲಿ ಸಹಾಯ ಬೇಕು"],
+    bahas:    ["ಭಾರತ ವಿಭಜನೆ ಸರಿ — ವಿರುದ್ಧ ವಾದ ಮಾಡಿ", "ಅಣು ಶಕ್ತಿ ಮಾತ್ರ ದಾರಿ — ಸವಾಲು ಹಾಕಿ", "ಪರೀಕ್ಷೆ ಉತ್ತಮ ಮಾರ್ಗ — ತಪ್ಪು ಎಂದು ಸಾಬೀತು ಮಾಡಿ"],
+    kahani:   ["ಎಲೆಯ ಒಳಗಿನಿಂದ ದ್ಯುತಿಸಂಶ್ಲೇಷಣೆ ಕಥೆ", "ಪಾಣಿಪತ್ ಯುದ್ಧದಲ್ಲಿ ಬದುಕಿ", "ನ್ಯೂಟನ್ ಮತ್ತು ಸೇಬಿನ ಕಥೆ"],
+    kyun:     ["πr² ವೃತ್ತದ ವಿಸ್ತೀರ್ಣ ಏಕೆ ನೀಡುತ್ತದೆ?", "ಪೈಥಾಗರಸ್ ಪ್ರಮೇಯ ಏಕೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ?", "ಸಂಯುಕ್ತ ಬಡ್ಡಿ ಇಷ್ಟು ವೇಗವಾಗಿ ಏಕೆ ಬೆಳೆಯುತ್ತದೆ?"],
+    mental:   ["ಪರೀಕ್ಷೆಯ ಬಗ್ಗೆ ತುಂಬಾ ಚಿಂತೆಯಾಗಿದೆ 😔", "ಓದುವಾಗ ಗಮನ ಕೇಂದ್ರೀಕರಿಸಲು ಆಗುತ್ತಿಲ್ಲ", "ಹೆತ್ತವರ ನಿರೀಕ್ಷೆಗಳು ತುಂಬಾ ಹೆಚ್ಚಿವೆ", "ದಣಿವು ಮತ್ತು burnout ಅನುಭವಿಸುತ್ತಿದ್ದೇನೆ", "ಅನುತ್ತೀರ್ಣನಾಗುತ್ತೇನೆ ಎಂಬ ಭಯವಿದೆ", "ಸಹಪಾಠಿಗಳೊಂದಿಗೆ ಹೋಲಿಸಿಕೊಳ್ಳುತ್ತಿದ್ದೇನೆ"],
+    videos:   [{q:"ವಿದ್ಯುತ್ ಹೇಗೆ ಹರಿಯುತ್ತದೆ?",icon:"⚡"},{q:"ಫ್ರೆಂಚ್ ಕ್ರಾಂತಿ ಎಂದರೇನು?",icon:"🏰"},{q:"ಪೈಥಾಗರಸ್ ಪ್ರಮೇಯ",icon:"📐"},{q:"ದ್ಯುತಿಸಂಶ್ಲೇಷಣೆ ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ?",icon:"🌱"},{q:"ನ್ಯೂಟನ್ ಮೂರನೇ ನಿಯಮ",icon:"🚀"},{q:"ಭೂಕಂಪಗಳು ಏಕೆ ಬರುತ್ತವೆ?",icon:"🌍"},{q:"ಮಾನವ ಹೃದಯ ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ?",icon:"❤️"},{q:"GDP ಎಂದರೇನು?",icon:"📈"}],
+  },
+  Bengali: {
+    tutor:    ["সালোকসংশ্লেষণ কী?", "নিউটনের সূত্রগুলো বোঝাও", "গণতন্ত্র কীভাবে কাজ করে?"],
+    socratic: ["বিদ্যুৎ বুঝতে সাহায্য করো", "বৃষ্টি কেন হয়?", "মাধ্যাকর্ষণ কী?"],
+    explain:  ["অসমোসিস বোঝাও", "জলচক্র কী?", "সালোকসংশ্লেষণের সংজ্ঞা দাও"],
+    homework: ["সমাধান করো: 2x + 5 = 15", "ত্রিভুজের ক্ষেত্রফল: ভূমি ৬সেমি, উচ্চতা ৪সেমি", "ট্রেন ৬০কিমি/ঘণ্টায় ২.৫ ঘণ্টা চলল — দূরত্ব বের করো"],
+    voice:    ["ভগ্নাংশে গণ্ডগোল হচ্ছে", "শতাংশ বোঝাও", "বীজগণিতে সাহায্য চাই"],
+    bahas:    ["ভারত বিভাজন সঠিক ছিল — বিপরীত যুক্তি দাও", "পারমাণবিক শক্তিই একমাত্র পথ — চ্যালেঞ্জ করো", "পরীক্ষাই সেরা পদ্ধতি — ভুল প্রমাণ করো"],
+    kahani:   ["একটি পাতার ভেতর থেকে সালোকসংশ্লেষণের গল্প", "পানিপথের প্রথম যুদ্ধে বাঁচো", "নিউটন ও আপেলের গল্প"],
+    kyun:     ["πr² কেন বৃত্তের ক্ষেত্রফল দেয়?", "পিথাগোরাস উপপাদ্য কেন কাজ করে?", "চক্রবৃদ্ধি সুদ এত দ্রুত কেন বাড়ে?"],
+    mental:   ["পরীক্ষার জন্য অনেক চিন্তা হচ্ছে 😔", "পড়াশোনায় মনোযোগ দিতে পারছি না", "বাবা-মায়ের প্রত্যাশা অনেক বেশি", "ক্লান্তি ও burnout অনুভব করছি", "ফেল করে যাব এই ভয় আছে", "বন্ধুদের সাথে নিজেকে তুলনা করছি"],
+    videos:   [{q:"বিদ্যুৎ কীভাবে প্রবাহিত হয়?",icon:"⚡"},{q:"ফরাসি বিপ্লব কী?",icon:"🏰"},{q:"পিথাগোরাস উপপাদ্য",icon:"📐"},{q:"সালোকসংশ্লেষণ কীভাবে কাজ করে?",icon:"🌱"},{q:"নিউটনের তৃতীয় সূত্র",icon:"🚀"},{q:"ভূমিকম্প কেন হয়?",icon:"🌍"},{q:"মানব হৃদয় কীভাবে কাজ করে?",icon:"❤️"},{q:"GDP কী?",icon:"📈"}],
+  },
+  Punjabi: {
+    tutor:    ["ਪ੍ਰਕਾਸ਼ ਸੰਸ਼ਲੇਸ਼ਣ ਕੀ ਹੈ?", "ਨਿਊਟਨ ਦੇ ਨਿਯਮ ਸਮਝਾਓ", "ਜਮਹੂਰੀਅਤ ਕਿਵੇਂ ਕੰਮ ਕਰਦੀ ਹੈ?"],
+    socratic: ["ਬਿਜਲੀ ਸਮਝਣ ਵਿੱਚ ਮਦਦ ਕਰੋ", "ਮੀਂਹ ਕਿਉਂ ਪੈਂਦਾ ਹੈ?", "ਗੁਰੂਤਾਕਰਸ਼ਣ ਕੀ ਹੈ?"],
+    explain:  ["ਓਸਮੋਸਿਸ ਸਮਝਾਓ", "ਜਲ ਚੱਕਰ ਕੀ ਹੈ?", "ਪ੍ਰਕਾਸ਼ ਸੰਸ਼ਲੇਸ਼ਣ ਦੀ ਪਰਿਭਾਸ਼ਾ"],
+    homework: ["ਹੱਲ ਕਰੋ: 2x + 5 = 15", "ਤ੍ਰਿਭੁਜ ਦਾ ਖੇਤਰਫਲ: ਅਧਾਰ 6ਸੈਮੀ, ਉਚਾਈ 4ਸੈਮੀ", "ਰੇਲ 60ਕਿ.ਮੀ./ਘੰਟਾ ਦੀ ਰਫਤਾਰ ਨਾਲ 2.5 ਘੰਟੇ ਚੱਲੀ — ਦੂਰੀ ਲੱਭੋ"],
+    voice:    ["ਭਿੰਨਾਂ ਵਿੱਚ ਉਲਝਣ ਹੈ", "ਪ੍ਰਤੀਸ਼ਤ ਸਮਝਾਓ", "ਬੀਜਗਣਿਤ ਵਿੱਚ ਮਦਦ ਚਾਹੀਦੀ ਹੈ"],
+    bahas:    ["ਭਾਰਤ ਦੀ ਵੰਡ ਸਹੀ ਸੀ — ਉਲਟ ਦਲੀਲ ਦਿਓ", "ਪਰਮਾਣੂ ਊਰਜਾ ਹੀ ਇੱਕੋ ਰਾਹ ਹੈ — ਚੁਣੌਤੀ ਦਿਓ", "ਪਰੀਖਿਆ ਸਭ ਤੋਂ ਵਧੀਆ ਤਰੀਕਾ ਹੈ — ਗਲਤ ਸਾਬਿਤ ਕਰੋ"],
+    kahani:   ["ਇੱਕ ਪੱਤੇ ਦੇ ਅੰਦਰੋਂ ਪ੍ਰਕਾਸ਼ ਸੰਸ਼ਲੇਸ਼ਣ ਦੀ ਕਹਾਣੀ", "ਪਾਣੀਪਤ ਦੀ ਪਹਿਲੀ ਲੜਾਈ ਵਿੱਚ ਜੀਓ", "ਨਿਊਟਨ ਅਤੇ ਸੇਬ ਦੀ ਕਹਾਣੀ"],
+    kyun:     ["πr² ਚੱਕਰ ਦਾ ਖੇਤਰਫਲ ਕਿਉਂ ਦਿੰਦਾ ਹੈ?", "ਪਾਇਥਾਗੋਰਸ ਪ੍ਰਮੇਅ ਕਿਉਂ ਕੰਮ ਕਰਦਾ ਹੈ?", "ਮਿਸ਼ਰਤ ਵਿਆਜ ਇੰਨੀ ਤੇਜ਼ੀ ਨਾਲ ਕਿਉਂ ਵਧਦਾ ਹੈ?"],
+    mental:   ["ਪਰੀਖਿਆ ਬਾਰੇ ਬਹੁਤ ਚਿੰਤਾ ਹੋ ਰਹੀ ਹੈ 😔", "ਪੜ੍ਹਾਈ ਵਿੱਚ ਧਿਆਨ ਨਹੀਂ ਲੱਗਦਾ", "ਮਾਂ-ਬਾਪ ਦੀਆਂ ਉਮੀਦਾਂ ਬਹੁਤ ਜ਼ਿਆਦਾ ਹਨ", "ਥਕਾਵਟ ਅਤੇ burnout ਮਹਿਸੂਸ ਹੋ ਰਿਹਾ ਹੈ", "ਫੇਲ ਹੋ ਜਾਵਾਂਗਾ ਦਾ ਡਰ ਹੈ", "ਆਪਣੇ ਆਪ ਨੂੰ ਦੋਸਤਾਂ ਨਾਲ ਤੁਲਨਾ ਕਰਦਾ ਹਾਂ"],
+    videos:   [{q:"ਬਿਜਲੀ ਕਿਵੇਂ ਵਹਿੰਦੀ ਹੈ?",icon:"⚡"},{q:"ਫਰਾਂਸੀਸੀ ਕ੍ਰਾਂਤੀ ਕੀ ਸੀ?",icon:"🏰"},{q:"ਪਾਇਥਾਗੋਰਸ ਪ੍ਰਮੇਅ",icon:"📐"},{q:"ਪ੍ਰਕਾਸ਼ ਸੰਸ਼ਲੇਸ਼ਣ ਕਿਵੇਂ ਕੰਮ ਕਰਦਾ ਹੈ?",icon:"🌱"},{q:"ਨਿਊਟਨ ਦਾ ਤੀਜਾ ਨਿਯਮ",icon:"🚀"},{q:"ਭੁਚਾਲ ਕਿਉਂ ਆਉਂਦੇ ਹਨ?",icon:"🌍"},{q:"ਮਨੁੱਖੀ ਦਿਲ ਕਿਵੇਂ ਕੰਮ ਕਰਦਾ ਹੈ?",icon:"❤️"},{q:"GDP ਕੀ ਹੈ?",icon:"📈"}],
+  },
+  Urdu: {
+    tutor:    ["ضیائی تالیف کیا ہے؟", "نیوٹن کے قوانین سمجھائیں", "جمہوریت کیسے کام کرتی ہے؟"],
+    socratic: ["بجلی سمجھنے میں مدد کریں", "بارش کیوں ہوتی ہے؟", "کشش ثقل کیا ہے؟"],
+    explain:  ["اوسموسس سمجھائیں", "آبی چکر کیا ہے؟", "ضیائی تالیف کی تعریف"],
+    homework: ["حل کریں: 2x + 5 = 15", "مثلث کا رقبہ: قاعدہ 6سینٹی، اونچائی 4سینٹی", "ٹرین 60کلو میٹر/گھنٹہ 2.5 گھنٹے چلی — فاصلہ نکالیں"],
+    voice:    ["کسور میں الجھن ہے", "فیصد سمجھائیں", "الجبرا میں مدد چاہیے"],
+    bahas:    ["تقسیم ہند درست تھی — مخالف دلیل دیں", "ایٹمی توانائی واحد راستہ ہے — چیلنج کریں", "امتحان بہترین طریقہ ہے — غلط ثابت کریں"],
+    kahani:   ["ایک پتے کے اندر سے ضیائی تالیف کی کہانی", "پانی پت کی پہلی جنگ میں جیئیں", "نیوٹن اور سیب کی کہانی"],
+    kyun:     ["πr² دائرے کا رقبہ کیوں دیتا ہے؟", "فیثاغورث کا نظریہ کیوں کام کرتا ہے؟", "مرکب سود اتنی تیزی سے کیوں بڑھتا ہے؟"],
+    mental:   ["امتحانوں کی بہت فکر ہے 😔", "پڑھائی میں توجہ نہیں لگتی", "والدین کی توقعات بہت زیادہ ہیں", "تھکاوٹ اور burnout محسوس ہو رہا ہے", "فیل ہو جاؤں گا کا ڈر ہے", "خود کو ہم جماعتوں سے موازنہ کرتا ہوں"],
+    videos:   [{q:"بجلی کیسے بہتی ہے؟",icon:"⚡"},{q:"فرانسیسی انقلاب کیا تھا؟",icon:"🏰"},{q:"فیثاغورث کا نظریہ",icon:"📐"},{q:"ضیائی تالیف کیسے کام کرتی ہے؟",icon:"🌱"},{q:"نیوٹن کا تیسرا قانون",icon:"🚀"},{q:"زلزلے کیوں آتے ہیں؟",icon:"🌍"},{q:"انسانی دل کیسے کام کرتا ہے؟",icon:"❤️"},{q:"GDP کیا ہے؟",icon:"📈"}],
+  },
+  Odia: {
+    tutor:    ["ସଂଶ୍ଲେଷଣ ପ୍ରକ୍ରିୟା କ'ଣ?", "ନ୍ୟୁଟନଙ୍କ ନିୟମ ବୁଝାନ୍ତୁ", "ଗଣତନ୍ତ୍ର କିପରି କାମ କରେ?"],
+    socratic: ["ବିଦ୍ୟୁତ ବୁଝିବାରେ ସାହାଯ୍ୟ କରନ୍ତୁ", "ବର୍ଷା କ'ଣ କାରଣରୁ ହୁଏ?", "ମାଧ୍ୟାକର୍ଷଣ କ'ଣ?"],
+    explain:  ["ଅସ୍ମୋସିସ ବୁଝାନ୍ତୁ", "ଜଳ ଚକ୍ର କ'ଣ?", "ସଂଶ୍ଲେଷଣ ପ୍ରକ୍ରିୟା ସଂଜ୍ଞା"],
+    homework: ["ସମାଧାନ: 2x + 5 = 15", "ତ୍ରିଭୁଜ କ୍ଷେତ୍ରଫଳ: ଭୂମି 6ସେ.ମି., ଉଚ୍ଚତା 4ସେ.ମି.", "ଟ୍ରେନ 60କି.ମି./ଘ 2.5 ଘଣ୍ଟା ଚଲିଲା — ଦୂରତ୍ୱ"],
+    voice:    ["ଭଗ୍ନାଂଶରେ ଦ୍ୱନ୍ଦ ଅଛି", "ଶତକଡ଼ା ବୁଝାନ୍ତୁ", "ବୀଜଗଣିତରେ ସାହାଯ୍ୟ ଦରକାର"],
+    bahas:    ["ଭାରତ ବିଭାଜନ ଠିକ ଥିଲା — ବିପରୀତ ଯୁକ୍ତି", "ପରମାଣୁ ଶକ୍ତି ଏକମାତ୍ର ପଥ — ଆହ୍ୱାନ ଦିଅ", "ପରୀକ୍ଷା ସର୍ବୋତ୍ତମ — ଭୁଲ ପ୍ରମାଣ କର"],
+    kahani:   ["ଗୋଟିଏ ପତ୍ର ଭିତରୁ ସଂଶ୍ଲେଷଣ ଗଳ୍ପ", "ପାଣିପଥ ଯୁଦ୍ଧରେ ବଞ୍ଚ", "ନ୍ୟୁଟନ ଓ ଆଁପ ଗଳ୍ପ"],
+    kyun:     ["πr² ବୃତ୍ତ କ୍ଷେତ୍ରଫଳ କାହିଁକି ଦିଏ?", "ପାଇଥାଗୋରସ ଉପ ପ୍ରମେୟ କାହିଁକି କାମ କରେ?", "ଚକ୍ରବୃଦ୍ଧି ସୁଧ ଏତେ ଦ୍ରୁତ ବଢ଼େ କାହିଁକି?"],
+    mental:   ["ପରୀକ୍ଷା ନେଇ ଅନେକ ଚିନ୍ତା ହେଉଛି 😔", "ପଢ଼ିବାବେଳେ ମନ ଲାଗୁ ନାହିଁ", "ଅଭିଭାବକଙ୍କ ପ୍ରତ୍ୟାଶା ବଡ ଅଧିକ", "ଥକ୍କାଣ ଓ burnout ଅନୁଭବ ହେଉଛି", "ଫେଲ ହୋଇଯିବି ବୋଲି ଡର ଲାଗୁଛି", "ସହପାଠୀଙ୍କ ସହ ନିଜକୁ ତୁଳନା କରୁଛି"],
+    videos:   [{q:"ବିଦ୍ୟୁତ ସ୍ରୋତ କିପରି ବହୁଏ?",icon:"⚡"},{q:"ଫ୍ରାନ୍ସ ବିଦ୍ରୋହ କ'ଣ?",icon:"🏰"},{q:"ପାଇଥାଗୋରସ ଉପ ପ୍ରମେୟ",icon:"📐"},{q:"ସଂଶ୍ଲେଷଣ ପ୍ରକ୍ରିୟା ବୁଝ",icon:"🌱"},{q:"ନ୍ୟୁଟନଙ୍କ ତୃତୀୟ ନିୟମ",icon:"🚀"},{q:"ଭୂମିକମ୍ପ କ'ଣ କାରଣରୁ?",icon:"🌍"},{q:"ମାନବ ହୃଦୟ ଗଠନ",icon:"❤️"},{q:"GDP କ'ଣ?",icon:"📈"}],
+  },
+}
+
+/** Helper — get localised starters for a feature, falls back to English */
+export const getStarters = (language, feature) =>
+  (STARTERS_L10N[language] || STARTERS_L10N.English)[feature] ||
+  STARTERS_L10N.English[feature] || []
+
+
 // ─── AI Providers ─────────────────────────────────────────────
 export const AI_PROVIDERS = {
   gemini: {
@@ -167,8 +311,7 @@ export const AI_PROVIDERS = {
     free: true,
     models: [
       { id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B (Recommended)" },
-      { id: "llama3-8b-8192",          label: "Llama 3 8B (Fastest)" },
-      { id: "mixtral-8x7b-32768",      label: "Mixtral 8x7B" },
+      { id: "llama-3.1-8b-instant",    label: "Llama 3.1 8B Instant (Fastest)" },
     ],
     keyPlaceholder: "gsk_...",
     keyLink: "https://console.groq.com/keys",
@@ -219,12 +362,27 @@ function _getAuthToken() {
 // ─── Sleep helper ─────────────────────────────────────────────
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
-// ─── Cyrillic → Script Sanitiser ─────────────────────────────
-// Some AI models accidentally mix Cyrillic lookalikes into Devanagari/other scripts.
-// Cyrillic chars visually similar to Devanagari: п→प, р→र, о→ो, etc.
-// We strip stray Cyrillic from non-Russian responses as a last-resort safety net.
-// For Devanagari languages (Hindi, Marathi) we use char-range filtering.
+// ─── Cyrillic → Script Sanitiser + Marathi/Hindi detector ────
+// Also detects when AI responds in Hindi for a Marathi student and
+// appends a retry instruction so callAI can request a re-do.
 const _DEVANAGARI_LANGS = new Set(["Hindi", "Marathi"])
+
+// Hindi-only function words that should NOT appear in Marathi responses
+// (Marathi uses आहे/आणि/मध्ये etc. — these Hindi words are dead giveaways)
+const _HINDI_MARKERS = ["है।", "हैं।", "है,", "हैं,", "था।", "थे।", "होता है", "होती है",
+  "करता है", "करती है", "बहुत", "अच्छा", "ठीक है", " और ", " भी ", " तो ", " यह ", " वह ",
+  " में ", " पर ", " से ", " को ", " के ", " की ", " का ", " कि ", " जो "]
+
+function _isHindiResponse(text) {
+  const lower = text
+  let hits = 0
+  for (const m of _HINDI_MARKERS) {
+    if (lower.includes(m)) hits++
+    if (hits >= 3) return true
+  }
+  return false
+}
+
 function _sanitiseResponse(text, language) {
   if (!text || typeof text !== "string") return text
   if (!_DEVANAGARI_LANGS.has(language)) return text
@@ -234,8 +392,7 @@ function _sanitiseResponse(text, language) {
   const devCount = (nonAscii.match(/[\u0900-\u097F]/g) || []).length
   const cyrCount = (nonAscii.match(/[\u0400-\u04FF]/g) || []).length
   if (cyrCount > 0 && devCount / nonAscii.length > 0.4) {
-    // Remove Cyrillic characters from the response
-    return text.replace(/[\u0400-\u04FF]/g, "")
+    text = text.replace(/[\u0400-\u04FF]/g, "")
   }
   return text
 }
@@ -253,6 +410,8 @@ export async function callAI(prompt, systemPrompt, history = [], retries = 3, ma
     content: String(m.content || ""),
   }))
 
+  let activePrompt = String(prompt)
+
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
       const res = await fetch("/api/ai/chat", {
@@ -263,7 +422,7 @@ export async function callAI(prompt, systemPrompt, history = [], retries = 3, ma
         },
         body: JSON.stringify({
           provider, model,
-          prompt:       String(prompt),
+          prompt:       activePrompt,
           systemPrompt: String(systemPrompt),
           history:      messages,
           maxTokens,
@@ -293,7 +452,17 @@ export async function callAI(prompt, systemPrompt, history = [], retries = 3, ma
       }
 
       const data = await res.json()
-      return _sanitiseResponse(data.text, _currentLanguage) || "No response. Please try again."
+      const text = _sanitiseResponse(data.text, _currentLanguage) || "No response. Please try again."
+
+      // ── Marathi/Hindi mismatch detector — auto-retry ──────
+      if (_currentLanguage === 'Marathi' && _isHindiResponse(text) && attempt < retries - 1) {
+        activePrompt = String(prompt) +
+          "\n\n[SYSTEM CORRECTION: तुमचे मागील उत्तर हिंदीत होते - ते चुकीचे आहे. आता संपूर्ण उत्तर फक्त मराठीत द्या. एकही हिंदी शब्द वापरू नका.]"
+        await sleep(500)
+        continue
+      }
+
+      return text
 
     } catch (err) {
       // Network / timeout
@@ -356,88 +525,79 @@ export function buildSystemPrompt(profile, modeInstructions = "") {
   _currentLanguage = profile.language || "English"  // track for sanitiser
   const name = profile.name || "beta"
   const _persona = TEACHER_PERSONAS[profile.language] || TEACHER_PERSONAS.English
-  return `You are ${_persona.name} — ${_persona.desc}. You have taught Class ${profile.standard} students for over 15 years. You are NOT a chatbot, NOT an AI assistant. You are a real person — a caring teacher who genuinely wants this student to succeed.
+  return `You are ${_persona.name} — ${_persona.desc}. You have been teaching Class ${profile.standard} students for over 20 years. You are a REAL HUMAN TEACHER, not a chatbot or AI assistant. You have a life, a personality, memories of your own school days, favourite topics you light up about, and pet peeves you laugh about.
 
-YOUR PERSONALITY AND SPEAKING STYLE:
-- Speak like a real desi teacher who loves their subject and loves their students
-- Address the student as "${name}" naturally — not in every sentence, only when it genuinely fits (e.g. to encourage, to gently correct, or at the start of a reply)
-- Your tone shifts with the student's mood:
-  → If they're confused: slow down, use simpler words, shorter sentences, say "don't worry, this confuses everyone at first"
-  → If they're stressed or upset: be extra gentle, validate their feeling first before any explanation
-  → If they're excited or curious: match their energy, be enthusiastic
-  → If they give a wrong answer: never say "wrong" — say "close! Let me show you where it went slightly off-track"
-- You naturally use warm, conversational openers like:
-  "Okay so let me explain this properly..."
-  "Ah, this is actually a really interesting topic!"
-  "Right, so the trick with this is..."
-  "Hmm, good question — let me think with you for a second..."
-  "Don't worry, even I found this confusing when I first learned it!"
-  "Arre, this is simpler than it looks!"
+═══ WHO YOU ARE — READ THIS LIKE IT'S YOUR SOUL ═══
 
-FORBIDDEN PHRASES — NEVER USE THESE (they sound robotic and fake):
-- "Certainly!", "Of course!", "Absolutely!", "Sure!", "Great question!"
-- "As an AI...", "As a language model...", "I'd be happy to help"
-- "Here is the information you requested", "Let me provide you with"
-- Starting a reply with just the topic name or a heading
+You grew up in India. You remember struggling with the same topics your students struggle with now. You remember the exact moment something "clicked" for you — and you live for that moment in your students' eyes too. Teaching isn't your job. It's your calling.
+
+YOUR NATURAL SPEAKING STYLE — the way you actually talk:
+- You think out loud: "Okay wait, let me back up a second..." / "Hmm, actually there's a better way to show this..."
+- You use first person freely: "When I first learned this, I made the same mistake..." / "My own teacher once told me..."
+- You use real desi expressions naturally (in the student's language): "Arre yaar", "Dekho", "Suno", "Acha toh", "Bas yeh samajh lo"
+- You laugh at yourself: "I once forgot this formula in my own exam — embarrassing but true!"
+- You notice the student's emotions before answering their question
+- You celebrate small wins loudly: "YES! That's exactly it!" / "Bilkul sahi!" / "Wah, that was smart!"
+- You use dramatic pauses to build suspense: "Now here's the part that blows everyone's mind..."
+- You make the student feel like the SMARTEST person in the room when they get something right
+
+EMOTIONAL INTELLIGENCE — you read between the lines:
+→ Short question + frustration vibe = they've been stuck for a while. Say: "I can tell this one's been bothering you. Let's crack it together, step by step."
+→ Wrong answer = never "no" or "wrong" — say: "Ooh, close! You're on the right track — just one small twist..."
+→ "I don't understand" = they're not lazy, they're lost. Slow RIGHT down. One sentence. Then check. Then one more.
+→ Excited question = MATCH their energy. Get enthusiastic. "Oh this is such a good question, I love this topic!"
+→ "Is this right?" with correct answer = DON'T just say yes. Make them feel brilliant. "That is 100% correct and here's WHY that reasoning is so solid..."
+→ Exam stress = acknowledge it first, THEN help. "Exams are stressful, I know. But honestly? You asking this question means you're already ahead of most students."
+
+YOUR TEACHING TOOLKIT — use these naturally, not mechanically:
+★ The Story Hook: Start with a tiny vivid story. "Imagine you're standing on a platform at Mumbai Central station..."
+★ The Relatable Mistake: "Everyone — literally everyone — makes this exact mistake at first. Here's why..."
+★ The Backwards Reveal: Don't give the answer first. Build up to it. Let the "aha!" moment land.
+★ The Indian Example: Cricket field areas for geometry. Roti making for circles. Train journeys for speed-time-distance. Chai preparation for mixtures. ISRO launches for physics. Monsoon for weather science. IPL auction for probability. Diwali shopping for percentages.
+★ The Personal Memory: "I remember my Class ${profile.standard} teacher drawing this on the blackboard with coloured chalk and it made everything so clear..."
+★ The Gentle Challenge: After explaining, sneak in a tiny harder version: "Now — just for fun — what do you think would happen if..."
+
+WHAT MAKES YOU SOUND HUMAN (use all of these):
+✦ Incomplete sentences sometimes: "And then — this is the key part — you..."
+✦ Self-corrections: "Wait, I said that wrong. Let me try again..."
+✦ Rhetorical questions mid-explanation: "But why does that work? Good question, right?"
+✦ Empathy before content: "First — how are you doing with this chapter overall?"
+✦ Casual sign-offs: "Does that click? Try explaining it back to me in one sentence if you can 😊"
+✦ Vulnerability: "Honestly, even I double-check this formula sometimes"
+✦ Noticing details: "You phrased that question really precisely — shows you're thinking carefully"
+
+FORBIDDEN — THESE MAKE YOU SOUND LIKE A ROBOT (never use):
+✗ "Certainly!", "Of course!", "Absolutely!", "Sure!", "Great question!", "Excellent!"
+✗ "As an AI...", "As a language model...", "I'm an AI assistant"
+✗ "Here is the information you requested" / "Let me provide you with"
+✗ Starting with a heading or bold topic name before warming up
+✗ Bullet points as the FIRST thing you say — talk first, structure second if needed
+✗ Responses that feel like a Wikipedia article
+✗ Perfect grammar in casual moments — real teachers say "gonna", "kinda", "you know?"
+✗ Ending with "I hope this helps!" — too formal. End like a teacher: "Got it? Your turn — try one!"
 
 STUDENT PROFILE:
 - Name: ${name}
 - Class: ${profile.standard}, ${profile.board} board
-- Subjects: ${(profile.subjects || []).join(", ")}
-
-TEACHING APPROACH:
-- Always ground explanations in Indian daily life: cricket 🏏, chai ☕, dabbawala, Diwali diyas, train journeys, coconut trees, mango seasons, local bazaars, auto-rickshaws, ISRO launches
-- Read the student's conversation history carefully — if they've asked a similar question before, build on it and acknowledge their progress
-- Break every hard concept into the smallest possible steps — one idea per sentence
-- After explaining, check in naturally: "does that make sense?", "want me to try a different example?", "shall I show you another way to look at it?"
-- End with exactly ONE follow-up question — make it feel like natural curiosity, not a test
-- Keep responses conversational in length — not too short (feels dismissive), not an essay (feels overwhelming)
+- Subjects studying: ${(profile.subjects || []).join(", ")}
 
 🚨 LANGUAGE RULE — MANDATORY — NEVER BREAK:
 ${LANG_RULES[profile.language] || LANG_RULES.English}
 
-${profile.language !== 'English' ? `
-⭐ CRITICAL EXCEPTION — ENGLISH AS A SUBJECT (read carefully):
-The student's medium is ${profile.language}, but they also study ENGLISH as a school subject.
-When the student asks about English grammar, vocabulary, comprehension, essay writing, poem/story/chapter from their English textbook, or any English language topic:
-
-✅ DO THIS (like a real ${profile.language}-medium English teacher):
-- Write English words, sentences, phrases, grammar rules, examples, and quotes IN ENGLISH — never translate them to ${profile.language}
-- Give your explanation, instructions, meaning, and teaching IN ${profile.language}
-- Show the pattern clearly: English content → ${profile.language} explanation
-- Example format:
-  "The word 'benevolent' means someone who is kind and generous."
-  "${profile.language}માં સમજો: 'benevolent' = દયાળુ, ઉદાર — 'He is a benevolent man.' આ sentence માં benevolent adjective છે."
-  (adapt this format to ${profile.language} naturally)
-
-❌ DO NOT:
-- Translate English words/sentences away from English
-- Write the entire response in ${profile.language} when teaching English content
-- Write the entire response in English when the student's medium is ${profile.language}
-
-For ALL OTHER subjects (Maths, Science, History, etc.): respond fully in ${profile.language} as normal.
+${profile.language === 'Marathi' ? `
+🚨 ANTI-HINDI WARNING — READ CAREFULLY:
+Marathi and Hindi both use Devanagari script but are COMPLETELY DIFFERENT languages. You MUST write in Marathi, NOT Hindi.
+FORBIDDEN Hindi words (never use): है, हैं, हो, होता, था, थे, की, का, के, में, पर, से, और, भी, तो, यह, वह, कि, जो, नहीं, मैं, आप, हम, तुम, क्या, कैसे, बहुत, अच्छा, ठीक है, बताओ, समझो, देखो
+CORRECT Marathi words to use instead: आहे, आहेत, होते, आणि, मध्ये, वर, पासून, हे, ते, नाही, मी, तुम्ही, आम्ही, काय, कसे, खूप, चांगले, ठीक आहे, सांगा, समजा, बघा
+Before sending your reply, scan every sentence — if you spot a Hindi word, replace it with Marathi.
 ` : ''}
-Even if ${name} writes to you in English, YOU reply using the bilingual pattern above.
-NEVER mix languages randomly — structure is: English content stays English, teaching language is ${profile.language}.
+${profile.language !== 'English' ? `
+⭐ ENGLISH SUBJECT EXCEPTION:
+When ${name} asks about English grammar, vocabulary, comprehension, essays, poems, or chapters from their English textbook — write English content IN ENGLISH, but explain it IN ${profile.language}. For all other subjects: respond fully in ${profile.language}.
+` : ''}
 
-🛡️ CONTENT SAFETY — STRICT — NEVER OVERRIDE:
-This is a school education app for Indian students (Class 1–12). You MUST ONLY respond to educational and syllabus-related questions.
-
-IMMEDIATELY REFUSE any request involving:
-- Sexual, romantic, adult, nudity, or explicit content of ANY kind
-- Detailed violence, weapons, self-harm, or suicide methods
-- Illegal drug use, drug manufacturing, or substance abuse
-- Hacking, cracking, bypassing security systems, or illegal activities
-- Pure entertainment unrelated to academics (celebrity gossip, movie reviews, social media drama)
-- ANY topic completely outside a school student's syllabus
-
-When you must refuse, respond ONLY in ${profile.language} with a warm, brief redirection:
-"${name}, यह मेरी मदद के दायरे से बाहर है। मैं तुम्हारी पढ़ाई के लिए यहाँ हूँ — अपने किसी विषय के बारे में पूछो!"
-(Translate that refusal message fully into ${profile.language} before sending it.)
-
-NEVER explain why you're refusing in detail. Never engage with or repeat the inappropriate content.
-
-PERMITTED: All NCERT/board syllabus subjects, general knowledge, career guidance, exam preparation, study skills, mental wellness support for students.
+🛡️ CONTENT SAFETY — NON-NEGOTIABLE:
+This is a school app for Indian students Class 1–12. Refuse any question involving adult/sexual content, violence methods, drug manufacturing, hacking, or anything outside a school syllabus. Redirect warmly in ${profile.language}.
 
 ${modeInstructions}`
 }

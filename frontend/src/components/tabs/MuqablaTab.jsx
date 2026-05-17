@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { COLORS } from '../../App.jsx'
 import {
-  apiCreateMuqablaChallenge, apiJoinMuqabalaBattle, apiDeclineMuqabalaBattle,
+  apiCreateMuqablaChallenge, apiJoinMuqabalaBattle,
   apiSubmitMuqablaAnswers, apiGetMuqabalaBattle,
   apiGetOpenMuqabalaBattles, apiGetPendingMuqabalaBattles,
   apiGetActiveMuqabalaBattles, apiGetMuqabalaHistory,
@@ -67,8 +67,6 @@ function BattleCard({ battle, onAction, myId }) {
 
   const canJoin     = !isChallenger && battle.status === 'open'
   const myTurn      = !isChallenger && battle.status === 'challenger_done'
-  const waiting     =  isChallenger && ['open','active','challenger_done'].includes(battle.status)
-  const chalNeedsAns = isChallenger && battle.status === 'open' && !battle.challenger_score_set
 
   return (
     <div style={{
@@ -239,7 +237,7 @@ function CreateChallengeModal({ profile, onClose, onCreated }) {
 }
 
 // ── Quiz Screen (answering questions) ─────────────────────────
-function QuizScreen({ battle, onDone }) {
+function QuizScreen({ battle, onDone, userId }) {
   const [answers,    setAnswers]    = useState([])
   const [current,   setCurrent]    = useState(0)
   const [selected,  setSelected]   = useState(null)
@@ -284,7 +282,10 @@ function QuizScreen({ battle, onDone }) {
 
   // Results screen
   if (result) {
-    const won   = result.winner_id && result.winner_id !== 'draw' && result.xp_earned >= 40
+    const isChallenger = battle.challenger_id === userId
+    const myScore  = isChallenger ? result.challenger_score : result.score
+    const oppScore = isChallenger ? result.score            : result.challenger_score
+    const won   = result.winner_id && result.winner_id !== 'draw' && result.winner_id === userId
     const draw  = result.winner_id === 'draw'
     const waiting = result.status === 'waiting_for_opponent'
 
@@ -332,13 +333,13 @@ function QuizScreen({ battle, onDone }) {
               <div>
                 <div style={{ color: COLORS.muted, fontSize: 12 }}>Your Score</div>
                 <div style={{ color: COLORS.green, fontSize: 22, fontWeight: 800 }}>
-                  {result.score}/{result.total || questions.length}
+                  {myScore ?? result.score}/{result.total || questions.length}
                 </div>
               </div>
               <div>
                 <div style={{ color: COLORS.muted, fontSize: 12 }}>Opponent</div>
                 <div style={{ color: COLORS.red, fontSize: 22, fontWeight: 800 }}>
-                  {result.challenger_score}/{result.total || questions.length}
+                  {oppScore ?? result.challenger_score}/{result.total || questions.length}
                 </div>
               </div>
               <div>
@@ -470,7 +471,7 @@ function QuizScreen({ battle, onDone }) {
 }
 
 // ── Leaderboard view ───────────────────────────────────────────
-function LeaderboardView({ myId, mySchool }) {
+function LeaderboardView({ myId }) {
   const [tab,     setTab]    = useState('students')
   const [students, setStudents] = useState([])
   const [schools,  setSchools]  = useState([])
@@ -820,7 +821,7 @@ export default function MuqablaTab({ profile, userId }) {
 
       {/* ── Leaderboard ── */}
       {view === 'board' && !loading && (
-        <LeaderboardView myId={myId} mySchool={profile.school} />
+        <LeaderboardView myId={myId} />
       )}
 
       {/* ── History ── */}
@@ -842,7 +843,47 @@ export default function MuqablaTab({ profile, userId }) {
       )}
 
       {quizBattle && !quizBattle.showResultsOnly && (
-        <QuizScreen battle={quizBattle} onDone={onQuizDone} />
+        <QuizScreen battle={quizBattle} onDone={onQuizDone} userId={myId} />
+      )}
+
+      {/* Results overlay for already-completed battles */}
+      {quizBattle?.showResultsOnly && (
+        <div style={{
+          position: 'fixed', inset: 0, background: COLORS.bg, zIndex: 100,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 20, flexDirection: 'column',
+        }}>
+          <div style={{
+            background: COLORS.card, borderRadius: 24, padding: '32px 24px',
+            maxWidth: 420, width: '100%', textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>
+              {quizBattle.winner_id === myId ? '🏆' : quizBattle.winner_id === 'draw' ? '🤝' : '💪'}
+            </div>
+            <h2 style={{ color: quizBattle.winner_id === myId ? COLORS.yellow : quizBattle.winner_id === 'draw' ? COLORS.blue : COLORS.text, marginBottom: 16 }}>
+              {quizBattle.winner_id === myId ? 'You Won!' : quizBattle.winner_id === 'draw' ? 'Draw!' : quizBattle.status === 'waiting_for_opponent' ? 'Waiting for Opponent' : 'Good Fight!'}
+            </h2>
+            <div style={{ background: COLORS.card2, borderRadius: 14, padding: 16, marginBottom: 20, display: 'flex', justifyContent: 'space-around' }}>
+              <div>
+                <div style={{ color: COLORS.muted, fontSize: 12 }}>Your Score</div>
+                <div style={{ color: COLORS.green, fontSize: 22, fontWeight: 800 }}>
+                  {quizBattle.challenger_id === myId ? quizBattle.challenger_score : quizBattle.opponent_score ?? '?'}/{quizBattle.total_questions ?? '?'}
+                </div>
+              </div>
+              <div>
+                <div style={{ color: COLORS.muted, fontSize: 12 }}>Opponent</div>
+                <div style={{ color: COLORS.red, fontSize: 22, fontWeight: 800 }}>
+                  {quizBattle.challenger_id === myId ? quizBattle.opponent_score ?? '?' : quizBattle.challenger_score ?? '?'}/{quizBattle.total_questions ?? '?'}
+                </div>
+              </div>
+            </div>
+            <button onClick={() => { setQuizBattle(null) }} style={{
+              width: '100%', background: COLORS.orange, color: '#fff',
+              border: 'none', borderRadius: 14, padding: '13px',
+              fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif',
+            }}>Back to Arena</button>
+          </div>
+        </div>
       )}
     </div>
   )

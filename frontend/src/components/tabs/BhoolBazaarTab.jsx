@@ -418,7 +418,7 @@ function PublishConfirmModal({ card, onClose, onPublished }) {
 }
 
 // ── Main Tab ──────────────────────────────────────────────────
-export default function BhoolBazaarTab({ profile }) {
+export default function BhoolBazaarTab({ profile, addXp }) {
   const [activeTab, setActiveTab]         = useState('feed')
   const [feedCards, setFeedCards]         = useState([])
   const [myCards, setMyCards]             = useState([])
@@ -511,12 +511,13 @@ export default function BhoolBazaarTab({ profile }) {
   // ── Actions ───────────────────────────────────────────────
   async function handleCollect(cardId) {
     try {
-      const res = await apiCollectBhoolCard(cardId)
+      await apiCollectBhoolCard(cardId)
       setFeedCards(prev => prev.map(c =>
         c.id === cardId
-          ? { ...c, is_collected: true, collect_count: (c.collect_count || 0) + (res.collected ? 1 : 0) }
+          ? { ...c, is_collected: true, collect_count: (c.collect_count || 0) + 1 }
           : c
       ))
+      addXp?.(10)
     } catch { /* silent */ }
   }
 

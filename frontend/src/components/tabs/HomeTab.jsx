@@ -34,11 +34,25 @@ function masteryColor(pct) {
   return COLORS.red
 }
 
-function masteryLabel(pct) {
-  if (pct === 0)  return "Not started"
-  if (pct >= 75) return "Mastered"
-  if (pct >= 45) return "Learning"
-  return "Needs Work"
+function masteryLabel(pct, lang) {
+  const L = {
+    English:  ['Not started', 'Mastered',   'Learning', 'Needs Work'],
+    Hindi:    ['शुरू नहीं', 'निपुण',      'सीख रहे', 'और मेहनत चाहिए'],
+    Marathi:  ['सुरुवात नाही', 'निपुण',   'शिकतोय', 'अधिक सराव हवा'],
+    Gujarati: ['શરૂ નથી',  'નિષ્ણાત',   'શીખી રહ્યા', 'વધુ મહેનત'],
+    Tamil:    ['தொடங்கவில்லை', 'தேர்ச்சி', 'கற்கிறேன்', 'கூடுதல் பயிற்சி'],
+    Telugu:   ['ప్రారంభం కాలేదు', 'నేర్చారు', 'నేర్చుకుంటున్నారు', 'మరింత కష్టపడాలి'],
+    Kannada:  ['ಪ್ರಾರಂಭವಾಗಿಲ್ಲ', 'ಕರಗತ', 'ಕಲಿಯುತ್ತಿದ್ದಾರೆ', 'ಮತ್ತಷ್ಟು ಪ್ರಯತ್ನ'],
+    Bengali:  ['শুরু হয়নি', 'দক্ষ',     'শিখছি', 'আরও পরিশ্রম'],
+    Punjabi:  ['ਸ਼ੁਰੂ ਨਹੀਂ', 'ਮਾਹਰ',    'ਸਿੱਖ ਰਹੇ', 'ਹੋਰ ਮਿਹਨਤ'],
+    Odia:     ['ଆରମ୍ଭ ନାହିଁ', 'ଦକ୍ଷ',   'ଶିଖୁଛି', 'ଆଉ ଅଭ୍ୟାସ'],
+    Urdu:     ['شروع نہیں', 'ماہر',      'سیکھ رہے', 'مزید محنت'],
+  }
+  const labels = L[lang] || L.English
+  if (pct === 0)  return labels[0]
+  if (pct >= 75)  return labels[1]
+  if (pct >= 45)  return labels[2]
+  return labels[3]
 }
 
 // ── Quick action cards config ────────────────────────────────
@@ -209,7 +223,7 @@ Write entirely in ${profile.language}.`)
     setDeepLoading(false)
   }
 
-  const greeting = getTimeGreeting()
+  const greeting = getTimeGreeting(profile?.language)
 
   return (
     <div style={{ padding: "16px 16px 24px", maxWidth: 720, margin: "0 auto" }}>
@@ -477,7 +491,7 @@ Write entirely in ${profile.language}.`)
                     <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.text }}>{sub}</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ fontSize: 11, color, fontWeight: 700 }}>{masteryLabel(pct)}</span>
+                    <span style={{ fontSize: 11, color, fontWeight: 700 }}>{masteryLabel(pct, profile?.language)}</span>
                     <span style={{
                       fontSize: 12, fontWeight: 900, color,
                       background: `${color}15`, borderRadius: 8, padding: "2px 8px",
@@ -599,12 +613,26 @@ Write entirely in ${profile.language}.`)
 
 // ── Helpers ──────────────────────────────────────────────────
 
-function getTimeGreeting() {
+function getTimeGreeting(lang) {
   const h = new Date().getHours()
-  if (h < 12) return "Good morning ☀️"
-  if (h < 17) return "Good afternoon 🌤️"
-  if (h < 21) return "Good evening 🌙"
-  return "Burning midnight oil 🌟"
+  const L = {
+    English:  ['Good morning ☀️', 'Good afternoon 🌤️', 'Good evening 🌙', 'Burning midnight oil 🌟'],
+    Hindi:    ['सुप्रभात ☀️', 'नमस्ते 🌤️', 'शुभ संध्या 🌙', 'रात को भी पढ़ रहे हो 🌟'],
+    Marathi:  ['सुप्रभात ☀️', 'नमस्कार 🌤️', 'शुभ संध्याकाळ 🌙', 'रात्री उशिरापर्यंत 🌟'],
+    Gujarati: ['સુપ્રભાત ☀️', 'નમસ્તે 🌤️', 'શુભ સાંજ 🌙', 'મોડી રાત સુધી 🌟'],
+    Tamil:    ['காலை வணக்கம் ☀️', 'மதிய வணக்கம் 🌤️', 'மாலை வணக்கம் 🌙', 'இரவு தாமதமாக 🌟'],
+    Telugu:   ['శుభోదయం ☀️', 'శుభమధ్యాహ్నం 🌤️', 'శుభసాయంత్రం 🌙', 'అర్ధరాత్రి వరకు 🌟'],
+    Kannada:  ['ಶುಭೋದಯ ☀️', 'ಶುಭ ಮಧ್ಯಾಹ್ನ 🌤️', 'ಶುಭ ಸಂಜೆ 🌙', 'ರಾತ್ರಿ ತಡವಾಗಿ 🌟'],
+    Bengali:  ['শুভ সকাল ☀️', 'শুভ দুপুর 🌤️', 'শুভ সন্ধ্যা 🌙', 'গভীর রাতেও পড়ছ 🌟'],
+    Punjabi:  ['ਸ਼ੁਭ ਸਵੇਰ ☀️', 'ਸਤ ਸ੍ਰੀ ਅਕਾਲ 🌤️', 'ਸ਼ੁਭ ਸ਼ਾਮ 🌙', 'ਰਾਤ ਨੂੰ ਵੀ ਪੜ੍ਹ ਰਹੇ 🌟'],
+    Odia:     ['ଶୁଭ ସକାଳ ☀️', 'ଶୁଭ ଅପରାହ୍ନ 🌤️', 'ଶୁଭ ସନ୍ଧ୍ୟା 🌙', 'ରାତ ପର୍ଯ୍ୟନ୍ତ 🌟'],
+    Urdu:     ['صبح بخیر ☀️', 'دوپہر بخیر 🌤️', 'شام بخیر 🌙', 'آدھی رات تک 🌟'],
+  }
+  const greets = L[lang] || L.English
+  if (h < 12) return greets[0]
+  if (h < 17) return greets[1]
+  if (h < 21) return greets[2]
+  return greets[3]
 }
 
 function StatChip({ icon, value, color }) {

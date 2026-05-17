@@ -1,15 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { COLORS, callAI, buildSystemPrompt, checkStudentQuery } from '../../App.jsx'
+import { getStarters } from '../../shared.js'
 import { getDeviceId, apiGetSession, apiSaveToSession } from '../../api.js'
-
-const WELLNESS_STARTERS = [
-  "I'm really stressed about my exams 😔",
-  "I can't seem to focus on studying",
-  "My parents have very high expectations",
-  "I feel burned out and exhausted",
-  "I'm scared I'll fail my exams",
-  "I keep comparing myself to my classmates",
-]
 
 const WELLNESS_SYSTEM = (profile) => buildSystemPrompt(profile, `You are a warm, empathetic mental wellness coach for Indian students. You specialize in:
 - Exam anxiety and stress management
@@ -31,14 +23,24 @@ YOUR APPROACH:
 
 IMPORTANT: Write ENTIRELY in ${profile.language}. Never mix languages.`)
 
+const _MENTAL_GREET = {
+  English:  n => `Hi ${n || 'there'} 🌟 I'm here for you. How are you feeling about your studies today? You can share anything — this is a safe space.`,
+  Hindi:    n => `${n || ''} 🌟 मैं यहाँ हूँ। आज कैसा महसूस कर रहे हो? कुछ भी share कर सकते हो।`,
+  Marathi:  n => `${n || ''} 🌟 मी इथे आहे. आज तुम्हाला कसं वाटतंय? काहीही सांगा — हे सुरक्षित ठिकाण आहे.`,
+  Gujarati: n => `${n || ''} 🌟 હું અહીં છું. આજે તમે કેવું અનુભવો છો? કંઈ પણ share કરી શકો છો.`,
+  Tamil:    n => `${n || ''} 🌟 நான் இங்கே இருக்கிறேன். இன்று நீங்கள் எப்படி உணர்கிறீர்கள்? எதுவும் பகிர்ந்துகொள்ளலாம்.`,
+  Telugu:   n => `${n || ''} 🌟 నేను ఇక్కడే ఉన్నాను. ఈరోజు మీకు ఎలా అనిపిస్తోంది? ఏదైనా చెప్పవచ్చు.`,
+  Kannada:  n => `${n || ''} 🌟 ನಾನು ಇಲ್ಲಿದ್ದೇನೆ. ಇಂದು ನೀವು ಹೇಗೆ ಅನಿಸುತ್ತಿದ್ದೀರಿ? ಏನಾದರೂ ಹೇಳಬಹುದು.`,
+  Bengali:  n => `${n || ''} 🌟 আমি এখানে আছি। আজ তুমি কেমন অনুভব করছ? যেকোনো কিছু বলতে পারো।`,
+  Punjabi:  n => `${n || ''} 🌟 ਮੈਂ ਇੱਥੇ ਹਾਂ। ਅੱਜ ਤੁਸੀਂ ਕਿਵੇਂ ਮਹਿਸੂਸ ਕਰ ਰਹੇ ਹੋ? ਕੁਝ ਵੀ share ਕਰ ਸਕਦੇ ਹੋ।`,
+  Odia:     n => `${n || ''} 🌟 ମୁଁ ଇଠାରେ ଅଛି। ଆଜି ତୁମେ କିପରି ଅନୁଭବ କରୁଛ? ଯାହା ହୋଇ share କରିପାରିବ।`,
+  Urdu:     n => `${n || ''} 🌟 میں یہاں ہوں۔ آج آپ کیسا محسوس کر رہے ہیں؟ کچھ بھی share کر سکتے ہیں۔`,
+}
+
 export default function MentalLab({ profile, addXp, onBack }) {
   const deviceId = getDeviceId()
-  const defaultGreeting = {
-    role: "assistant",
-    content: profile.language === "English"
-      ? `Hi ${profile.name || "there"} 🌟 I'm here for you. How are you feeling about your studies today? You can share anything — this is a safe space.`
-      : `${profile.name || ""} 🌟 मैं यहाँ हूँ। आज आप कैसा महसूस कर रहे हैं? आप कुछ भी share कर सकते हैं।`,
-  }
+  const greetFn = _MENTAL_GREET[profile?.language] || _MENTAL_GREET.English
+  const defaultGreeting = { role: "assistant", content: greetFn(profile?.name) }
   const [messages, setMessages] = useState([defaultGreeting])
   const [input, setInput]   = useState("")
   const [loading, setLoading] = useState(false)
@@ -71,11 +73,14 @@ export default function MentalLab({ profile, addXp, onBack }) {
     setInput("")
     setLoading(true)
     apiSaveToSession(deviceId, "mental", "user", text).catch(() => {})
-    const res = await callAI(text, WELLNESS_SYSTEM(profile), newMsgs)
-    setMessages(m => [...m, { role: "assistant", content: res }])
-    apiSaveToSession(deviceId, "mental", "assistant", res).catch(() => {})
-    addXp(2)
-    setLoading(false)
+    try {
+      const res = await callAI(text, WELLNESS_SYSTEM(profile), newMsgs)
+      setMessages(m => [...m, { role: "assistant", content: res }])
+      apiSaveToSession(deviceId, "mental", "assistant", res).catch(() => {})
+      addXp(2)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -106,7 +111,7 @@ export default function MentalLab({ profile, addXp, onBack }) {
               Or share what's on your mind:
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {WELLNESS_STARTERS.map(s => (
+              {getStarters(profile?.language, 'mental').map(s => (
                 <button
                   key={s}
                   onClick={() => sendMessage(s)}
@@ -230,7 +235,7 @@ const userBubble = {
   maxWidth: "88%",
   fontSize: 13,
   lineHeight: 1.5,
-  display: "flex",
+  wordBreak: "break-word",
 }
 
 const aiBubble = {

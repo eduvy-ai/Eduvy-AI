@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { COLORS, callAI, buildSystemPrompt, checkStudentQuery } from '../../App.jsx'
+import { getStarters } from '../../shared.js'
 import { apiGetSession, apiSaveToSession } from '../../api.js'
 
 const MODES = [
@@ -8,7 +9,7 @@ const MODES = [
   { key: "explain",   icon: "💡", label: "Explain"  },
   { key: "homework",  icon: "📝", label: "Homework" },  { key: "bahas",     icon: "⚔️",  label: "Debate"   },
   { key: "kahani",    icon: "📖", label: "Story"    },
-  { key: "kyun",      icon: "💭", label: "Why?"     },  { key: "voice",     icon: "🎤", label: "Voice"    },
+  { key: "kyun",      icon: "💭", label: "Why?"     },
   { key: "draw",      icon: "✏️", label: "Draw"     },
 ]
 
@@ -40,11 +41,6 @@ Make it flow naturally — not mechanical or robotic.`,
 - Check the answer
 - Give ONE similar practice problem at the end
 Tone: patient and collaborative — we're doing this together, not just showing the solution`,
-  voice:    `VOICE MODE — the student is talking to you out loud:
-- Respond like a real face-to-face chat with a friend who happens to be a teacher
-- Short, natural sentences — no long paragraphs
-- Warm and spontaneous: "Right, so...", "Okay so basically...", "The thing is..."
-- Check in often: "does that make sense?", "shall I explain it a different way?"`,
   draw:     `DRAW MODE — the student has drawn something and described it to you:
 - Warmly acknowledge what they drew: "Nice! This looks like..."
 - Identify what the diagram represents
@@ -88,17 +84,7 @@ Tone: patient and collaborative — we're doing this together, not just showing 
 - Write in the student's chosen language`,
 }
 
-const STARTERS = {
-  adaptive:  ["What is photosynthesis?", "Explain Newton's laws", "How does democracy work?"],
-  socratic:  ["Help me understand electricity", "Why does rain fall?", "What is gravity?"],
-  explain:   ["Explain osmosis", "What is the water cycle?", "Define photosynthesis"],
-  homework:  ["Solve: 2x + 5 = 15", "Find the area of a triangle with base 6cm, height 4cm", "If train travels 60km/h for 2.5h, find distance"],
-  voice:     ["I'm confused about fractions", "Can you explain percentages?", "Help me with algebra"],
-  draw:      ["I drew a plant cell", "I drew a water cycle diagram", "I drew a circuit diagram"],
-  bahas:     ["Partition of India was the right decision — argue the opposite", "Nuclear energy is our only hope for clean energy — challenge this", "Exams are the best way to judge students — prove me wrong"],
-  kahani:    ["Tell me the story of photosynthesis from inside a leaf", "Make me live through the First Battle of Panipat", "Tell the story of Newton and the falling apple"],
-  kyun:      ["Why does πr² give the exact area of a circle?", "Why does the Pythagorean theorem work?", "Why does compound interest grow so much faster than simple interest?"],
-}
+
 
 export default function TutorTab({ profile, userId, addXp, docCtx }) {
   const [mode, setMode]         = useState("adaptive")
@@ -146,32 +132,28 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
   // ── Send message ──────────────────────────────────────────
   const sendMessage = async (overrideInput) => {
     const text = (overrideInput || input).trim()
-    if (!text || loading) return    // Safety guard
+    if (!text || loading) return
     const safety = checkStudentQuery(text, profile)
     if (safety.blocked) {
       setMessages(m => [...m, { role: "user", content: text }, { role: "assistant", content: safety.message }])
       setInput("")
       return
-    }    const userMsg = { role: "user", content: text }
+    }
+    const userMsg = { role: "user", content: text }
     const newMsgs = [...messages, userMsg]
     setMessages(newMsgs)
     setInput("")
     setLoading(true)
     apiSaveToSession(userId, `tutor_${mode}`, "user", text).catch(() => {})
-    const res = await callAI(text, getModeSystem(), newMsgs)
-    setMessages(m => [...m, { role: "assistant", content: res }])
-    apiSaveToSession(userId, `tutor_${mode}`, "assistant", res).catch(() => {})
-    addXp(2)
-    setLoading(false)
+    try {
+      const res = await callAI(text, getModeSystem(), newMsgs)
+      setMessages(m => [...m, { role: "assistant", content: res }])
+      apiSaveToSession(userId, `tutor_${mode}`, "assistant", res).catch(() => {})
+      addXp(2)
+    } finally {
+      setLoading(false)
+    }
   }
-
-  // ── Voice mode: sample input ──────────────────────────────
-  const voiceSamples = [
-    "I don't understand this topic at all, please help me",
-    "Can you explain in a simple way?",
-    "I have my exam tomorrow, what should I focus on?",
-  ]
-  const [voiceInput, setVoiceInput] = useState("")
 
   // ── Canvas drawing ────────────────────────────────────────
   const getPos = (e, canvas) => {
@@ -385,42 +367,12 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
           </div>
         )}
 
-        {/* Voice mode: sample picker */}
-        {mode === "voice" && messages.length === 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 10 }}>
-              🎤 Tap a sample or type what you'd say:
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {voiceSamples.map(s => (
-                <button
-                  key={s}
-                  onClick={() => setVoiceInput(s)}
-                  style={{
-                    background: COLORS.card,
-                    border: `1px solid ${COLORS.border}`,
-                    borderRadius: 10,
-                    padding: "10px 14px",
-                    color: COLORS.text,
-                    fontSize: 13,
-                    cursor: "pointer",
-                    textAlign: "left",
-                    fontFamily: "Sora, sans-serif",
-                  }}
-                >
-                  🎙 {s}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Starter questions (empty chat) */}
-        {messages.length === 0 && mode !== "draw" && mode !== "voice" && (
+        {messages.length === 0 && mode !== "draw" && (
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 8 }}>Try asking:</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {(STARTERS[mode] || []).map(s => (
+              {getStarters(profile?.language, mode === 'socratic' ? 'socratic' : mode === 'explain' ? 'explain' : mode === 'homework' ? 'homework' : mode === 'bahas' ? 'bahas' : mode === 'kahani' ? 'kahani' : mode === 'kyun' ? 'kyun' : 'tutor').map(s => (
                 <button
                   key={s}
                   onClick={() => sendMessage(s)}
@@ -467,22 +419,14 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
         <input
           style={{ ...inputStyle, flex: 1, padding: "10px 14px" }}
           type="text"
-          placeholder={mode === "voice" ? "🎤 Type what you'd say…" : "Ask your doubt…"}
-          value={mode === "voice" ? voiceInput : input}
-          onChange={e => mode === "voice" ? setVoiceInput(e.target.value) : setInput(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === "Enter") {
-              if (mode === "voice") { sendMessage(voiceInput); setVoiceInput("") }
-              else sendMessage()
-            }
-          }}
+          placeholder="Ask your doubt…"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") sendMessage() }}
         />
         <button
-          onClick={() => {
-            if (mode === "voice") { sendMessage(voiceInput); setVoiceInput("") }
-            else sendMessage()
-          }}
-          disabled={loading || !(mode === "voice" ? voiceInput.trim() : input.trim())}
+          onClick={() => sendMessage()}
+          disabled={loading || !input.trim()}
           style={{
             ...primaryBtn,
             width: 44,
@@ -548,7 +492,7 @@ const userBubble = {
   maxWidth: "88%",
   fontSize: 13,
   lineHeight: 1.5,
-  display: "flex",
+  wordBreak: "break-word",
 }
 
 const aiBubble = {

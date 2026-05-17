@@ -457,6 +457,28 @@ def init_db():
         END $$;
     """)
 
+    # ── App Settings (key-value store for global config) ──────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS app_settings (
+            key        TEXT PRIMARY KEY,
+            value      TEXT NOT NULL DEFAULT '',
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # ── Per-user admin AI override flag ───────────────────────
+    cur.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = 'ai_admin_override'
+            ) THEN
+                ALTER TABLE users ADD COLUMN ai_admin_override BOOLEAN DEFAULT FALSE;
+            END IF;
+        END $$;
+    """)
+
     conn.commit()
     cur.close()
     conn.close()

@@ -1197,11 +1197,400 @@ function UsersTab({ toast }) {
   )
 }
 
+// ── AI Config Tab ─────────────────────────────────────────────
+const ADMIN_PROVIDERS = {
+  gemini:    { label: "Google Gemini", icon: "✦", color: "#7B9CFF",
+    models: ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"] },
+  groq:      { label: "Groq",          icon: "⚡", color: "#FFD166",
+    models: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"] },
+  anthropic: { label: "Anthropic Claude", icon: "◈", color: "#FF6B35",
+    models: ["claude-sonnet-4-20250514", "claude-3-5-haiku-20241022"] },
+  openai:    { label: "OpenAI GPT",    icon: "◎", color: "#00E5A0",
+    models: ["gpt-4o-mini", "gpt-4o"] },
+}
+
+const PLAN_LABELS = { free: "🆓 Free", basic: "⭐ Basic", pro: "🚀 Pro", premium: "👑 Premium" }
+
+function AIConfigTab({ toast }) {
+  const [routing, setRouting]       = useState({})
+  const [keyStatus, setKeyStatus]   = useState({})   // {provider: bool}
+  const [loading, setLoading]       = useState(false)
+  const [saving, setSaving]         = useState(null)   // which plan is saving
+  // API key editing state
+  const [keyInputs, setKeyInputs]   = useState({})    // {provider: value}
+  const [keyVisible, setKeyVisible] = useState({})    // {provider: bool}
+  const [keySaving, setKeySaving]   = useState(null)  // which provider is saving
+  // Per-user override
+  const [userSearch, setUserSearch] = useState("")
+  const [users, setUsers]           = useState([])
+  const [userLoading, setUserLoading] = useState(false)
+  const [editingUser, setEditingUser] = useState(null)
+  const [uProvider, setUProvider]   = useState("gemini")
+  const [uModel, setUModel]         = useState("gemini-2.0-flash")
+  const [uSaving, setUSaving]       = useState(false)
+
+  const loadConfig = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await API('/admin/ai-config')
+      if (res.ok) {
+        const data = await res.json()
+        setRouting(data.routing || {})
+        setKeyStatus(data.key_status || {})
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { loadConfig() }, [loadConfig])
+
+  const saveApiKey = async (provider) => {
+    const key = (keyInputs[provider] || "").trim()
+    if (!key) { toast("Key cannot be empty", "error"); return }
+    setKeySaving(provider)
+    try {
+      const res = await API('/admin/ai-keys', {
+        method: 'PUT',
+        body: JSON.stringify({ provider, key }),
+      })
+      if (res.ok) {
+        toast(`${ADMIN_PROVIDERS[provider]?.label} key saved`)
+        setKeyStatus(s => ({ ...s, [provider]: true }))
+        setKeyInputs(k => ({ ...k, [provider]: "" }))
+      } else {
+        const d = await res.json()
+        toast(d.detail || "Failed to save key", "error")
+      }
+    } finally {
+      setKeySaving(null)
+    }
+  }
+
+  const savePlanRouting = async (plan) => {    const entry = routing[plan]
+    if (!entry) return
+    setSaving(plan)
+    try {
+      const res = await API('/admin/ai-config', {
+        method: 'PUT',
+        body: JSON.stringify({ plan, provider: entry.provider, model: entry.model }),
+      })
+      if (res.ok) {
+        toast(`${PLAN_LABELS[plan]} routing saved`)
+      } else {
+        const d = await res.json()
+        toast(d.detail || 'Failed to save', 'error')
+      }
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  const searchUsers = async () => {
+    if (!userSearch.trim()) return
+    setUserLoading(true)
+    try {
+      const res = await API(`/admin/users?search=${encodeURIComponent(userSearch)}`)
+      if (res.ok) setUsers(await res.json())
+    } finally {
+      setUserLoading(false)
+    }
+  }
+
+  const openUserEdit = (user) => {
+    setEditingUser(user)
+    setUProvider(user.ai_provider || "gemini")
+    setUModel(user.ai_model || "gemini-2.0-flash")
+  }
+
+  const saveUserOverride = async (clearOverride = false) => {
+    if (!editingUser) return
+    setUSaving(true)
+    try {
+      const body = clearOverride
+        ? { provider: uProvider, model: uModel, override: false }
+        : { provider: uProvider, model: uModel, override: true }
+      const res = await API(`/admin/users/${editingUser.id}/ai-config`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      })
+      if (res.ok) {
+        toast(clearOverride ? `Override cleared for ${editingUser.name}` : `AI config saved for ${editingUser.name}`)
+        setEditingUser(null)
+        searchUsers()
+      } else {
+        const d = await res.json()
+        toast(d.detail || 'Failed', 'error')
+      }
+    } finally {
+      setUSaving(false)
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+
+      {/* ── Section 0: Provider API Keys ── */}
+      <div style={{ background: C.card2, borderRadius: 16, padding: 22, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div>
+          <h3 style={{ color: C.text, margin: "0 0 4px", fontSize: 15 }}>Provider API Keys</h3>
+          <p style={{ color: C.muted, fontSize: 12, margin: 0 }}>
+            Keys are stored server-side only and never returned to this browser.
+            A green dot means a key is active. Paste a new key and click Save to update.
+          </p>
+        </div>
+        {Object.entries(ADMIN_PROVIDERS).map(([provider, meta]) => {
+          const hasKey = !!keyStatus[provider]
+          const inputVal = keyInputs[provider] || ""
+          const isVisible = !!keyVisible[provider]
+          return (
+            <div key={provider} style={{
+              background: C.card, borderRadius: 12, padding: "14px 16px",
+              border: `1px solid ${hasKey ? meta.color + "40" : C.border}`,
+              display: "flex", flexDirection: "column", gap: 10,
+            }}>
+              {/* Provider header */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 16 }}>{meta.icon}</span>
+                <span style={{ color: meta.color, fontWeight: 700, fontSize: 13, flex: 1 }}>{meta.label}</span>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
+                  background: hasKey ? `${meta.color}20` : `${C.red}20`,
+                  color: hasKey ? meta.color : C.red,
+                  border: `1px solid ${hasKey ? meta.color + "40" : C.red + "40"}`,
+                }}>
+                  {hasKey ? "● Key set" : "○ No key"}
+                </span>
+              </div>
+              {/* Key input row */}
+              <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ flex: 1, position: "relative" }}>
+                  <input
+                    style={{ ...inp, paddingRight: 40 }}
+                    type={isVisible ? "text" : "password"}
+                    placeholder={hasKey ? "Enter new key to replace…" : `Paste ${meta.label} key…`}
+                    value={inputVal}
+                    onChange={e => setKeyInputs(k => ({ ...k, [provider]: e.target.value }))}
+                    onKeyDown={e => e.key === "Enter" && saveApiKey(provider)}
+                    autoComplete="off"
+                  />
+                  <button
+                    onClick={() => setKeyVisible(v => ({ ...v, [provider]: !v[provider] }))}
+                    style={{
+                      position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+                      background: "none", border: "none", cursor: "pointer",
+                      color: C.muted, fontSize: 14, padding: 0,
+                    }}
+                  >{isVisible ? "🙈" : "👁"}</button>
+                </div>
+                <button
+                  style={{ ...btn(meta.color), padding: "9px 16px", fontSize: 12, flexShrink: 0,
+                    color: provider === "gemini" ? "#04040e" : provider === "groq" ? "#04040e" : "#fff" }}
+                  onClick={() => saveApiKey(provider)}
+                  disabled={keySaving === provider || !inputVal.trim()}
+                >
+                  {keySaving === provider ? "Saving…" : "Save Key"}
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* ── Section 1: Global Plan Routing ── */}
+      <div style={{ background: C.card2, borderRadius: 16, padding: 22, display: "flex", flexDirection: "column", gap: 18 }}>
+        <div>
+          <h3 style={{ color: C.text, margin: "0 0 4px", fontSize: 15 }}>Global Plan Routing</h3>
+          <p style={{ color: C.muted, fontSize: 12, margin: 0 }}>
+            Set which AI provider + model is used for each plan tier. Changes take effect immediately for all new requests.
+          </p>
+        </div>
+
+        {loading ? (
+          <p style={{ color: C.muted, fontSize: 13 }}>Loading…</p>
+        ) : (
+          ["free", "basic", "pro", "premium"].map(plan => {
+            const entry = routing[plan] || { provider: "gemini", model: "gemini-2.0-flash" }
+            const provMeta = ADMIN_PROVIDERS[entry.provider] || ADMIN_PROVIDERS.gemini
+            return (
+              <div key={plan} style={{
+                display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+                background: C.card, borderRadius: 12, padding: "14px 16px",
+                border: `1px solid ${C.border}`,
+              }}>
+                <span style={{ width: 90, fontWeight: 700, color: PLAN_COLORS[plan] || C.muted, fontSize: 13 }}>
+                  {PLAN_LABELS[plan]}
+                </span>
+
+                {/* Provider select */}
+                <select
+                  style={{ ...inp, width: 170, flex: "0 0 170px" }}
+                  value={entry.provider}
+                  onChange={e => {
+                    const prov = e.target.value
+                    const firstModel = ADMIN_PROVIDERS[prov]?.models[0] || ""
+                    setRouting(r => ({ ...r, [plan]: { provider: prov, model: firstModel } }))
+                  }}
+                >
+                  {Object.entries(ADMIN_PROVIDERS).map(([k, v]) => (
+                    <option key={k} value={k}>{v.icon} {v.label}</option>
+                  ))}
+                </select>
+
+                {/* Model select */}
+                <select
+                  style={{ ...inp, flex: "1 1 220px", minWidth: 0 }}
+                  value={entry.model}
+                  onChange={e => setRouting(r => ({ ...r, [plan]: { ...entry, model: e.target.value } }))}
+                >
+                  {(ADMIN_PROVIDERS[entry.provider]?.models || []).map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+
+                <button
+                  style={{ ...btn(provMeta.color), padding: "9px 16px", fontSize: 12, flexShrink: 0 }}
+                  onClick={() => savePlanRouting(plan)}
+                  disabled={saving === plan}
+                >
+                  {saving === plan ? "Saving…" : "Save"}
+                </button>
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      {/* ── Section 2: Per-User Override ── */}
+      <div style={{ background: C.card2, borderRadius: 16, padding: 22, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div>
+          <h3 style={{ color: C.text, margin: "0 0 4px", fontSize: 15 }}>Per-User AI Override</h3>
+          <p style={{ color: C.muted, fontSize: 12, margin: 0 }}>
+            Force a specific provider + model for an individual user, regardless of their plan. Useful for testing or special accounts.
+          </p>
+        </div>
+
+        {/* Search */}
+        <div style={{ display: "flex", gap: 10 }}>
+          <input
+            style={{ ...inp, flex: 1, minWidth: 0 }}
+            placeholder="Search by name or email…"
+            value={userSearch}
+            onChange={e => setUserSearch(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && searchUsers()}
+          />
+          <button style={{ ...btn(), padding: "9px 16px", fontSize: 12, flexShrink: 0 }}
+            onClick={searchUsers} disabled={userLoading}>
+            {userLoading ? "…" : "Search"}
+          </button>
+        </div>
+
+        {/* User edit modal */}
+        {editingUser && (
+          <div style={{
+            position: "fixed", inset: 0, background: "#000a", zIndex: 999,
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+          }}>
+            <div style={{
+              background: C.card, borderRadius: 18, padding: 28,
+              width: "100%", maxWidth: 440, display: "flex", flexDirection: "column", gap: 16,
+            }}>
+              <div>
+                <h3 style={{ color: C.text, margin: "0 0 4px", fontSize: 16 }}>AI Config — {editingUser.name}</h3>
+                <div style={{ fontSize: 12, color: C.muted }}>{editingUser.email} · {editingUser.plan}</div>
+              </div>
+
+              {editingUser.ai_admin_override && (
+                <div style={{
+                  background: `${C.yellow}15`, border: `1px solid ${C.yellow}40`,
+                  borderRadius: 8, padding: "8px 12px", fontSize: 12, color: C.yellow,
+                }}>
+                  ⚠ Admin override is active — this user is using a fixed provider+model.
+                </div>
+              )}
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <label style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>Provider</label>
+                <select
+                  style={inp}
+                  value={uProvider}
+                  onChange={e => {
+                    const prov = e.target.value
+                    setUProvider(prov)
+                    setUModel(ADMIN_PROVIDERS[prov]?.models[0] || "")
+                  }}
+                >
+                  {Object.entries(ADMIN_PROVIDERS).map(([k, v]) => (
+                    <option key={k} value={k}>{v.icon} {v.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <label style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>Model</label>
+                <select
+                  style={inp}
+                  value={uModel}
+                  onChange={e => setUModel(e.target.value)}
+                >
+                  {(ADMIN_PROVIDERS[uProvider]?.models || []).map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button style={btn()} onClick={() => saveUserOverride(false)} disabled={uSaving}>
+                  {uSaving ? "Saving…" : "Apply Override"}
+                </button>
+                {editingUser.ai_admin_override && (
+                  <button style={btn(C.red)} onClick={() => saveUserOverride(true)} disabled={uSaving}>
+                    Clear Override
+                  </button>
+                )}
+                <button style={ghostBtn} onClick={() => setEditingUser(null)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Results table */}
+        {users.length > 0 && (
+          <Table
+            cols={[
+              { key: "name",  label: "Name" },
+              { key: "email", label: "Email" },
+              { key: "plan",  label: "Plan", render: v => (
+                <span style={{ color: PLAN_COLORS[v] || C.muted, fontWeight: 700 }}>{v}</span>
+              )},
+              { key: "ai_provider", label: "Provider", render: (v, row) => (
+                <span style={{ color: row.ai_admin_override ? C.yellow : C.muted, fontSize: 12 }}>
+                  {row.ai_admin_override ? "⚠ " : ""}{v || "—"}
+                </span>
+              )},
+              { key: "ai_model", label: "Model", render: (v, row) => (
+                <span style={{ fontSize: 11, color: row.ai_admin_override ? C.yellow : C.muted }}>
+                  {v || "—"}
+                </span>
+              )},
+            ]}
+            rows={users}
+            onEdit={openUserEdit}
+          />
+        )}
+        {users.length === 0 && userSearch && !userLoading && (
+          <p style={{ color: C.muted, fontSize: 13 }}>No users found.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Main Admin Panel ──────────────────────────────────────────
 export default function AdminPanel() {
   const navigate  = useNavigate()
   const { section = 'curriculum' } = useParams()
-  const activeTab = ['curriculum','boards','standards','mediums','users','usage'].includes(section)
+  const activeTab = ['curriculum','boards','standards','mediums','users','usage','aiconfig'].includes(section)
     ? section : 'curriculum'
 
   const [authed, setAuthed]   = useState(!!localStorage.getItem('eduvyai_admin_token'))
@@ -1246,6 +1635,7 @@ export default function AdminPanel() {
     { id: "mediums",    label: "🌐 Mediums",       short: "🌐" },
     { id: "users",      label: "👥 Users",         short: "👥" },
     { id: "usage",      label: "📊 AI Usage",      short: "📊" },
+    { id: "aiconfig",   label: "🤖 AI Models",     short: "🤖" },
   ]
 
   const contentMap = {
@@ -1255,6 +1645,7 @@ export default function AdminPanel() {
     mediums:    <MediumsTab    toast={showToast} />,
     users:      <UsersTab      toast={showToast} />,
     usage:      <UsageTab      toast={showToast} />,
+    aiconfig:   <AIConfigTab   toast={showToast} />,
   }
 
   // Shared title bar rendered inside content area for all breakpoints
