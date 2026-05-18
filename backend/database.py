@@ -479,6 +479,60 @@ def init_db():
         END $$;
     """)
 
+    # ── Drishti — Vision-Accessible Learning ──────────────────
+    # Add is_drishti and accessibility_settings to users (idempotent)
+    cur.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = 'is_drishti'
+            ) THEN
+                ALTER TABLE users ADD COLUMN is_drishti BOOLEAN DEFAULT FALSE;
+            END IF;
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = 'accessibility_settings'
+            ) THEN
+                ALTER TABLE users ADD COLUMN accessibility_settings TEXT DEFAULT '{}';
+            END IF;
+        END $$;
+    """)
+    # Helpers registered by admin to support Drishti learners
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS drishti_helpers (
+            id              SERIAL PRIMARY KEY,
+            helper_name     TEXT NOT NULL,
+            helper_email    TEXT UNIQUE NOT NULL,
+            helper_type     TEXT DEFAULT 'teacher',
+            helper_token    TEXT UNIQUE NOT NULL,
+            assigned_by     INT  REFERENCES admin_users(id) ON DELETE SET NULL,
+            is_active       BOOLEAN DEFAULT TRUE,
+            notes           TEXT DEFAULT '',
+            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    # Many-to-many: helper → Drishti learner assignments
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS helper_student_map (
+            helper_id      INT  NOT NULL REFERENCES drishti_helpers(id) ON DELETE CASCADE,
+            student_id     TEXT NOT NULL REFERENCES users(id)           ON DELETE CASCADE,
+            assigned_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (helper_id, student_id)
+        )
+    """)
+    # Encouragement notes from helpers to Drishti learners
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS helper_notes (
+            id          SERIAL PRIMARY KEY,
+            helper_id   INT  NOT NULL REFERENCES drishti_helpers(id) ON DELETE CASCADE,
+            student_id  TEXT NOT NULL REFERENCES users(id)            ON DELETE CASCADE,
+            message     TEXT NOT NULL,
+            is_read     BOOLEAN DEFAULT FALSE,
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     conn.commit()
     cur.close()
     conn.close()

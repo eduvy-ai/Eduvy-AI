@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { COLORS, callAI, buildSystemPrompt, parseAIArray, parseAIObject, SUBS, checkStudentQuery } from '../../App.jsx'
+import { speakText, stopSpeaking, isSpeaking, LANG_TO_SPEECH_CODE } from '../../shared.js'
 import {
   apiGetSources, apiSaveSource, apiDeleteSource,
   apiGetNotebookChat, apiSaveChatMessage, apiClearNotebookChat,
@@ -52,7 +53,7 @@ async function fetchUrlContent(url) {
   } catch { return null }
 }
 
-export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx, docName, setDocName }) {
+export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx, docName, setDocName, a11y }) {
 
   // ── View state ──────────────────────────────────────────────
   const [view, setView]       = useState("sources") // sources | chat | studio
@@ -294,6 +295,10 @@ INSTRUCTIONS:
     setMessages(m => [...m, { role: "assistant", content: res }])
     apiSaveChatMessage(userId, "assistant", res).catch(() => {})
     addXp(2); setChatLoading(false)
+    // TTS: speak response if enabled
+    if (a11y?.ttsEnabled) {
+      speakText(res, LANG_TO_SPEECH_CODE[profile.language] || 'en-IN', a11y.ttsSpeed || 1.0)
+    }
   }
 
   // ── Studio generation ─────────────────────────────────────────
@@ -645,7 +650,17 @@ Return ONLY valid JSON: {"title":"...","exchanges":[{"h":"Priya","t":"..."},{"h"
 
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {messages.map((m, i) => (
-                  <div key={i} style={m.role === "user" ? userBubble : aiBubble}>{m.content}</div>
+                  <div key={i} style={{ position: 'relative' }}>
+                    <div style={m.role === "user" ? userBubble : aiBubble}>{m.content}</div>
+                    {m.role === "assistant" && a11y?.ttsEnabled && (
+                      <button
+                        className="tts-btn"
+                        style={{ position: 'absolute', bottom: 6, right: 8 }}
+                        aria-label="Read aloud"
+                        onClick={() => speakText(m.content, LANG_TO_SPEECH_CODE[profile.language] || 'en-IN', a11y.ttsSpeed || 1.0)}
+                      >🔊</button>
+                    )}
+                  </div>
                 ))}
                 {chatLoading && <div style={aiBubble}>Searching sources…</div>}
                 <div ref={chatEndRef} />

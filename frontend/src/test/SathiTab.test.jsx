@@ -21,15 +21,27 @@ import userEvent from '@testing-library/user-event'
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
 vi.mock('../api.js', () => ({
-  apiGetMySquad:        vi.fn(),
-  apiMatchSquad:        vi.fn(),
-  apiGetSquadMessages:  vi.fn(),
-  apiSendSquadMessage:  vi.fn(),
-  apiGetSquadMembers:   vi.fn(),
-  apiGetSquadChallenge: vi.fn(),
-  apiCreateChallenge:   vi.fn(),
-  apiSubmitChallenge:   vi.fn(),
-  apiLeaveSquad:        vi.fn(),
+  apiGetMySquad:          vi.fn(),
+  apiMatchSquad:          vi.fn(),
+  apiGetSquadMessages:    vi.fn(),
+  apiSendSquadMessage:    vi.fn(),
+  apiGetSquadMembers:     vi.fn(),
+  apiGetSquadChallenge:   vi.fn(),
+  apiCreateChallenge:     vi.fn(),
+  apiSubmitChallenge:     vi.fn(),
+  apiLeaveSquad:          vi.fn(),
+  // Doubts Board
+  apiGetSquadDoubts:      vi.fn(),
+  apiPostDoubt:           vi.fn(),
+  apiGetDoubtAnswers:     vi.fn(),
+  apiPostAnswer:          vi.fn(),
+  apiUpvoteAnswer:        vi.fn(),
+  apiGetDoubtQuota:       vi.fn(),
+  // Squad streak + Daily Concept
+  apiGetSquadStreak:      vi.fn(),
+  apiGetDailyConcept:     vi.fn(),
+  apiSubmitDailyExplain:  vi.fn(),
+  apiPatchVerdict:        vi.fn(),
 }))
 
 vi.mock('../App.jsx', () => ({
@@ -51,6 +63,9 @@ import {
   apiGetSquadMessages, apiSendSquadMessage,
   apiGetSquadMembers, apiGetSquadChallenge,
   apiCreateChallenge, apiSubmitChallenge, apiLeaveSquad,
+  apiGetSquadDoubts, apiPostDoubt, apiGetDoubtAnswers,
+  apiPostAnswer, apiUpvoteAnswer, apiGetDoubtQuota,
+  apiGetSquadStreak, apiGetDailyConcept, apiSubmitDailyExplain, apiPatchVerdict,
 } from '../api.js'
 import { callAI } from '../App.jsx'
 import SathiTab from '../components/tabs/SathiTab.jsx'
@@ -86,6 +101,17 @@ function defaultApiSetup() {
   apiLeaveSquad.mockResolvedValue({ left: true })
   apiCreateChallenge.mockResolvedValue({ challenge_id: 1, subject: 'Mathematics', concept: 'Quadratic Equations' })
   apiSubmitChallenge.mockResolvedValue({ completed: true, xp_awarded: 50 })
+  // New: doubts + streak + daily concept
+  apiGetSquadDoubts.mockResolvedValue({ doubts: [] })
+  apiPostDoubt.mockResolvedValue({ id: 1 })
+  apiGetDoubtAnswers.mockResolvedValue({ answers: [] })
+  apiPostAnswer.mockResolvedValue({ id: 1 })
+  apiUpvoteAnswer.mockResolvedValue({ upvotes: 1 })
+  apiGetDoubtQuota.mockResolvedValue({ remaining: 5, limit: 5 })
+  apiGetSquadStreak.mockResolvedValue({ streak: 3 })
+  apiGetDailyConcept.mockResolvedValue({ concept: null })
+  apiSubmitDailyExplain.mockResolvedValue({ verdict: 'correct', xp_awarded: 30 })
+  apiPatchVerdict.mockResolvedValue({ ok: true })
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────

@@ -251,6 +251,111 @@ input, textarea, select { outline: none; border: none; }
   }
 }
 
+/* ═══════════════════════════════════════════════════════════
+   DRISHTI — Accessibility classes
+   ═══════════════════════════════════════════════════════ */
+
+/* Keyboard focus ring — visible for all keyboard / screen-reader users */
+*:focus-visible {
+  outline: 3px solid #00E5A0;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* High-contrast override — applied to <body> when a11y.highContrast is on */
+body.high-contrast {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+body.high-contrast .app-shell,
+body.high-contrast .tab-content,
+body.high-contrast .side-nav {
+  background: #000000 !important;
+}
+body.high-contrast .bottom-nav {
+  background: #111111 !important;
+  border-top-color: rgba(255,255,255,0.3) !important;
+}
+
+/* Font scaling */
+body.font-large  { font-size: 16px; }
+body.font-xlarge { font-size: 20px; }
+
+/* Visually hidden but screen-reader accessible */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* TTS read-aloud button */
+.tts-btn {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  padding: 4px 10px;
+  color: #6868a0;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: 'Sora', sans-serif;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: border-color 0.15s, color 0.15s;
+}
+.tts-btn:hover { border-color: #00E5A0; color: #00E5A0; }
+
+/* Microphone button */
+.mic-btn {
+  background: transparent;
+  border: 2px solid #7B9CFF;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #7B9CFF;
+  font-size: 18px;
+  font-family: 'Sora', sans-serif;
+  transition: background 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+}
+.mic-btn.recording {
+  background: rgba(255,107,107,0.2);
+  border-color: #FF6B6B;
+  color: #FF6B6B;
+  animation: mic-pulse 1s ease-in-out infinite;
+}
+@keyframes mic-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(255,107,107,0.4); }
+  50%      { box-shadow: 0 0 0 8px rgba(255,107,107,0); }
+}
+
+/* Helper note banner */
+.drishti-note-banner {
+  background: linear-gradient(135deg, rgba(123,156,255,0.12), rgba(0,229,160,0.08));
+  border: 1px solid rgba(123,156,255,0.3);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: fadeInDown 0.3s ease;
+}
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ── Admin panel: full-viewport takeover, escapes student app constraints ── */
 .admin-panel-root {
   position: fixed;

@@ -14,6 +14,7 @@ import SathiTab from './components/tabs/SathiTab.jsx'
 import BhoolBazaarTab from './components/tabs/BhoolBazaarTab.jsx'
 import MuqablaTab from './components/tabs/MuqablaTab.jsx'
 import ParentDashboard from './components/ParentDashboard.jsx'
+import HelperPortal from './components/HelperPortal.jsx'
 import SettingsModal from './components/SettingsModal.jsx'
 import {
   getDeviceId, apiAddXp, apiUpdateStreak,
@@ -28,9 +29,10 @@ export {
   buildSystemPrompt, parseAIObject, parseAIArray, checkStudentQuery,
   TEACHER_PERSONAS, updateBhool, getBhoolStats,
   PLANS, planHasTab, planHasLab,
+  DEFAULT_A11Y, LANG_TO_SPEECH_CODE, speakText, stopSpeaking, isSpeaking, startVoiceInput,
 } from './shared.js'
 
-import { COLORS, AI_PROVIDERS, setAIConfig, PLANS, planHasTab } from './shared.js'
+import { COLORS, AI_PROVIDERS, setAIConfig, PLANS, planHasTab, DEFAULT_A11Y } from './shared.js'
 
 // ─── Defaults ────────────────────────────────────────────────
 const DEFAULT_PROFILE = { name: '', standard: 'Class 10', board: 'CBSE', language: 'English', subjects: [], plan: 'free', plan_expires_at: '' }
@@ -250,6 +252,21 @@ export default function App() {
   const [aiConfig,       setAiConfigState]  = useState(DEFAULT_AI)
   const [savedAiKeys,    setSavedAiKeys]    = useState({})
 
+  // Drishti accessibility state — persisted to localStorage
+  const [a11y, setA11y] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('eduvyai_a11y') || 'null') || DEFAULT_A11Y
+    } catch { return DEFAULT_A11Y }
+  })
+
+  // Persist a11y changes to localStorage and apply body classes
+  useEffect(() => {
+    try { localStorage.setItem('eduvyai_a11y', JSON.stringify(a11y)) } catch {}
+    document.body.classList.toggle('high-contrast', !!a11y.highContrast)
+    document.body.classList.toggle('font-large',  a11y.fontScale === 1.25)
+    document.body.classList.toggle('font-xlarge', a11y.fontScale === 1.5)
+  }, [a11y])
+
   // (splash coordination removed — LandingPage handles auth check itself)
 
   // ── Hydrate from profile row ──────────────────────────────
@@ -264,11 +281,24 @@ export default function App() {
       parent_mobile:   data.parent_mobile || '',
       plan:            data.plan || 'free',
       plan_expires_at: data.plan_expires_at || '',
+      is_drishti:      data.is_drishti || false,
     }
     setProfile(p)
     setUserId(data.id)
     try { localStorage.setItem('eduvyai_profile', JSON.stringify({ ...p, id: data.id, xp: data.xp || 0, streak: data.streak || 1 })) } catch {}
     setXp(data.xp || 0)
+
+    // Auto-apply Drishti accessibility settings if is_drishti is true
+    if (data.is_drishti && data.accessibility_settings) {
+      try {
+        const saved = typeof data.accessibility_settings === 'string'
+          ? JSON.parse(data.accessibility_settings)
+          : data.accessibility_settings
+        if (saved && typeof saved === 'object') {
+          setA11y(prev => ({ ...DEFAULT_A11Y, ...prev, ...saved, screenReaderMode: true, ttsEnabled: true }))
+        }
+      } catch {}
+    }
 
     const { streak: newStreak, changed } = computeStreak(data.last_active || '', data.streak || 1)
     setStreak(newStreak)
@@ -378,12 +408,12 @@ export default function App() {
   }
 
   // ── Shell props (passed to AppShell via Route element) ────
-  const shellProps = {
-    profile, userId, xp, streak, addXp,
+  const sharedProps = { profile, userId, xp, streak, addXp,
     docCtx, setDocCtx, docName, setDocName,
     showSettings, setShowSettings,
     aiConfig, savedAiKeys,
     handleLogout, handleAIConfigSave, handleProfileSave,
+    a11y, setA11y,
   }
 
   // ── Routes ────────────────────────────────────────────────
@@ -400,7 +430,7 @@ export default function App() {
 
       {/* Main app — tab is part of the URL */}
       <Route path="/app" element={<Navigate to="/app/home" replace />} />
-      <Route path="/app/:tab" element={<AppShell {...shellProps} />} />
+      <Route path="/app/:tab" element={<AppShell {...sharedProps} />} />
 
       {/* Admin — redirect bare /admin to login; AdminPanel handles auth */}
       <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
@@ -408,6 +438,9 @@ export default function App() {
 
       {/* Parent Dashboard — public, no auth */}
       <Route path="/parent/:pin" element={<ParentDashboard />} />
+
+      {/* Drishti Helper Portal — token in URL, no password */}
+      <Route path="/helper/:token" element={<HelperPortal />} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

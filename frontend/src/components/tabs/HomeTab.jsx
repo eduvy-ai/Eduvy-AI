@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { COLORS, callAI, buildSystemPrompt, SUBS, getBhoolStats, parseAIObject } from '../../shared.js'
-import { apiGetMastery } from '../../api.js'
+import { COLORS, callAI, buildSystemPrompt, SUBS, getBhoolStats, parseAIObject, speakText, LANG_TO_SPEECH_CODE } from '../../shared.js'
+import { apiGetMastery, apiGetHelperNotes, apiMarkHelperNotesRead } from '../../api.js'
 
 // ── Bhool Curve stats (reads localStorage) ───────────────────
 function useBhoolStats() {
@@ -65,9 +65,32 @@ const QUICK_ACTIONS = [
   { icon: "🧘", label: "Wellness Coach", tab: "labs",     grad: "linear-gradient(135deg,#00E5A022,#7B9CFF08)", accent: "#00E5A0" },
 ]
 
-export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) {
+export default function HomeTab({ profile, userId, xp, streak, addXp, setTab, a11y }) {
   const [briefLoading, setBriefLoading]   = useState(false)
   const [brief, setBrief]                 = useState("")
+
+  // Drishti helper notes
+  const [helperNotes, setHelperNotes]     = useState([])
+  const [notesDismissed, setNotesDismissed] = useState(false)
+
+  useEffect(() => {
+    if (!userId || !profile.is_drishti) return
+    apiGetHelperNotes(userId).then(notes => {
+      if (notes?.length) {
+        setHelperNotes(notes)
+        if (a11y?.ttsEnabled) {
+          const langCode = LANG_TO_SPEECH_CODE[profile.language] || 'en-IN'
+          speakText(notes[0].message, langCode, a11y.ttsSpeed || 1.0)
+        }
+      }
+    }).catch(() => {})
+  }, [userId])
+
+  const dismissNotes = () => {
+    setNotesDismissed(true)
+    apiMarkHelperNotesRead(userId).catch(() => {})
+  }
+
   const [masteries, setMasteries]         = useState({})
   const [selectedSub, setSelectedSub]     = useState(null)
   const [subPlan, setSubPlan]             = useState("")
@@ -227,6 +250,21 @@ Write entirely in ${profile.language}.`)
 
   return (
     <div style={{ padding: "16px 16px 24px", maxWidth: 720, margin: "0 auto" }}>
+
+      {/* Drishti Helper Note Banner */}
+      {!notesDismissed && helperNotes.length > 0 && (
+        <div className="drishti-note-banner" role="alert">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, marginBottom: 4, opacity: 0.8 }}>
+                Message from {helperNotes[0].helper_name} ({helperNotes[0].helper_type})
+              </p>
+              <p style={{ fontSize: 14, margin: 0, lineHeight: 1.5 }}>{helperNotes[0].message}</p>
+            </div>
+            <button onClick={dismissNotes} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 0, fontFamily: 'Sora, sans-serif', flexShrink: 0 }} aria-label="Dismiss note">✕</button>
+          </div>
+        </div>
+      )}
 
       {/* ── Mood Check (fresh each day) ───────────────────── */}
       {!mood ? (

@@ -561,6 +561,31 @@ export async function apiGetMastery(userId) {
   return res.json()   // { subject: score, ... }
 }
 
+// ── Drishti — Helper notes (student-facing) ─────────────────
+
+export async function apiGetHelperNotes(userId) {
+  try {
+    const res = await fetch(`/api/profile/${userId}/helper-notes`, {
+      headers: _authHeaders(),
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!res.ok) return []
+    return res.json()
+  } catch {
+    return []
+  }
+}
+
+export async function apiMarkHelperNotesRead(userId) {
+  const res = await fetch(`/api/profile/${userId}/helper-notes/read`, {
+    method: 'POST',
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(5000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
 export async function apiSetMastery(userId, subject, score) {
   const res = await fetch(`/api/mastery/${userId}`, {
     method: 'PUT',

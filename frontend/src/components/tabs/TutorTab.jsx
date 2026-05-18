@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { COLORS, callAI, buildSystemPrompt, checkStudentQuery } from '../../App.jsx'
-import { getStarters } from '../../shared.js'
+import { getStarters, speakText, stopSpeaking, startVoiceInput, LANG_TO_SPEECH_CODE } from '../../shared.js'
 import { apiGetSession, apiSaveToSession } from '../../api.js'
 
 const MODES = [
@@ -86,11 +86,12 @@ Tone: patient and collaborative — we're doing this together, not just showing 
 
 
 
-export default function TutorTab({ profile, userId, addXp, docCtx }) {
+export default function TutorTab({ profile, userId, addXp, docCtx, a11y }) {
   const [mode, setMode]         = useState("adaptive")
   const [messages, setMessages] = useState([])
   const [input, setInput]       = useState("")
   const [loading, setLoading]   = useState(false)
+  const [voiceRecording, setVoiceRecording] = useState(false)
   // Draw mode
   const [drawDesc, setDrawDesc] = useState("")
   const [drawLoading, setDrawLoading] = useState(false)
@@ -150,6 +151,10 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
       setMessages(m => [...m, { role: "assistant", content: res }])
       apiSaveToSession(userId, `tutor_${mode}`, "assistant", res).catch(() => {})
       addXp(2)
+      // TTS: speak AI response if enabled
+      if (a11y?.ttsEnabled) {
+        speakText(res, LANG_TO_SPEECH_CODE[profile.language] || 'en-IN', a11y.ttsSpeed || 1.0)
+      }
     } finally {
       setLoading(false)
     }
@@ -424,6 +429,20 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") sendMessage() }}
         />
+        {a11y?.voiceInput && (
+          <button
+            className={`mic-btn${voiceRecording ? ' recording' : ''}`}
+            aria-label="Voice input"
+            onClick={async () => {
+              if (voiceRecording) return
+              setVoiceRecording(true)
+              try {
+                const text = await startVoiceInput(LANG_TO_SPEECH_CODE[profile.language] || 'en-IN')
+                if (text) { setInput(text) }
+              } catch {} finally { setVoiceRecording(false) }
+            }}
+          >🎤</button>
+        )}
         <button
           onClick={() => sendMessage()}
           disabled={loading || !input.trim()}

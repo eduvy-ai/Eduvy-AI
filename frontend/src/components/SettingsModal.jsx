@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { COLORS, BOARDS, LANGS, PLANS } from '../shared.js'
+import { COLORS, BOARDS, LANGS, PLANS, DEFAULT_A11Y } from '../shared.js'
 import { apiGetParentPin, apiCreateParentPin, apiRevokeParentPin } from '../api.js'
 
 const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
@@ -12,7 +12,7 @@ const PLAN_MODEL_LABEL = {
   premium: 'Your chosen model',
 }
 
-export default function SettingsModal({ config, savedKeys = {}, onSave, onClose, profile, onProfileSave }) {
+export default function SettingsModal({ config, savedKeys = {}, onSave, onClose, profile, onProfileSave, a11y, setA11y }) {
   const [activeTab, setActiveTab] = useState('ai')
 
   // ── Usage state ──────────────────────────────────────────────
@@ -98,7 +98,7 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
 
           {/* Tab switcher */}
           <div style={{ display: "flex", background: COLORS.card, borderRadius: 12, padding: 4, marginBottom: 18, border: `1px solid ${COLORS.border}`, gap: 4 }}>
-            {[["ai", "🤖 AI"], ["profile", "👤 Profile"], ["plan", "👑 Plan"]].map(([key, label]) => (
+            {[['ai', '🤖 AI'], ['profile', '👤 Profile'], ['plan', '👑 Plan'], ['drishti', '👁️ Drishti']].map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
@@ -421,6 +421,103 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                   </div>
                 )}
 
+              </div>
+            )
+          })()}
+
+          {/* ── Drishti Accessibility tab ── */}
+          {activeTab === 'drishti' && (() => {
+            const localA11y = a11y || DEFAULT_A11Y
+            const update = (key, val) => setA11y && setA11y(prev => ({ ...prev, [key]: val }))
+            const enableAll = () => setA11y && setA11y({
+              screenReaderMode: true, ttsEnabled: true,
+              ttsSpeed: 1.0, highContrast: false,
+              voiceInput: true, fontScale: 1.0,
+            })
+            const resetAll = () => setA11y && setA11y(DEFAULT_A11Y)
+            const row = (label, child) => (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: `1px solid ${COLORS.border}` }}>
+                <span style={{ fontSize: 13, color: COLORS.text, fontWeight: 500 }}>{label}</span>
+                {child}
+              </div>
+            )
+            const toggle = (key) => (
+              <button
+                onClick={() => update(key, !localA11y[key])}
+                style={{
+                  width: 44, height: 24, borderRadius: 12,
+                  background: localA11y[key] ? COLORS.green : COLORS.card2,
+                  border: `2px solid ${localA11y[key] ? COLORS.green : COLORS.border}`,
+                  cursor: 'pointer', padding: 0, position: 'relative', flexShrink: 0,
+                  transition: 'background 0.2s',
+                }}
+                aria-label={`Toggle ${key}`}
+              >
+                <span style={{
+                  position: 'absolute', top: 2,
+                  left: localA11y[key] ? 22 : 2,
+                  width: 16, height: 16, borderRadius: '50%',
+                  background: '#fff', transition: 'left 0.2s',
+                }} />
+              </button>
+            )
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {/* Master enable */}
+                <div style={{
+                  background: `${COLORS.blue}12`, border: `1px solid ${COLORS.blue}30`,
+                  borderRadius: 12, padding: '12px 14px', marginBottom: 12,
+                }}>
+                  <p style={{ fontSize: 12, color: COLORS.blue, fontWeight: 700, marginBottom: 6 }}>
+                    👁️ Drishti Mode — Vision-Accessible Learning
+                  </p>
+                  <p style={{ fontSize: 11, color: COLORS.muted, marginBottom: 10, lineHeight: 1.5 }}>
+                    Enable all accessibility features at once for visually impaired learners.
+                  </p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={enableAll} style={{ ...primaryBtn, flex: 1, padding: '8px 12px', fontSize: 12 }}>
+                      Enable Drishti Mode
+                    </button>
+                    <button onClick={resetAll} style={{
+                      flex: 1, padding: '8px 12px', fontSize: 12,
+                      background: COLORS.card2, border: `1px solid ${COLORS.border}`,
+                      borderRadius: 10, color: COLORS.muted, cursor: 'pointer',
+                      fontFamily: 'Sora, sans-serif', fontWeight: 600,
+                    }}>Reset</button>
+                  </div>
+                </div>
+                {row('Screen Reader Mode', toggle('screenReaderMode'))}
+                {row('Text-to-Speech (Read AI responses aloud)', toggle('ttsEnabled'))}
+                {row('Voice Input (Microphone button on inputs)', toggle('voiceInput'))}
+                {row('High Contrast', toggle('highContrast'))}
+                <div style={{ padding: '12px 0', borderBottom: `1px solid ${COLORS.border}` }}>
+                  <p style={{ fontSize: 12, color: COLORS.muted, marginBottom: 8 }}>TTS SPEED</p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {[['Slow', 0.5], ['Normal', 1.0], ['Fast', 1.5]].map(([lbl, val]) => (
+                      <button key={lbl} onClick={() => update('ttsSpeed', val)} style={{
+                        flex: 1, padding: '7px 4px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                        fontFamily: 'Sora, sans-serif', cursor: 'pointer',
+                        background: localA11y.ttsSpeed === val ? COLORS.green : COLORS.card2,
+                        color: localA11y.ttsSpeed === val ? '#04040e' : COLORS.muted,
+                        border: `1px solid ${localA11y.ttsSpeed === val ? COLORS.green : COLORS.border}`,
+                      }}>{lbl}</button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ padding: '12px 0' }}>
+                  <p style={{ fontSize: 12, color: COLORS.muted, marginBottom: 8 }}>FONT SIZE</p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {[['Normal', 1.0], ['Large', 1.25], ['X-Large', 1.5]].map(([lbl, val]) => (
+                      <button key={lbl} onClick={() => update('fontScale', val)} style={{
+                        flex: 1, padding: '7px 4px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                        fontFamily: 'Sora, sans-serif', cursor: 'pointer',
+                        background: localA11y.fontScale === val ? COLORS.blue : COLORS.card2,
+                        color: localA11y.fontScale === val ? '#fff' : COLORS.muted,
+                        border: `1px solid ${localA11y.fontScale === val ? COLORS.blue : COLORS.border}`,
+                      }}>{lbl}</button>
+                    ))}
+                  </div>
+                </div>
               </div>
             )
           })()}

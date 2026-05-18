@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { COLORS, callAI, buildSystemPrompt, parseAIObject, SUBS } from '../../App.jsx'
 import { getDeviceId, apiSaveQuizResult, apiGetQuizStats } from '../../api.js'
+import { speakText, LANG_TO_SPEECH_CODE } from '../../shared.js'
 
 const DIFFICULTIES = ["Easy", "Medium", "Hard"]
 
@@ -34,7 +35,7 @@ const ERROR_TYPE_LABELS = {
   CARELESS:            { label: "Careless Mistake",      color: "#6868a0" },
 }
 
-export default function QuizLab({ profile, addXp, userId, onBack }) {
+export default function QuizLab({ profile, addXp, userId, onBack, a11y }) {
   const uid            = userId || getDeviceId()
   const subjects       = profile.subjects?.length ? profile.subjects : (SUBS[profile.standard] || [])
   const [selSub, setSelSub]         = useState(subjects[0] || "")
@@ -78,6 +79,12 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
     const parsed = parseAIObject(res)
     if (parsed?.q && parsed?.o?.length === 4) {
       setQuestion(parsed)
+      // Auto-read question if screenReaderMode enabled
+      if (a11y?.screenReaderMode || a11y?.ttsEnabled) {
+        const langCode = LANG_TO_SPEECH_CODE[profile.language] || 'en-IN'
+        const readText = `${parsed.q}. Option A: ${parsed.o[0]}. Option B: ${parsed.o[1]}. Option C: ${parsed.o[2]}. Option D: ${parsed.o[3]}.`
+        speakText(readText, langCode, a11y.ttsSpeed || 1.0)
+      }
     } else {
       setError("Could not generate question. Please try again.")
     }
@@ -92,6 +99,11 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
     setScore(s => ({ correct: s.correct + (correct ? 1 : 0), total: s.total + 1 }))
     addXp(correct ? 5 : 1)
     _updateBhool(selSub, question.concept, correct)
+    // Speak result
+    if (a11y?.ttsEnabled) {
+      const langCode = LANG_TO_SPEECH_CODE[profile.language] || 'en-IN'
+      speakText(correct ? 'Correct!' : `Wrong. Correct answer is ${question.c}.`, langCode, a11y.ttsSpeed || 1.0)
+    }
     // Persist to backend (best-effort)
     apiSaveQuizResult(uid, {
       subject: selSub,
@@ -100,6 +112,18 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
       total: 1,
     }).catch(() => {})
   }
+
+  // Keyboard 1-4 shortcut for option selection (Drishti accessibility)
+  useEffect(() => {
+    if (!a11y?.screenReaderMode) return
+    const handler = (e) => {
+      if (!question || selected) return
+      const map = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' }
+      if (map[e.key]) answerQuestion(map[e.key])
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [question, selected, a11y])
 
   // ── Galti Doctor: diagnose root cause of wrong answer ─────
   const diagnoseError = async () => {

@@ -912,7 +912,7 @@ export default function SathiTab({ profile, userId, addXp }) {
     if (!squad) return
     loadMessages(squad.id, 0, true)
     loadChallenge(squad.id)
-    apiGetSquadStreak(squad.id).then(d => setSquadStreak(d.streak || 0)).catch(() => {})
+    apiGetSquadStreak(squad.id)?.then(d => setSquadStreak(d?.streak || 0)).catch(() => {})
   }, [squad?.id])  // eslint-disable-line
 
   // ── Polling ────────────────────────────────────────────────

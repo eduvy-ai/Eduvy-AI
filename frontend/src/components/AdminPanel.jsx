@@ -1743,11 +1743,296 @@ function AIConfigTab({ toast }) {
   )
 }
 
+// ── Students Tab ──────────────────────────────────────────────
+function StudentsTab({ toast }) {
+  const [students, setStudents] = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [search, setSearch]     = useState('')
+  const [showModal, setShowModal] = useState(false)
+  const [editing, setEditing]   = useState(null) // null = create, else student obj
+  const [form, setForm]         = useState({
+    name: '', email: '', password: '', standard: '6',
+    board: 'CBSE', language: 'English', subjects: [],
+    plan: 'free', is_drishti: false,
+  })
+
+  const token = () => localStorage.getItem('eduvyai_admin_token')
+
+  const load = async () => {
+    setLoading(true)
+    try {
+      const r = await fetch('/api/admin/students', { headers: { Authorization: `Bearer ${token()}` } })
+      const d = await r.json()
+      setStudents(Array.isArray(d) ? d : [])
+    } catch { toast('Failed to load students', 'error') }
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [])
+
+  const openCreate = () => {
+    setEditing(null)
+    setForm({ name: '', email: '', password: '', standard: '6', board: 'CBSE', language: 'English', subjects: [], plan: 'free', is_drishti: false })
+    setShowModal(true)
+  }
+
+  const openEdit = (s) => {
+    setEditing(s)
+    setForm({ name: s.name || '', email: s.email || '', password: '', standard: s.standard || '6', board: s.board || 'CBSE', language: s.language || 'English', subjects: s.subjects || [], plan: s.plan || 'free', is_drishti: !!s.is_drishti })
+    setShowModal(true)
+  }
+
+  const save = async () => {
+    try {
+      const method = editing ? 'PUT' : 'POST'
+      const url = editing ? `/api/admin/students/${editing.id}` : '/api/admin/students'
+      const body = { ...form }
+      if (editing && !body.password) delete body.password
+      const r = await fetch(url, {
+        method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+        body: JSON.stringify(body),
+      })
+      if (!r.ok) { const e = await r.json(); throw new Error(e.detail || 'Save failed') }
+      toast(editing ? 'Student updated' : 'Student created')
+      setShowModal(false)
+      load()
+    } catch (e) { toast(e.message, 'error') }
+  }
+
+  const del = async (id) => {
+    if (!confirm('Deactivate this student account?')) return
+    try {
+      const r = await fetch(`/api/admin/students/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token()}` } })
+      if (!r.ok) throw new Error('Delete failed')
+      toast('Student deactivated')
+      load()
+    } catch (e) { toast(e.message, 'error') }
+  }
+
+  const visible = students.filter(s =>
+    !search || s.name?.toLowerCase().includes(search.toLowerCase()) || s.email?.toLowerCase().includes(search.toLowerCase())
+  )
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search students..."
+          style={{ flex: 1, minWidth: 180, background: C.card2, border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 14px', color: C.text, fontFamily: 'Sora, sans-serif', fontSize: 13 }} />
+        <button onClick={openCreate} style={{ ...primaryBtn, padding: '9px 18px', width: 'auto' }}>+ Add Student</button>
+      </div>
+
+      {loading ? <p style={{ color: C.muted }}>Loading…</p> : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                {['Name', 'Email', 'Class', 'Board', 'Plan', 'Drishti', 'Actions'].map(h => (
+                  <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: C.muted, fontWeight: 700, fontSize: 11, letterSpacing: '0.05em' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map(s => (
+                <tr key={s.id} style={{ borderBottom: `1px solid ${C.border}30` }}>
+                  <td style={{ padding: '10px 10px', color: C.text }}>{s.name || '—'}</td>
+                  <td style={{ padding: '10px 10px', color: C.muted, fontSize: 12 }}>{s.email}</td>
+                  <td style={{ padding: '10px 10px', color: C.text }}>{s.standard}</td>
+                  <td style={{ padding: '10px 10px', color: C.text }}>{s.board}</td>
+                  <td style={{ padding: '10px 10px' }}>
+                    <span style={{ background: `${C.green}20`, color: C.green, borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>{s.plan}</span>
+                  </td>
+                  <td style={{ padding: '10px 10px' }}>
+                    {s.is_drishti ? <span style={{ color: C.blue, fontWeight: 700 }}>👁️</span> : '—'}
+                  </td>
+                  <td style={{ padding: '10px 10px', display: 'flex', gap: 6 }}>
+                    <button onClick={() => openEdit(s)} style={ghostBtn}>Edit</button>
+                    <button onClick={() => del(s.id)} style={{ ...ghostBtn, color: C.red, borderColor: `${C.red}40` }}>Del</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {visible.length === 0 && <p style={{ color: C.muted, textAlign: 'center', padding: 24 }}>No students found</p>}
+        </div>
+      )}
+
+      {showModal && (
+        <div style={{ position: 'fixed', inset: 0, background: '#00000088', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: C.card, borderRadius: 16, padding: 24, width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', border: `1px solid ${C.border}` }}>
+            <h3 style={{ color: C.text, marginBottom: 18, fontSize: 16 }}>{editing ? 'Edit Student' : 'Add Student'}</h3>
+            {[
+              ['Name', 'name', 'text', 'Full name'],
+              ['Email', 'email', 'email', 'student@example.com'],
+              ['Password', 'password', 'password', editing ? 'Leave blank to keep current' : 'Password'],
+              ['Standard', 'standard', 'text', 'e.g. 9'],
+              ['Board', 'board', 'text', 'CBSE / ICSE / State'],
+              ['Language', 'language', 'text', 'English / Hindi / …'],
+              ['Plan', 'plan', 'text', 'free / basic / pro / premium'],
+            ].map(([label, key, type, ph]) => (
+              <div key={key} style={{ marginBottom: 12 }}>
+                <label style={labelStyle}>{label}</label>
+                <input type={type} value={form[key] || ''} placeholder={ph}
+                  onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                  style={{ width: '100%', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 12px', color: C.text, fontFamily: 'Sora, sans-serif', fontSize: 13, boxSizing: 'border-box' }} />
+              </div>
+            ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <input type="checkbox" id="is_drishti" checked={!!form.is_drishti} onChange={e => setForm(f => ({ ...f, is_drishti: e.target.checked }))} />
+              <label htmlFor="is_drishti" style={{ color: C.text, fontSize: 13 }}>👁️ Enable Drishti Mode (visually impaired student)</label>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={save} style={{ ...primaryBtn, flex: 1 }}>{editing ? 'Save' : 'Create'}</button>
+              <button onClick={() => setShowModal(false)} style={{ flex: 1, background: C.card2, border: `1px solid ${C.border}`, borderRadius: 12, color: C.muted, cursor: 'pointer', fontFamily: 'Sora, sans-serif', fontWeight: 600, fontSize: 13 }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Drishti Helpers Tab ───────────────────────────────────────
+function DrIshtiHelpersTab({ toast }) {
+  const [helpers, setHelpers]   = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [showModal, setShowModal] = useState(false)
+  const [editing, setEditing]   = useState(null)
+  const [newToken, setNewToken]  = useState(null) // shown only at creation
+  const [form, setForm]         = useState({ helper_name: '', helper_email: '', helper_type: 'teacher', notes: '' })
+
+  const token = () => localStorage.getItem('eduvyai_admin_token')
+
+  const load = async () => {
+    setLoading(true)
+    try {
+      const r = await fetch('/api/admin/drishti-helpers', { headers: { Authorization: `Bearer ${token()}` } })
+      const d = await r.json()
+      setHelpers(Array.isArray(d) ? d : [])
+    } catch { toast('Failed to load helpers', 'error') }
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [])
+
+  const openCreate = () => {
+    setEditing(null)
+    setNewToken(null)
+    setForm({ helper_name: '', helper_email: '', helper_type: 'teacher', notes: '' })
+    setShowModal(true)
+  }
+
+  const openEdit = (h) => {
+    setEditing(h)
+    setNewToken(null)
+    setForm({ helper_name: h.helper_name, helper_email: h.helper_email, helper_type: h.helper_type, notes: h.notes || '' })
+    setShowModal(true)
+  }
+
+  const save = async () => {
+    try {
+      const method = editing ? 'PUT' : 'POST'
+      const url = editing ? `/api/admin/drishti-helpers/${editing.id}` : '/api/admin/drishti-helpers'
+      const r = await fetch(url, {
+        method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+        body: JSON.stringify(form),
+      })
+      if (!r.ok) { const e = await r.json(); throw new Error(e.detail || 'Save failed') }
+      const d = await r.json()
+      if (!editing && d.helper_token) setNewToken(d.helper_token)
+      else { toast(editing ? 'Helper updated' : 'Helper created'); setShowModal(false) }
+      load()
+    } catch (e) { toast(e.message, 'error') }
+  }
+
+  const deactivate = async (id) => {
+    if (!confirm('Deactivate this helper?')) return
+    try {
+      const r = await fetch(`/api/admin/drishti-helpers/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token()}` } })
+      if (!r.ok) throw new Error('Failed')
+      toast('Helper deactivated')
+      load()
+    } catch (e) { toast(e.message, 'error') }
+  }
+
+  const copyPortalUrl = (tok) => {
+    const url = `${window.location.origin}/helper/${tok}`
+    navigator.clipboard.writeText(url).then(() => toast('Portal URL copied!')).catch(() => toast(url, 'info'))
+  }
+
+  return (
+    <div>
+      <button onClick={openCreate} style={{ ...primaryBtn, padding: '9px 18px', width: 'auto', marginBottom: 16 }}>+ Add Helper</button>
+
+      {loading ? <p style={{ color: C.muted }}>Loading…</p> : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {helpers.map(h => (
+            <div key={h.id} style={{ background: C.card2, border: `1px solid ${C.border}`, borderRadius: 14, padding: '14px 16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+                <div>
+                  <p style={{ color: C.text, fontWeight: 700, fontSize: 14 }}>{h.helper_name}</p>
+                  <p style={{ color: C.muted, fontSize: 12 }}>{h.helper_email} · {h.helper_type}</p>
+                  <p style={{ color: C.muted, fontSize: 11 }}>Students assigned: <strong style={{ color: C.text }}>{h.student_count || 0}</strong></p>
+                  <p style={{ color: C.muted, fontSize: 11 }}>Token: <code style={{ color: C.yellow }}>{h.token_preview}</code></p>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button onClick={() => copyPortalUrl(h.token_preview?.replace('****', ''))} style={ghostBtn}>Copy URL</button>
+                  <button onClick={() => openEdit(h)} style={ghostBtn}>Edit</button>
+                  {h.is_active && <button onClick={() => deactivate(h.id)} style={{ ...ghostBtn, color: C.red, borderColor: `${C.red}40` }}>Deactivate</button>}
+                </div>
+              </div>
+            </div>
+          ))}
+          {helpers.length === 0 && <p style={{ color: C.muted, textAlign: 'center', padding: 24 }}>No helpers yet</p>}
+        </div>
+      )}
+
+      {showModal && (
+        <div style={{ position: 'fixed', inset: 0, background: '#00000088', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: C.card, borderRadius: 16, padding: 24, width: '100%', maxWidth: 440, border: `1px solid ${C.border}` }}>
+            {newToken ? (
+              <>
+                <h3 style={{ color: C.green, marginBottom: 12, fontSize: 16 }}>✅ Helper Created!</h3>
+                <p style={{ color: C.muted, fontSize: 13, marginBottom: 10 }}>Share this portal URL with the helper. The token will NOT be shown again.</p>
+                <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 14px', wordBreak: 'break-all', fontSize: 12, color: C.yellow, marginBottom: 16 }}>
+                  {window.location.origin}/helper/{newToken}
+                </div>
+                <button onClick={() => copyPortalUrl(newToken)} style={{ ...primaryBtn, marginBottom: 10 }}>📋 Copy Portal URL</button>
+                <button onClick={() => setShowModal(false)} style={{ width: '100%', background: 'transparent', border: 'none', color: C.muted, cursor: 'pointer', fontFamily: 'Sora, sans-serif' }}>Close</button>
+              </>
+            ) : (
+              <>
+                <h3 style={{ color: C.text, marginBottom: 18, fontSize: 16 }}>{editing ? 'Edit Helper' : 'Add Helper'}</h3>
+                {[
+                  ['Name', 'helper_name', 'text', "Helper's full name"],
+                  ['Email', 'helper_email', 'email', 'helper@example.com'],
+                  ['Type', 'helper_type', 'text', 'teacher / parent / aide'],
+                  ['Notes', 'notes', 'text', 'Optional notes'],
+                ].map(([label, key, type, ph]) => (
+                  <div key={key} style={{ marginBottom: 12 }}>
+                    <label style={labelStyle}>{label}</label>
+                    <input type={type} value={form[key] || ''} placeholder={ph}
+                      onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                      style={{ width: '100%', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 12px', color: C.text, fontFamily: 'Sora, sans-serif', fontSize: 13, boxSizing: 'border-box' }} />
+                  </div>
+                ))}
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={save} style={{ ...primaryBtn, flex: 1 }}>{editing ? 'Save' : 'Create'}</button>
+                  <button onClick={() => setShowModal(false)} style={{ flex: 1, background: C.card2, border: `1px solid ${C.border}`, borderRadius: 12, color: C.muted, cursor: 'pointer', fontFamily: 'Sora, sans-serif', fontWeight: 600, fontSize: 13 }}>Cancel</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main Admin Panel ──────────────────────────────────────────
 export default function AdminPanel() {
   const navigate  = useNavigate()
   const { section = 'curriculum' } = useParams()
-  const activeTab = ['curriculum','boards','standards','mediums','users','usage','aiconfig'].includes(section)
+  const activeTab = ['curriculum','boards','standards','mediums','users','usage','aiconfig','students','drishti-helpers'].includes(section)
     ? section : 'curriculum'
 
   const [authed, setAuthed]   = useState(!!localStorage.getItem('eduvyai_admin_token'))
@@ -1786,23 +2071,27 @@ export default function AdminPanel() {
   }
 
   const TABS = [
-    { id: "curriculum", label: "📚 Curriculum",  short: "📚" },
-    { id: "boards",     label: "🏫 Boards",       short: "🏫" },
-    { id: "standards",  label: "🎓 Standards",    short: "🎓" },
-    { id: "mediums",    label: "🌐 Mediums",       short: "🌐" },
-    { id: "users",      label: "👥 Users",         short: "👥" },
-    { id: "usage",      label: "📊 AI Usage",      short: "📊" },
-    { id: "aiconfig",   label: "🤖 AI Models",     short: "🤖" },
+    { id: "curriculum",      label: "📚 Curriculum",   short: "📚" },
+    { id: "boards",          label: "🏫 Boards",        short: "🏫" },
+    { id: "standards",       label: "🎓 Standards",     short: "🎓" },
+    { id: "mediums",         label: "🌐 Mediums",        short: "🌐" },
+    { id: "users",           label: "👥 Users",          short: "👥" },
+    { id: "students",        label: "🎒 Students",       short: "🎒" },
+    { id: "drishti-helpers", label: "👁️ Drishti Helpers", short: "👁️" },
+    { id: "usage",           label: "📊 AI Usage",       short: "📊" },
+    { id: "aiconfig",        label: "🤖 AI Models",      short: "🤖" },
   ]
 
   const contentMap = {
-    curriculum: <CurriculumTab toast={showToast} />,
-    boards:     <BoardsTab     toast={showToast} />,
-    standards:  <StandardsTab  toast={showToast} />,
-    mediums:    <MediumsTab    toast={showToast} />,
-    users:      <UsersTab      toast={showToast} />,
-    usage:      <UsageTab      toast={showToast} />,
-    aiconfig:   <AIConfigTab   toast={showToast} />,
+    curriculum:        <CurriculumTab       toast={showToast} />,
+    boards:            <BoardsTab           toast={showToast} />,
+    standards:         <StandardsTab        toast={showToast} />,
+    mediums:           <MediumsTab          toast={showToast} />,
+    users:             <UsersTab            toast={showToast} />,
+    students:          <StudentsTab         toast={showToast} />,
+    'drishti-helpers': <DrIshtiHelpersTab   toast={showToast} />,
+    usage:             <UsageTab            toast={showToast} />,
+    aiconfig:          <AIConfigTab         toast={showToast} />,
   }
 
   // Shared title bar rendered inside content area for all breakpoints

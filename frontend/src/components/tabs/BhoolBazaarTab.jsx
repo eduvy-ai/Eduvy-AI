@@ -6,6 +6,7 @@ import {
   apiCollectBhoolCard, apiReactBhoolCard,
   apiGetMyBhoolCollections,
 } from '../../api.js'
+import { speakText, LANG_TO_SPEECH_CODE } from '../../shared.js'
 
 const TABS = [
   { key: 'feed',       label: '🌐 Bazaar',    title: 'Mistake Marketplace' },
@@ -56,7 +57,7 @@ function BhoolCoins({ count }) {
 }
 
 // ── Mistake Card (read-only) ──────────────────────────────────
-function MistakeCard({ card, isMine = false, onCollect, onReact, onPublish, onDelete, lang }) {
+function MistakeCard({ card, isMine = false, onCollect, onReact, onPublish, onDelete, lang, a11y, langCode }) {
   const [showAnswer, setShowAnswer] = useState(false)
   const [reacting, setReacting] = useState(false)
   const [collecting, setCollecting] = useState(false)
@@ -97,6 +98,17 @@ function MistakeCard({ card, isMine = false, onCollect, onReact, onPublish, onDe
       {/* Question */}
       <p style={{ color: COLORS.text, fontSize: 14, marginBottom: 8, fontWeight: 600 }}>
         ❓ {card.question}
+        {a11y?.ttsEnabled && (
+          <button
+            className="tts-btn"
+            style={{ marginLeft: 8 }}
+            aria-label="Read card aloud"
+            onClick={() => {
+              const text = `Question: ${card.question}. Wrong answer: ${card.wrong_answer}. Correct: ${card.correct_answer}.`
+              speakText(text, langCode || 'en-IN', a11y.ttsSpeed || 1.0)
+            }}
+          >🔊</button>
+        )}
       </p>
 
       {/* Wrong answer */}
@@ -418,7 +430,7 @@ function PublishConfirmModal({ card, onClose, onPublished }) {
 }
 
 // ── Main Tab ──────────────────────────────────────────────────
-export default function BhoolBazaarTab({ profile, addXp }) {
+export default function BhoolBazaarTab({ profile, addXp, a11y }) {
   const [activeTab, setActiveTab]         = useState('feed')
   const [feedCards, setFeedCards]         = useState([])
   const [myCards, setMyCards]             = useState([])
@@ -654,6 +666,8 @@ export default function BhoolBazaarTab({ profile, addXp }) {
           onCollect={handleCollect}
           onReact={handleReact}
           lang={profile.language}
+          a11y={a11y}
+          langCode={LANG_TO_SPEECH_CODE[profile.language] || 'en-IN'}
         />
       ))}
 
@@ -663,6 +677,8 @@ export default function BhoolBazaarTab({ profile, addXp }) {
           onPublish={handlePublish}
           onDelete={handleDelete}
           lang={profile.language}
+          a11y={a11y}
+          langCode={LANG_TO_SPEECH_CODE[profile.language] || 'en-IN'}
         />
       ))}
 
@@ -671,6 +687,8 @@ export default function BhoolBazaarTab({ profile, addXp }) {
           key={card.id} card={card}
           onCollect={() => {}} onReact={handleReact}
           lang={profile.language}
+          a11y={a11y}
+          langCode={LANG_TO_SPEECH_CODE[profile.language] || 'en-IN'}
         />
       ))}
 
