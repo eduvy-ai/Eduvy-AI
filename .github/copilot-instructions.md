@@ -37,10 +37,29 @@ buildSystemPrompt(), parseAIObject(), parseAIArray()
 
 ### Global State (in App.jsx)
 ```js
-profile = { name, standard, board, language, subjects[], school }
+profile = { name, standard, board, language, subjects[], school, is_drishti }
 xp, streak, docCtx, docName
+a11y  // { screenReaderMode, ttsEnabled, ttsSpeed, highContrast, voiceInput, fontScale }
 ```
 Profile is fetched from backend on login and cached to `localStorage`.
+`a11y` is persisted to `localStorage` under `eduvyai_a11y`. If `profile.is_drishti` is true, `screenReaderMode` and `ttsEnabled` are force-enabled on login.
+
+### Drishti Accessibility Layer (`src/shared.js`)
+```js
+DEFAULT_A11Y          // default values for all a11y settings
+LANG_TO_SPEECH_CODE   // maps profile.language → BCP-47 speech code (e.g. Hindi → 'hi-IN')
+speakText(text, langCode, speed)   // speaks via window.speechSynthesis; cancels current first
+stopSpeaking()                     // speechSynthesis.cancel()
+isSpeaking()                       // speechSynthesis?.speaking ?? false
+startVoiceInput(langCode)          // returns Promise<string> via SpeechRecognition
+```
+All TTS/STT functions check for browser support before calling — never throw if Web Speech API is absent.
+
+### Helper Portal (`/helper/:token`)
+- Public route — no student JWT required
+- Uses `X-Helper-Token: <token>` header for all API calls
+- `HelperPortal.jsx` defines its own `COLORS` const locally (same pattern as `ParentDashboard.jsx`) — do NOT import from `App.jsx`
+- Helpers can only view/message their own assigned students (enforced server-side)
 
 ### Plans
 ```js
@@ -71,6 +90,7 @@ const COLORS = {
 
 ## Database Tables (PostgreSQL)
 Core: `users`, `study_sessions`, `quiz_stats`, `mastery_scores`, `notebook_sources`, `notebook_messages`
+  - `users` extra cols: `is_drishti BOOLEAN DEFAULT FALSE`, `accessibility_settings TEXT DEFAULT '{}'`
 Curriculum: `boards`, `standards`, `mediums`, `curriculum`, `admin_users`
 Squads: `squads`, `squad_members`, `squad_messages`, `squad_challenges`
   - `squads` extra cols: `standard`, `medium`, `streak`, `last_active_date`
@@ -81,6 +101,10 @@ Squads: `squads`, `squad_members`, `squad_messages`, `squad_challenges`
 Bhool Bazaar: `bhool_cards`, `bhool_collections`, `bhool_reactions`
 Muqabla: `muqabla_battles`
 Parent: `parent_pins`
+Drishti: `drishti_helpers`, `helper_student_map`, `helper_notes`
+  - `drishti_helpers`: id, name, email, helper_type, helper_token (UUID), is_active
+  - `helper_student_map`: helper_id, student_id (many-to-many)
+  - `helper_notes`: id, helper_id, student_id, message, is_read, created_at
 All tables created idempotently in `backend/database.py`.
 
 ## Critical Rules — Never Break
@@ -97,14 +121,17 @@ Never call Gemini/Groq/Claude/OpenAI directly from browser components. Always us
 import { COLORS, callAI, buildSystemPrompt } from '../../shared.js'
 
 // SettingsModal: MUST use shared.js only (NOT App.jsx)
-import { COLORS, AI_PROVIDERS } from '../shared.js'
+import { COLORS, AI_PROVIDERS, DEFAULT_A11Y } from '../shared.js'
 import { apiGetParentPin, apiCreateParentPin } from '../api.js'
 
 // ParentDashboard: public page — define its own COLORS const locally, do not import from App.jsx
 const C = { bg: "#04040e", ... }
 
+// HelperPortal: public page — same rule as ParentDashboard, define COLORS locally
+const COLORS = { bg: "#04040e", ... }
+
 // WRONG — causes circular dep crash:
-// import { COLORS } from '../App.jsx'   // in SettingsModal
+// import { COLORS } from '../App.jsx'   // in SettingsModal or HelperPortal
 ```
 
 ### 4. Reserved Name Conflicts
@@ -161,6 +188,29 @@ Frontend reads `/squads/{id}/doubts/quota` and shows remaining count. Backend re
 ### 14. Brand Names — Do Not Translate Nav Labels
 `Sathi`, `Bhool`, `Muqabla` are product brand names (like "Reels" or "Shorts"). Do NOT translate them into tab labels for different languages. Translate all content *inside* each tab via `LANG_RULES`, not the tab names themselves.
 
+### 15. Drishti — TTS/STT Must Never Block Render
+All `speakText()` and `startVoiceInput()` calls must be fire-and-forget or wrapped in try/catch. Never `await` TTS inside render or event handlers in a way that could throw. If `window.speechSynthesis` is absent (SSR, older browser), the function silently returns — never shows an error to the student.
+
+### 16. Drishti — a11y Prop Passing
+Every tab and lab component that uses TTS/voice must accept an `a11y` prop. The `App.jsx` shell passes `a11y` and `setA11y` via `sharedProps`. Never read `localStorage` directly for a11y inside a tab — always use the prop.
+```js
+// CORRECT — tab receives a11y from sharedProps
+function TutorTab({ profile, xp, a11y, ... }) { ... }
+
+// WRONG — reading storage directly inside a tab
+const a11y = JSON.parse(localStorage.getItem('eduvyai_a11y'))
+```
+
+### 17. Helper Token — One-Time Visibility
+`helper_token` (UUID) is returned **only once** at creation time (`POST /api/admin/drishti-helpers`). Subsequent GET requests return `token_preview` (first 8 chars + `...`) only. Never re-expose the full token after creation. The admin UI must copy the full portal URL at creation time.
+
+### 18. Drishti CSS Classes — Do Not Override with Inline Styles
+- `.tts-btn` — read-aloud button (🔊)
+- `.mic-btn` / `.mic-btn.recording` — voice input button with pulse animation
+- `.drishti-note-banner` — helper note banner with fadeInDown animation
+- `.sr-only` — visually hidden text for screen readers
+These follow the same rule as `.bottom-nav` / `.side-nav` — do not override with inline styles.
+
 ## File Structure
 ```
 src/
@@ -172,9 +222,10 @@ src/
   components/
     AuthScreen.jsx       # Student login / register
     LandingPage.jsx      # Public landing page with pricing
-    AdminPanel.jsx       # Superadmin CRUD panel
+    AdminPanel.jsx       # Superadmin CRUD panel + Students tab + Drishti Helpers tab
     ParentDashboard.jsx  # Public parent view at /parent/:pin (no auth)
-    SettingsModal.jsx    # imports from ../shared.js and ../api.js
+    HelperPortal.jsx     # Public Drishti helper portal at /helper/:token (no auth) — defines COLORS locally
+    SettingsModal.jsx    # imports from ../shared.js and ../api.js — has Drishti accessibility tab
     Splash.jsx
     Onboard.jsx
     tabs/
@@ -210,7 +261,8 @@ backend/
     profile.py           # Student profile CRUD (includes school field)
     ai.py                # AI proxy + quota enforcement per plan
     curriculum.py        # Public curriculum endpoints (onboarding dropdowns)
-    admin.py             # Admin auth + full CRUD + bulk import
+    admin.py             # Admin auth + full CRUD + bulk import + student CRUD + Drishti helper CRUD
+    drishti.py           # Helper portal API — auth via X-Helper-Token header (NOT Bearer JWT)
     notebook.py          # Notebook sources + chat
     quiz_stats.py        # Quiz results + history
     mastery.py           # Subject mastery scores
