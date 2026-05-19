@@ -1,10 +1,16 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Optional
 import json
 from database import get_db
+from routers.auth import get_current_user
 
 router = APIRouter()
+
+
+def _require_own(user_id: str, current_user: str):
+    if user_id != current_user:
+        raise HTTPException(status_code=403, detail="Access denied")
 
 
 # --- Sources -------------------------------------------------
@@ -19,7 +25,8 @@ class Source(BaseModel):
 
 
 @router.get("/notebook/{user_id}/sources")
-async def get_sources(user_id: str):
+async def get_sources(user_id: str, current_user: str = Depends(get_current_user)):
+    _require_own(user_id, current_user)
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -34,7 +41,8 @@ async def get_sources(user_id: str):
 
 
 @router.post("/notebook/{user_id}/sources", status_code=201)
-async def add_source(user_id: str, data: Source):
+async def add_source(user_id: str, data: Source, current_user: str = Depends(get_current_user)):
+    _require_own(user_id, current_user)
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -52,7 +60,8 @@ async def add_source(user_id: str, data: Source):
 
 
 @router.delete("/notebook/{user_id}/sources/{source_id}")
-async def delete_source(user_id: str, source_id: str):
+async def delete_source(user_id: str, source_id: str, current_user: str = Depends(get_current_user)):
+    _require_own(user_id, current_user)
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -67,7 +76,8 @@ async def delete_source(user_id: str, source_id: str):
 
 
 @router.delete("/notebook/{user_id}/sources")
-async def clear_sources(user_id: str):
+async def clear_sources(user_id: str, current_user: str = Depends(get_current_user)):
+    _require_own(user_id, current_user)
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -86,7 +96,8 @@ class ChatMessage(BaseModel):
 
 
 @router.get("/notebook/{user_id}/chat")
-async def get_chat(user_id: str):
+async def get_chat(user_id: str, current_user: str = Depends(get_current_user)):
+    _require_own(user_id, current_user)
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -100,7 +111,8 @@ async def get_chat(user_id: str):
 
 
 @router.post("/notebook/{user_id}/chat", status_code=201)
-async def save_chat_message(user_id: str, data: ChatMessage):
+async def save_chat_message(user_id: str, data: ChatMessage, current_user: str = Depends(get_current_user)):
+    _require_own(user_id, current_user)
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -115,7 +127,8 @@ async def save_chat_message(user_id: str, data: ChatMessage):
 
 
 @router.delete("/notebook/{user_id}/chat")
-async def clear_chat(user_id: str):
+async def clear_chat(user_id: str, current_user: str = Depends(get_current_user)):
+    _require_own(user_id, current_user)
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -130,11 +143,12 @@ async def clear_chat(user_id: str):
 
 class StudioOutput(BaseModel):
     type: str
-    output_json: str   # serialized — could be text, JSON string, etc.
+    output_json: str   # serialized ï¿½ could be text, JSON string, etc.
 
 
 @router.get("/notebook/{user_id}/studio")
-async def get_studio_outputs(user_id: str):
+async def get_studio_outputs(user_id: str, current_user: str = Depends(get_current_user)):
+    _require_own(user_id, current_user)
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -148,7 +162,8 @@ async def get_studio_outputs(user_id: str):
 
 
 @router.post("/notebook/{user_id}/studio", status_code=201)
-async def save_studio_output(user_id: str, data: StudioOutput):
+async def save_studio_output(user_id: str, data: StudioOutput, current_user: str = Depends(get_current_user)):
+    _require_own(user_id, current_user)
     conn = get_db()
     try:
         cur = conn.cursor()

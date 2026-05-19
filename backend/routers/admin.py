@@ -672,3 +672,289 @@ def admin_import_curriculum(rows: List[ImportRow], admin_id: int = Depends(get_a
         return {"inserted": inserted, "updated": updated, "errors": errors}
     finally:
         conn.close()
+
+
+# ── User Management ───────────────────────────────────────────────
+
+VALID_PLANS = {"free", "basic", "pro", "premium"}
+
+
+class UserPlanUpdate(BaseModel):
+    plan: str
+    plan_expires_at: Optional[str] = ""  # ISO date string e.g. "2025-12-31", or "" for no expiry
+
+
+@router.get("/admin/users")
+def admin_list_users(
+    search: Optional[str] = None,
+    plan: Optional[str] = None,
+    admin_id: int = Depends(get_admin_user),
+):
+    """List all student users with optional search and plan filter."""
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        query = """
+            SELECT id, email, name, standard, board, language,
+                   xp, streak, plan, plan_expires_at,
+                   ai_provider, ai_model, ai_admin_override, created_at
+            FROM users
+            WHERE 1=1
+        """
+        params = []
+        if search:
+            query += " AND (LOWER(name) LIKE %s OR LOWER(email) LIKE %s)"
+            like = f"%{search.lower()}%"
+            params.extend([like, like])
+        if plan and plan in VALID_PLANS:
+            query += " AND plan = %s"
+            params.append(plan)
+        query += " ORDER BY created_at DESC LIMIT 500"
+        cur.execute(query, params)
+        return [dict(r) for r in cur.fetchall()]
+    finally:
+        conn.close()
+
+
+@router.get("/admin/users/{user_id}")
+def admin_get_user(user_id: str, admin_id: int = Depends(get_admin_user)):
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """SELECT id, email, name, mobile, parent_mobile, standard, board,
+                      language, subjects, xp, streak, plan, plan_expires_at, created_at
+               FROM users WHERE id = %s""",
+            (user_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="User not found")
+        result = dict(row)
+        if isinstance(result.get("subjects"), str):
+            try:
+                result["subjects"] = json.loads(result["subjects"])
+            except Exception:
+                result["subjects"] = []
+        return result
+    finally:
+        conn.close()
+
+
+@router.put("/admin/users/{user_id}/plan")
+def admin_set_user_plan(user_id: str, data: UserPlanUpdate, admin_id: int = Depends(get_admin_user)):
+    """Set a user's subscription plan (and optional expiry)."""
+    if data.plan not in VALID_PLANS:
+        raise HTTPException(status_code=422, detail=f"Plan must be one of: {', '.join(VALID_PLANS)}")
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE users SET plan=%s, plan_expires_at=%s WHERE id=%s RETURNING id, email, name, plan, plan_expires_at",
+            (data.plan, data.plan_expires_at or "", user_id),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="User not found")
+        conn.commit()
+        return dict(row)
+    finally:
+        conn.close()
+
+
+# ── AI Config Management ──────────────────────────────────────
+
+VALID_PROVIDERS = {"gemini", "groq", "anthropic", "openai"}
+
+PROVIDER_MODELS = {
+    "gemini":    ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"],
+    "groq":      ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"],
+    "anthropic": ["claude-sonnet-4-20250514", "claude-3-5-haiku-20241022"],
+    "openai":    ["gpt-4o-mini", "gpt-4o"],
+}
+
+
+class PlanRoutingUpdate(BaseModel):
+    plan: str
+    provider: str
+    model: str
+
+
+class UserAIConfigUpdate(BaseModel):
+    provider: str
+    model: str
+    override: bool = True   # False = remove override (reset to plan routing)
+
+
+@router.get("/admin/ai-config")
+def admin_get_ai_config(admin_id: int = Depends(get_admin_user)):
+    """Return current plan routing config and key status (never actual key values)."""
+    from services.ai_service import get_plan_routing, get_key_status
+    return {
+        "routing":    get_plan_routing(),
+        "providers":  PROVIDER_MODELS,
+        "key_status": get_key_status(),   # {provider: bool} — no actual keys
+    }
+
+
+class APIKeyUpdate(BaseModel):
+    provider: str
+    key: str
+
+
+@router.put("/admin/ai-keys")
+def admin_set_api_key(data: APIKeyUpdate, admin_id: int = Depends(get_admin_user)):
+    """Save a provider API key to the DB (replaces env-var value in memory immediately)."""
+    if data.provider not in VALID_PROVIDERS:
+        raise HTTPException(status_code=422, detail=f"Invalid provider. Must be one of: {', '.join(VALID_PROVIDERS)}")
+    key = data.key.strip()
+    if not key:
+        raise HTTPException(status_code=422, detail="Key cannot be empty")
+    # Basic format sanity checks (not exhaustive)
+    if data.provider == "gemini" and not key.startswith("AIza"):
+        raise HTTPException(status_code=422, detail="Gemini keys start with 'AIza'")
+    if data.provider == "groq" and not key.startswith("gsk_"):
+        raise HTTPException(status_code=422, detail="Groq keys start with 'gsk_'")
+    if data.provider == "anthropic" and not key.startswith("sk-ant-"):
+        raise HTTPException(status_code=422, detail="Anthropic keys start with 'sk-ant-'")
+    if data.provider == "openai" and not key.startswith("sk-"):
+        raise HTTPException(status_code=422, detail="OpenAI keys start with 'sk-'")
+    from services.ai_service import save_api_key
+    save_api_key(data.provider, key)
+    return {"ok": True, "provider": data.provider, "set": True}
+
+
+@router.put("/admin/ai-config")
+def admin_set_plan_routing(data: PlanRoutingUpdate, admin_id: int = Depends(get_admin_user)):
+    """Save a plan's provider+model routing to DB and reload in-memory cache."""
+    if data.plan not in {"free", "basic", "pro", "premium"}:
+        raise HTTPException(status_code=422, detail="Invalid plan")
+    if data.provider not in VALID_PROVIDERS:
+        raise HTTPException(status_code=422, detail=f"Invalid provider. Must be one of: {', '.join(VALID_PROVIDERS)}")
+    valid_models = PROVIDER_MODELS.get(data.provider, [])
+    if data.model not in valid_models:
+        raise HTTPException(status_code=422, detail=f"Invalid model for {data.provider}. Valid: {valid_models}")
+    from services.ai_service import save_plan_routing
+    save_plan_routing(data.plan, data.provider, data.model)
+    return {"ok": True, "plan": data.plan, "provider": data.provider, "model": data.model}
+
+
+@router.put("/admin/users/{user_id}/ai-config")
+def admin_set_user_ai_config(
+    user_id: str, data: UserAIConfigUpdate, admin_id: int = Depends(get_admin_user)
+):
+    """Set or clear the per-user AI provider+model admin override."""
+    if data.override:
+        if data.provider not in VALID_PROVIDERS:
+            raise HTTPException(status_code=422, detail=f"Invalid provider. Must be one of: {', '.join(VALID_PROVIDERS)}")
+        valid_models = PROVIDER_MODELS.get(data.provider, [])
+        if data.model not in valid_models:
+            raise HTTPException(status_code=422, detail=f"Invalid model for {data.provider}. Valid: {valid_models}")
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        if data.override:
+            cur.execute(
+                """UPDATE users SET ai_provider=%s, ai_model=%s, ai_admin_override=TRUE
+                   WHERE id=%s RETURNING id, email, name, ai_provider, ai_model, ai_admin_override""",
+                (data.provider, data.model, user_id),
+            )
+        else:
+            # Reset to plan routing
+            cur.execute(
+                """UPDATE users SET ai_admin_override=FALSE
+                   WHERE id=%s RETURNING id, email, name, ai_provider, ai_model, ai_admin_override""",
+                (user_id,),
+            )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="User not found")
+        conn.commit()
+        return dict(row)
+    finally:
+        conn.close()
+
+
+# ── AI Usage Analytics ────────────────────────────────────────
+
+@router.get("/admin/usage/summary")
+def admin_usage_summary(
+    days: int = 7,
+    admin_id: int = Depends(get_admin_user),
+):
+    """
+    Aggregate AI usage across all users for the last N days.
+    Returns per-day totals + per-plan breakdown.
+    """
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        # Per-day totals (last N days)
+        cur.execute(
+            """
+            SELECT u.date,
+                   SUM(u.call_count) AS calls,
+                   SUM(u.prompt_tokens + u.completion_tokens) AS tokens
+            FROM ai_usage u
+            WHERE u.date >= (CURRENT_DATE - (%s - 1) * INTERVAL '1 day')::TEXT
+            GROUP BY u.date
+            ORDER BY u.date
+            """,
+            (days,),
+        )
+        daily = [dict(r) for r in cur.fetchall()]
+
+        # Per-plan breakdown for the same window
+        cur.execute(
+            """
+            SELECT p.plan,
+                   SUM(u.call_count) AS calls,
+                   SUM(u.prompt_tokens + u.completion_tokens) AS tokens,
+                   COUNT(DISTINCT u.user_id) AS active_users
+            FROM ai_usage u
+            JOIN users p ON p.id = u.user_id
+            WHERE u.date >= (CURRENT_DATE - (%s - 1) * INTERVAL '1 day')::TEXT
+            GROUP BY p.plan
+            ORDER BY p.plan
+            """,
+            (days,),
+        )
+        by_plan = [dict(r) for r in cur.fetchall()]
+
+        # All-time totals
+        cur.execute("SELECT SUM(call_count) AS calls, SUM(prompt_tokens+completion_tokens) AS tokens FROM ai_usage")
+        totals = dict(cur.fetchone() or {})
+
+        return {"daily": daily, "by_plan": by_plan, "all_time": totals, "days": days}
+    finally:
+        conn.close()
+
+
+@router.get("/admin/usage/users")
+def admin_usage_top_users(
+    date: Optional[str] = None,
+    admin_id: int = Depends(get_admin_user),
+):
+    """Usage per user for a specific date (default: today)."""
+    from datetime import datetime, timezone
+    target_date = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT u.user_id, p.name, p.email, p.plan,
+                   u.call_count, u.prompt_tokens, u.completion_tokens,
+                   u.prompt_tokens + u.completion_tokens AS total_tokens
+            FROM ai_usage u
+            JOIN users p ON p.id = u.user_id
+            WHERE u.date = %s
+            ORDER BY u.call_count DESC
+            LIMIT 200
+            """,
+            (target_date,),
+        )
+        return {"date": target_date, "rows": [dict(r) for r in cur.fetchall()]}
+    finally:
+        conn.close()
+

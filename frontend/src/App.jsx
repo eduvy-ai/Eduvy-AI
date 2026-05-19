@@ -10,10 +10,14 @@ import TutorTab from './components/tabs/TutorTab.jsx'
 import VideosTab from './components/tabs/VideosTab.jsx'
 import LabsTab from './components/tabs/LabsTab.jsx'
 import LearnTVTab from './components/tabs/LearnTVTab.jsx'
+import SathiTab from './components/tabs/SathiTab.jsx'
+import BhoolBazaarTab from './components/tabs/BhoolBazaarTab.jsx'
+import MuqablaTab from './components/tabs/MuqablaTab.jsx'
+import ParentDashboard from './components/ParentDashboard.jsx'
 import SettingsModal from './components/SettingsModal.jsx'
 import {
   getDeviceId, apiAddXp, apiUpdateStreak,
-  apiSaveAIConfig, apiUpdateProfile, computeStreak,
+  apiUpdateProfile, computeStreak,
   getAuthToken, setAuthToken, clearAuth, apiGetMe,
 } from './api.js'
 
@@ -23,21 +27,26 @@ export {
   AI_PROVIDERS, getAIConfig, setAIConfig, callAI,
   buildSystemPrompt, parseAIObject, parseAIArray, checkStudentQuery,
   TEACHER_PERSONAS, updateBhool, getBhoolStats,
+  PLANS, planHasTab, planHasLab,
 } from './shared.js'
 
-import { COLORS, AI_PROVIDERS, setAIConfig } from './shared.js'
+import { COLORS, AI_PROVIDERS, setAIConfig, PLANS, planHasTab } from './shared.js'
 
 // ─── Defaults ────────────────────────────────────────────────
-const DEFAULT_PROFILE = { name: '', standard: 'Class 10', board: 'CBSE', language: 'English', subjects: [] }
+const DEFAULT_PROFILE = { name: '', standard: 'Class 10', board: 'CBSE', language: 'English', subjects: [], plan: 'free', plan_expires_at: '' }
 const DEFAULT_AI = { provider: 'groq', apiKey: '', model: 'llama-3.3-70b-versatile' }
 
-const NAV_ITEMS = [
+// All possible nav items — filtered at render time by plan.
+const ALL_NAV_ITEMS = [
   { key: 'home',     icon: '🏠', label: 'Home'     },
   { key: 'notebook', icon: '📓', label: 'Notebook'  },
   { key: 'tutor',    icon: '🤖', label: 'Tutor'    },
   { key: 'videos',   icon: '🎬', label: 'Videos'   },
   { key: 'learntv',  icon: '📺', label: 'Learn TV' },
-  { key: 'labs',     icon: '⚗️', label: 'Labs'     },
+  { key: 'sathi',    icon: '🤝', label: 'Sathi'     },
+  { key: 'bhool',    icon: '📛', label: 'Bhool'     },
+  { key: 'muqabla',  icon: '⚔️',  label: 'Muqabla'  },
+  { key: 'labs',     icon: '⚗️',  label: 'Labs'     },
 ]
 
 // ─── AppShell ─────────────────────────────────────────────────
@@ -56,17 +65,24 @@ function AppShell({
   const providerInfo = AI_PROVIDERS[aiConfig.provider] || AI_PROVIDERS.gemini
   const sharedProps = { profile, userId, xp, streak, addXp, docCtx, setDocCtx, docName, setDocName, setTab }
 
+  // Filter nav items based on the user's plan
+  const userPlan = profile.plan || 'free'
+  const NAV_ITEMS = ALL_NAV_ITEMS.filter(n => planHasTab(userPlan, n.key))
+
   const tabs = {
     home:     <HomeTab     {...sharedProps} />,
     notebook: <NotebookTab {...sharedProps} />,
     tutor:    <TutorTab    {...sharedProps} />,
     videos:   <VideosTab   {...sharedProps} />,
     learntv:  <LearnTVTab  {...sharedProps} />,
-    labs:     <LabsTab     {...sharedProps} />,
+    sathi:    <SathiTab        {...sharedProps} />,
+    bhool:    <BhoolBazaarTab  {...sharedProps} />,
+    muqabla:  <MuqablaTab      {...sharedProps} />,
+    labs:     <LabsTab         {...sharedProps} />,
   }
 
-  // Unknown tab → redirect to home
-  if (!tabs[tab]) return <Navigate to="/app/home" replace />
+  // If tab is not in the user's plan, redirect to home
+  if (!tabs[tab] || !planHasTab(userPlan, tab)) return <Navigate to="/app/home" replace />
 
   return (
     <div className="app-shell">
@@ -103,6 +119,20 @@ function AppShell({
               🔥 {streak}
             </div>
           </div>
+          {/* Plan badge */}
+          {(() => {
+            const planInfo = PLANS[userPlan] || PLANS.free
+            return (
+              <div style={{
+                background: `${planInfo.color}15`, border: `1px solid ${planInfo.color}40`,
+                borderRadius: 10, padding: '7px 12px', display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                <span style={{ fontSize: 14 }}>{planInfo.icon}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: planInfo.color }}>{planInfo.label}</span>
+                <span style={{ fontSize: 10, color: COLORS.muted, marginLeft: 'auto' }}>Plan</span>
+              </div>
+            )
+          })()}
           <button onClick={() => setShowSettings(true)} style={{
             background: `${providerInfo.color}12`, border: `1px solid ${providerInfo.color}40`,
             borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center',
@@ -126,7 +156,7 @@ function AppShell({
       </nav>
 
       {/* ── Right panel ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
         {/* Mobile top header */}
         <div className="app-header" style={{
           background: COLORS.card, borderBottom: `1px solid ${COLORS.border}`,
@@ -198,10 +228,22 @@ export default function App() {
   const location   = useLocation()
 
   // ── App state ─────────────────────────────────────────────
-  const [profile,        setProfile]        = useState(DEFAULT_PROFILE)
-  const [userId,         setUserId]         = useState(null)
-  const [xp,             setXp]             = useState(0)
-  const [streak,         setStreak]         = useState(1)
+  const [profile,        setProfile]        = useState(() => {
+    try {
+      const cached = localStorage.getItem('eduvyai_profile')
+      if (cached) return { ...DEFAULT_PROFILE, ...JSON.parse(cached) }
+    } catch {}
+    return DEFAULT_PROFILE
+  })
+  const [userId,         setUserId]         = useState(() => {
+    try { return JSON.parse(localStorage.getItem('eduvyai_profile') || 'null')?.id || null } catch { return null }
+  })
+  const [xp,             setXp]             = useState(() => {
+    try { return JSON.parse(localStorage.getItem('eduvyai_profile') || 'null')?.xp || 0 } catch { return 0 }
+  })
+  const [streak,         setStreak]         = useState(() => {
+    try { return JSON.parse(localStorage.getItem('eduvyai_profile') || 'null')?.streak || 1 } catch { return 1 }
+  })
   const [docCtx,         setDocCtx]         = useState('')
   const [docName,        setDocName]        = useState('')
   const [showSettings,   setShowSettings]   = useState(false)
@@ -213,17 +255,19 @@ export default function App() {
   // ── Hydrate from profile row ──────────────────────────────
   const hydrateProfile = (data) => {
     const p = {
-      name:          data.name,
-      standard:      data.standard,
-      board:         data.board,
-      language:      data.language,
-      subjects:      Array.isArray(data.subjects) ? data.subjects : [],
-      mobile:        data.mobile || '',
-      parent_mobile: data.parent_mobile || '',
+      name:            data.name,
+      standard:        data.standard,
+      board:           data.board,
+      language:        data.language,
+      subjects:        Array.isArray(data.subjects) ? data.subjects : [],
+      mobile:          data.mobile || '',
+      parent_mobile:   data.parent_mobile || '',
+      plan:            data.plan || 'free',
+      plan_expires_at: data.plan_expires_at || '',
     }
     setProfile(p)
     setUserId(data.id)
-    try { localStorage.setItem('eduvyai_profile', JSON.stringify(p)) } catch {}
+    try { localStorage.setItem('eduvyai_profile', JSON.stringify({ ...p, id: data.id, xp: data.xp || 0, streak: data.streak || 1 })) } catch {}
     setXp(data.xp || 0)
 
     const { streak: newStreak, changed } = computeStreak(data.last_active || '', data.streak || 1)
@@ -250,28 +294,33 @@ export default function App() {
   useEffect(() => {
     async function load() {
       const token = getAuthToken()
-      if (token) {
-        try {
-          const data = await apiGetMe()
-          if (data) {
-            hydrateProfile(data)
-            // Admin routes manage their own auth — don't redirect them
-            if (location.pathname.startsWith('/admin')) return
-            // Landing page manages its own redirect — skip it here
-            if (location.pathname === '/') return
-            if (location.pathname.startsWith('/auth')) {
-              // Already had valid token, go to app
-              navigate('/app/home', { replace: true })
-            }
-            // Already on /app/* — stay there, state is now hydrated
-            return
-          }
-        } catch { /* token expired */ }
-        clearAuth()
+      if (!token) {
+        if (location.pathname.startsWith('/app')) navigate('/auth', { replace: true })
+        return
       }
-      // Not authenticated — admin routes manage their own auth
+
+      let data = null
+      try {
+        data = await apiGetMe()
+      } catch {
+        // Network error / backend down — stay on current page with cached profile
+        return
+      }
+
+      if (data) {
+        hydrateProfile(data)
+        // Admin routes manage their own auth — don't redirect them
+        if (location.pathname.startsWith('/admin')) return
+        if (location.pathname === '/') return
+        if (location.pathname.startsWith('/auth')) {
+          navigate('/app/home', { replace: true })
+        }
+        return
+      }
+
+      // data is null → 401/404 → token is genuinely invalid
+      clearAuth()
       if (location.pathname.startsWith('/admin')) return
-      // Landing page manages its own state
       if (location.pathname === '/') return
       if (location.pathname.startsWith('/app')) {
         navigate('/auth', { replace: true })
@@ -300,12 +349,9 @@ export default function App() {
   }
 
   const handleAIConfigSave = (cfg) => {
-    const updatedKeys = { ...savedAiKeys }
-    if (cfg.apiKey) updatedKeys[cfg.provider] = cfg.apiKey
-    setSavedAiKeys(updatedKeys)
+    // AI config is server-managed — only update local state/localStorage
     setAIConfig(cfg)
     setAiConfigState(cfg)
-    apiSaveAIConfig(userId || getDeviceId(), { ...cfg, aiKeys: updatedKeys }).catch(() => {})
   }
 
   const handleLogout = () => {
@@ -320,7 +366,13 @@ export default function App() {
   const addXp = (pts) => {
     setXp(prev => {
       const next = prev + pts
-      apiAddXp(userId || getDeviceId(), pts).then(res => setXp(res.xp)).catch(() => {})
+      apiAddXp(userId || getDeviceId(), pts).then(res => {
+        setXp(res.xp)
+        try {
+          const cached = JSON.parse(localStorage.getItem('eduvyai_profile') || '{}')
+          localStorage.setItem('eduvyai_profile', JSON.stringify({ ...cached, xp: res.xp }))
+        } catch {}
+      }).catch(() => {})
       return next
     })
   }
@@ -353,6 +405,9 @@ export default function App() {
       {/* Admin — redirect bare /admin to login; AdminPanel handles auth */}
       <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
       <Route path="/admin/:section" element={<AdminPanel />} />
+
+      {/* Parent Dashboard — public, no auth */}
+      <Route path="/parent/:pin" element={<ParentDashboard />} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

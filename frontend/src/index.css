@@ -11,6 +11,7 @@ html, body {
   color: #eeeeff;
   font-family: 'Sora', sans-serif;
   height: 100%;
+  overflow: hidden;
   overscroll-behavior: none;
 }
 
@@ -60,28 +61,26 @@ input, textarea, select { outline: none; border: none; }
 #root {
   display: flex;
   justify-content: center;
-  min-height: 100vh;
+  height: 100%;
   background: #04040e;
 }
 
 .app-shell {
   width: 100%;
-  max-width: 480px;
-  min-height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: #04040e;
   position: relative;
+  overflow: hidden;
 }
 
 /* Bottom nav visible on mobile, hidden on desktop */
 .bottom-nav {
   position: fixed;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   width: 100%;
-  max-width: 480px;
   background: #0b0b1c;
   border-top: 1px solid #ffffff08;
   display: flex;
@@ -95,7 +94,9 @@ input, textarea, select { outline: none; border: none; }
 .tab-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-bottom: 72px;
+  min-height: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -107,16 +108,13 @@ input, textarea, select { outline: none; border: none; }
   #root {
     align-items: stretch;
     background: #020209;
+    height: 100%;
   }
 
   .app-shell {
-    max-width: 1200px;
     width: 100%;
     flex-direction: row;
-    min-height: 100vh;
-    margin: 0 auto;
-    border-left: 1px solid #ffffff08;
-    border-right: 1px solid #ffffff08;
+    height: 100%;
   }
 
   /* Hide bottom nav, show sidebar */
@@ -126,14 +124,11 @@ input, textarea, select { outline: none; border: none; }
     display: flex;
     flex-direction: column;
     width: 220px;
-    min-height: 100vh;
     background: #0b0b1c;
     border-right: 1px solid #ffffff08;
     padding: 24px 12px 24px;
     flex-shrink: 0;
-    position: sticky;
-    top: 0;
-    height: 100vh;
+    height: 100%;
     overflow-y: auto;
   }
 
@@ -141,8 +136,10 @@ input, textarea, select { outline: none; border: none; }
   .tab-content {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding-bottom: 32px;
     min-width: 0;
+    min-height: 0;
   }
 
   /* App header spans full width on desktop */
@@ -157,6 +154,94 @@ input, textarea, select { outline: none; border: none; }
     width: 260px;
     padding: 28px 16px;
   }
+}
+
+/* ── Landing page nav pricing link — hidden on mobile, visible on wider screens ── */
+@media (min-width: 480px) {
+  .nav-pricing-link {
+    display: inline-block !important;
+  }
+  .nav-pricing-link:hover {
+    color: #eeeeff !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LANDING PAGE — full-viewport responsive layout
+   ═══════════════════════════════════════════════════════ */
+
+/* Sticky glass nav bar */
+.lp-nav {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  width: 100%;
+  background: rgba(4, 4, 14, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Centred content container */
+.lp-container {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 18px;
+}
+
+/* Hero — full viewport height on mobile too */
+.lp-hero {
+  min-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 0 60px;
+  gap: 24px;
+}
+
+/* Feature cards grid */
+.lp-grid-features {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Pricing grid — 1 column on smallest phones, 2 on wider */
+.lp-grid-pricing {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (min-width: 480px) {
+  .lp-container { padding: 0 24px; }
+  .lp-grid-pricing { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 768px) {
+  .lp-container {
+    max-width: 1200px;
+    padding: 0 40px;
+  }
+  .lp-hero {
+    min-height: calc(100vh - 72px);
+    padding: 64px 0 72px;
+  }
+  .lp-grid-features {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .lp-grid-pricing {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .lp-container { padding: 0 48px; }
 }
 
 /* ── Safe area for notch phones ─────────────────────────── */
