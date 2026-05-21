@@ -789,17 +789,19 @@ class UserAIConfigUpdate(BaseModel):
 @router.get("/admin/ai-config")
 def admin_get_ai_config(admin_id: int = Depends(get_admin_user)):
     """Return current plan routing config and key status (never actual key values)."""
-    from services.ai_service import get_plan_routing, get_key_status
+    from services.ai_service import get_plan_routing, get_key_status, get_key_slot_status
     return {
         "routing":    get_plan_routing(),
         "providers":  PROVIDER_MODELS,
-        "key_status": get_key_status(),   # {provider: bool} — no actual keys
+        "key_status": get_key_status(),      # {provider: bool} — no actual keys
+        "key_slots":  get_key_slot_status(),  # {provider: {db_slots, env_count, pool_size}}
     }
 
 
 class APIKeyUpdate(BaseModel):
     provider: str
     key: str
+    slot: int = 1   # 1–5; slot 1 is the primary key
 
 
 @router.put("/admin/ai-keys")
@@ -807,6 +809,8 @@ def admin_set_api_key(data: APIKeyUpdate, admin_id: int = Depends(get_admin_user
     """Save a provider API key to the DB (replaces env-var value in memory immediately)."""
     if data.provider not in VALID_PROVIDERS:
         raise HTTPException(status_code=422, detail=f"Invalid provider. Must be one of: {', '.join(VALID_PROVIDERS)}")
+    if not 1 <= data.slot <= 5:
+        raise HTTPException(status_code=422, detail="Slot must be between 1 and 5")
     key = data.key.strip()
     if not key:
         raise HTTPException(status_code=422, detail="Key cannot be empty")
@@ -820,8 +824,20 @@ def admin_set_api_key(data: APIKeyUpdate, admin_id: int = Depends(get_admin_user
     if data.provider == "openai" and not key.startswith("sk-"):
         raise HTTPException(status_code=422, detail="OpenAI keys start with 'sk-'")
     from services.ai_service import save_api_key
-    save_api_key(data.provider, key)
-    return {"ok": True, "provider": data.provider, "set": True}
+    save_api_key(data.provider, key, slot=data.slot)
+    return {"ok": True, "provider": data.provider, "slot": data.slot, "set": True}
+
+
+@router.delete("/admin/ai-keys/{provider}/{slot}")
+def admin_remove_api_key(provider: str, slot: int, admin_id: int = Depends(get_admin_user)):
+    """Remove a specific key slot for a provider (DB only; env-var keys are unaffected)."""
+    if provider not in VALID_PROVIDERS:
+        raise HTTPException(status_code=422, detail=f"Invalid provider. Must be one of: {', '.join(VALID_PROVIDERS)}")
+    if not 1 <= slot <= 5:
+        raise HTTPException(status_code=422, detail="Slot must be between 1 and 5")
+    from services.ai_service import remove_api_key_slot
+    remove_api_key_slot(provider, slot)
+    return {"ok": True, "provider": provider, "slot": slot, "removed": True}
 
 
 @router.put("/admin/ai-config")

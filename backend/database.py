@@ -1,23 +1,85 @@
 import json
 import os
+import threading
 import psycopg2
 import psycopg2.extras
+import psycopg2.pool
 from dotenv import load_dotenv
 
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+# ── Connection Pool ───────────────────────────────────────────
+# One pool shared across all requests.  ThreadedConnectionPool is
+# safe for multi-threaded FastAPI/uvicorn workers.
+# Tune DB_POOL_MIN / DB_POOL_MAX via environment variables.
+_pool: psycopg2.pool.ThreadedConnectionPool | None = None
+_pool_lock = threading.Lock()
 
-def get_db() -> psycopg2.extensions.connection:
-    """Open and return a new PostgreSQL connection.
-    Rows are returned as RealDictRow (dict-like) by default.
+
+def _get_pool() -> psycopg2.pool.ThreadedConnectionPool:
+    global _pool
+    if _pool is not None and not _pool.closed:
+        return _pool
+    with _pool_lock:
+        # Double-checked locking — re-test after acquiring lock
+        if _pool is None or _pool.closed:
+            min_conn = int(os.getenv("DB_POOL_MIN", "2"))
+            max_conn = int(os.getenv("DB_POOL_MAX", "20"))
+            _pool = psycopg2.pool.ThreadedConnectionPool(
+                min_conn,
+                max_conn,
+                DATABASE_URL,
+                cursor_factory=psycopg2.extras.RealDictCursor,
+            )
+    return _pool
+
+
+class _PooledConn:
     """
-    conn = psycopg2.connect(
-        DATABASE_URL,
-        cursor_factory=psycopg2.extras.RealDictCursor,
-    )
-    return conn
+    Thin wrapper around a pooled psycopg2 connection.
+    Calling .close() returns the connection to the pool instead of
+    destroying it, so all existing router code works unchanged.
+    """
+    __slots__ = ("_conn", "_pool_ref")
+
+    def __init__(self, conn, pool):
+        object.__setattr__(self, "_conn", conn)
+        object.__setattr__(self, "_pool_ref", pool)
+
+    # Delegate everything to the real connection
+    def __getattr__(self, name):
+        return getattr(object.__getattribute__(self, "_conn"), name)
+
+    def cursor(self, *args, **kwargs):
+        return object.__getattribute__(self, "_conn").cursor(*args, **kwargs)
+
+    def commit(self):
+        return object.__getattribute__(self, "_conn").commit()
+
+    def rollback(self):
+        return object.__getattribute__(self, "_conn").rollback()
+
+    def close(self):
+        """Return connection to pool — does NOT destroy it."""
+        conn  = object.__getattribute__(self, "_conn")
+        pool_ = object.__getattribute__(self, "_pool_ref")
+        try:
+            conn.rollback()   # reset any uncommitted state before returning
+        except Exception:
+            pass
+        pool_.putconn(conn)
+
+
+def get_db() -> _PooledConn:
+    """
+    Get a connection from the pool.  Always call conn.close() when done
+    (try/finally) — this returns the connection to the pool, not destroys it.
+    """
+    pool = _get_pool()
+    conn = pool.getconn()
+    return _PooledConn(conn, pool)
 
 
 def init_db():
@@ -45,6 +107,9 @@ def init_db():
             ai_keys         TEXT DEFAULT '{}',
             plan            TEXT DEFAULT 'free',
             plan_expires_at TEXT DEFAULT '',
+            school          TEXT DEFAULT '',
+            referral_code   TEXT DEFAULT '',
+            referred_by     TEXT DEFAULT '',
             created_at      TEXT DEFAULT CURRENT_DATE
         )
     """)
@@ -57,6 +122,24 @@ def init_db():
                 WHERE table_name = 'users' AND column_name = 'ai_keys'
             ) THEN
                 ALTER TABLE users ADD COLUMN ai_keys TEXT DEFAULT '{}';
+            END IF;
+        END $$;
+    """)
+    # --- Add referral columns if missing (existing DBs) ---
+    cur.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = 'referral_code'
+            ) THEN
+                ALTER TABLE users ADD COLUMN referral_code TEXT DEFAULT '';
+            END IF;
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = 'referred_by'
+            ) THEN
+                ALTER TABLE users ADD COLUMN referred_by TEXT DEFAULT '';
             END IF;
         END $$;
     """)

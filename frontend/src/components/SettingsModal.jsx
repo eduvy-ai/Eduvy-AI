@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { COLORS, BOARDS, LANGS, PLANS } from '../shared.js'
-import { apiGetParentPin, apiCreateParentPin, apiRevokeParentPin } from '../api.js'
+import { apiGetParentPin, apiCreateParentPin, apiRevokeParentPin, apiGetMyReferralCode } from '../api.js'
+import UpgradePlanModal from './UpgradePlanModal.jsx'
 
 const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
 
@@ -14,6 +15,11 @@ const PLAN_MODEL_LABEL = {
 
 export default function SettingsModal({ config, savedKeys = {}, onSave, onClose, profile, onProfileSave }) {
   const [activeTab, setActiveTab] = useState('ai')
+  const [showUpgrade, setShowUpgrade] = useState(false)
+
+  // ── Referral state ───────────────────────────────────────
+  const [referral, setReferral] = useState(null)
+  const [refCopied, setRefCopied] = useState(false)
 
   // ── Usage state ──────────────────────────────────────────────
   const [usage, setUsage] = useState(null)
@@ -46,6 +52,9 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
       apiGetParentPin()
         .then(r => { setParentPin(r.pin); setParentExpires(r.expires_at) })
         .catch(() => {})
+      apiGetMyReferralCode()
+        .then(setReferral)
+        .catch(() => {})
     }
   }, [activeTab])
 
@@ -64,6 +73,7 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
   }, [activeTab])
 
   return (
+    <>
     <div style={{
       position: "fixed",
       inset: 0,
@@ -150,6 +160,49 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
               <button onClick={saveProfile} style={primaryBtn}>
                 {profileSaved ? "✅ Saved!" : "💾 Save Profile"}
               </button>
+
+              {/* ── Refer Friends ── */}
+              <div style={{
+                marginTop: 8, background: `${COLORS.blue}0d`,
+                border: `1px solid ${COLORS.blue}33`, borderRadius: 14, padding: '16px',
+              }}>
+                <div style={{ fontWeight: 700, color: COLORS.blue, fontSize: 14, marginBottom: 6 }}>
+                  🎁 Refer Friends
+                </div>
+                <p style={{ color: COLORS.muted, fontSize: 12, margin: '0 0 12px' }}>
+                  Share your code. You get <strong style={{ color: COLORS.yellow }}>+500 XP</strong> for every friend who joins. They get <strong style={{ color: COLORS.green }}>+200 XP</strong> bonus.
+                </p>
+                {referral ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: COLORS.card2, borderRadius: 10, padding: '10px 14px' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: COLORS.muted, fontSize: 10, marginBottom: 2 }}>YOUR REFERRAL CODE</div>
+                      <div style={{ fontFamily: 'monospace', fontSize: 20, fontWeight: 900, color: COLORS.blue, letterSpacing: 4 }}>
+                        {referral.code}
+                      </div>
+                      {referral.referred_count > 0 && (
+                        <div style={{ color: COLORS.green, fontSize: 11, marginTop: 2 }}>
+                          ✓ {referral.referred_count} friend{referral.referred_count > 1 ? 's' : ''} joined!
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => {
+                        const shareText = `Join VidyAI — AI tutor in your language! Use my code ${referral.code} to get +200 XP bonus. ${window.location.origin}`
+                        if (navigator.share) {
+                          navigator.share({ title: 'Join VidyAI', text: shareText }).catch(() => {})
+                        } else {
+                          navigator.clipboard?.writeText(shareText)
+                          setRefCopied(true)
+                          setTimeout(() => setRefCopied(false), 2000)
+                        }
+                      }}
+                      style={{ background: refCopied ? `${COLORS.green}22` : `${COLORS.blue}22`, border: `1px solid ${refCopied ? COLORS.green : COLORS.blue}44`, color: refCopied ? COLORS.green : COLORS.blue, borderRadius: 10, padding: '7px 12px', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}
+                    >{refCopied ? '✅ Copied!' : '📲 Share'}</button>
+                  </div>
+                ) : (
+                  <div style={{ color: COLORS.muted, fontSize: 12 }}>Loading your code…</div>
+                )}
+              </div>
 
               {/* ── Share with Parent ── */}
               <div style={{
@@ -299,6 +352,19 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                 <p style={{ fontSize: 11, color: COLORS.muted, textAlign: "center", margin: 0 }}>
                   Contact your teacher or admin to upgrade your plan.
                 </p>
+                {profile?.plan !== 'premium' && (
+                  <button
+                    onClick={() => setShowUpgrade(true)}
+                    style={{
+                      width: '100%', padding: '13px', borderRadius: 14, marginTop: 4,
+                      background: 'linear-gradient(135deg, #00E5A0, #7B9CFF)',
+                      border: 'none', color: '#04040e', fontSize: 14, fontWeight: 900,
+                      cursor: 'pointer', fontFamily: 'Sora, sans-serif',
+                    }}
+                  >
+                    ⬆️ Upgrade Plan
+                  </button>
+                )}
               </div>
             )
           })()}
@@ -427,6 +493,18 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
         </div>
       </div>
     </div>
+
+    {showUpgrade && (
+      <UpgradePlanModal
+        profile={profile}
+        onClose={() => setShowUpgrade(false)}
+        onUpgraded={(plan) => {
+          // Refresh the page to reflect new plan — simplest approach
+          setTimeout(() => window.location.reload(), 1500)
+        }}
+      />
+    )}
+    </>
   )
 }
 

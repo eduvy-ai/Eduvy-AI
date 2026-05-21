@@ -71,14 +71,6 @@ async function fetchEduReels(query) {
   }
 }
 
-async function fetchReelStream(shortcode) {
-  const r = await fetch(`/api/instagram/reel/${encodeURIComponent(shortcode)}/stream`, {
-    signal: AbortSignal.timeout(35000),
-  })
-  if (!r.ok) throw new Error(`HTTP ${r.status}`)
-  return r.json() // { url, thumbnail, title, duration }
-}
-
 async function getVideoInfo(videoId) {
   try {
     const r = await fetch(`/api/youtube/video/${videoId}`, {
@@ -118,19 +110,8 @@ function extractYouTubeId(url) {
   return ''
 }
 
-function extractInstagramUrl(url) {
-  try {
-    const u = new URL(url)
-    if (u.hostname.includes('instagram.com') && /\/(reel|p)\//.test(u.pathname)) {
-      return u.origin + u.pathname.replace(/\/$/, '') + '/'
-    }
-  } catch { /* not a URL */ }
-  return ''
-}
-
 function detectUrlType(url) {
   if (extractYouTubeId(url)) return 'youtube'
-  if (extractInstagramUrl(url)) return 'instagram'
   return null
 }
 
@@ -151,10 +132,8 @@ export default function LearnTVTab({ profile }) {
   const [conceptLoading, setConceptLoading] = useState(false)
 
   // ── Reels & Shorts state ────────────────────────────────────
-  const [reelUrl, setReelUrl] = useState('')
-  const [reels, setReels] = useState([]) // [{ url, embedUrl }] — saved by URL
   const [reelsQ, setReelsQ] = useState('')
-  const [reelsFeed, setReelsFeed] = useState([])   // unified edu-reels feed
+  const [reelsFeed, setReelsFeed] = useState([])   // unified edu-reels feed (YouTube Shorts)
   const [reelsLoading, setReelsLoading] = useState(false)
   const [reelPlayId, setReelPlayId] = useState(null)
   const [aiReelContent, setAiReelContent] = useState(null)
@@ -299,15 +278,6 @@ Return a JSON object:
     setExpandedId(video.id)
   }
 
-  // ── Instagram Reels ────────────────────────────────────────
-  const addReel = () => {
-    const url = reelUrl.trim()
-    const embedUrl = extractInstagramUrl(url)
-    if (!embedUrl) return
-    setReels(prev => [{ url, embedUrl: embedUrl + 'embed/' }, ...prev])
-    setReelUrl('')
-  }
-
   // ── AI Smart Summaries for reels ─────────────────────────
   const generateReelBriefs = async (vids, topic) => {
     try {
@@ -400,7 +370,7 @@ Give 4-6 key concepts the student should find videos about.`
     if (!url) return
     const type = detectUrlType(url)
     if (!type) {
-      setAnalysis({ error: 'Please paste a valid YouTube or Instagram Reel URL.' })
+      setAnalysis({ error: 'Please paste a valid YouTube video or Shorts URL.' })
       return
     }
     setUrlType(type)
@@ -445,21 +415,6 @@ Return a JSON object with:
       } else {
         setAnalysis({ summary: res, keyPoints: [], quiz: null, takeaway: '', difficulty: '', relatedTopics: [] })
       }
-    } else {
-      // Instagram
-      setAnalyzeVideo({ instagramUrl: extractInstagramUrl(url) })
-      const sys = buildSystemPrompt(profile) + `\nYou are helping a student learn from an Instagram Reel.`
-      const prompt = `The student is watching an Instagram Reel from: ${url}
-Since I cannot access the video content directly, please provide:
-{
-  "summary": "General guidance on how to learn from short-form educational content",
-  "keyPoints": ["Tip 1 for learning from reels", "Tip 2", "Tip 3"],
-  "takeaway": "Key advice",
-  "studyTips": ["How to take notes from short videos", "How to verify information", "How to go deeper on the topic"]
-}`
-      const res = await callAI(prompt, sys, [], 3, 1500)
-      const parsed = parseAIObject(res)
-      setAnalysis(parsed || { summary: res, keyPoints: [], studyTips: [] })
     }
     setAnalyzing(false)
   }
@@ -1078,11 +1033,11 @@ Return a JSON object:
         <div>
           {/* URL input */}
           <div style={{ marginBottom: 16 }}>
-            <label style={labelStyle}>PASTE YOUTUBE OR INSTAGRAM REEL URL</label>
+            <label style={labelStyle}>PASTE YOUTUBE VIDEO OR SHORTS URL</label>
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 style={inputStyle}
-                placeholder="https://www.youtube.com/watch?v=... or https://www.instagram.com/reel/..."
+                placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
                 value={pasteUrl}
                 onChange={e => setPasteUrl(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && doAnalyze()}
@@ -1094,7 +1049,7 @@ Return a JSON object:
               >{analyzing ? '⏳ Analyzing…' : '🔬 Analyze'}</button>
             </div>
             <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 6 }}>
-              Supports: YouTube videos, YouTube Shorts, Instagram Reels
+              Supports: YouTube videos and YouTube Shorts
             </div>
           </div>
 
@@ -1129,16 +1084,7 @@ Return a JSON object:
                   />
                 </div>
               )}
-              {analyzeVideo.instagramUrl && (
-                <div style={{ borderRadius: 12, overflow: 'hidden', marginBottom: 16, border: `1px solid ${COLORS.border}`, background: COLORS.card }}>
-                  <iframe
-                    src={analyzeVideo.instagramUrl + 'embed/'}
-                    style={{ width: '100%', minHeight: 480, border: 'none' }}
-                    allowFullScreen
-                    title="Instagram Reel"
-                  />
-                </div>
-              )}
+              {/* No Instagram iframe embed */}
 
               {/* Video title */}
               {analyzeVideo.title && (
@@ -1272,7 +1218,7 @@ Return a JSON object:
               <div style={{ fontSize: 40, marginBottom: 12 }}>🎬</div>
               <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6, color: COLORS.text }}>Analyze any video</div>
               <div style={{ fontSize: 12, lineHeight: 1.6 }}>
-                Paste a YouTube or Instagram Reel URL above.<br />
+                Paste a YouTube video or Shorts URL above.<br />
                 AI will generate a summary, key points, and a quiz!
               </div>
             </div>

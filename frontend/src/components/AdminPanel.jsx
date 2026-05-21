@@ -1371,12 +1371,14 @@ const PLAN_LABELS = { free: "🆓 Free", basic: "⭐ Basic", pro: "🚀 Pro", pr
 function AIConfigTab({ toast }) {
   const [routing, setRouting]       = useState({})
   const [keyStatus, setKeyStatus]   = useState({})   // {provider: bool}
+  const [keySlots, setKeySlots]     = useState({})   // {provider: {db_slots,env_count,pool_size}}
   const [loading, setLoading]       = useState(false)
   const [saving, setSaving]         = useState(null)   // which plan is saving
-  // API key editing state
-  const [keyInputs, setKeyInputs]   = useState({})    // {provider: value}
-  const [keyVisible, setKeyVisible] = useState({})    // {provider: bool}
-  const [keySaving, setKeySaving]   = useState(null)  // which provider is saving
+  // API key editing state — keyed as "provider-slot" e.g. "groq-1"
+  const [keyInputs, setKeyInputs]   = useState({})    // {"groq-1": value, ...}
+  const [keyVisible, setKeyVisible] = useState({})    // {"groq-1": bool, ...}
+  const [keySaving, setKeySaving]   = useState(null)  // "groq-1" | null
+  const [keyRemoving, setKeyRemoving] = useState(null) // "groq-1" | null
   // Per-user override
   const [userSearch, setUserSearch] = useState("")
   const [users, setUsers]           = useState([])
@@ -1394,6 +1396,7 @@ function AIConfigTab({ toast }) {
         const data = await res.json()
         setRouting(data.routing || {})
         setKeyStatus(data.key_status || {})
+        setKeySlots(data.key_slots || {})
       }
     } finally {
       setLoading(false)
@@ -1402,25 +1405,43 @@ function AIConfigTab({ toast }) {
 
   useEffect(() => { loadConfig() }, [loadConfig])
 
-  const saveApiKey = async (provider) => {
-    const key = (keyInputs[provider] || "").trim()
+  const saveApiKeySlot = async (provider, slot) => {
+    const slotKey = `${provider}-${slot}`
+    const key = (keyInputs[slotKey] || "").trim()
     if (!key) { toast("Key cannot be empty", "error"); return }
-    setKeySaving(provider)
+    setKeySaving(slotKey)
     try {
       const res = await API('/admin/ai-keys', {
         method: 'PUT',
-        body: JSON.stringify({ provider, key }),
+        body: JSON.stringify({ provider, key, slot }),
       })
       if (res.ok) {
-        toast(`${ADMIN_PROVIDERS[provider]?.label} key saved`)
-        setKeyStatus(s => ({ ...s, [provider]: true }))
-        setKeyInputs(k => ({ ...k, [provider]: "" }))
+        toast(`${ADMIN_PROVIDERS[provider]?.label} — Slot ${slot} saved`)
+        setKeyInputs(k => ({ ...k, [slotKey]: "" }))
+        loadConfig()  // refresh pool sizes
       } else {
         const d = await res.json()
         toast(d.detail || "Failed to save key", "error")
       }
     } finally {
       setKeySaving(null)
+    }
+  }
+
+  const removeApiKeySlot = async (provider, slot) => {
+    const slotKey = `${provider}-${slot}`
+    setKeyRemoving(slotKey)
+    try {
+      const res = await API(`/admin/ai-keys/${provider}/${slot}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast(`${ADMIN_PROVIDERS[provider]?.label} — Slot ${slot} removed`)
+        loadConfig()
+      } else {
+        const d = await res.json()
+        toast(d.detail || "Failed to remove key", "error")
+      }
+    } finally {
+      setKeyRemoving(null)
     }
   }
 
@@ -1487,68 +1508,101 @@ function AIConfigTab({ toast }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
 
-      {/* ── Section 0: Provider API Keys ── */}
+      {/* ── Section 0: Provider API Keys (Round-Robin Pool) ── */}
       <div style={{ background: C.card2, borderRadius: 16, padding: 22, display: "flex", flexDirection: "column", gap: 16 }}>
         <div>
-          <h3 style={{ color: C.text, margin: "0 0 4px", fontSize: 15 }}>Provider API Keys</h3>
+          <h3 style={{ color: C.text, margin: "0 0 4px", fontSize: 15 }}>Provider API Keys — Round-Robin Pool</h3>
           <p style={{ color: C.muted, fontSize: 12, margin: 0 }}>
-            Keys are stored server-side only and never returned to this browser.
-            A green dot means a key is active. Paste a new key and click Save to update.
+            Add up to 5 DB keys per provider. Requests automatically cycle through all keys,
+            multiplying your quota. Keys in <code style={{ color: C.yellow }}>.env</code> are
+            always included and shown as env count. Keys are stored server-side only.
           </p>
         </div>
         {Object.entries(ADMIN_PROVIDERS).map(([provider, meta]) => {
-          const hasKey = !!keyStatus[provider]
-          const inputVal = keyInputs[provider] || ""
-          const isVisible = !!keyVisible[provider]
+          const slotInfo = keySlots[provider] || { db_slots: {}, env_count: 0, pool_size: 0 }
+          const poolSize = slotInfo.pool_size
+          const envCount = slotInfo.env_count
           return (
             <div key={provider} style={{
               background: C.card, borderRadius: 12, padding: "14px 16px",
-              border: `1px solid ${hasKey ? meta.color + "40" : C.border}`,
+              border: `1px solid ${poolSize > 0 ? meta.color + "40" : C.border}`,
               display: "flex", flexDirection: "column", gap: 10,
             }}>
               {/* Provider header */}
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 16 }}>{meta.icon}</span>
                 <span style={{ color: meta.color, fontWeight: 700, fontSize: 13, flex: 1 }}>{meta.label}</span>
+                {envCount > 0 && (
+                  <span style={{
+                    fontSize: 11, padding: "3px 8px", borderRadius: 20,
+                    background: `${C.green}10`, border: `1px solid ${C.green}20`, color: C.muted,
+                  }}>⚙️ {envCount} env</span>
+                )}
                 <span style={{
                   fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
-                  background: hasKey ? `${meta.color}20` : `${C.red}20`,
-                  color: hasKey ? meta.color : C.red,
-                  border: `1px solid ${hasKey ? meta.color + "40" : C.red + "40"}`,
+                  background: poolSize > 0 ? `${meta.color}20` : `${C.red}20`,
+                  color: poolSize > 0 ? meta.color : C.red,
+                  border: `1px solid ${poolSize > 0 ? meta.color + "40" : C.red + "40"}`,
                 }}>
-                  {hasKey ? "● Key set" : "○ No key"}
+                  {poolSize > 0 ? `● ${poolSize} key${poolSize > 1 ? "s" : ""} in pool` : "○ No keys"}
                 </span>
               </div>
-              {/* Key input row */}
-              <div style={{ display: "flex", gap: 8 }}>
-                <div style={{ flex: 1, position: "relative" }}>
-                  <input
-                    style={{ ...inp, paddingRight: 40 }}
-                    type={isVisible ? "text" : "password"}
-                    placeholder={hasKey ? "Enter new key to replace…" : `Paste ${meta.label} key…`}
-                    value={inputVal}
-                    onChange={e => setKeyInputs(k => ({ ...k, [provider]: e.target.value }))}
-                    onKeyDown={e => e.key === "Enter" && saveApiKey(provider)}
-                    autoComplete="off"
-                  />
-                  <button
-                    onClick={() => setKeyVisible(v => ({ ...v, [provider]: !v[provider] }))}
-                    style={{
-                      position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
-                      background: "none", border: "none", cursor: "pointer",
-                      color: C.muted, fontSize: 14, padding: 0,
-                    }}
-                  >{isVisible ? "🙈" : "👁"}</button>
-                </div>
-                <button
-                  style={{ ...btn(meta.color), padding: "9px 16px", fontSize: 12, flexShrink: 0,
-                    color: provider === "gemini" ? "#04040e" : provider === "groq" ? "#04040e" : "#fff" }}
-                  onClick={() => saveApiKey(provider)}
-                  disabled={keySaving === provider || !inputVal.trim()}
-                >
-                  {keySaving === provider ? "Saving…" : "Save Key"}
-                </button>
-              </div>
+              {/* Slots 1 – 5 */}
+              {[1, 2, 3, 4, 5].map(slot => {
+                const slotKey = `${provider}-${slot}`
+                const isSet   = !!slotInfo.db_slots[slot]
+                const inputVal  = keyInputs[slotKey] || ""
+                const isVisible = !!keyVisible[slotKey]
+                const isSaving  = keySaving === slotKey
+                const isRemoving = keyRemoving === slotKey
+                return (
+                  <div key={slot} style={{
+                    display: "flex", gap: 8, alignItems: "center",
+                    opacity: !isSet && slot > 1 && !inputVal ? 0.55 : 1,
+                    transition: "opacity 0.15s",
+                  }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, width: 52, flexShrink: 0, color: isSet ? meta.color : C.muted }}>
+                      {isSet ? "●" : "○"} Slot {slot}
+                    </span>
+                    <div style={{ flex: 1, position: "relative" }}>
+                      <input
+                        style={{ ...inp, paddingRight: 38 }}
+                        type={isVisible ? "text" : "password"}
+                        placeholder={isSet ? `Slot ${slot} is set — paste to replace` : `Paste key for slot ${slot}${slot === 1 ? " (primary)" : ""}…`}
+                        value={inputVal}
+                        onChange={e => setKeyInputs(k => ({ ...k, [slotKey]: e.target.value }))}
+                        onKeyDown={e => e.key === "Enter" && saveApiKeySlot(provider, slot)}
+                        autoComplete="off"
+                      />
+                      <button
+                        onClick={() => setKeyVisible(v => ({ ...v, [slotKey]: !v[slotKey] }))}
+                        style={{
+                          position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+                          background: "none", border: "none", cursor: "pointer",
+                          color: C.muted, fontSize: 13, padding: 0,
+                        }}
+                      >{isVisible ? "🙈" : "👁"}</button>
+                    </div>
+                    <button
+                      style={{
+                        ...btn(meta.color), padding: "8px 12px", fontSize: 11, flexShrink: 0,
+                        color: provider === "gemini" || provider === "groq" ? "#04040e" : "#fff",
+                        opacity: !inputVal.trim() ? 0.4 : 1,
+                      }}
+                      onClick={() => saveApiKeySlot(provider, slot)}
+                      disabled={isSaving || !inputVal.trim()}
+                    >{isSaving ? "…" : "Save"}</button>
+                    {isSet && (
+                      <button
+                        style={{ ...btn(C.red), padding: "8px 10px", fontSize: 11, flexShrink: 0, color: "#fff" }}
+                        onClick={() => removeApiKeySlot(provider, slot)}
+                        disabled={isRemoving}
+                        title={`Remove slot ${slot} key`}
+                      >{isRemoving ? "…" : "✕"}</button>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )
         })}

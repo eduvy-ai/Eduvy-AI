@@ -22,6 +22,8 @@ from routers.squads import router as squads_router
 from routers.bhool import router as bhool_router
 from routers.muqabla import router as muqabla_router
 from routers.parent import router as parent_router
+from routers.referrals import router as referrals_router
+from routers.payments import router as payments_router
 
 load_dotenv()
 
@@ -118,6 +120,8 @@ app.include_router(squads_router, prefix="/api")
 app.include_router(bhool_router, prefix="/api")
 app.include_router(muqabla_router, prefix="/api")
 app.include_router(parent_router, prefix="/api")
+app.include_router(referrals_router, prefix="/api")
+app.include_router(payments_router, prefix="/api")
 
 
 # ── Health check ──────────────────────────────────────────────

@@ -161,6 +161,16 @@ Frontend reads `/squads/{id}/doubts/quota` and shows remaining count. Backend re
 ### 14. Brand Names — Do Not Translate Nav Labels
 `Sathi`, `Bhool`, `Muqabla` are product brand names (like "Reels" or "Shorts"). Do NOT translate them into tab labels for different languages. Translate all content *inside* each tab via `LANG_RULES`, not the tab names themselves.
 
+### 15. Self-Review After Every Code Change — Mandatory
+After completing any code task, always review the changed file(s) before finishing:
+- **Syntax**: No unclosed brackets `{}`, parentheses `()`, JSX tags, or template literals
+- **Data types**: Function return types match what callers expect; no implicit `undefined` passed where a value is required
+- **Imports**: Every used symbol is imported; no unused imports left behind
+- **Logic**: Removed code did not leave behind orphaned `}` or `else` branches
+- **JSX structure**: Every opened tag is closed; `return` has exactly one root element or `<>` fragment
+- **Python**: Indentation is consistent; all `try` blocks have matching `except`; no variable used before assignment
+- Re-read the modified region (at minimum 20 lines above and below each change) to catch errors before they reach the user.
+
 ## File Structure
 ```
 src/
