@@ -213,6 +213,7 @@ function AppShell({
           config={aiConfig}
           savedKeys={savedAiKeys}
           profile={profile}
+          userId={userId}
           onSave={handleAIConfigSave}
           onProfileSave={handleProfileSave}
           onClose={() => setShowSettings(false)}

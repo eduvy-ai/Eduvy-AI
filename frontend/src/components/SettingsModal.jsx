@@ -1,6 +1,8 @@
+// src/components/SettingsModal.jsx
 import { useState, useEffect } from 'react'
 import { COLORS, BOARDS, LANGS, PLANS } from '../shared.js'
 import { apiGetParentPin, apiCreateParentPin, apiRevokeParentPin } from '../api.js'
+import PricingModal from './PricingModal.jsx'
 
 const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
 
@@ -12,7 +14,7 @@ const PLAN_MODEL_LABEL = {
   premium: 'Your chosen model',
 }
 
-export default function SettingsModal({ config, savedKeys = {}, onSave, onClose, profile, onProfileSave }) {
+export default function SettingsModal({ config, savedKeys = {}, onSave, onClose, profile, onProfileSave, userId }) {
   const [activeTab, setActiveTab] = useState('ai')
 
   // ── Usage state ──────────────────────────────────────────────
@@ -32,6 +34,8 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
   const [parentExpires, setParentExpires] = useState(null)
   const [pinLoading,    setPinLoading]    = useState(false)
   const [pinCopied,     setPinCopied]     = useState(false)
+
+  const [showPricing, setShowPricing] = useState(false)
 
   const saveProfile = () => {
     if (!pName.trim()) return
@@ -296,9 +300,39 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                     )
                   })}
                 </div>
-                <p style={{ fontSize: 11, color: COLORS.muted, textAlign: "center", margin: 0 }}>
-                  Contact your teacher or admin to upgrade your plan.
-                </p>
+                <button
+                  onClick={() => setShowPricing(true)}
+                  style={{
+                    width: '100%',
+                    background: `linear-gradient(135deg, ${COLORS.green}, #33cc88)`,
+                    border: 'none', borderRadius: 12,
+                    padding: '14px', fontSize: 14,
+                    fontWeight: 800, color: '#04040e',
+                    cursor: 'pointer', fontFamily: 'Sora, sans-serif',
+                  }}
+                >
+                  👑 Upgrade Plan
+                </button>
+
+                {showPricing && (
+                  <PricingModal
+                    profile={profile}
+                    userId={userId}
+                    onClose={() => setShowPricing(false)}
+                    onUpgradeSuccess={(updates) => {
+                      // Update local state only — plan is already saved in DB by verify endpoint
+                      // Don't call onProfileSave as it would try to PUT plan to profile endpoint
+                      const cached = JSON.parse(localStorage.getItem('eduvyai_profile') || '{}')
+                      localStorage.setItem('eduvyai_profile', JSON.stringify({
+                        ...cached,
+                        plan: updates.plan,
+                        plan_expires_at: updates.plan_expires_at,
+                      }))
+                      onProfileSave?.({ plan: updates.plan, plan_expires_at: updates.plan_expires_at })
+                      setShowPricing(false)
+                    }}
+                  />
+                )}
               </div>
             )
           })()}

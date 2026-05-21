@@ -8,3 +8,4 @@ yt-dlp>=2024.0
 python-jose[cryptography]>=3.3
 bcrypt>=4.0
 python-multipart>=0.0.9
+razorpay>=1.4.2

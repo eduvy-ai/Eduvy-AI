@@ -737,3 +737,39 @@ export async function apiSaveDraft(userId, key, content, extra = '') {
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
 }
+
+
+// ── Payment / Plans ───────────────────────────────────────────
+
+export async function apiGetPlans() {
+  const res = await fetch('/api/payment/plans', {
+    signal: AbortSignal.timeout(5000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+  // { basic: { label, amount, rupees, duration }, pro: {...}, premium: {...} }
+}
+
+export async function apiCreateOrder(userId, plan) {
+  const res = await fetch('/api/payment/create-order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ user_id: userId, plan }),
+    signal: AbortSignal.timeout(10000),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)
+  return data  // { order_id, amount, currency, plan, label }
+}
+
+export async function apiVerifyPayment({ razorpay_order_id, razorpay_payment_id, razorpay_signature, user_id, plan }) {
+  const res = await fetch('/api/payment/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ razorpay_order_id, razorpay_payment_id, razorpay_signature, user_id, plan }),
+    signal: AbortSignal.timeout(10000),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)
+  return data  // { success, plan, expires_at, payment_id }
+}
