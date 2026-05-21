@@ -1,6 +1,7 @@
 import json
 import os
 import threading
+from urllib.parse import urlparse, quote, urlunparse
 import psycopg2
 import psycopg2.extras
 import psycopg2.pool
@@ -8,7 +9,52 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+
+def _get_conn_params() -> dict:
+    """
+    Return psycopg2 connection kwargs from environment.
+
+    Priority:
+      1. Individual vars  DB_HOST / DB_PORT / DB_USER / DB_PASS / DB_NAME
+         → safest: passwords with special chars (@, #, !, %) work as-is.
+      2. DATABASE_URL connection string
+         → password is auto URL-encoded so special chars never break the URL.
+    """
+    host = os.getenv("DB_HOST", "")
+    if host:
+        params: dict = {
+            "host":     host,
+            "port":     int(os.getenv("DB_PORT", "5432")),
+            "user":     os.getenv("DB_USER", ""),
+            "password": os.getenv("DB_PASS", ""),
+            "dbname":   os.getenv("DB_NAME", "eduvyai"),
+        }
+        # Drop empty optional fields so psycopg2 uses its own defaults
+        return {k: v for k, v in params.items() if v not in ("", None)}
+
+    url = os.getenv("DATABASE_URL", "")
+    if not url:
+        raise RuntimeError(
+            "Database not configured. Set DATABASE_URL or "
+            "DB_HOST / DB_USER / DB_PASS / DB_NAME in .env"
+        )
+
+    # Auto-encode any special chars in the password portion of the URL.
+    # e.g. p@$$word! → p%40%24%24word%21  so the URL stays valid.
+    parsed = urlparse(url)
+    if parsed.password:
+        encoded_pw = quote(parsed.password, safe="")  # encodes @, #, %, +, etc.
+        if encoded_pw != parsed.password:              # only rebuild if changed
+            userinfo = f"{parsed.username}:{encoded_pw}"
+            host_part = parsed.hostname or ""
+            if parsed.port:
+                host_part += f":{parsed.port}"
+            netloc = f"{userinfo}@{host_part}"
+            url = urlunparse((
+                parsed.scheme, netloc, parsed.path,
+                parsed.params, parsed.query, parsed.fragment,
+            ))
+    return {"dsn": url}
 
 # ── Connection Pool ───────────────────────────────────────────
 # One pool shared across all requests.  ThreadedConnectionPool is
@@ -30,8 +76,8 @@ def _get_pool() -> psycopg2.pool.ThreadedConnectionPool:
             _pool = psycopg2.pool.ThreadedConnectionPool(
                 min_conn,
                 max_conn,
-                DATABASE_URL,
                 cursor_factory=psycopg2.extras.RealDictCursor,
+                **_get_conn_params(),
             )
     return _pool
 

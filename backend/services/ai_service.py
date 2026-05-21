@@ -4,11 +4,36 @@ import asyncio
 import hashlib
 import time
 import threading
+import base64
 import httpx
 from collections import OrderedDict
+from cryptography.fernet import Fernet, InvalidToken
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# ── API key encryption (Fernet / AES-128-CBC) ─────────────────
+# Keys are encrypted before writing to DB and decrypted on read.
+# The Fernet key is derived from JWT_SECRET so no extra env var is needed.
+def _get_fernet() -> Fernet:
+    secret = os.getenv("JWT_SECRET", "")
+    if not secret:
+        raise RuntimeError("JWT_SECRET must be set to encrypt/decrypt API keys")
+    # Derive a 32-byte Fernet-compatible key from the JWT secret
+    key_bytes = hashlib.sha256(secret.encode()).digest()
+    return Fernet(base64.urlsafe_b64encode(key_bytes))
+
+def _encrypt_key(plaintext: str) -> str:
+    """Encrypt an API key for storage in DB."""
+    return _get_fernet().encrypt(plaintext.encode()).decode()
+
+def _decrypt_key(value: str) -> str:
+    """Decrypt a DB-stored API key. Falls back to plaintext for pre-encryption rows."""
+    try:
+        return _get_fernet().decrypt(value.encode()).decode()
+    except (InvalidToken, Exception):
+        # Migration path: old plaintext value — return as-is and let next save re-encrypt
+        return value
 
 # ── Server-side keys — NEVER send to clients ──────────────
 # Primary key per provider (used as fallback / _SERVER_KEYS lookup)
@@ -159,13 +184,14 @@ def load_plan_routing():
                     suffix = k[len("api_key_"):]
                     slot_m = _re.match(r'^([a-z]+)_(\d+)$', suffix)
                     provider = slot_m.group(1) if slot_m else suffix
-                    if provider in _SERVER_KEYS and v:
+                    plain = _decrypt_key(v) if v else ""
+                    if provider in _SERVER_KEYS and plain:
                         # Slot-1 key also populates _SERVER_KEYS fallback
                         if not slot_m and not _SERVER_KEYS[provider]:
-                            _SERVER_KEYS[provider] = v
+                            _SERVER_KEYS[provider] = plain
                         # Add every slot to the round-robin pool (deduplicated)
-                        if v not in _KEY_POOLS.get(provider, []):
-                            _KEY_POOLS.setdefault(provider, []).append(v)
+                        if plain not in _KEY_POOLS.get(provider, []):
+                            _KEY_POOLS.setdefault(provider, []).append(plain)
             conn.commit()
         finally:
             conn.close()
@@ -188,11 +214,12 @@ def save_api_key(provider: str, key: str, slot: int = 1):
     conn = get_db()
     try:
         cur = conn.cursor()
+        encrypted = _encrypt_key(key)
         cur.execute(
             """INSERT INTO app_settings (key, value, updated_at)
                VALUES (%s, %s, CURRENT_TIMESTAMP)
                ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=CURRENT_TIMESTAMP""",
-            (db_key, key),
+            (db_key, encrypted),
         )
         conn.commit()
         if slot == 1:
@@ -221,8 +248,10 @@ def remove_api_key_slot(provider: str, slot: int):
             dk = f"api_key_{provider}" if s == 1 else f"api_key_{provider}_{s}"
             cur.execute("SELECT value FROM app_settings WHERE key=%s", (dk,))
             row = cur.fetchone()
-            if row and row["value"] and row["value"] not in new_pool:
-                new_pool.append(row["value"])
+            if row and row["value"]:
+                plain = _decrypt_key(row["value"])
+                if plain and plain not in new_pool:
+                    new_pool.append(plain)
         _KEY_POOLS[provider] = new_pool
     finally:
         conn.close()
