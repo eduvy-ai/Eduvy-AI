@@ -738,3 +738,60 @@ export async function apiSaveDraft(userId, key, content, extra = '') {
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
 }
+
+// ── Referrals ─────────────────────────────────────────────────
+
+export async function apiGetMyReferralCode() {
+  const res = await fetch('/api/referrals/code', {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()  // { code, referred_count, referrer_xp_per_referral, referred_xp_bonus }
+}
+
+export async function apiApplyReferralCode(code) {
+  const res = await fetch('/api/referrals/apply', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ code }),
+    signal: AbortSignal.timeout(8000),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)
+  return data  // { success, xp_awarded, message }
+}
+
+// ── Payments (Razorpay) ───────────────────────────────────────
+
+export async function apiGetPlanPrices() {
+  const res = await fetch('/api/payments/plans', {
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()  // { basic: { amount_paise, amount_rupees, label, duration_days }, ... }
+}
+
+export async function apiCreatePaymentOrder(plan) {
+  const res = await fetch('/api/payments/create-order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ plan }),
+    signal: AbortSignal.timeout(15000),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)
+  return data  // { order_id, amount, currency, key_id, plan, plan_label, user_name, user_email }
+}
+
+export async function apiVerifyPayment({ order_id, payment_id, signature, plan }) {
+  const res = await fetch('/api/payments/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ order_id, payment_id, signature, plan }),
+    signal: AbortSignal.timeout(15000),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)
+  return data  // { success, plan, expires_at, message }
+}

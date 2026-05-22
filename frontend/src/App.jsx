@@ -46,7 +46,7 @@ const ALL_NAV_ITEMS = [
   { key: 'sathi',    icon: '🤝', label: 'Sathi'     },
   { key: 'bhool',    icon: '📛', label: 'Bhool'     },
   { key: 'muqabla',  icon: '⚔️',  label: 'Muqabla'  },
-  { key: 'labs',     icon: '⚗️',  label: 'Labs'     },
+  { key: 'labs',     icon: '🧪',  label: 'Labs'     },
 ]
 
 // ─── AppShell ─────────────────────────────────────────────────

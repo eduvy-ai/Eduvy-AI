@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { COLORS, BOARDS, LANGS, SUBS, UI_STRINGS } from '../App.jsx'
-import { getDeviceId, apiCreateProfile } from '../api.js'
+import { getDeviceId, apiCreateProfile, apiApplyReferralCode } from '../api.js'
 
 const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
 
@@ -74,6 +74,8 @@ export default function Onboard({ onComplete }) {
   const [language, setLang]       = useState("English")
   const [subjects, setSubs]       = useState([])
   const [saving, setSaving]       = useState(false)
+  const [refCode, setRefCode]     = useState('')
+  const [refMsg, setRefMsg]       = useState('')
 
   // Dynamic lists from API (with static fallbacks)
   const [boardList,   setBoardList]   = useState(BOARDS)
@@ -140,8 +142,19 @@ export default function Onboard({ onComplete }) {
     } catch {
       // Backend save failed — app continues, user can retry from Settings
     }
-    onComplete(profileData)
+    // Apply referral code if provided
+    if (refCode.trim()) {
+      try {
+        const r = await apiApplyReferralCode(refCode.trim().toUpperCase())
+        setRefMsg(r.message || '✅ Referral applied!')
+      } catch (err) {
+        setRefMsg(err?.message || 'Invalid referral code')
+      }
+      // Short pause so user can see the message
+      await new Promise(r => setTimeout(r, 800))
+    }
     setSaving(false)
+    onComplete(profileData)
   }
 
   const ui = UI_STRINGS[language] || UI_STRINGS.English
@@ -414,6 +427,25 @@ export default function Onboard({ onComplete }) {
                   {f}
                 </div>
               ))}
+            </div>
+
+            {/* Referral code */}
+            <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 16 }}>
+              <div style={{ fontSize: 12, color: COLORS.muted, fontWeight: 700, marginBottom: 8 }}>GOT A REFERRAL CODE? (optional)</div>
+              <input
+                style={inputStyle}
+                type="text"
+                placeholder="e.g. ABC1234"
+                value={refCode}
+                onChange={e => setRefCode(e.target.value.toUpperCase())}
+                maxLength={10}
+              />
+              {refMsg && (
+                <div style={{ fontSize: 12, color: refMsg.startsWith('✅') ? COLORS.green : COLORS.red, marginTop: 6 }}>{refMsg}</div>
+              )}
+              <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 6 }}>
+                You get +200 XP · Your friend gets +500 XP
+              </div>
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>

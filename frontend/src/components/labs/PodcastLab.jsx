@@ -1,6 +1,28 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { COLORS, callAI, buildSystemPrompt, parseAIObject, checkStudentQuery } from '../../App.jsx'
 import { getDeviceId, apiGetDraft, apiSaveDraft } from '../../api.js'
+
+const LANG_VOICE = {
+  English:'en-IN', Hindi:'hi-IN', Gujarati:'gu-IN', Marathi:'mr-IN',
+  Tamil:'ta-IN', Telugu:'te-IN', Kannada:'kn-IN', Bengali:'bn-IN',
+  Punjabi:'pa-IN', Odia:'or-IN', Urdu:'ur-IN',
+}
+
+function pickVoice(lang) {
+  if (!('speechSynthesis' in window)) return null
+  const code = LANG_VOICE[lang] || 'en-IN'
+  const all = window.speechSynthesis.getVoices()
+  if (all.length === 0) return null
+  let matches = all.filter(v => v.lang === code || v.lang.replace('_','-') === code)
+  if (!matches.length) matches = all.filter(v => v.lang.startsWith(code.split('-')[0]))
+  if (!matches.length) matches = all.filter(v => v.lang.startsWith('en'))
+  if (!matches.length) matches = all
+  for (const p of ['Google','Natural','Microsoft']) {
+    const m = matches.find(v => v.name.includes(p))
+    if (m) return m
+  }
+  return matches[0]
+}
 
 const SUGGESTED_TOPICS = [
   "Photosynthesis", "Newton's Laws", "French Revolution",
@@ -14,6 +36,45 @@ export default function PodcastLab({ profile, addXp, docCtx, docName, onBack }) 
   const [lineIdx, setLineIdx]       = useState(0)
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState("")
+  const [autoPlaying, setAutoPlaying] = useState(false)
+  const [isSpeaking, setIsSpeaking]   = useState(false)
+  const ttsOK = typeof window !== 'undefined' && 'speechSynthesis' in window
+
+  // Stop speech on unmount
+  useEffect(() => () => { if (ttsOK) window.speechSynthesis.cancel() }, [])
+
+  // Auto-play: speak current exchange, then advance
+  useEffect(() => {
+    if (!autoPlaying || !episode || !ttsOK) return
+    const ex = episode.exchanges[lineIdx]
+    if (!ex) { setAutoPlaying(false); return }
+    const doSpeak = () => {
+      window.speechSynthesis.cancel()
+      const utter = new SpeechSynthesisUtterance(ex.t)
+      const voice = pickVoice(profile.language)
+      if (voice) utter.voice = voice
+      utter.lang = LANG_VOICE[profile.language] || 'en-IN'
+      utter.rate = 0.9
+      utter.pitch = ex.h === 'Priya' ? 1.1 : 0.85
+      utter.onstart = () => setIsSpeaking(true)
+      utter.onend = () => {
+        setIsSpeaking(false)
+        if (lineIdx < episode.exchanges.length - 1) {
+          setLineIdx(i => i + 1)
+        } else {
+          setAutoPlaying(false)
+        }
+      }
+      utter.onerror = () => { setIsSpeaking(false); setAutoPlaying(false) }
+      window.speechSynthesis.speak(utter)
+    }
+    if (window.speechSynthesis.getVoices().length === 0) {
+      window.speechSynthesis.onvoiceschanged = doSpeak
+    } else {
+      doSpeak()
+    }
+    return () => { window.speechSynthesis.cancel() }
+  }, [lineIdx, autoPlaying, episode])
 
   // Load last episode on mount
   useEffect(() => {
@@ -48,6 +109,8 @@ Return ONLY valid JSON (no markdown): {"title":"...","exchanges":[{"h":"Priya","
     const parsed = parseAIObject(res)
     if (parsed?.exchanges?.length) {
       setEpisode(parsed)
+      setAutoPlaying(false)
+      setIsSpeaking(false)
       apiSaveDraft(deviceId, "podcast_episode", JSON.stringify(parsed)).catch(() => {})
     } else {
       setError("Could not generate podcast. Please try again.")
@@ -137,8 +200,22 @@ Return ONLY valid JSON (no markdown): {"title":"...","exchanges":[{"h":"Priya","
               <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.text, lineHeight: 1.4 }}>
                 {episode.title}
               </div>
-              <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 4 }}>
+              <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
                 Priya & Aryan · {episode.exchanges?.length} exchanges
+                {ttsOK && (
+                  <button
+                    onClick={() => {
+                      if (autoPlaying) {
+                        window.speechSynthesis.cancel()
+                        setAutoPlaying(false)
+                        setIsSpeaking(false)
+                      } else {
+                        setAutoPlaying(true)
+                      }
+                    }}
+                    style={{ background: autoPlaying ? `${COLORS.yellow}22` : `${COLORS.green}22`, border: `1px solid ${autoPlaying ? COLORS.yellow : COLORS.green}44`, borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: autoPlaying ? COLORS.yellow : COLORS.green, cursor: 'pointer', fontFamily: 'Sora, sans-serif' }}
+                  >{autoPlaying ? (isSpeaking ? '⏸ Pause' : '⏳') : '▶️ Play'}</button>
+                )}
               </div>
             </div>
 
@@ -181,8 +258,12 @@ Return ONLY valid JSON (no markdown): {"title":"...","exchanges":[{"h":"Priya","
 
             {/* Navigation */}
             {lineIdx < episode.exchanges.length - 1 ? (
-              <button onClick={() => setLineIdx(i => i + 1)} style={primaryBtn}>
-                Continue →
+              <button onClick={() => {
+                window.speechSynthesis.cancel()
+                setIsSpeaking(false)
+                setLineIdx(i => i + 1)
+              }} style={primaryBtn}>
+                {autoPlaying ? '⏭ Skip' : 'Continue →'}
               </button>
             ) : (
               <>
@@ -219,7 +300,14 @@ Return ONLY valid JSON (no markdown): {"title":"...","exchanges":[{"h":"Priya","
                 )}
 
                 <button
-                  onClick={() => { setEpisode(null); setTopicInput(""); setLineIdx(0) }}
+                  onClick={() => {
+                    window.speechSynthesis?.cancel()
+                    setAutoPlaying(false)
+                    setIsSpeaking(false)
+                    setEpisode(null)
+                    setTopicInput("")
+                    setLineIdx(0)
+                  }}
                   style={secondaryBtn}
                 >
                   🎙️ New Episode

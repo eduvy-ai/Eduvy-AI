@@ -1,12 +1,42 @@
 import os
 import json
 import asyncio
+import hashlib
+import time
+import threading
+import base64
 import httpx
+from collections import OrderedDict
+from cryptography.fernet import Fernet, InvalidToken
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# ── Server-side keys — NEVER send to clients ──────────────────
+# ── API key encryption (Fernet / AES-128-CBC) ─────────────────
+# Keys are encrypted before writing to DB and decrypted on read.
+# The Fernet key is derived from JWT_SECRET so no extra env var is needed.
+def _get_fernet() -> Fernet:
+    secret = os.getenv("JWT_SECRET", "")
+    if not secret:
+        raise RuntimeError("JWT_SECRET must be set to encrypt/decrypt API keys")
+    # Derive a 32-byte Fernet-compatible key from the JWT secret
+    key_bytes = hashlib.sha256(secret.encode()).digest()
+    return Fernet(base64.urlsafe_b64encode(key_bytes))
+
+def _encrypt_key(plaintext: str) -> str:
+    """Encrypt an API key for storage in DB."""
+    return _get_fernet().encrypt(plaintext.encode()).decode()
+
+def _decrypt_key(value: str) -> str:
+    """Decrypt a DB-stored API key. Falls back to plaintext for pre-encryption rows."""
+    try:
+        return _get_fernet().decrypt(value.encode()).decode()
+    except (InvalidToken, Exception):
+        # Migration path: old plaintext value — return as-is and let next save re-encrypt
+        return value
+
+# ── Server-side keys — NEVER send to clients ──────────────
+# Primary key per provider (used as fallback / _SERVER_KEYS lookup)
 _SERVER_KEYS: dict[str, str] = {
     "gemini":    os.getenv("GEMINI_API_KEY", ""),
     "groq":      os.getenv("GROQ_API_KEY", ""),
@@ -14,9 +44,84 @@ _SERVER_KEYS: dict[str, str] = {
     "openai":    os.getenv("OPENAI_API_KEY", ""),
 }
 
+# ── Per-provider key pools — round-robin for scale ────────────
+# Add _2 … _5 variants in .env to multiply each provider's quota.
+def _load_pool(base_env: str, count: int = 5) -> list[str]:
+    keys = [
+        os.getenv(base_env, ""),
+        *[os.getenv(f"{base_env}_{i}", "") for i in range(2, count + 1)],
+    ]
+    return [k for k in keys if k]
+
+_KEY_POOLS: dict[str, list[str]] = {
+    "groq":      _load_pool("GROQ_API_KEY"),
+    "gemini":    _load_pool("GEMINI_API_KEY"),
+    "anthropic": _load_pool("ANTHROPIC_API_KEY"),
+    "openai":    _load_pool("OPENAI_API_KEY"),
+}
+
+_rr_indices: dict[str, int] = {p: 0 for p in _KEY_POOLS}
+_rr_lock = threading.Lock()
+
+
+def _next_key(provider: str) -> str:
+    """Return next key for provider in round-robin order (thread-safe)."""
+    pool = _KEY_POOLS.get(provider, [])
+    if not pool:
+        return ""
+    with _rr_lock:
+        idx = _rr_indices[provider] % len(pool)
+        _rr_indices[provider] += 1
+    return pool[idx]
+
+
+# ── AI Response Cache (TTL-based LRU) ─────────────────────────
+# Caches identical AI requests so 100 students asking the same
+# question only cost 1 API call.  Only caches stateless calls
+# (no conversation history).  Thread-safe for multi-worker uvicorn.
+class _TTLCache:
+    """In-process LRU cache with per-entry TTL."""
+
+    def __init__(self, maxsize: int = 2000, ttl: int = 3600):
+        self._store: OrderedDict[str, tuple] = OrderedDict()
+        self._maxsize = maxsize
+        self._ttl     = ttl
+        self._lock    = threading.Lock()
+
+    @staticmethod
+    def make_key(provider: str, model: str, system: str, last_msg: str) -> str:
+        raw = f"{provider}|{model}|{system}|{last_msg}"
+        return hashlib.sha256(raw.encode()).hexdigest()
+
+    def get(self, key: str) -> tuple | None:
+        with self._lock:
+            entry = self._store.get(key)
+            if entry is None:
+                return None
+            value, expires = entry
+            if time.monotonic() > expires:
+                del self._store[key]
+                return None
+            self._store.move_to_end(key)   # LRU refresh
+            return value
+
+    def set(self, key: str, value: tuple) -> None:
+        with self._lock:
+            self._store[key] = (value, time.monotonic() + self._ttl)
+            self._store.move_to_end(key)
+            if len(self._store) > self._maxsize:
+                self._store.popitem(last=False)   # evict oldest
+
+
+_ai_cache = _TTLCache(
+    maxsize=int(os.getenv("AI_CACHE_SIZE", "2000")),
+    ttl=int(os.getenv("AI_CACHE_TTL", "3600")),  # 1 hour default
+)
+
 # ── Plan → default model routing (hardcoded fallback) ─────────
+# gemma2-9b-it has 15K TPM on Groq free tier vs 6K for llama-3.1-8b-instant
 _DEFAULT_PLAN_ROUTING: dict[str, dict] = {
-    "free":    {"provider": "groq",   "model": "llama-3.1-8b-instant"},
+    "free":    {"provider": "groq",   "model": "gemma2-9b-it"},
     "basic":   {"provider": "groq",   "model": "llama-3.3-70b-versatile"},
     "pro":     {"provider": "gemini", "model": "gemini-2.0-flash"},
     "premium": {"provider": "gemini", "model": "gemini-2.0-flash"},
@@ -28,9 +133,10 @@ _PLAN_ROUTING: dict[str, dict] = dict(_DEFAULT_PLAN_ROUTING)
 
 # Models that have been decommissioned → auto-replace on load
 _DECOMMISSIONED_MODELS = {
-    "llama3-8b-8192":      "llama-3.1-8b-instant",
+    "llama3-8b-8192":      "gemma2-9b-it",
     "llama3-70b-8192":     "llama-3.3-70b-versatile",
     "mixtral-8x7b-32768":  "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant": "gemma2-9b-it",   # 6K TPM → upgrade to 15K TPM model
 }
 
 
@@ -73,11 +179,19 @@ def load_plan_routing():
                     except Exception:
                         pass
                 elif k.startswith("api_key_"):
-                    provider = k.replace("api_key_", "")
-                    if provider in _SERVER_KEYS and v:
-                        # DB-stored key overrides empty env var; env var wins if set
-                        if not _SERVER_KEYS[provider]:
-                            _SERVER_KEYS[provider] = v
+                    # Handles both "api_key_groq" (slot 1) and "api_key_groq_2" … "api_key_groq_5"
+                    import re as _re
+                    suffix = k[len("api_key_"):]
+                    slot_m = _re.match(r'^([a-z]+)_(\d+)$', suffix)
+                    provider = slot_m.group(1) if slot_m else suffix
+                    plain = _decrypt_key(v) if v else ""
+                    if provider in _SERVER_KEYS and plain:
+                        # Slot-1 key also populates _SERVER_KEYS fallback
+                        if not slot_m and not _SERVER_KEYS[provider]:
+                            _SERVER_KEYS[provider] = plain
+                        # Add every slot to the round-robin pool (deduplicated)
+                        if plain not in _KEY_POOLS.get(provider, []):
+                            _KEY_POOLS.setdefault(provider, []).append(plain)
             conn.commit()
         finally:
             conn.close()
@@ -85,27 +199,97 @@ def load_plan_routing():
         pass  # silently fall back to defaults
 
 
-def save_api_key(provider: str, key: str):
-    """Persist an API key for a provider to app_settings and update the in-memory cache."""
+_ENV_BASE = {
+    "groq": "GROQ_API_KEY",
+    "gemini": "GEMINI_API_KEY",
+    "anthropic": "ANTHROPIC_API_KEY",
+    "openai": "OPENAI_API_KEY",
+}
+
+
+def save_api_key(provider: str, key: str, slot: int = 1):
+    """Persist API key for provider at the given slot (1–5) to app_settings and update the pool."""
+    db_key = f"api_key_{provider}" if slot == 1 else f"api_key_{provider}_{slot}"
     from database import get_db
     conn = get_db()
     try:
         cur = conn.cursor()
+        encrypted = _encrypt_key(key)
         cur.execute(
             """INSERT INTO app_settings (key, value, updated_at)
                VALUES (%s, %s, CURRENT_TIMESTAMP)
                ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=CURRENT_TIMESTAMP""",
-            (f"api_key_{provider}", key),
+            (db_key, encrypted),
         )
         conn.commit()
-        _SERVER_KEYS[provider] = key
+        if slot == 1:
+            _SERVER_KEYS[provider] = key
+        if key and key not in _KEY_POOLS.get(provider, []):
+            _KEY_POOLS.setdefault(provider, []).append(key)
     finally:
         conn.close()
 
 
+def remove_api_key_slot(provider: str, slot: int):
+    """Delete a DB key slot and rebuild the in-memory pool from env vars + remaining slots."""
+    db_key = f"api_key_{provider}" if slot == 1 else f"api_key_{provider}_{slot}"
+    from database import get_db
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM app_settings WHERE key=%s", (db_key,))
+        conn.commit()
+        if slot == 1:
+            _SERVER_KEYS[provider] = ""
+        # Rebuild pool: env keys first, then remaining DB slots
+        env_base = _ENV_BASE.get(provider, "")
+        new_pool = _load_pool(env_base) if env_base else []
+        for s in range(1, 6):
+            dk = f"api_key_{provider}" if s == 1 else f"api_key_{provider}_{s}"
+            cur.execute("SELECT value FROM app_settings WHERE key=%s", (dk,))
+            row = cur.fetchone()
+            if row and row["value"]:
+                plain = _decrypt_key(row["value"])
+                if plain and plain not in new_pool:
+                    new_pool.append(plain)
+        _KEY_POOLS[provider] = new_pool
+    finally:
+        conn.close()
+
+
+def get_key_slot_status() -> dict:
+    """Return per-provider slot info for the admin panel.  Never returns actual key values."""
+    from database import get_db
+    conn = get_db()
+    result = {}
+    try:
+        cur = conn.cursor()
+        for provider in _SERVER_KEYS:
+            slots: dict[int, bool] = {}
+            for s in range(1, 6):
+                dk = f"api_key_{provider}" if s == 1 else f"api_key_{provider}_{s}"
+                cur.execute("SELECT 1 FROM app_settings WHERE key=%s AND value != ''", (dk,))
+                slots[s] = cur.fetchone() is not None
+            env_base = _ENV_BASE.get(provider, "")
+            env_count = len(_load_pool(env_base)) if env_base else 0
+            result[provider] = {
+                "db_slots": slots,          # {1: bool, …, 5: bool}
+                "env_count": env_count,     # keys from .env file
+                "pool_size": len(_KEY_POOLS.get(provider, [])),
+            }
+    finally:
+        conn.close()
+    return result
+
+
 def get_key_status() -> dict[str, bool]:
     """Return {provider: has_key} — NEVER returns actual key values."""
-    return {prov: bool(key) for prov, key in _SERVER_KEYS.items()}
+    return {prov: bool(_KEY_POOLS.get(prov)) for prov in _SERVER_KEYS}
+
+
+def get_key_pool_sizes() -> dict[str, int]:
+    """Return {provider: number_of_keys_configured} for admin info."""
+    return {prov: len(pool) for prov, pool in _KEY_POOLS.items()}
 
 
 def save_plan_routing(plan: str, provider: str, model: str):
@@ -133,8 +317,8 @@ def get_plan_routing() -> dict[str, dict]:
 
 
 def _get_key(provider: str, client_key: str | None) -> str:
-    """Return server key only — never use client-supplied key in managed mode."""
-    return _SERVER_KEYS.get(provider, "")
+    """Return next round-robin key for the provider."""
+    return _next_key(provider)
 
 
 # Preferred fallback order when the resolved provider has no key
@@ -142,7 +326,7 @@ _FALLBACK_ORDER = ["groq", "gemini", "anthropic", "openai"]
 
 # Default first model per provider (used when falling back)
 _PROVIDER_DEFAULT_MODEL = {
-    "groq":      "llama-3.1-8b-instant",
+    "groq":      "gemma2-9b-it",
     "gemini":    "gemini-2.0-flash",
     "anthropic": "claude-3-5-haiku-20241022",
     "openai":    "gpt-4o-mini",
@@ -150,9 +334,9 @@ _PROVIDER_DEFAULT_MODEL = {
 
 
 def _first_available_provider() -> tuple[str, str] | None:
-    """Return (provider, default_model) for the first provider that has a server key."""
+    """Return (provider, default_model) for the first provider that has any key."""
     for prov in _FALLBACK_ORDER:
-        if _SERVER_KEYS.get(prov):
+        if _KEY_POOLS.get(prov):
             return prov, _PROVIDER_DEFAULT_MODEL[prov]
     return None
 
@@ -172,7 +356,7 @@ def resolve_provider_model(user_plan: str, requested_provider: str, requested_mo
     model = _fix_model(provider, model)
 
     # If resolved provider has no key → fall back to first available
-    if not _SERVER_KEYS.get(provider):
+    if not _KEY_POOLS.get(provider):
         fallback = _first_available_provider()
         if fallback:
             provider, model = fallback
@@ -196,7 +380,7 @@ async def call_ai(
         fallback = _first_available_provider()
         if fallback:
             provider, model = fallback
-            key = _SERVER_KEYS.get(provider, "")
+            key = _next_key(provider)
     if not key:
         return (
             "⚠️ AI service is temporarily unavailable. Please try again shortly.",
@@ -205,6 +389,14 @@ async def call_ai(
 
     messages = list(history[-8:])  # keep last 8 turns
     messages.append({"role": "user", "content": str(prompt)})
+
+    # ── Cache lookup — only for stateless calls (no prior history) ─
+    cache_key: str | None = None
+    if not history:   # no conversation context — safe to cache
+        cache_key = _TTLCache.make_key(provider, model, system_prompt, str(prompt))
+        cached = _ai_cache.get(cache_key)
+        if cached is not None:
+            return cached
 
     async with httpx.AsyncClient(timeout=60.0) as client:
         for attempt in range(3):
@@ -222,6 +414,8 @@ async def call_ai(
 
                 text, ptok, ctok = result
                 if text:
+                    if cache_key and not text.startswith("⚠️"):
+                        _ai_cache.set(cache_key, (text, ptok, ctok))
                     return text, ptok, ctok
 
             except httpx.TimeoutException:
@@ -229,13 +423,26 @@ async def call_ai(
                     return ("⚠️ Request timed out. Please try again.", 0, 0)
                 await asyncio.sleep((attempt + 1) * 2)
             except httpx.HTTPStatusError as exc:
-                if exc.response.status_code == 429:
+                status = exc.response.status_code
+                if status == 429:
                     if attempt < 2:
+                        # Rotate to next key — it may be on a different account
+                        key = _next_key(provider) or key
                         await asyncio.sleep((attempt + 1) * 3)
                         continue
                     return ("⚠️ Rate limit reached on AI provider. Please wait and retry.", 0, 0)
+                if status == 413:
+                    # Request too large for this model — try bigger model or next provider
+                    if provider == "groq" and model != "gemma2-9b-it" and attempt == 0:
+                        model = "gemma2-9b-it"
+                        continue
+                    if _KEY_POOLS.get("gemini") and provider != "gemini":
+                        provider, model = "gemini", "gemini-2.0-flash"
+                        key = _next_key("gemini")
+                        continue
+                    return ("⚠️ Request too large. Please shorten your message and try again.", 0, 0)
                 if attempt == 2:
-                    return (f"⚠️ HTTP {exc.response.status_code}: {exc.response.text[:200]}", 0, 0)
+                    return (f"⚠️ HTTP {status}: {exc.response.text[:200]}", 0, 0)
                 await asyncio.sleep(2)
             except Exception as exc:
                 if attempt == 2:
