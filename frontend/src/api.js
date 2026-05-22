@@ -2,7 +2,7 @@
 // All backend calls in one place.
 // Auth token stored in localStorage under 'eduvyai_token'.
 // Device ID kept as fallback for anonymous users.
-
+import { API_BASE_URL } from './config'
 export function getDeviceId() {
   let id = localStorage.getItem('eduvyai_device_id')
   if (!id) {
@@ -33,7 +33,7 @@ function _authHeaders() {
 // ── Auth API ─────────────────────────────────────────────────
 
 export async function apiRegister({ email, password, name, standard, board, language, subjects, mobile, parent_mobile }) {
-  const res = await fetch('/api/auth/register', {
+  const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, name, standard, board, language, subjects, mobile: mobile || '', parent_mobile: parent_mobile || '' }),
@@ -45,7 +45,7 @@ export async function apiRegister({ email, password, name, standard, board, lang
 }
 
 export async function apiLogin({ email, password }) {
-  const res = await fetch('/api/auth/login', {
+  const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -57,7 +57,7 @@ export async function apiLogin({ email, password }) {
 }
 
 export async function apiGetMe() {
-  const res = await fetch('/api/auth/me', {
+  const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
@@ -71,7 +71,7 @@ export async function apiGetMe() {
 // NOTE: apiGetProfile (device-ID) removed — use apiGetMe() for auth flow.
 
 export async function apiCreateProfile(data) {
-  const res = await fetch('/api/profile', {
+  const res = await fetch(`${API_BASE_URL}/api/profile`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -82,7 +82,7 @@ export async function apiCreateProfile(data) {
 }
 
 export async function apiUpdateProfile(userId, data) {
-  const res = await fetch(`/api/profile/${userId}`, {
+  const res = await fetch(`${API_BASE_URL}/api/profile/${userId}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify(data),
@@ -95,7 +95,7 @@ export async function apiUpdateProfile(userId, data) {
 // ── XP ────────────────────────────────────────────────────────
 
 export async function apiAddXp(userId, points) {
-  const res = await fetch(`/api/profile/${userId}/xp`, {
+  const res = await fetch(`${API_BASE_URL}/api/profile/${userId}/xp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ points }),
@@ -108,7 +108,7 @@ export async function apiAddXp(userId, points) {
 // ── Streak ────────────────────────────────────────────────────
 
 export async function apiUpdateStreak(deviceId, streak) {
-  const res = await fetch(`/api/profile/${deviceId}/streak`, {
+  const res = await fetch(`${API_BASE_URL}/api/profile/${deviceId}/streak`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ streak }),
@@ -135,7 +135,7 @@ export function computeStreak(lastActive, currentStreak) {
 // ── Sathi Study Squads ────────────────────────────────────────
 
 export async function apiGetMySquad() {
-  const res = await fetch('/api/squads/mine', {
+  const res = await fetch(`${API_BASE_URL}/api/squads/mine`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(6000),
   })
@@ -144,7 +144,7 @@ export async function apiGetMySquad() {
 }
 
 export async function apiMatchSquad() {
-  const res = await fetch('/api/squads/match', {
+  const res = await fetch(`${API_BASE_URL}/api/squads/match`, {
     method: 'POST',
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
@@ -154,7 +154,7 @@ export async function apiMatchSquad() {
 }
 
 export async function apiGetSquadMessages(squadId, sinceId = 0) {
-  const res = await fetch(`/api/squads/${squadId}/messages?since_id=${sinceId}`, {
+  const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/messages?since_id=${sinceId}`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
@@ -163,7 +163,7 @@ export async function apiGetSquadMessages(squadId, sinceId = 0) {
 }
 
 export async function apiSendSquadMessage(squadId, content, displayName, msgType = 'chat') {
-  const res = await fetch(`/api/squads/${squadId}/messages`, {
+  const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/messages`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ content, display_name: displayName, msg_type: msgType }),
@@ -174,7 +174,7 @@ export async function apiSendSquadMessage(squadId, content, displayName, msgType
 }
 
 export async function apiGetSquadMembers(squadId) {
-  const res = await fetch(`/api/squads/${squadId}/members`, {
+  const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/members`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
@@ -183,7 +183,7 @@ export async function apiGetSquadMembers(squadId) {
 }
 
 export async function apiGetSquadChallenge(squadId) {
-  const res = await fetch(`/api/squads/${squadId}/challenge`, {
+  const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/challenge`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
@@ -192,7 +192,7 @@ export async function apiGetSquadChallenge(squadId) {
 }
 
 export async function apiCreateChallenge(squadId) {
-  const res = await fetch(`/api/squads/${squadId}/challenge/create`, {
+  const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/challenge/create`, {
     method: 'POST',
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
@@ -202,7 +202,7 @@ export async function apiCreateChallenge(squadId) {
 }
 
 export async function apiSubmitChallenge(squadId, challengeId, explanation) {
-  const res = await fetch(`/api/squads/${squadId}/challenge/${challengeId}/submit`, {
+  const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/challenge/${challengeId}/submit`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ explanation }),
@@ -213,7 +213,7 @@ export async function apiSubmitChallenge(squadId, challengeId, explanation) {
 }
 
 export async function apiLeaveSquad(squadId) {
-  const res = await fetch(`/api/squads/${squadId}/leave`, {
+  const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/leave`, {
     method: 'DELETE',
     headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
@@ -224,17 +224,17 @@ export async function apiLeaveSquad(squadId) {
 
 // ── Sathi — Doubts Board ──────────────────────────────────────
 export async function apiGetSquadDoubts(squadId) {
-  const res = await fetch(`/api/squads/${squadId}/doubts`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
+  const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/doubts`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
 }
 export async function apiGetDoubtQuota(squadId) {
-  const res = await fetch(`/api/squads/${squadId}/doubts/quota`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
+  const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/doubts/quota`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
 }
 export async function apiPostDoubt(squadId, data) {
-  const res = await fetch(`/api/squads/${squadId}/doubts`, {
+  const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/doubts`, {
     method: 'POST', headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(data), signal: AbortSignal.timeout(5000),
   })
@@ -242,12 +242,13 @@ export async function apiPostDoubt(squadId, data) {
   return res.json()
 }
 export async function apiGetDoubtAnswers(squadId, doubtId) {
-  const res = await fetch(`/api/squads/${squadId}/doubts/${doubtId}/answers`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
+  const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/doubts/${doubtId}/answers`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
+
 }
 export async function apiPostAnswer(squadId, doubtId, data) {
-  const res = await fetch(`/api/squads/${squadId}/doubts/${doubtId}/answers`, {
+  const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/doubts/${doubtId}/answers`, {
     method: 'POST', headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(data), signal: AbortSignal.timeout(5000),
   })
@@ -255,7 +256,7 @@ export async function apiPostAnswer(squadId, doubtId, data) {
   return res.json()
 }
 export async function apiUpvoteAnswer(squadId, doubtId, answerId) {
-  const res = await fetch(`/api/squads/${squadId}/doubts/${doubtId}/answers/${answerId}/upvote`, {
+  const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/doubts/${doubtId}/answers/${answerId}/upvote`, {
     method: 'POST', headers: _authHeaders(), signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -263,7 +264,7 @@ export async function apiUpvoteAnswer(squadId, doubtId, answerId) {
 }
 
 export async function apiPatchVerdict(squadId, doubtId, answerId, aiVerdict, aiNote) {
-  const res = await fetch(`/api/squads/${squadId}/doubts/${doubtId}/answers/${answerId}/verdict`, {
+  const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/doubts/${doubtId}/answers/${answerId}/verdict`, {
     method: 'PATCH',
     headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify({ ai_verdict: aiVerdict, ai_note: aiNote }),
@@ -275,12 +276,12 @@ export async function apiPatchVerdict(squadId, doubtId, answerId, aiVerdict, aiN
 
 // ── Sathi — Streak + Daily + Session ─────────────────────────
 export async function apiGetSquadStreak(squadId) {
-  const res = await fetch(`/api/squads/${squadId}/streak`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
+  const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/streak`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
 }
 export async function apiGetDailyConcept(squadId) {
-  const res = await fetch(`/api/squads/${squadId}/daily`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
+  const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/daily`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
 }
@@ -289,7 +290,7 @@ export async function apiSubmitDailyExplain(squadId, explanation, xpOverride, ai
   if (xpOverride)  body.xp_override = xpOverride
   if (aiVerdict)   body.ai_verdict  = aiVerdict
   if (aiNote)      body.ai_note     = aiNote
-  const res = await fetch(`/api/squads/${squadId}/daily/explain`, {
+  const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/daily/explain`, {
     method: 'POST', headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(body), signal: AbortSignal.timeout(8000),
   })
@@ -297,7 +298,7 @@ export async function apiSubmitDailyExplain(squadId, explanation, xpOverride, ai
   return res.json()
 }
 export async function apiStartSession(squadId, displayName, minutes = 25) {
-  const res = await fetch(`/api/squads/${squadId}/session/start`, {
+  const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/session/start`, {
     method: 'POST', headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify({ display_name: displayName, minutes }), signal: AbortSignal.timeout(5000),
   })
@@ -308,7 +309,7 @@ export async function apiStartSession(squadId, displayName, minutes = 25) {
 // ── Bhool Bazaar ──────────────────────────────────────────────
 
 export async function apiCreateBhoolCard(data) {
-  const res = await fetch('/api/bhool/cards', {
+  const res = await fetch(`${API_BASE_URL}/api/bhool/cards`, {
     method: 'POST',
     headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -319,7 +320,7 @@ export async function apiCreateBhoolCard(data) {
 }
 
 export async function apiGetMyBhoolCards() {
-  const res = await fetch('/api/bhool/cards/mine', {
+  const res = await fetch(`${API_BASE_URL}/api/bhool/cards/mine`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
   })
@@ -328,7 +329,7 @@ export async function apiGetMyBhoolCards() {
 }
 
 export async function apiUpdateBhoolCard(cardId, data) {
-  const res = await fetch(`/api/bhool/cards/${cardId}`, {
+  const res = await fetch(`${API_BASE_URL}/api/bhool/cards/${cardId}`, {
     method: 'PUT',
     headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -339,7 +340,7 @@ export async function apiUpdateBhoolCard(cardId, data) {
 }
 
 export async function apiDeleteBhoolCard(cardId) {
-  const res = await fetch(`/api/bhool/cards/${cardId}`, {
+  const res = await fetch(`${API_BASE_URL}/api/bhool/cards/${cardId}`, {
     method: 'DELETE',
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
@@ -355,7 +356,7 @@ export async function apiGetBhoolMarketplace({ subject, standard, sort, offset, 
   if (sort)     params.set('sort', sort)
   if (offset !== undefined) params.set('offset', String(offset))
   if (limit  !== undefined) params.set('limit',  String(limit))
-  const res = await fetch(`/api/bhool/marketplace?${params}`, {
+  const res = await fetch(`${API_BASE_URL}/api/bhool/marketplace?${params}`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
   })
@@ -365,7 +366,7 @@ export async function apiGetBhoolMarketplace({ subject, standard, sort, offset, 
 
 export async function apiGetBhoolTop(subject) {
   const params = subject ? `?subject=${encodeURIComponent(subject)}` : ''
-  const res = await fetch(`/api/bhool/marketplace/top${params}`, {
+  const res = await fetch(`${API_BASE_URL}/api/bhool/marketplace/top${params}`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
   })
@@ -374,7 +375,7 @@ export async function apiGetBhoolTop(subject) {
 }
 
 export async function apiCollectBhoolCard(cardId) {
-  const res = await fetch(`/api/bhool/cards/${cardId}/collect`, {
+  const res = await fetch(`${API_BASE_URL}/api/bhool/cards/${cardId}/collect`, {
     method: 'POST',
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
@@ -384,7 +385,7 @@ export async function apiCollectBhoolCard(cardId) {
 }
 
 export async function apiReactBhoolCard(cardId, emoji) {
-  const res = await fetch(`/api/bhool/cards/${cardId}/react`, {
+  const res = await fetch(`${API_BASE_URL}/api/bhool/cards/${cardId}/react`, {
     method: 'POST',
     headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify({ emoji }),
@@ -395,7 +396,7 @@ export async function apiReactBhoolCard(cardId, emoji) {
 }
 
 export async function apiGetMyBhoolCollections() {
-  const res = await fetch('/api/bhool/collections', {
+  const res = await fetch(`${API_BASE_URL}/api/bhool/collections`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
   })
@@ -406,7 +407,7 @@ export async function apiGetMyBhoolCollections() {
 // ── Muqabla Battles ──────────────────────────────────────────
 
 export async function apiCreateMuqablaChallenge(data) {
-  const res = await fetch('/api/muqabla/challenge', {
+  const res = await fetch(`${API_BASE_URL}/api/muqabla/challenge`, {
     method: 'POST',
     headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -417,7 +418,7 @@ export async function apiCreateMuqablaChallenge(data) {
 }
 
 export async function apiJoinMuqabalaBattle(battleId) {
-  const res = await fetch(`/api/muqabla/battles/${battleId}/join`, {
+  const res = await fetch(`${API_BASE_URL}/api/muqabla/battles/${battleId}/join`, {
     method: 'POST',
     headers: _authHeaders(),
     signal: AbortSignal.timeout(10000),
@@ -427,7 +428,7 @@ export async function apiJoinMuqabalaBattle(battleId) {
 }
 
 export async function apiDeclineMuqabalaBattle(battleId) {
-  const res = await fetch(`/api/muqabla/battles/${battleId}/decline`, {
+  const res = await fetch(`${API_BASE_URL}/api/muqabla/battles/${battleId}/decline`, {
     method: 'DELETE',
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
@@ -437,7 +438,7 @@ export async function apiDeclineMuqabalaBattle(battleId) {
 }
 
 export async function apiSubmitMuqablaAnswers(battleId, data) {
-  const res = await fetch(`/api/muqabla/battles/${battleId}/answer`, {
+  const res = await fetch(`${API_BASE_URL}/api/muqabla/battles/${battleId}/answer`, {
     method: 'POST',
     headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -448,7 +449,7 @@ export async function apiSubmitMuqablaAnswers(battleId, data) {
 }
 
 export async function apiGetMuqabalaBattle(battleId) {
-  const res = await fetch(`/api/muqabla/battles/${battleId}`, {
+  const res = await fetch(`${API_BASE_URL}/api/muqabla/battles/${battleId}`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
   })
@@ -457,7 +458,7 @@ export async function apiGetMuqabalaBattle(battleId) {
 }
 
 export async function apiGetOpenMuqabalaBattles() {
-  const res = await fetch('/api/muqabla/open', {
+  const res = await fetch(`${API_BASE_URL}/api/muqabla/open`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
   })
@@ -466,7 +467,7 @@ export async function apiGetOpenMuqabalaBattles() {
 }
 
 export async function apiGetPendingMuqabalaBattles() {
-  const res = await fetch('/api/muqabla/pending', {
+  const res = await fetch(`${API_BASE_URL}/api/muqabla/pending`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
   })
@@ -475,7 +476,7 @@ export async function apiGetPendingMuqabalaBattles() {
 }
 
 export async function apiGetActiveMuqabalaBattles() {
-  const res = await fetch('/api/muqabla/active', {
+  const res = await fetch(`${API_BASE_URL}/api/muqabla/active`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
   })
@@ -484,7 +485,7 @@ export async function apiGetActiveMuqabalaBattles() {
 }
 
 export async function apiGetMuqabalaHistory() {
-  const res = await fetch('/api/muqabla/history', {
+  const res = await fetch(`${API_BASE_URL}/api/muqabla/history`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
   })
@@ -493,7 +494,7 @@ export async function apiGetMuqabalaHistory() {
 }
 
 export async function apiGetMuqabalaLeaderboard() {
-  const res = await fetch('/api/muqabla/leaderboard', {
+  const res = await fetch(`${API_BASE_URL}/api/muqabla/leaderboard`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
   })
@@ -502,7 +503,7 @@ export async function apiGetMuqabalaLeaderboard() {
 }
 
 export async function apiGetMuqabalaSchoolLeaderboard() {
-  const res = await fetch('/api/muqabla/school-leaderboard', {
+  const res = await fetch(`${API_BASE_URL}/api/muqabla/school-leaderboard`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
   })
@@ -513,7 +514,7 @@ export async function apiGetMuqabalaSchoolLeaderboard() {
 // ── Parent Dashboard ─────────────────────────────────────────
 
 export async function apiGetParentPin() {
-  const res = await fetch('/api/parent/pin', {
+  const res = await fetch(`${API_BASE_URL}/api/parent/pin`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
   })
@@ -522,7 +523,7 @@ export async function apiGetParentPin() {
 }
 
 export async function apiCreateParentPin() {
-  const res = await fetch('/api/parent/pin', {
+  const res = await fetch(`${API_BASE_URL}/api/parent/pin`, {
     method: 'POST',
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
@@ -532,7 +533,7 @@ export async function apiCreateParentPin() {
 }
 
 export async function apiRevokeParentPin() {
-  const res = await fetch('/api/parent/pin', {
+  const res = await fetch(`${API_BASE_URL}/api/parent/pin`, {
     method: 'DELETE',
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
@@ -543,7 +544,7 @@ export async function apiRevokeParentPin() {
 
 // Public — no auth header needed
 export async function apiGetParentView(pin) {
-  const res = await fetch(`/api/parent/view/${encodeURIComponent(pin)}`, {
+  const res = await fetch(`${API_BASE_URL}/api/parent/view/${encodeURIComponent(pin)}`, {
     signal: AbortSignal.timeout(10000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -553,7 +554,7 @@ export async function apiGetParentView(pin) {
 // ── Mastery ───────────────────────────────────────────────────
 
 export async function apiGetMastery(userId) {
-  const res = await fetch(`/api/mastery/${userId}`, {
+  const res = await fetch(`${API_BASE_URL}/api/mastery/${userId}`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
@@ -562,7 +563,7 @@ export async function apiGetMastery(userId) {
 }
 
 export async function apiSetMastery(userId, subject, score) {
-  const res = await fetch(`/api/mastery/${userId}`, {
+  const res = await fetch(`${API_BASE_URL}/api/mastery/${userId}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ subject, score }),
@@ -575,7 +576,7 @@ export async function apiSetMastery(userId, subject, score) {
 // ── Quiz Stats ────────────────────────────────────────────────
 
 export async function apiSaveQuizResult(userId, { subject, difficulty, correct, total = 1 }) {
-  const res = await fetch(`/api/quiz/${userId}/result`, {
+  const res = await fetch(`${API_BASE_URL}/api/quiz/${userId}/result`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ subject, difficulty, correct, total }),
@@ -586,7 +587,7 @@ export async function apiSaveQuizResult(userId, { subject, difficulty, correct, 
 }
 
 export async function apiGetQuizStats(userId) {
-  const res = await fetch(`/api/quiz/${userId}/stats`, {
+  const res = await fetch(`${API_BASE_URL}/api/quiz/${userId}/stats`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
@@ -597,7 +598,7 @@ export async function apiGetQuizStats(userId) {
 // ─── Notebook ────────────────────────────────────────────────
 
 export async function apiGetSources(userId) {
-  const res = await fetch(`/api/notebook/${userId}/sources`, {
+  const res = await fetch(`${API_BASE_URL}/api/notebook/${userId}/sources`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
@@ -606,7 +607,7 @@ export async function apiGetSources(userId) {
 }
 
 export async function apiSaveSource(userId, source) {
-  const res = await fetch(`/api/notebook/${userId}/sources`, {
+  const res = await fetch(`${API_BASE_URL}/api/notebook/${userId}/sources`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({
@@ -624,7 +625,7 @@ export async function apiSaveSource(userId, source) {
 }
 
 export async function apiDeleteSource(userId, sourceId) {
-  const res = await fetch(`/api/notebook/${userId}/sources/${sourceId}`, {
+  const res = await fetch(`${API_BASE_URL}/api/notebook/${userId}/sources/${sourceId}`, {
     method: 'DELETE',
     headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
@@ -634,7 +635,7 @@ export async function apiDeleteSource(userId, sourceId) {
 }
 
 export async function apiGetNotebookChat(userId) {
-  const res = await fetch(`/api/notebook/${userId}/chat`, {
+  const res = await fetch(`${API_BASE_URL}/api/notebook/${userId}/chat`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
@@ -643,7 +644,7 @@ export async function apiGetNotebookChat(userId) {
 }
 
 export async function apiSaveChatMessage(userId, role, content) {
-  const res = await fetch(`/api/notebook/${userId}/chat`, {
+  const res = await fetch(`${API_BASE_URL}/api/notebook/${userId}/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ role, content }),
@@ -654,7 +655,7 @@ export async function apiSaveChatMessage(userId, role, content) {
 }
 
 export async function apiClearNotebookChat(userId) {
-  const res = await fetch(`/api/notebook/${userId}/chat`, {
+  const res = await fetch(`${API_BASE_URL}/api/notebook/${userId}/chat`, {
     method: 'DELETE',
     headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
@@ -664,7 +665,7 @@ export async function apiClearNotebookChat(userId) {
 }
 
 export async function apiGetStudioOutputs(userId) {
-  const res = await fetch(`/api/notebook/${userId}/studio`, {
+  const res = await fetch(`${API_BASE_URL}/api/notebook/${userId}/studio`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
@@ -673,7 +674,7 @@ export async function apiGetStudioOutputs(userId) {
 }
 
 export async function apiSaveStudioOutput(userId, type, outputJson) {
-  const res = await fetch(`/api/notebook/${userId}/studio`, {
+  const res = await fetch(`${API_BASE_URL}/api/notebook/${userId}/studio`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ type, output_json: outputJson }),
@@ -686,7 +687,7 @@ export async function apiSaveStudioOutput(userId, type, outputJson) {
 // ─── Chat Sessions (TutorTab, MentalLab) ─────────────────────
 
 export async function apiGetSession(userId, session) {
-  const res = await fetch(`/api/chat-session/${userId}/${session}`, {
+  const res = await fetch(`${API_BASE_URL}/api/chat-session/${userId}/${session}`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
@@ -695,7 +696,7 @@ export async function apiGetSession(userId, session) {
 }
 
 export async function apiSaveToSession(userId, session, role, content) {
-  const res = await fetch(`/api/chat-session/${userId}/${session}`, {
+  const res = await fetch(`${API_BASE_URL}/api/chat-session/${userId}/${session}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ role, content }),
@@ -706,7 +707,7 @@ export async function apiSaveToSession(userId, session, role, content) {
 }
 
 export async function apiClearSession(userId, session) {
-  const res = await fetch(`/api/chat-session/${userId}/${session}`, {
+  const res = await fetch(`${API_BASE_URL}/api/chat-session/${userId}/${session}`, {
     method: 'DELETE',
     headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
@@ -718,7 +719,7 @@ export async function apiClearSession(userId, session) {
 // ─── User Drafts (EssayLab, VideosTab, PodcastLab) ───────────
 
 export async function apiGetDraft(userId, key) {
-  const res = await fetch(`/api/draft/${userId}/${key}`, {
+  const res = await fetch(`${API_BASE_URL}/api/draft/${userId}/${key}`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
@@ -728,7 +729,7 @@ export async function apiGetDraft(userId, key) {
 }
 
 export async function apiSaveDraft(userId, key, content, extra = '') {
-  const res = await fetch(`/api/draft/${userId}/${key}`, {
+  const res = await fetch(`${API_BASE_URL}/api/draft/${userId}/${key}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ content, extra }),
