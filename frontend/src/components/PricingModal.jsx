@@ -1,7 +1,7 @@
 // src/components/PricingModal.jsx
 import { useState, useEffect } from 'react'
 import { COLORS, PLANS } from '../shared.js'
-import { apiGetPlans, apiCreateOrder, apiVerifyPayment } from '../api.js'
+import { apiGetPlans, apiCreateOrder, apiVerifyPayment, apiRecordPaymentFailure } from '../api.js'
 
 const RZP_KEY = import.meta.env.VITE_RAZORPAY_KEY_ID
 
@@ -47,38 +47,54 @@ export default function PricingModal({ profile, userId, onClose, onUpgradeSucces
         theme: { color: COLORS.green },
 
         handler: async (response) => {
-          try {
-            // 3. Verify on backend — this writes plan to DB
-            const result = await apiVerifyPayment({
-              razorpay_order_id:   response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature:  response.razorpay_signature,
-              user_id:             userId,
-              plan:                planKey,
-            })
-
-            if (result.success) {
-              // 4. Tell App to refresh the profile
-              onUpgradeSuccess({ plan: result.plan, plan_expires_at: result.expires_at })
-              onClose()
+            try {
+                const result = await apiVerifyPayment({
+                razorpay_order_id:   response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature:  response.razorpay_signature,
+                user_id:             userId,
+                plan:                planKey,
+                })
+                if (result.success) {
+                onUpgradeSuccess({ plan: result.plan, plan_expires_at: result.expires_at })
+                onClose()
+                }
+            } catch (e) {
+                setError('Payment received but verification failed. Contact support.')
+            } finally {
+                setPaying(null)
             }
-          } catch (e) {
-            setError('Payment received but verification failed. Contact support.')
-          } finally {
-            setPaying(null)
-          }
-        },
+            },
 
-        modal: {
-          ondismiss: () => setPaying(null),
-        },
-      }
+            modal: {
+            ondismiss: () => {
+                // Record abandoned payment
+                apiRecordPaymentFailure({
+                user_id:            userId,
+                plan:               planKey,
+                razorpay_order_id:  order.order_id,
+                failure_reason:     'User dismissed checkout',
+                failure_code:       'DISMISSED',
+                })
+                setPaying(null)
+                },
+            },
+        }
 
       const rzp = new window.Razorpay(options)
       rzp.on('payment.failed', (resp) => {
+        // Record failed payment
+        apiRecordPaymentFailure({
+            user_id:              userId,
+            plan:                 planKey,
+            razorpay_order_id:    order.order_id,
+            razorpay_payment_id:  resp.error.metadata?.payment_id,
+            failure_reason:       resp.error.description,
+            failure_code:         resp.error.code,
+        })
         setError(`Payment failed: ${resp.error.description}`)
         setPaying(null)
-      })
+        })
       rzp.open()
 
     } catch (e) {

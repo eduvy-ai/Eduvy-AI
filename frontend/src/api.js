@@ -773,3 +773,14 @@ export async function apiVerifyPayment({ razorpay_order_id, razorpay_payment_id,
   if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)
   return data  // { success, plan, expires_at, payment_id }
 }
+
+export async function apiRecordPaymentFailure({ user_id, plan, razorpay_order_id, razorpay_payment_id, failure_reason, failure_code }) {
+  try {
+    await fetch('/api/payment/record-failure', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+      body: JSON.stringify({ user_id, plan, razorpay_order_id, razorpay_payment_id, failure_reason, failure_code }),
+      signal: AbortSignal.timeout(5000),
+    })
+  } catch {} // Silent — never block user for analytics
+}
