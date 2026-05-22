@@ -742,7 +742,7 @@ export async function apiSaveDraft(userId, key, content, extra = '') {
 // ── Referrals ─────────────────────────────────────────────────
 
 export async function apiGetMyReferralCode() {
-  const res = await fetch('/api/referrals/code', {
+  const res = await fetch(`${API_BASE_URL}/api/referrals/code`, {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(8000),
   })
@@ -751,7 +751,7 @@ export async function apiGetMyReferralCode() {
 }
 
 export async function apiApplyReferralCode(code) {
-  const res = await fetch('/api/referrals/apply', {
+  const res = await fetch(`${API_BASE_URL}/api/referrals/apply`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ code }),
@@ -765,7 +765,7 @@ export async function apiApplyReferralCode(code) {
 // ── Payments (Razorpay) ───────────────────────────────────────
 
 export async function apiGetPlanPrices() {
-  const res = await fetch('/api/payments/plans', {
+  const res = await fetch(`${API_BASE_URL}/api/payments/plans`, {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -773,7 +773,7 @@ export async function apiGetPlanPrices() {
 }
 
 export async function apiCreatePaymentOrder(plan) {
-  const res = await fetch('/api/payments/create-order', {
+  const res = await fetch(`${API_BASE_URL}/api/payments/create-order`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ plan }),
@@ -785,7 +785,7 @@ export async function apiCreatePaymentOrder(plan) {
 }
 
 export async function apiVerifyPayment({ order_id, payment_id, signature, plan }) {
-  const res = await fetch('/api/payments/verify', {
+  const res = await fetch(`${API_BASE_URL}/api/payments/verify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ order_id, payment_id, signature, plan }),
