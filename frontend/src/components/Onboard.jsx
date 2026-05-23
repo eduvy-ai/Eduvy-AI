@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { COLORS, BOARDS, LANGS, SUBS, UI_STRINGS } from '../App.jsx'
+import { COLORS, BOARDS, LANGS, SUBS } from '../shared.js'
 import { getDeviceId, apiCreateProfile, apiApplyReferralCode } from '../api.js'
+import { li } from '../i18n/index.js'
 
 const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
 
@@ -157,7 +158,7 @@ export default function Onboard({ onComplete }) {
     onComplete(profileData)
   }
 
-  const ui = UI_STRINGS[language] || UI_STRINGS.English
+  const ui = li(language)
 
   return (
     <div style={{
@@ -209,22 +210,22 @@ export default function Onboard({ onComplete }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div>
               <h2 style={{ fontSize: 22, fontWeight: 800, color: COLORS.text, marginBottom: 4 }}>
-                Welcome! 👋
+                {ui.welcome} 👋
               </h2>
               <p style={{ fontSize: 14, color: COLORS.muted }}>
-                Set up your learning profile in 2 minutes
+                {ui.setupProfile}
               </p>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <label style={{ fontSize: 12, color: COLORS.muted, fontWeight: 600, marginBottom: 6, display: "block" }}>
-                  YOUR NAME *
+                  {ui.yourName} *
                 </label>
                 <input
                   style={inputStyle}
                   type="text"
-                  placeholder="e.g. Arjun Sharma"
+                  placeholder={ui.namePlaceholder}
                   value={name}
                   onChange={e => setName(e.target.value)}
                 />
@@ -232,12 +233,12 @@ export default function Onboard({ onComplete }) {
 
               <div>
                 <label style={{ fontSize: 12, color: COLORS.muted, fontWeight: 600, marginBottom: 6, display: "block" }}>
-                  YOUR MOBILE
+                  {ui.yourMobile}
                 </label>
                 <input
                   style={inputStyle}
                   type="tel"
-                  placeholder="10-digit mobile number"
+                  placeholder={ui.mobilePlaceholder}
                   value={mobile}
                   onChange={e => setMobile(e.target.value)}
                   maxLength={10}
@@ -246,12 +247,12 @@ export default function Onboard({ onComplete }) {
 
               <div>
                 <label style={{ fontSize: 12, color: COLORS.muted, fontWeight: 600, marginBottom: 6, display: "block" }}>
-                  PARENT'S MOBILE
+                  {ui.parentMobile}
                 </label>
                 <input
                   style={inputStyle}
                   type="tel"
-                  placeholder="Parent's mobile number"
+                  placeholder={ui.parentMobilePlaceholder}
                   value={parent}
                   onChange={e => setParent(e.target.value)}
                   maxLength={10}
@@ -260,7 +261,7 @@ export default function Onboard({ onComplete }) {
 
               <div>
                 <label style={{ fontSize: 12, color: COLORS.muted, fontWeight: 600, marginBottom: 6, display: "block" }}>
-                  CLASS
+                  {ui.classLabel}
                 </label>
                 <select style={selectStyle} value={standard} onChange={e => setStd(e.target.value)}>
                   {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -269,7 +270,7 @@ export default function Onboard({ onComplete }) {
 
               <div>
                 <label style={{ fontSize: 12, color: COLORS.muted, fontWeight: 600, marginBottom: 6, display: "block" }}>
-                  BOARD
+                  {ui.boardLabel}
                 </label>
                 <select style={selectStyle} value={board} onChange={e => setBoard(e.target.value)}>
                   {boardList.map(b => <option key={b} value={b}>{b}</option>)}
@@ -278,7 +279,7 @@ export default function Onboard({ onComplete }) {
 
               <div>
                 <label style={{ fontSize: 12, color: COLORS.muted, fontWeight: 600, marginBottom: 6, display: "block" }}>
-                  MEDIUM / LANGUAGE
+                  {ui.languageLabel}
                 </label>
                 <select style={selectStyle} value={language} onChange={e => setLang(e.target.value)}>
                   {mediumList.map(l => <option key={l} value={l}>{l}</option>)}
@@ -292,7 +293,7 @@ export default function Onboard({ onComplete }) {
                   fontSize: 12,
                   color: COLORS.green,
                 }}>
-                  ✓ All AI responses will be in <strong>{language}</strong>
+                  ✓ {ui.aiInLanguage.replace('{language}', language)}
                 </div>
               </div>
             </div>
@@ -308,10 +309,10 @@ export default function Onboard({ onComplete }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div>
               <h2 style={{ fontSize: 22, fontWeight: 800, color: COLORS.text, marginBottom: 4 }}>
-                Pick your subjects 📚
+                {ui.pickSubjects} 📚
               </h2>
               <p style={{ fontSize: 14, color: COLORS.muted }}>
-                {standard} • {board} • {language} medium
+                {standard} • {board} • {language}
               </p>
             </div>
 
@@ -330,11 +331,11 @@ export default function Onboard({ onComplete }) {
                 width: "fit-content",
               }}
             >
-              ✓ Select All
+              ✓ {ui.selectAll}
             </button>
 
             {loadingSubs ? (
-              <p style={{ fontSize: 13, color: COLORS.muted }}>Loading subjects…</p>
+              <p style={{ fontSize: 13, color: COLORS.muted }}>{ui.loadingSubjects}</p>
             ) : (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                 {subjectList.map(s => {
@@ -364,7 +365,7 @@ export default function Onboard({ onComplete }) {
             )}
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setStep(1)} style={secondaryBtn}>← Back</button>
+              <button onClick={() => setStep(1)} style={secondaryBtn}>← {ui.back}</button>
               <button onClick={goStep3} style={{ ...primaryBtn, flex: 1 }}>
                 {ui.next}
               </button>
@@ -377,10 +378,10 @@ export default function Onboard({ onComplete }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div>
               <h2 style={{ fontSize: 22, fontWeight: 800, color: COLORS.text, marginBottom: 4 }}>
-                All set, {name}! 🎉
+                {ui.allSet.replace('{name}', name)} 🎉
               </h2>
               <p style={{ fontSize: 14, color: COLORS.muted }}>
-                Your personalized AI tutor is ready
+                {ui.tutorReady}
               </p>
             </div>
 
@@ -395,10 +396,10 @@ export default function Onboard({ onComplete }) {
               gap: 10,
             }}>
               {[
-                ["🎓", "Class", standard],
-                ["📋", "Board", board],
-                ["🌐", "Language", language],
-                ["📚", "Subjects", (subjects.length ? subjects : subjectList).join(", ")],
+                ["🎓", ui.classLabel, standard],
+                ["📋", ui.boardLabel, board],
+                ["🌐", ui.languageLabel, language],
+                ["📚", ui.subjectsLabel, (subjects.length ? subjects : subjectList).join(", ")],
               ].map(([icon, label, value]) => (
                 <div key={label} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                   <span>{icon}</span>
@@ -412,16 +413,16 @@ export default function Onboard({ onComplete }) {
 
             {/* Features list */}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <p style={{ fontSize: 12, color: COLORS.muted, fontWeight: 600 }}>WHAT'S AVAILABLE</p>
+              <p style={{ fontSize: 12, color: COLORS.muted, fontWeight: 600 }}>{ui.whatsAvailable}</p>
               {[
-                "🏠 Daily brain brief & exam oracle",
-                "📖 AI notes from any textbook or topic",
-                "🤖 Personal tutor in 6 different modes",
-                "🎬 Video scripts & YouTube discovery",
-                "🎙️ AI podcast debates",
-                "🎯 Adaptive quiz practice",
-                "✍️ Essay grading by AI examiner",
-                "🧘 Mental wellness coach",
+                `🏠 ${ui.featureDailyBrief}`,
+                `📖 ${ui.featureAiNotes}`,
+                `🤖 ${ui.featureTutor}`,
+                `🎬 ${ui.featureVideos}`,
+                `🎤 ${ui.featurePodcast}`,
+                `🎯 ${ui.featureQuiz}`,
+                `✍️ ${ui.featureEssay}`,
+                `🧘 ${ui.featureWellness}`,
               ].map(f => (
                 <div key={f} style={{ fontSize: 13, color: COLORS.text, display: "flex", alignItems: "center", gap: 6 }}>
                   {f}
@@ -431,11 +432,11 @@ export default function Onboard({ onComplete }) {
 
             {/* Referral code */}
             <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 16 }}>
-              <div style={{ fontSize: 12, color: COLORS.muted, fontWeight: 700, marginBottom: 8 }}>GOT A REFERRAL CODE? (optional)</div>
+              <div style={{ fontSize: 12, color: COLORS.muted, fontWeight: 700, marginBottom: 8 }}>{ui.gotReferralCode}</div>
               <input
                 style={inputStyle}
                 type="text"
-                placeholder="e.g. ABC1234"
+                placeholder={ui.referralPlaceholder}
                 value={refCode}
                 onChange={e => setRefCode(e.target.value.toUpperCase())}
                 maxLength={10}
@@ -444,18 +445,18 @@ export default function Onboard({ onComplete }) {
                 <div style={{ fontSize: 12, color: refMsg.startsWith('✅') ? COLORS.green : COLORS.red, marginTop: 6 }}>{refMsg}</div>
               )}
               <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 6 }}>
-                You get +200 XP · Your friend gets +500 XP
+                {ui.referralBonus}
               </div>
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setStep(2)} style={secondaryBtn}>← Back</button>
+              <button onClick={() => setStep(2)} style={secondaryBtn}>← {ui.back}</button>
               <button
                 onClick={finish}
                 disabled={saving}
                 style={{ ...primaryBtn, flex: 1, opacity: saving ? 0.6 : 1 }}
               >
-                {saving ? "Saving…" : ui.start}
+                {saving ? `${ui.saving}...` : ui.start}
               </button>
             </div>
           </div>

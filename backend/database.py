@@ -148,6 +148,7 @@ def init_db():
             standard        TEXT DEFAULT 'Class 10',
             board           TEXT DEFAULT 'CBSE',
             language        TEXT DEFAULT 'English',
+            display_language TEXT DEFAULT 'medium',
             subjects        TEXT DEFAULT '[]',
             xp              INTEGER DEFAULT 0,
             streak          INTEGER DEFAULT 1,
@@ -443,6 +444,18 @@ def init_db():
                 WHERE table_name = 'users' AND column_name = 'school'
             ) THEN
                 ALTER TABLE users ADD COLUMN school TEXT DEFAULT '';
+            END IF;
+        END $$;
+    """)
+    # --- Add display_language column if missing (for UI language preference) ---
+    cur.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = 'display_language'
+            ) THEN
+                ALTER TABLE users ADD COLUMN display_language TEXT DEFAULT 'medium';
             END IF;
         END $$;
     """)

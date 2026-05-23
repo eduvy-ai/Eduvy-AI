@@ -1,6 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { COLORS, callAI, buildSystemPrompt, parseAIObject, checkStudentQuery } from '../../App.jsx'
-import { getStarters } from '../../shared.js'
+import { getStarters, getDisplayLang } from '../../shared.js'
+import { li } from '../../i18n/index.js'
 import { apiGetDraft, apiSaveDraft } from '../../api.js'
 
 const LANG_VOICE = {
@@ -2347,7 +2348,7 @@ Return 10 scenes:
           <div style={{ padding:'14px' }}>
             <div style={{ fontSize:11, color:COLORS.muted, fontWeight:700, letterSpacing:1, marginBottom:10 }}>POPULAR LESSONS</div>
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              {getStarters(profile?.language, 'videos').map(s => (
+              {getStarters(getDisplayLang(profile), 'videos').map(s => (
                 <button key={s.q} onClick={() => { setQuestion(s.q); generate(s.q) }} style={{
                   background:COLORS.card, border:`1px solid ${COLORS.border}`, borderRadius:12,
                   padding:'12px 14px', color:COLORS.text, fontSize:13, cursor:'pointer',

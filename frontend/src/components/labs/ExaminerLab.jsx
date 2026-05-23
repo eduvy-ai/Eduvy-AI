@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { COLORS, callAI, buildSystemPrompt, parseAIObject } from '../../App.jsx'
+import { li } from '../../i18n/index.js'
 
 // ── Mark options ──────────────────────────────────────────────
 const MARK_OPTIONS = [

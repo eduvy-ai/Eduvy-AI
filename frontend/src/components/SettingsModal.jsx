@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { COLORS, BOARDS, LANGS, PLANS } from '../shared.js'
+import { COLORS, BOARDS, LANGS, PLANS, getDisplayLang } from '../shared.js'
 import { apiGetParentPin, apiCreateParentPin, apiRevokeParentPin, apiGetMyReferralCode } from '../api.js'
+import { li } from '../i18n/index.js'
 import UpgradePlanModal from './UpgradePlanModal.jsx'
 
 const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
@@ -17,6 +18,9 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
   const [activeTab, setActiveTab] = useState('ai')
   const [showUpgrade, setShowUpgrade] = useState(false)
 
+  // i18n — use display language preference
+  const ui = li(getDisplayLang(profile))
+
   // ── Referral state ───────────────────────────────────────
   const [referral, setReferral] = useState(null)
   const [refCopied, setRefCopied] = useState(false)
@@ -30,6 +34,7 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
   const [pStd, setPStd]       = useState(profile?.standard || "Class 10")
   const [pBoard, setPBoard]   = useState(profile?.board || "CBSE")
   const [pLang, setPLang]     = useState(profile?.language || "English")
+  const [pDisplayLang, setPDisplayLang] = useState(profile?.displayLanguage || "medium")  // "english" or "medium"
   const [pSchool, setPSchool] = useState(profile?.school || "")
   const [profileSaved, setProfileSaved] = useState(false)
 
@@ -41,7 +46,7 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
 
   const saveProfile = () => {
     if (!pName.trim()) return
-    onProfileSave?.({ name: pName.trim(), standard: pStd, board: pBoard, language: pLang, school: pSchool.trim() })
+    onProfileSave?.({ name: pName.trim(), standard: pStd, board: pBoard, language: pLang, displayLanguage: pDisplayLang, school: pSchool.trim() })
     setProfileSaved(true)
     setTimeout(() => setProfileSaved(false), 2000)
   }
@@ -101,14 +106,14 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
         <div style={{ padding: "8px 18px 0" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
             <div>
-              <h2 style={{ fontSize: 17, fontWeight: 800, color: COLORS.text }}>⚙️ Settings</h2>
+              <h2 style={{ fontSize: 17, fontWeight: 800, color: COLORS.text }}>⚙️ {ui.settings}</h2>
             </div>
             <button onClick={onClose} style={{ background: "transparent", border: "none", color: COLORS.muted, fontSize: 20, cursor: "pointer", fontFamily: "Sora, sans-serif" }}>✕</button>
           </div>
 
           {/* Tab switcher */}
           <div style={{ display: "flex", background: COLORS.card, borderRadius: 12, padding: 4, marginBottom: 18, border: `1px solid ${COLORS.border}`, gap: 4 }}>
-            {[["ai", "🤖 AI"], ["profile", "👤 Profile"], ["plan", "👑 Plan"]].map(([key, label]) => (
+            {[["ai", ui.aiTab], ["profile", ui.profileTab], ["plan", ui.planTab]].map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
@@ -132,33 +137,40 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
           {activeTab === "profile" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
-                <label style={labelStyle}>YOUR NAME</label>
-                <input style={inputStyle} type="text" value={pName} onChange={e => setPName(e.target.value)} placeholder="Your name" />
+                <label style={labelStyle}>{ui.yourName}</label>
+                <input style={inputStyle} type="text" value={pName} onChange={e => setPName(e.target.value)} placeholder={ui.namePlaceholder} />
               </div>
               <div>
-                <label style={labelStyle}>CLASS</label>
+                <label style={labelStyle}>{ui.classLabel}</label>
                 <select style={inputStyle} value={pStd} onChange={e => setPStd(e.target.value)}>
                   {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
-                <label style={labelStyle}>BOARD</label>
+                <label style={labelStyle}>{ui.boardLabel}</label>
                 <select style={inputStyle} value={pBoard} onChange={e => setPBoard(e.target.value)}>
                   {BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
               <div>
-                <label style={labelStyle}>LANGUAGE</label>
+                <label style={labelStyle}>{ui.languageLabel}</label>
                 <select style={inputStyle} value={pLang} onChange={e => setPLang(e.target.value)}>
                   {LANGS.map(l => <option key={l} value={l}>{l}</option>)}
                 </select>
               </div>
               <div>
-                <label style={labelStyle}>SCHOOL NAME (for Muqabla Battles)</label>
-                <input style={inputStyle} type="text" value={pSchool} onChange={e => setPSchool(e.target.value)} placeholder="e.g. Delhi Public School" maxLength={100} />
+                <label style={labelStyle}>{ui.displayLanguageLabel}</label>
+                <select style={inputStyle} value={pDisplayLang} onChange={e => setPDisplayLang(e.target.value)}>
+                  <option value="english">{ui.displayLangEnglish}</option>
+                  <option value="medium">{ui.displayLangMedium} ({pLang})</option>
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>{ui.schoolName}</label>
+                <input style={inputStyle} type="text" value={pSchool} onChange={e => setPSchool(e.target.value)} placeholder={ui.schoolPlaceholder} maxLength={100} />
               </div>
               <button onClick={saveProfile} style={primaryBtn}>
-                {profileSaved ? "✅ Saved!" : "💾 Save Profile"}
+                {profileSaved ? `✅ ${ui.saved}` : ui.saveProfile}
               </button>
 
               {/* ── Refer Friends ── */}
@@ -167,21 +179,21 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                 border: `1px solid ${COLORS.blue}33`, borderRadius: 14, padding: '16px',
               }}>
                 <div style={{ fontWeight: 700, color: COLORS.blue, fontSize: 14, marginBottom: 6 }}>
-                  🎁 Refer Friends
+                  {ui.referFriends}
                 </div>
                 <p style={{ color: COLORS.muted, fontSize: 12, margin: '0 0 12px' }}>
-                  Share your code. You get <strong style={{ color: COLORS.yellow }}>+500 XP</strong> for every friend who joins. They get <strong style={{ color: COLORS.green }}>+200 XP</strong> bonus.
+                  {ui.referDescription}
                 </p>
                 {referral ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: COLORS.card2, borderRadius: 10, padding: '10px 14px' }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ color: COLORS.muted, fontSize: 10, marginBottom: 2 }}>YOUR REFERRAL CODE</div>
+                      <div style={{ color: COLORS.muted, fontSize: 10, marginBottom: 2 }}>{ui.yourReferralCode}</div>
                       <div style={{ fontFamily: 'monospace', fontSize: 20, fontWeight: 900, color: COLORS.blue, letterSpacing: 4 }}>
                         {referral.code}
                       </div>
                       {referral.referred_count > 0 && (
                         <div style={{ color: COLORS.green, fontSize: 11, marginTop: 2 }}>
-                          ✓ {referral.referred_count} friend{referral.referred_count > 1 ? 's' : ''} joined!
+                          ✓ {referral.referred_count} {ui.friendsJoined}
                         </div>
                       )}
                     </div>
@@ -197,10 +209,10 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                         }
                       }}
                       style={{ background: refCopied ? `${COLORS.green}22` : `${COLORS.blue}22`, border: `1px solid ${refCopied ? COLORS.green : COLORS.blue}44`, color: refCopied ? COLORS.green : COLORS.blue, borderRadius: 10, padding: '7px 12px', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}
-                    >{refCopied ? '✅ Copied!' : '📲 Share'}</button>
+                    >{refCopied ? `✅ ${ui.copied}` : `📲 ${ui.share}`}</button>
                   </div>
                 ) : (
-                  <div style={{ color: COLORS.muted, fontSize: 12 }}>Loading your code…</div>
+                  <div style={{ color: COLORS.muted, fontSize: 12 }}>{ui.loading}...</div>
                 )}
               </div>
 
@@ -212,10 +224,10 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                 borderRadius: 14, padding: '16px',
               }}>
                 <div style={{ fontWeight: 700, color: COLORS.green, fontSize: 14, marginBottom: 6 }}>
-                  👨‍👩‍👦 Share with Parent
+                  👨‍👩‍👦 {ui.shareWithParent}
                 </div>
                 <p style={{ color: COLORS.muted, fontSize: 12, margin: '0 0 12px' }}>
-                  Generate a PIN so your parent can view your progress — no account needed.
+                  {ui.parentPinDescription}
                 </p>
                 {parentPin ? (
                   <>
@@ -225,7 +237,7 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                       marginBottom: 8,
                     }}>
                       <div>
-                        <div style={{ color: COLORS.muted, fontSize: 10, marginBottom: 2 }}>PARENT LINK</div>
+                        <div style={{ color: COLORS.muted, fontSize: 10, marginBottom: 2 }}>{ui.parentLink}</div>
                         <div style={{
                           fontFamily: 'monospace', fontSize: 16, fontWeight: 900,
                           color: COLORS.yellow, letterSpacing: 3,
@@ -246,11 +258,11 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                           color: pinCopied ? COLORS.green : COLORS.text,
                           borderRadius: 10, padding: '6px 12px', fontSize: 12, cursor: 'pointer',
                         }}
-                      >{pinCopied ? '✅ Copied!' : '📋 Copy'}</button>
+                      >{pinCopied ? `✅ ${ui.copied}` : `📋 ${ui.copy}`}</button>
                     </div>
                     {parentExpires && (
                       <div style={{ color: COLORS.muted, fontSize: 11, marginBottom: 8 }}>
-                        ⏰ Valid until {new Date(parentExpires).toLocaleDateString()}
+                        ⏰ {ui.validUntil} {new Date(parentExpires).toLocaleDateString()}
                       </div>
                     )}
                     <button
@@ -267,7 +279,7 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                         color: COLORS.red, borderRadius: 10, padding: '6px 14px',
                         fontSize: 12, cursor: 'pointer', width: '100%',
                       }}
-                    >{pinLoading ? 'Revoking…' : '🗑 Revoke Access'}</button>
+                    >{pinLoading ? `${ui.revoking}...` : `🗑 ${ui.revokeAccess}`}</button>
                   </>
                 ) : (
                   <button
@@ -284,7 +296,7 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                       color: COLORS.green, borderRadius: 10, padding: '10px',
                       fontSize: 14, fontWeight: 700, cursor: 'pointer', width: '100%',
                     }}
-                  >{pinLoading ? 'Generating…' : '🔗 Generate Parent Link'}</button>
+                  >{pinLoading ? `${ui.generating}...` : `🔗 ${ui.generateParentLink}`}</button>
                 )}
               </div>
             </div>
@@ -307,7 +319,7 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                   <span style={{ fontSize: 36 }}>{currentPlanInfo.icon}</span>
                   <div>
                     <div style={{ fontSize: 18, fontWeight: 900, color: currentPlanInfo.color }}>{currentPlanInfo.label}</div>
-                    <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>Your current plan</div>
+                    <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>{ui.yourCurrentPlan}</div>
                     {profile?.plan_expires_at && (
                       <div style={{ fontSize: 11, color: COLORS.yellow, marginTop: 4 }}>
                         ⏰ Expires: {profile.plan_expires_at}
@@ -332,7 +344,7 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                           <span style={{ fontSize: 18 }}>{info.icon}</span>
                           <span style={{ fontSize: 14, fontWeight: 800, color: isActive ? info.color : COLORS.text }}>{info.label}</span>
-                          {isActive && <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 700, color: info.color, background: `${info.color}20`, borderRadius: 6, padding: "2px 8px" }}>ACTIVE</span>}
+                          {isActive && <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 700, color: info.color, background: `${info.color}20`, borderRadius: 6, padding: "2px 8px" }}>{ui.active}</span>}
                         </div>
                         <div style={{ fontSize: 11, color: COLORS.muted, lineHeight: 1.5 }}>
                           Tabs: {info.tabs.join(" · ")}
@@ -343,14 +355,14 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                           </div>
                         )}
                         <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>
-                          AI calls/day: {info.aiCallsPerDay === Infinity ? "Unlimited" : info.aiCallsPerDay}
+                          {ui.aiCallsPerDay}: {info.aiCallsPerDay === Infinity ? ui.unlimited : info.aiCallsPerDay}
                         </div>
                       </div>
                     )
                   })}
                 </div>
                 <p style={{ fontSize: 11, color: COLORS.muted, textAlign: "center", margin: 0 }}>
-                  Contact your teacher or admin to upgrade your plan.
+                  {ui.contactToUpgrade}
                 </p>
                 {profile?.plan !== 'premium' && (
                   <button
@@ -362,7 +374,7 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                       cursor: 'pointer', fontFamily: 'Sora, sans-serif',
                     }}
                   >
-                    ⬆️ Upgrade Plan
+                    ⬆️ {ui.upgradePlan}
                   </button>
                 )}
               </div>

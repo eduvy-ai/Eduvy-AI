@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { COLORS, callAI, buildSystemPrompt, parseAIObject, parseAIArray, checkStudentQuery } from '../../shared.js'
+import { li } from '../../i18n/index.js'
 
 // ── Backend YouTube API (uses yt-dlp on server) ──────────────
 

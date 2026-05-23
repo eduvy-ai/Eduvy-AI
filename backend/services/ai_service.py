@@ -119,9 +119,9 @@ _ai_cache = _TTLCache(
 )
 
 # ── Plan → default model routing (hardcoded fallback) ─────────
-# gemma2-9b-it has 15K TPM on Groq free tier vs 6K for llama-3.1-8b-instant
+# Using llama-3.1-8b-instant for free tier (gemma2-9b-it was decommissioned)
 _DEFAULT_PLAN_ROUTING: dict[str, dict] = {
-    "free":    {"provider": "groq",   "model": "gemma2-9b-it"},
+    "free":    {"provider": "groq",   "model": "llama-3.1-8b-instant"},
     "basic":   {"provider": "groq",   "model": "llama-3.3-70b-versatile"},
     "pro":     {"provider": "gemini", "model": "gemini-2.0-flash"},
     "premium": {"provider": "gemini", "model": "gemini-2.0-flash"},
@@ -133,10 +133,11 @@ _PLAN_ROUTING: dict[str, dict] = dict(_DEFAULT_PLAN_ROUTING)
 
 # Models that have been decommissioned → auto-replace on load
 _DECOMMISSIONED_MODELS = {
-    "llama3-8b-8192":      "gemma2-9b-it",
-    "llama3-70b-8192":     "llama-3.3-70b-versatile",
-    "mixtral-8x7b-32768":  "llama-3.3-70b-versatile",
-    "llama-3.1-8b-instant": "gemma2-9b-it",   # 6K TPM → upgrade to 15K TPM model
+    "llama3-8b-8192":       "llama-3.1-8b-instant",
+    "llama3-70b-8192":      "llama-3.3-70b-versatile",
+    "mixtral-8x7b-32768":   "llama-3.3-70b-versatile",
+    "gemma2-9b-it":         "llama-3.1-8b-instant",    # decommissioned May 2026
+    "gemma-7b-it":          "llama-3.1-8b-instant",
 }
 
 
@@ -345,7 +346,7 @@ _FALLBACK_ORDER = ["groq", "gemini", "anthropic", "openai"]
 
 # Default first model per provider (used when falling back)
 _PROVIDER_DEFAULT_MODEL = {
-    "groq":      "gemma2-9b-it",
+    "groq":      "llama-3.1-8b-instant",
     "gemini":    "gemini-2.0-flash",
     "anthropic": "claude-3-5-haiku-20241022",
     "openai":    "gpt-4o-mini",
@@ -450,10 +451,23 @@ async def call_ai(
                         await asyncio.sleep((attempt + 1) * 3)
                         continue
                     return ("⚠️ Rate limit reached on AI provider. Please wait and retry.", 0, 0)
+                if status == 400:
+                    # Model decommissioned / invalid — auto-fix and retry
+                    err_text = exc.response.text.lower()
+                    if "decommissioned" in err_text or "deprecated" in err_text or "no longer supported" in err_text:
+                        fixed = _DECOMMISSIONED_MODELS.get(model)
+                        if fixed and fixed != model:
+                            model = fixed
+                            continue
+                        # Fallback to Gemini if available
+                        if _KEY_POOLS.get("gemini") and provider != "gemini":
+                            provider, model = "gemini", "gemini-2.0-flash"
+                            key = _next_key("gemini")
+                            continue
                 if status == 413:
                     # Request too large for this model — try bigger model or next provider
-                    if provider == "groq" and model != "gemma2-9b-it" and attempt == 0:
-                        model = "gemma2-9b-it"
+                    if provider == "groq" and model != "llama-3.3-70b-versatile" and attempt == 0:
+                        model = "llama-3.3-70b-versatile"
                         continue
                     if _KEY_POOLS.get("gemini") and provider != "gemini":
                         provider, model = "gemini", "gemini-2.0-flash"

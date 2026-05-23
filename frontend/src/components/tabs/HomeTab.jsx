@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { COLORS, callAI, buildSystemPrompt, SUBS, getBhoolStats, parseAIObject } from '../../shared.js'
+import { COLORS, callAI, buildSystemPrompt, SUBS, getBhoolStats, parseAIObject, getDisplayLang } from '../../shared.js'
 import { apiGetMastery } from '../../api.js'
+import { li } from '../../i18n/index.js'
 
 // ── Bhool Curve stats (reads localStorage) ───────────────────
 function useBhoolStats() {
@@ -35,34 +36,21 @@ function masteryColor(pct) {
 }
 
 function masteryLabel(pct, lang) {
-  const L = {
-    English:  ['Not started', 'Mastered',   'Learning', 'Needs Work'],
-    Hindi:    ['शुरू नहीं', 'निपुण',      'सीख रहे', 'और मेहनत चाहिए'],
-    Marathi:  ['सुरुवात नाही', 'निपुण',   'शिकतोय', 'अधिक सराव हवा'],
-    Gujarati: ['શરૂ નથી',  'નિષ્ણાત',   'શીખી રહ્યા', 'વધુ મહેનત'],
-    Tamil:    ['தொடங்கவில்லை', 'தேர்ச்சி', 'கற்கிறேன்', 'கூடுதல் பயிற்சி'],
-    Telugu:   ['ప్రారంభం కాలేదు', 'నేర్చారు', 'నేర్చుకుంటున్నారు', 'మరింత కష్టపడాలి'],
-    Kannada:  ['ಪ್ರಾರಂಭವಾಗಿಲ್ಲ', 'ಕರಗತ', 'ಕಲಿಯುತ್ತಿದ್ದಾರೆ', 'ಮತ್ತಷ್ಟು ಪ್ರಯತ್ನ'],
-    Bengali:  ['শুরু হয়নি', 'দক্ষ',     'শিখছি', 'আরও পরিশ্রম'],
-    Punjabi:  ['ਸ਼ੁਰੂ ਨਹੀਂ', 'ਮਾਹਰ',    'ਸਿੱਖ ਰਹੇ', 'ਹੋਰ ਮਿਹਨਤ'],
-    Odia:     ['ଆରମ୍ଭ ନାହିଁ', 'ଦକ୍ଷ',   'ଶିଖୁଛି', 'ଆଉ ଅଭ୍ୟାସ'],
-    Urdu:     ['شروع نہیں', 'ماہر',      'سیکھ رہے', 'مزید محنت'],
-  }
-  const labels = L[lang] || L.English
-  if (pct === 0)  return labels[0]
-  if (pct >= 75)  return labels[1]
-  if (pct >= 45)  return labels[2]
-  return labels[3]
+  const ui = li(lang)
+  if (pct === 0)  return ui.notStarted
+  if (pct >= 75)  return ui.mastered
+  if (pct >= 45)  return ui.learning
+  return ui.needsWork
 }
 
-// ── Quick action cards config ────────────────────────────────
-const QUICK_ACTIONS = [
-  { icon: "📖", label: "Smart Notes",    tab: "notebook", grad: "linear-gradient(135deg,#7B9CFF22,#7B9CFF08)", accent: "#7B9CFF" },
-  { icon: "🤖", label: "AI Tutor",       tab: "tutor",    grad: "linear-gradient(135deg,#00E5A022,#00E5A008)", accent: "#00E5A0" },
-  { icon: "🎯", label: "Take a Quiz",    tab: "labs",     grad: "linear-gradient(135deg,#FF6B6B22,#FF6B6B08)", accent: "#FF6B6B" },
-  { icon: "🎙️", label: "AI Podcast",    tab: "labs",     grad: "linear-gradient(135deg,#FFD16622,#FFD16608)", accent: "#FFD166" },
-  { icon: "🎬", label: "Find Videos",    tab: "videos",   grad: "linear-gradient(135deg,#FF6B3522,#FF6B3508)", accent: "#FF6B35" },
-  { icon: "🧘", label: "Wellness Coach", tab: "labs",     grad: "linear-gradient(135deg,#00E5A022,#7B9CFF08)", accent: "#00E5A0" },
+// ── Quick action cards config (labels come from i18n) ────────
+const QUICK_ACTION_KEYS = [
+  { icon: "📖", labelKey: "smartNotes",    tab: "notebook", grad: "linear-gradient(135deg,#7B9CFF22,#7B9CFF08)", accent: "#7B9CFF" },
+  { icon: "🤖", labelKey: "aiTutor",       tab: "tutor",    grad: "linear-gradient(135deg,#00E5A022,#00E5A008)", accent: "#00E5A0" },
+  { icon: "🎯", labelKey: "takeQuiz",      tab: "labs",     grad: "linear-gradient(135deg,#FF6B6B22,#FF6B6B08)", accent: "#FF6B6B" },
+  { icon: "🎙️", labelKey: "aiPodcast",    tab: "labs",     grad: "linear-gradient(135deg,#FFD16622,#FFD16608)", accent: "#FFD166" },
+  { icon: "🎬", labelKey: "findVideos",    tab: "videos",   grad: "linear-gradient(135deg,#FF6B3522,#FF6B3508)", accent: "#FF6B35" },
+  { icon: "🧘", labelKey: "wellnessCoach", tab: "labs",     grad: "linear-gradient(135deg,#00E5A022,#7B9CFF08)", accent: "#00E5A0" },
 ]
 
 export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) {
@@ -223,7 +211,8 @@ Write entirely in ${profile.language}.`)
     setDeepLoading(false)
   }
 
-  const greeting = getTimeGreeting(profile?.language)
+  const greeting = getTimeGreeting(getDisplayLang(profile))
+  const ui = li(getDisplayLang(profile))
 
   return (
     <div style={{ padding: "16px 16px 24px", maxWidth: 720, margin: "0 auto" }}>
@@ -235,14 +224,14 @@ Write entirely in ${profile.language}.`)
           borderRadius: 18, padding: "16px 16px 14px", marginBottom: 14,
         }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text, marginBottom: 12 }}>
-            How are you feeling today? 🌱
+            {ui.moodCheck} 🌱
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             {[
-              { key: "fresh",    icon: "😄", label: "Fresh",    color: COLORS.green  },
-              { key: "okay",     icon: "😐", label: "Okay",     color: COLORS.blue   },
-              { key: "stressed", icon: "😟", label: "Stressed", color: COLORS.yellow },
-              { key: "tired",    icon: "😴", label: "Tired",    color: COLORS.muted  },
+              { key: "fresh",    icon: "😄", labelKey: "moodFresh",    color: COLORS.green  },
+              { key: "okay",     icon: "😐", labelKey: "moodOkay",     color: COLORS.blue   },
+              { key: "stressed", icon: "😟", labelKey: "moodStressed", color: COLORS.yellow },
+              { key: "tired",    icon: "😴", labelKey: "moodTired",    color: COLORS.muted  },
             ].map(m => (
               <button key={m.key} onClick={() => saveMood(m.key)} style={{
                 flex: 1, background: `${m.color}15`, border: `1px solid ${m.color}30`,
@@ -251,7 +240,7 @@ Write entirely in ${profile.language}.`)
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
               }}>
                 <span style={{ fontSize: 22 }}>{m.icon}</span>
-                <span style={{ fontSize: 10, fontWeight: 700, color: m.color }}>{m.label}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: m.color }}>{ui[m.labelKey]?.replace(/^😊|😴|😰|😐\s*/,'') || m.key}</span>
               </button>
             ))}
           </div>
@@ -271,7 +260,7 @@ Write entirely in ${profile.language}.`)
           <button onClick={() => { setMood(null); localStorage.removeItem('eduvyai_mood') }} style={{
             background: "transparent", border: "none", fontSize: 11,
             color: COLORS.muted, cursor: "pointer", fontFamily: "Sora, sans-serif",
-          }}>change</button>
+          }}>{ui.change || 'change'}</button>
         </div>
       )}
 
@@ -312,15 +301,15 @@ Write entirely in ${profile.language}.`)
       </div>
 
       {/* ── Quick Actions ─────────────────────────────────── */}
-      <Section title="⚡ Quick Actions">
+      <Section title={`⚡ ${ui.quickActions || 'Quick Actions'}`}>
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(3, 1fr)",
           gap: 10,
         }}>
-          {QUICK_ACTIONS.map(btn => (
+          {QUICK_ACTION_KEYS.map(btn => (
             <button
-              key={btn.label}
+              key={btn.labelKey}
               onClick={() => setTab(btn.tab)}
               style={{
                 background: btn.grad,
@@ -339,7 +328,7 @@ Write entirely in ${profile.language}.`)
             >
               <span style={{ fontSize: 24 }}>{btn.icon}</span>
               <span style={{ fontSize: 11, fontWeight: 700, color: btn.accent, textAlign: "center", lineHeight: 1.2 }}>
-                {btn.label}
+                {ui[btn.labelKey] || btn.labelKey}
               </span>
             </button>
           ))}
@@ -347,10 +336,10 @@ Write entirely in ${profile.language}.`)
       </Section>
 
       {/* ── Daily Brain Brief ─────────────────────────────── */}
-      <Section title="🌅 Daily Brain Brief">
+      <Section title={`🌅 ${ui.dailyBrief?.replace(/^📋\s*/, '') || 'Daily Brain Brief'}`}>
         {!brief ? (
           <button onClick={generateBrief} disabled={briefLoading} style={primaryBtn}>
-            {briefLoading ? "✨ Generating…" : "✨ Generate Today's Brief"}
+            {briefLoading ? `✨ ${ui.generating || 'Generating'}…` : ui.generateBrief || '✨ Generate Today\'s Brief'}
           </button>
         ) : (
           <>
@@ -491,7 +480,7 @@ Write entirely in ${profile.language}.`)
                     <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.text }}>{sub}</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ fontSize: 11, color, fontWeight: 700 }}>{masteryLabel(pct, profile?.language)}</span>
+                    <span style={{ fontSize: 11, color, fontWeight: 700 }}>{masteryLabel(pct, getDisplayLang(profile))}</span>
                     <span style={{
                       fontSize: 12, fontWeight: 900, color,
                       background: `${color}15`, borderRadius: 8, padding: "2px 8px",
@@ -615,24 +604,11 @@ Write entirely in ${profile.language}.`)
 
 function getTimeGreeting(lang) {
   const h = new Date().getHours()
-  const L = {
-    English:  ['Good morning ☀️', 'Good afternoon 🌤️', 'Good evening 🌙', 'Burning midnight oil 🌟'],
-    Hindi:    ['सुप्रभात ☀️', 'नमस्ते 🌤️', 'शुभ संध्या 🌙', 'रात को भी पढ़ रहे हो 🌟'],
-    Marathi:  ['सुप्रभात ☀️', 'नमस्कार 🌤️', 'शुभ संध्याकाळ 🌙', 'रात्री उशिरापर्यंत 🌟'],
-    Gujarati: ['સુપ્રભાત ☀️', 'નમસ્તે 🌤️', 'શુભ સાંજ 🌙', 'મોડી રાત સુધી 🌟'],
-    Tamil:    ['காலை வணக்கம் ☀️', 'மதிய வணக்கம் 🌤️', 'மாலை வணக்கம் 🌙', 'இரவு தாமதமாக 🌟'],
-    Telugu:   ['శుభోదయం ☀️', 'శుభమధ్యాహ్నం 🌤️', 'శుభసాయంత్రం 🌙', 'అర్ధరాత్రి వరకు 🌟'],
-    Kannada:  ['ಶುಭೋದಯ ☀️', 'ಶುಭ ಮಧ್ಯಾಹ್ನ 🌤️', 'ಶುಭ ಸಂಜೆ 🌙', 'ರಾತ್ರಿ ತಡವಾಗಿ 🌟'],
-    Bengali:  ['শুভ সকাল ☀️', 'শুভ দুপুর 🌤️', 'শুভ সন্ধ্যা 🌙', 'গভীর রাতেও পড়ছ 🌟'],
-    Punjabi:  ['ਸ਼ੁਭ ਸਵੇਰ ☀️', 'ਸਤ ਸ੍ਰੀ ਅਕਾਲ 🌤️', 'ਸ਼ੁਭ ਸ਼ਾਮ 🌙', 'ਰਾਤ ਨੂੰ ਵੀ ਪੜ੍ਹ ਰਹੇ 🌟'],
-    Odia:     ['ଶୁଭ ସକାଳ ☀️', 'ଶୁଭ ଅପରାହ୍ନ 🌤️', 'ଶୁଭ ସନ୍ଧ୍ୟା 🌙', 'ରାତ ପର୍ଯ୍ୟନ୍ତ 🌟'],
-    Urdu:     ['صبح بخیر ☀️', 'دوپہر بخیر 🌤️', 'شام بخیر 🌙', 'آدھی رات تک 🌟'],
-  }
-  const greets = L[lang] || L.English
-  if (h < 12) return greets[0]
-  if (h < 17) return greets[1]
-  if (h < 21) return greets[2]
-  return greets[3]
+  const ui = li(lang)
+  if (h < 12) return `${ui.goodMorning} ☀️`
+  if (h < 17) return `${ui.goodAfternoon} 🌤️`
+  if (h < 21) return `${ui.goodEvening} 🌙`
+  return `${ui.lateNightStudy} 🌟`
 }
 
 function StatChip({ icon, value, color }) {

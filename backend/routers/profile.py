@@ -34,6 +34,7 @@ class ProfileUpdate(BaseModel):
     standard: Optional[str] = None
     board: Optional[str] = None
     language: Optional[str] = None
+    display_language: Optional[str] = None  # "english" or "medium"
     subjects: Optional[List[str]] = None
     school: Optional[str] = None
 

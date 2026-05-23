@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { li } from '../../i18n/index.js'
 import {
   COLORS,
   getYTKey, setYTKey,

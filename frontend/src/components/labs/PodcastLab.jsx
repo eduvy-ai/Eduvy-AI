@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { COLORS, callAI, buildSystemPrompt, parseAIObject, checkStudentQuery } from '../../App.jsx'
+import { li } from '../../i18n/index.js'
 import { getDeviceId, apiGetDraft, apiSaveDraft } from '../../api.js'
 
 const LANG_VOICE = {

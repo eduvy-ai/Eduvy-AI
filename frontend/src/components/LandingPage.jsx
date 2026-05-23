@@ -133,6 +133,16 @@ export default function LandingPage() {
     check()
   }, [navigate])
 
+  // ── Scroll to hash anchor (e.g. #pricing) after page loads ──
+  useEffect(() => {
+    if (!visible) return
+    const hash = window.location.hash
+    if (hash) {
+      const el = document.querySelector(hash)
+      if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 100)
+    }
+  }, [visible])
+
   // ── Cycle through language names ─────────────────────────────
   useEffect(() => {
     const t = setInterval(() => setLangIdx(i => (i + 1) % LANGS.length), 1400)

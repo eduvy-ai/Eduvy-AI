@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { COLORS } from '../../App.jsx'
+import { li } from '../../i18n/index.js'
 import {
   apiCreateMuqablaChallenge, apiJoinMuqabalaBattle,
   apiSubmitMuqablaAnswers, apiGetMuqabalaBattle,

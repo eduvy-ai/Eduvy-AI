@@ -3,6 +3,19 @@
 // Import from this file to avoid circular deps (App ↔ SettingsModal).
 // ─────────────────────────────────────────────────────────────
 
+// Import i18n UI_STRINGS (comprehensive translations)
+import { UI_STRINGS as I18N_STRINGS, li as i18nLi } from './i18n/index.js'
+export const UI_STRINGS = I18N_STRINGS
+export const li = i18nLi
+
+// Helper: Get display language for UI (English or medium language)
+// Usage: getDisplayLang(profile) → 'English' or profile.language
+export const getDisplayLang = (profile) => {
+  if (!profile) return 'English'
+  if (profile.displayLanguage === 'english') return 'English'
+  return profile.language || 'English'
+}
+
 // ─── Color Tokens ────────────────────────────────────────────
 export const COLORS = {
   bg:     "#04040e",
@@ -200,24 +213,6 @@ export const TEACHER_PERSONAS = {
   Odia:     { name: "Mishra Sir",   desc: "a gentle Bhubaneswar teacher who uses local examples and is incredibly patient" },
   Urdu:     { name: "Ustad Ji",     desc: "an eloquent Lucknow teacher who uses poetry as memory hooks and brings wisdom that goes beyond the syllabus" },
 }
-
-// ─── UI Strings ───────────────────────────────────────────────
-export const UI_STRINGS = {
-  English:  { greeting:"Hello",         back:"← Back",       ask:"Ask your doubt...",        gen:"Generate",        quiz:"Start Quiz",              notes:"Generate Notes",          grade:"Grade My Writing",   next:"Next →",      done:"Done ✓",      cont:"Continue →",     start:"Start Learning! 🚀" },
-  Hindi:    { greeting:"नमस्ते",         back:"← वापस",       ask:"सवाल पूछें...",            gen:"बनाएं",           quiz:"क्विज़ शुरू",              notes:"नोट्स बनाएं",             grade:"ग्रेड करें",         next:"अगला →",      done:"पूरा ✓",      cont:"जारी रखें →",    start:"पढ़ाई शुरू! 🚀" },
-  Gujarati: { greeting:"નમસ્તે",         back:"← પાછળ",       ask:"પ્રશ્ન પૂછો...",            gen:"બનાવો",           quiz:"ક્વિઝ શરૂ",               notes:"નોટ્સ બનાવો",             grade:"ગ્રેડ કરો",          next:"આગળ →",       done:"પૂર્ણ ✓",     cont:"ચાલુ રાખો →",    start:"ભણવાનું શરૂ! 🚀" },
-  Marathi:  { greeting:"नमस्कार",       back:"← मागे",       ask:"प्रश्न विचारा...",         gen:"तयार करा",        quiz:"क्विज़ सुरू",              notes:"नोट्स तयार करा",          grade:"ग्रेड करा",          next:"पुढे →",      done:"पूर्ण ✓",     cont:"सुरू ठेवा →",    start:"शिकणे सुरू! 🚀" },
-  Tamil:    { greeting:"வணக்கம்",       back:"← பின்னால்",   ask:"சந்தேகம் கேளுங்கள்...",   gen:"உருவாக்கு",       quiz:"வினாடி வினா தொடங்கு",    notes:"குறிப்புகள் உருவாக்கு",  grade:"தரம் மதிப்பிடு",    next:"அடுத்து →",   done:"முடிந்தது ✓", cont:"தொடர் →",        start:"கற்றல் தொடங்கு! 🚀" },
-  Telugu:   { greeting:"నమస్కారం",      back:"← వెనక్కి",    ask:"సందేహం అడగండి...",        gen:"తయారుచేయండి",    quiz:"క్విజ్ మొదలు",           notes:"నోట్స్ తయారుచేయండి",    grade:"గ్రేడ్ చేయండి",     next:"తదుపరి →",    done:"పూర్తి ✓",    cont:"కొనసాగించు →",   start:"నేర్చుకోవడం మొదలు! 🚀" },
-  Kannada:  { greeting:"ನಮಸ್ಕಾರ",       back:"← ಹಿಂದೆ",      ask:"ಸಂದೇಹ ಕೇಳಿ...",            gen:"ರಚಿಸಿ",           quiz:"ರಸಪ್ರಶ್ನೆ ಪ್ರಾರಂಭ",      notes:"ನೋಟ್ಸ್ ರಚಿಸಿ",         grade:"ಶ್ರೇಣಿ ನೀಡಿ",       next:"ಮುಂದೆ →",     done:"ಮುಗಿಯಿತು ✓",  cont:"ಮುಂದುವರಿಸಿ →",  start:"ಕಲಿಕೆ ಪ್ರಾರಂಭ! 🚀" },
-  Bengali:  { greeting:"নমস্কার",       back:"← পিছনে",      ask:"প্রশ্ন জিজ্ঞাসা করুন...", gen:"তৈরি করুন",       quiz:"কুইজ শুরু",               notes:"নোটস তৈরি করুন",         grade:"গ্রেড করুন",         next:"পরবর্তী →",   done:"সম্পন্ন ✓",   cont:"চালিয়ে যান →",  start:"শেখা শুরু! 🚀" },
-  Punjabi:  { greeting:"ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ", back:"← ਵਾਪਸ",       ask:"ਸਵਾਲ ਪੁੱਛੋ...",            gen:"ਬਣਾਓ",            quiz:"ਕੁਇਜ਼ ਸ਼ੁਰੂ",             notes:"ਨੋਟਸ ਬਣਾਓ",              grade:"ਗ੍ਰੇਡ ਕਰੋ",          next:"ਅਗਲਾ →",      done:"ਪੂਰਾ ✓",      cont:"ਜਾਰੀ ਰੱਖੋ →",   start:"ਪੜ੍ਹਾਈ ਸ਼ੁਰੂ! 🚀" },
-  Odia:     { greeting:"ନମସ୍କାର",       back:"← ପଛକୁ",       ask:"ପ୍ରଶ୍ନ ପଚାରନ୍ତୁ...",       gen:"ତିଆରି କର",        quiz:"କ୍ୱିଜ ଆରମ୍ଭ",             notes:"ନୋଟ ତିଆରି",              grade:"ଗ୍ରେଡ କର",           next:"ପରବର୍ତ୍ତୀ →", done:"ସଂପୂର୍ଣ ✓",   cont:"ଜାରୀ ରଖ →",     start:"ଶିଖିବା ଆରମ୍ଭ! 🚀" },
-  Urdu:     { greeting:"السلام علیکم", back:"← پیچھے",      ask:"سوال پوچھیں...",           gen:"بنائیں",          quiz:"کوئز شروع",               notes:"نوٹس بنائیں",            grade:"گریڈ کریں",          next:"اگلا →",      done:"مکمل ✓",      cont:"جاری رکھیں →",   start:"پڑھائی شروع! 🚀" },
-}
-
-// ─── Language helper ──────────────────────────────────────────
-export const li = lang => UI_STRINGS[lang] || UI_STRINGS.English
 
 // ─── Localised Starter Suggestions ───────────────────────────
 // Shown as quick-tap chips before the student types anything.

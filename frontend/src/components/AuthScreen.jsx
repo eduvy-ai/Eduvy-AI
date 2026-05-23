@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { COLORS, BOARDS, LANGS, SUBS } from '../shared.js'
 import { apiLogin, apiRegister, setAuthToken } from '../api.js'
+import { li } from '../i18n/index.js'
 
 const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
 
@@ -58,6 +59,9 @@ export default function AuthScreen({ onAuth }) {
 
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
+
+  // i18n — use selected language during registration, default to English for login
+  const ui = li(mode === 'register' ? language : 'English')
 
   const allSubs = SUBS[standard] || []
 
@@ -128,7 +132,7 @@ export default function AuthScreen({ onAuth }) {
           <div style={{ fontSize: 42, marginBottom: 8 }}>🎓</div>
           <div style={{ fontSize: 26, fontWeight: 800, color: COLORS.text }}>Eduvy-AI</div>
           <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>
-            AI-powered learning for Indian students
+            {ui.tagline}
           </div>
         </div>
 
@@ -156,7 +160,7 @@ export default function AuthScreen({ onAuth }) {
                   transition: 'all 0.2s',
                   outline: mode === m ? `1.5px solid ${COLORS.green}50` : 'none',
                 }}
-              >{m === 'login' ? '🔑 Login' : '✨ Register'}</button>
+              >{m === 'login' ? ui.login : ui.register}</button>
             ))}
           </div>
 
@@ -164,11 +168,11 @@ export default function AuthScreen({ onAuth }) {
           {mode === 'login' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>EMAIL</label>
+                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>{ui.emailLabel}</label>
                 <input
                   style={inp}
                   type="email"
-                  placeholder="you@email.com"
+                  placeholder={ui.emailPlaceholder}
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && doLogin()}
@@ -176,12 +180,12 @@ export default function AuthScreen({ onAuth }) {
                 />
               </div>
               <div>
-                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>PASSWORD</label>
+                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>{ui.passwordLabel}</label>
                 <div style={{ position: 'relative' }}>
                   <input
                     style={inp}
                     type={showPw ? 'text' : 'password'}
-                    placeholder="Your password"
+                    placeholder={ui.passwordPlaceholder}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && doLogin()}
@@ -197,12 +201,12 @@ export default function AuthScreen({ onAuth }) {
               {error && <div style={{ fontSize: 12, color: COLORS.red, background: `${COLORS.red}15`, borderRadius: 8, padding: '8px 12px' }}>{error}</div>}
 
               <button onClick={doLogin} disabled={loading} style={{ ...btn, opacity: loading ? 0.7 : 1 }}>
-                {loading ? '⏳ Logging in…' : 'Login →'}
+                {loading ? ui.loggingIn : `${ui.login} →`}
               </button>
 
               <div style={{ textAlign: 'center', fontSize: 13, color: COLORS.muted }}>
-                No account?{' '}
-                <button style={linkBtn} onClick={() => { setMode('register'); setError('') }}>Create one free</button>
+                {ui.noAccount}{' '}
+                <button style={linkBtn} onClick={() => { setMode('register'); setError('') }}>{ui.createAccount}</button>
               </div>
             </div>
           )}
@@ -211,24 +215,24 @@ export default function AuthScreen({ onAuth }) {
           {mode === 'register' && regStep === 1 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.text, marginBottom: 2 }}>
-                Step 1 of 2 — Your Account
+                {ui.step1of2}
               </div>
 
               <div>
-                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>YOUR NAME</label>
-                <input style={inp} placeholder="e.g. Priya Sharma" value={name} onChange={e => setName(e.target.value)} />
+                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>{ui.yourName}</label>
+                <input style={inp} placeholder={ui.namePlaceholder} value={name} onChange={e => setName(e.target.value)} />
               </div>
               <div>
-                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>EMAIL</label>
-                <input style={inp} type="email" placeholder="you@email.com" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
+                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>{ui.emailLabel}</label>
+                <input style={inp} type="email" placeholder={ui.emailPlaceholder} value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
               </div>
               <div>
-                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>PASSWORD</label>
+                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>{ui.passwordLabel}</label>
                 <div style={{ position: 'relative' }}>
                   <input
                     style={inp}
                     type={showPw ? 'text' : 'password'}
-                    placeholder="At least 6 characters"
+                    placeholder={ui.passwordMinChars}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     autoComplete="new-password"
@@ -240,17 +244,17 @@ export default function AuthScreen({ onAuth }) {
                 </div>
               </div>
               <div>
-                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>MOBILE (optional)</label>
-                <input style={inp} type="tel" placeholder="Your mobile number" value={mobile} onChange={e => setMobile(e.target.value)} />
+                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>{ui.mobileOptional}</label>
+                <input style={inp} type="tel" placeholder={ui.mobilePlaceholder} value={mobile} onChange={e => setMobile(e.target.value)} />
               </div>
 
               {error && <div style={{ fontSize: 12, color: COLORS.red, background: `${COLORS.red}15`, borderRadius: 8, padding: '8px 12px' }}>{error}</div>}
 
-              <button onClick={goStep2} style={btn}>Next: Your Profile →</button>
+              <button onClick={goStep2} style={btn}>{ui.nextProfile} →</button>
 
               <div style={{ textAlign: 'center', fontSize: 13, color: COLORS.muted }}>
-                Already registered?{' '}
-                <button style={linkBtn} onClick={() => { setMode('login'); setError('') }}>Login</button>
+                {ui.alreadyRegistered}{' '}
+                <button style={linkBtn} onClick={() => { setMode('login'); setError('') }}>{ui.login}</button>
               </div>
             </div>
           )}
@@ -259,13 +263,13 @@ export default function AuthScreen({ onAuth }) {
           {mode === 'register' && regStep === 2 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
-                <button onClick={() => setRegStep(1)} style={{ ...linkBtn, fontSize: 12 }}>← Back</button>
-                <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.text }}>Step 2 of 2 — Your Profile</span>
+                <button onClick={() => setRegStep(1)} style={{ ...linkBtn, fontSize: 12 }}>← {ui.back}</button>
+                <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.text }}>{ui.step2of2}</span>
               </div>
 
               <div style={{ display: 'flex', gap: 10 }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>CLASS</label>
+                  <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>{ui.classLabel}</label>
                   <select
                     style={{ ...inp, cursor: 'pointer' }}
                     value={standard}
@@ -275,7 +279,7 @@ export default function AuthScreen({ onAuth }) {
                   </select>
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>BOARD</label>
+                  <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>{ui.boardLabel}</label>
                   <select style={{ ...inp, cursor: 'pointer' }} value={board} onChange={e => setBoard(e.target.value)}>
                     {BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
                   </select>
@@ -283,7 +287,7 @@ export default function AuthScreen({ onAuth }) {
               </div>
 
               <div>
-                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>MEDIUM (Language)</label>
+                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>{ui.languageLabel}</label>
                 <select style={{ ...inp, cursor: 'pointer' }} value={language} onChange={e => setLang(e.target.value)}>
                   {LANGS.map(l => <option key={l} value={l}>{l}</option>)}
                 </select>
@@ -291,11 +295,11 @@ export default function AuthScreen({ onAuth }) {
 
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600 }}>SUBJECTS</label>
+                  <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600 }}>{ui.subjectsLabel}</label>
                   <button
                     onClick={() => setSubs(subjects.length === allSubs.length ? [] : [...allSubs])}
                     style={{ ...linkBtn, fontSize: 11 }}
-                  >{subjects.length === allSubs.length ? 'Deselect all' : 'Select all'}</button>
+                  >{subjects.length === allSubs.length ? ui.deselectAll : ui.selectAll}</button>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
                   {allSubs.map(s => (
@@ -318,14 +322,14 @@ export default function AuthScreen({ onAuth }) {
               {error && <div style={{ fontSize: 12, color: COLORS.red, background: `${COLORS.red}15`, borderRadius: 8, padding: '8px 12px' }}>{error}</div>}
 
               <button onClick={doRegister} disabled={loading} style={{ ...btn, opacity: loading ? 0.7 : 1 }}>
-                {loading ? '⏳ Creating account…' : '🚀 Start Learning!'}
+                {loading ? ui.creatingAccount : ui.startLearning}
               </button>
             </div>
           )}
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 20, fontSize: 11, color: COLORS.muted, lineHeight: 1.6 }}>
-          By continuing, you agree to use this app for educational purposes only.
+          {ui.termsNotice}
         </div>
       </div>
     </div>

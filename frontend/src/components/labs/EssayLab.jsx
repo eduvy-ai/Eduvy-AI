@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { COLORS, callAI, buildSystemPrompt, checkStudentQuery } from '../../App.jsx'
+import { li } from '../../i18n/index.js'
 import { getDeviceId, apiGetDraft, apiSaveDraft } from '../../api.js'
 
 const TYPES = ["Essay", "Letter", "Paragraph", "Answer"]

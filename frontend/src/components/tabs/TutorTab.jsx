@@ -1,16 +1,19 @@
 import { useState, useRef, useEffect } from 'react'
 import { COLORS, callAI, buildSystemPrompt, checkStudentQuery } from '../../App.jsx'
-import { getStarters } from '../../shared.js'
+import { getStarters, getDisplayLang } from '../../shared.js'
 import { apiGetSession, apiSaveToSession } from '../../api.js'
+import { li } from '../../i18n/index.js'
 
-const MODES = [
-  { key: "adaptive",  icon: "🧠", label: "Adaptive" },
-  { key: "socratic",  icon: "🤔", label: "Socratic" },
-  { key: "explain",   icon: "💡", label: "Explain"  },
-  { key: "homework",  icon: "📝", label: "Homework" },  { key: "bahas",     icon: "⚔️",  label: "Debate"   },
-  { key: "kahani",    icon: "📖", label: "Story"    },
-  { key: "kyun",      icon: "💭", label: "Why?"     },
-  { key: "draw",      icon: "✏️", label: "Draw"     },
+// Mode keys and icons - labels come from i18n
+const MODE_KEYS = [
+  { key: "adaptive",  icon: "🧠", labelKey: "modeAdaptive" },
+  { key: "socratic",  icon: "🤔", labelKey: "modeSocratic" },
+  { key: "explain",   icon: "💡", labelKey: "modeExplain"  },
+  { key: "homework",  icon: "📝", labelKey: "modeHomework" },
+  { key: "bahas",     icon: "⚔️",  labelKey: "modeBahas"   },
+  { key: "kahani",    icon: "📖", labelKey: "modeKahani"  },
+  { key: "kyun",      icon: "💭", labelKey: "modeKyun"    },
+  { key: "draw",      icon: "✏️", labelKey: "modeDraw"    },
 ]
 
 const MODE_INSTRUCTIONS = {
@@ -250,30 +253,34 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
         borderBottom: `1px solid ${COLORS.border}`,
         flexShrink: 0,
       }}>
-        {MODES.map(m => (
-          <button
-            key={m.key}
-            onClick={() => switchMode(m.key)}
-            style={{
-              background: mode === m.key ? `${COLORS.green}20` : COLORS.card2,
-              border: `1px solid ${mode === m.key ? COLORS.green : COLORS.border}`,
-              borderRadius: 10,
-              padding: "7px 12px",
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              whiteSpace: "nowrap",
-              cursor: "pointer",
-              fontFamily: "Sora, sans-serif",
-              fontSize: 12,
-              fontWeight: mode === m.key ? 700 : 500,
-              color: mode === m.key ? COLORS.green : COLORS.text,
-              flexShrink: 0,
-            }}
-          >
-            {m.icon} {m.label}
-          </button>
-        ))}
+        {MODE_KEYS.map(m => {
+          const ui = li(getDisplayLang(profile))
+          const label = ui[m.labelKey] || m.key
+          return (
+            <button
+              key={m.key}
+              onClick={() => switchMode(m.key)}
+              style={{
+                background: mode === m.key ? `${COLORS.green}20` : COLORS.card2,
+                border: `1px solid ${mode === m.key ? COLORS.green : COLORS.border}`,
+                borderRadius: 10,
+                padding: "7px 12px",
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                whiteSpace: "nowrap",
+                cursor: "pointer",
+                fontFamily: "Sora, sans-serif",
+                fontSize: 12,
+                fontWeight: mode === m.key ? 700 : 500,
+                color: mode === m.key ? COLORS.green : COLORS.text,
+                flexShrink: 0,
+              }}
+            >
+              {m.icon} {label}
+            </button>
+          )
+        })}
       </div>
 
       {/* Chat / draw area */}
@@ -372,7 +379,7 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 8 }}>Try asking:</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {getStarters(profile?.language, mode === 'socratic' ? 'socratic' : mode === 'explain' ? 'explain' : mode === 'homework' ? 'homework' : mode === 'bahas' ? 'bahas' : mode === 'kahani' ? 'kahani' : mode === 'kyun' ? 'kyun' : 'tutor').map(s => (
+              {getStarters(getDisplayLang(profile), mode === 'socratic' ? 'socratic' : mode === 'explain' ? 'explain' : mode === 'homework' ? 'homework' : mode === 'bahas' ? 'bahas' : mode === 'kahani' ? 'kahani' : mode === 'kyun' ? 'kyun' : 'tutor').map(s => (
                 <button
                   key={s}
                   onClick={() => sendMessage(s)}

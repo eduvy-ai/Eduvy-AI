@@ -25,30 +25,30 @@ import { speakText, stopSpeaking, DEFAULT_A11Y } from './shared.js'
 
 // Re-export from shared.js so all tab components keep working unchanged.
 export {
-  COLORS, BOARDS, LANGS, SUBS, LANG_RULES, UI_STRINGS, li,
+  COLORS, BOARDS, LANGS, SUBS, LANG_RULES, UI_STRINGS, li, getDisplayLang,
   AI_PROVIDERS, getAIConfig, setAIConfig, callAI,
   buildSystemPrompt, parseAIObject, parseAIArray, checkStudentQuery,
   TEACHER_PERSONAS, updateBhool, getBhoolStats,
   PLANS, planHasTab, planHasLab,
 } from './shared.js'
 
-import { COLORS, AI_PROVIDERS, setAIConfig, PLANS, planHasTab } from './shared.js'
+import { COLORS, AI_PROVIDERS, setAIConfig, PLANS, planHasTab, li, getDisplayLang } from './shared.js'
 
 // ─── Defaults ────────────────────────────────────────────────
-const DEFAULT_PROFILE = { name: '', standard: 'Class 10', board: 'CBSE', language: 'English', subjects: [], plan: 'free', plan_expires_at: '', is_drishti: false }
+const DEFAULT_PROFILE = { name: '', standard: 'Class 10', board: 'CBSE', language: 'English', displayLanguage: 'medium', subjects: [], plan: 'free', plan_expires_at: '', is_drishti: false }
 const DEFAULT_AI = { provider: 'groq', apiKey: '', model: 'llama-3.3-70b-versatile' }
 
-// All possible nav items — filtered at render time by plan.
+// All possible nav items — labels come from i18n (filtered at render time by plan).
 const ALL_NAV_ITEMS = [
-  { key: 'home',     icon: '🏠', label: 'Home'     },
-  { key: 'notebook', icon: '📓', label: 'Notebook'  },
-  { key: 'tutor',    icon: '🤖', label: 'Tutor'    },
-  { key: 'videos',   icon: '🎬', label: 'Videos'   },
-  { key: 'learntv',  icon: '📺', label: 'Learn TV' },
-  { key: 'sathi',    icon: '🤝', label: 'Sathi'     },
-  { key: 'bhool',    icon: '📛', label: 'Bhool'     },
-  { key: 'muqabla',  icon: '⚔️',  label: 'Muqabla'  },
-  { key: 'labs',     icon: '🧪',  label: 'Labs'     },
+  { key: 'home',     icon: '🏠', labelKey: 'homeTab'     },
+  { key: 'notebook', icon: '📓', labelKey: 'notebookTab' },
+  { key: 'tutor',    icon: '🤖', labelKey: 'tutorTab'    },
+  { key: 'videos',   icon: '🎬', labelKey: 'videosTab'   },
+  { key: 'learntv',  icon: '📺', labelKey: 'learntvTab'  },
+  { key: 'sathi',    icon: '🤝', labelKey: 'sathiTab'    },
+  { key: 'bhool',    icon: '📛', labelKey: 'bhoolTab'    },
+  { key: 'muqabla',  icon: '⚔️', labelKey: 'muqablaTab'  },
+  { key: 'labs',     icon: '🧪', labelKey: 'labsTab'     },
 ]
 
 // ─── AppShell ─────────────────────────────────────────────────
@@ -108,7 +108,7 @@ function AppShell({
             }}>
               <span style={{ fontSize: 20, width: 24, textAlign: 'center' }}>{n.icon}</span>
               <span style={{ fontSize: 14, fontWeight: tab === n.key ? 700 : 500, color: tab === n.key ? COLORS.green : COLORS.text }}>
-                {n.label}
+                {li(getDisplayLang(profile))[n.labelKey]?.replace(/^[^\s]+\s/, '') || n.key}
               </span>
             </button>
           ))}
@@ -204,7 +204,7 @@ function AppShell({
           }}>
             <span style={{ fontSize: 19 }}>{n.icon}</span>
             <span style={{ fontSize: 10, fontWeight: tab === n.key ? 700 : 400, color: tab === n.key ? COLORS.green : COLORS.muted }}>
-              {n.label}
+              {li(getDisplayLang(profile))[n.labelKey]?.replace(/^[^\s]+\s/, '') || n.key}
             </span>
             {tab === n.key && <div style={{ width: 4, height: 4, borderRadius: '50%', background: COLORS.green }} />}
           </button>
@@ -363,6 +363,7 @@ export default function App() {
       standard:        data.standard,
       board:           data.board,
       language:        data.language,
+      displayLanguage: data.display_language || 'medium',  // "english" or "medium"
       subjects:        Array.isArray(data.subjects) ? data.subjects : [],
       mobile:          data.mobile || '',
       parent_mobile:   data.parent_mobile || '',
@@ -470,7 +471,13 @@ export default function App() {
     const newProfile = { ...profile, ...updates }
     setProfile(newProfile)
     try { localStorage.setItem('eduvyai_profile', JSON.stringify(newProfile)) } catch {}
-    apiUpdateProfile(userId || getDeviceId(), updates).catch(() => {})
+    // Convert camelCase to snake_case for backend
+    const apiData = { ...updates }
+    if ('displayLanguage' in apiData) {
+      apiData.display_language = apiData.displayLanguage
+      delete apiData.displayLanguage
+    }
+    apiUpdateProfile(userId || getDeviceId(), apiData).catch(() => {})
   }
 
   const handleAIConfigSave = (cfg) => {

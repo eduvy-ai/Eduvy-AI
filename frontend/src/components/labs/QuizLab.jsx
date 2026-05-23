@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { COLORS, callAI, buildSystemPrompt, parseAIObject, SUBS } from '../../App.jsx'
+import { li } from '../../i18n/index.js'
 import { getDeviceId, apiSaveQuizResult, apiGetQuizStats } from '../../api.js'
 
 const DIFFICULTIES = ["Easy", "Medium", "Hard"]
