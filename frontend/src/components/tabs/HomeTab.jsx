@@ -316,10 +316,6 @@ Write entirely in ${profile.language}.`)
           </>
         )}
       </Section>
-            </button>
-          </>
-        )}
-      </Section>
 
       {/* ── Bhool Curve Memory Health ─────────────────────── */}
       {bhoolDue > 0 && (
