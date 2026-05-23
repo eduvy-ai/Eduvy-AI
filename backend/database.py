@@ -39,6 +39,11 @@ def _get_conn_params() -> dict:
             "DB_HOST / DB_USER / DB_PASS / DB_NAME in .env"
         )
 
+    # Strip SQLAlchemy dialect suffix (e.g., postgresql+asyncpg → postgresql)
+    # psycopg2 only understands plain 'postgresql' or 'postgres' schemes
+    if url.startswith("postgresql+"):
+        url = "postgresql" + url[url.index("://"):]
+
     # Auto-encode any special chars in the password portion of the URL.
     # e.g. p@$$word! → p%40%24%24word%21  so the URL stays valid.
     parsed = urlparse(url)
@@ -606,6 +611,62 @@ def init_db():
                 ALTER TABLE users ADD COLUMN ai_admin_override BOOLEAN DEFAULT FALSE;
             END IF;
         END $$;
+    """)
+
+    # ── Drishti — Accessibility columns on users ──────────────
+    cur.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = 'is_drishti'
+            ) THEN
+                ALTER TABLE users ADD COLUMN is_drishti BOOLEAN DEFAULT FALSE;
+            END IF;
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = 'accessibility_settings'
+            ) THEN
+                ALTER TABLE users ADD COLUMN accessibility_settings TEXT DEFAULT '{}';
+            END IF;
+        END $$;
+    """)
+
+    # ── Drishti Helpers (teachers/volunteers assigned to learners) ──
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS drishti_helpers (
+            id              SERIAL PRIMARY KEY,
+            helper_name     TEXT NOT NULL,
+            helper_email    TEXT UNIQUE NOT NULL,
+            helper_type     TEXT DEFAULT 'teacher',
+            helper_token    TEXT UNIQUE NOT NULL,
+            assigned_by     INT  REFERENCES admin_users(id) ON DELETE SET NULL,
+            is_active       BOOLEAN DEFAULT TRUE,
+            notes           TEXT DEFAULT '',
+            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # ── Helper-Student mapping (many-to-many) ─────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS helper_student_map (
+            helper_id      INT  NOT NULL REFERENCES drishti_helpers(id) ON DELETE CASCADE,
+            student_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            assigned_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (helper_id, student_id)
+        )
+    """)
+
+    # ── Helper Notes (encouragement messages to Drishti learners) ──
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS helper_notes (
+            id          SERIAL PRIMARY KEY,
+            helper_id   INT  NOT NULL REFERENCES drishti_helpers(id) ON DELETE CASCADE,
+            student_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            message     TEXT NOT NULL,
+            read_at     TIMESTAMP,
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
     """)
 
     conn.commit()

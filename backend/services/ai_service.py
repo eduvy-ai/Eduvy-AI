@@ -266,15 +266,34 @@ def get_key_slot_status() -> dict:
         cur = conn.cursor()
         for provider in _SERVER_KEYS:
             slots: dict[int, bool] = {}
+            hints: dict[int, str] = {}  # Masked key hints (first4...last4)
             for s in range(1, 6):
                 dk = f"api_key_{provider}" if s == 1 else f"api_key_{provider}_{s}"
-                cur.execute("SELECT 1 FROM app_settings WHERE key=%s AND value != ''", (dk,))
-                slots[s] = cur.fetchone() is not None
+                cur.execute("SELECT value FROM app_settings WHERE key=%s AND value != ''", (dk,))
+                row = cur.fetchone()
+                if row and row.get('value'):
+                    slots[s] = True
+                    key_val = row['value']
+                    # Show masked hint: first4...last4
+                    if len(key_val) > 10:
+                        hints[s] = f"{key_val[:4]}...{key_val[-4:]}"
+                    else:
+                        hints[s] = "****"
+                else:
+                    slots[s] = False
             env_base = _ENV_BASE.get(provider, "")
-            env_count = len(_load_pool(env_base)) if env_base else 0
+            env_keys = _load_pool(env_base) if env_base else []
+            env_hints = []
+            for ek in env_keys:
+                if len(ek) > 10:
+                    env_hints.append(f"{ek[:4]}...{ek[-4:]}")
+                else:
+                    env_hints.append("****")
             result[provider] = {
                 "db_slots": slots,          # {1: bool, …, 5: bool}
-                "env_count": env_count,     # keys from .env file
+                "db_hints": hints,          # {1: "AIza...xYz4", ...}
+                "env_count": len(env_keys), # keys from .env file
+                "env_hints": env_hints,     # ["gsk_...qXuF", ...]
                 "pool_size": len(_KEY_POOLS.get(provider, [])),
             }
     finally:

@@ -1,103 +1,335 @@
 # Eduvy-AI — Project Guidelines
 
 ## Project Identity
-AI-powered education app for Indian students (Class 1–12). Every AI response must be in the student's chosen medium language. This is the #1 non-negotiable rule. Runs on both **web (desktop)** and **mobile** from the same codebase.
+Modular full-stack application built with React + Redux + TypeScript + Tailwind CSS frontend and FastAPI + PostgreSQL backend.
+
+---
 
 ## Tech Stack
+
+### Frontend
 - **Framework**: React 18 + Vite
-- **Language**: JavaScript (JSX) — no TypeScript
-- **Styling**: Inline styles with theme tokens + CSS classes for responsive layout — no Tailwind, no CSS modules, no styled-components
+- **Language**: TypeScript (TSX)
+- **State Management**: Redux Toolkit
+- **Styling**: Tailwind CSS
+- **HTTP Client**: Axios with interceptors
+- **Routing**: React Router v6
 - **Font**: Sora (Google Fonts)
-- **AI**: Multi-provider — Google Gemini, Groq, Anthropic Claude, OpenAI GPT — **all via backend server-side proxy at `/api/ai/chat`** — never direct from browser
-- **State**: React `useState` / `useRef` only — no Redux, no Zustand, no Context API
-- **Storage**: `localStorage` for auth token (`eduvyai_token`) + profile cache
-- **Backend**: FastAPI (Python) + PostgreSQL — all AI calls, auth, and data go through the backend
 
-## Architecture
+### Backend
+- **Framework**: FastAPI (Python 3.11+)
+- **Database**: PostgreSQL with SQLAlchemy (async)
+- **Auth**: JWT (access + refresh tokens)
+- **Password Hashing**: bcrypt via passlib
+- **ORM**: SQLAlchemy 2.0 async
 
-### Backend API (`src/api.js`)
-All data and AI calls go through `src/api.js` helpers which call the FastAPI backend. Never call AI providers directly from components.
-```js
-// Pattern for every API call:
-import { apiFoo } from '../../api.js'
-const result = await apiFoo(params)
+---
+
+## Frontend Architecture
+
+### Directory Structure
 ```
-Auth token is read from `localStorage.getItem('eduvyai_token')` and sent as `Authorization: Bearer <token>`.
-
-### Shared Constants & AI (in `src/shared.js`)
-All constants and the `callAI` function live in `src/shared.js`:
+frontend/src/
+├── routes/              # React Router configuration
+│   ├── index.tsx        # Main router setup
+│   ├── PrivateRoute.tsx # Auth-protected routes
+│   └── PublicRoute.tsx  # Guest-only routes
+├── modules/             # Feature modules (domain-driven)
+│   ├── auth/            # Authentication module
+│   │   ├── api.ts       # API calls (axios)
+│   │   ├── slice.ts     # Redux slice + async thunks
+│   │   ├── service.ts   # Business logic layer
+│   │   ├── hooks.ts     # Custom React hooks
+│   │   ├── types.ts     # TypeScript interfaces
+│   │   ├── pages/       # Page components
+│   │   ├── components/  # Module-specific components
+│   │   └── utils/       # Module utilities
+│   ├── users/           # (same pattern)
+│   ├── products/        # (same pattern)
+│   └── orders/          # (same pattern)
+├── redux/               # Store configuration
+│   ├── store.ts         # Redux store setup
+│   └── rootReducer.ts   # Combined reducers
+├── services/            # Global services
+│   ├── axios.ts         # Axios instance config
+│   └── interceptor.ts   # Request/response interceptors
+├── layouts/             # Page layouts
+│   ├── DashboardLayout.tsx
+│   └── AuthLayout.tsx
+├── shared/              # Shared resources
+│   ├── components/      # Reusable UI components
+│   ├── hooks/           # Global custom hooks
+│   ├── utils/           # Helper functions
+│   └── constants/       # App constants
+├── styles/              # Global styles
+│   ├── global.css       # Tailwind + custom CSS
+│   └── variables.css    # CSS variables
+└── assets/              # Static assets
+    ├── images/
+    └── icons/
 ```
-COLORS, BOARDS, LANGS, SUBS, LANG_RULES, UI_STRINGS, li()
-AI_PROVIDERS, callAI()
-buildSystemPrompt(), parseAIObject(), parseAIArray()
-```
-`App.jsx` re-exports all of these so tab components can import from either path.
-**SettingsModal MUST import from `shared.js` directly (not App.jsx) to avoid circular deps.**
-**SettingsModal and ParentDashboard can import from `../api.js`.**
 
-### Global State (in App.jsx)
-```js
-profile = { name, standard, board, language, subjects[], school }
-xp, streak, docCtx, docName
+### Data Flow Pattern
 ```
-Profile is fetched from backend on login and cached to `localStorage`.
-
-### Plans
-```js
-free:    { tabs: ['home','tutor','bhool','muqabla'], labs: [], aiCallsPerDay: 10 }
-basic:   { tabs: ['home','tutor','videos','notebook','bhool','muqabla'], labs: [], aiCallsPerDay: 50 }
-pro:     { tabs: ['home','tutor','videos','notebook','learntv','labs','sathi','bhool','muqabla'], labs: ['quiz','examiner','samjhao'], aiCallsPerDay: 200 }
-premium: { tabs: ['home','tutor','videos','notebook','learntv','labs','discover','sathi','bhool','muqabla'], labs: ['quiz','examiner','samjhao','podcast','essay','mental'], aiCallsPerDay: Infinity }
+Page → Component → useHook() → dispatch(asyncThunk) → service → api → Backend
+                                      ↓
+                              Redux Store (slice)
+                                      ↓
+                              useSelector() → Component re-render
 ```
 
-### Responsive Navigation
-- **Mobile (< 768px)**: Bottom nav bar (`.bottom-nav` CSS class)
-- **Desktop (≥ 768px)**: Left sidebar nav (`.side-nav` CSS class), max-width 1200px layout
+### Module Pattern
+Each feature module follows this structure:
+```typescript
+// types.ts — TypeScript interfaces
+export interface User { id: string; email: string; name: string; }
 
-### Screen Flow
-Splash → Auth (login/register) → Onboard (3 steps, first time) → Main App Shell → tabs
+// api.ts — Raw API calls
+export const authApi = {
+  login: (data) => axiosInstance.post('/auth/login', data),
+};
 
-## Build Order
-1. Project setup → 2. `src/shared.js` (constants) → 3. `src/api.js` (all API helpers) → 4. `index.css` (responsive) → 5. `App.jsx` (shell + re-exports) → 6. `SettingsModal.jsx` → 7. Splash → 8. Auth → 9. Onboard → 10. HomeTab → 11. NotebookTab → 12. TutorTab → 13. VideosTab → 14. LabsTab → 15. Labs → 16. SathiTab → 17. BhoolBazaarTab → 18. MuqablaTab → 19. ParentDashboard → 20. Testing
+// service.ts — Business logic (token storage, data transforms)
+export const authService = {
+  login: async (credentials) => {
+    const response = await authApi.login(credentials);
+    setToken(response.token);
+    return response;
+  },
+};
 
-## Color Tokens
-```js
-const COLORS = {
-  bg: "#04040e", card: "#0b0b1c", card2: "#101022", border: "#ffffff08",
-  green: "#00E5A0", yellow: "#FFD166", red: "#FF6B6B",
-  blue: "#7B9CFF", orange: "#FF6B35", text: "#eeeeff", muted: "#6868a0",
+// slice.ts — Redux state + async thunks
+export const login = createAsyncThunk('auth/login', authService.login);
+const authSlice = createSlice({ ... });
+
+// hooks.ts — React hooks for components
+export const useAuth = () => {
+  const dispatch = useDispatch();
+  const { user, isLoading } = useSelector(state => state.auth);
+  const handleLogin = (credentials) => dispatch(login(credentials));
+  return { user, isLoading, login: handleLogin };
+};
+
+// pages/Login.tsx — Page component
+const Login = () => {
+  const { login, isLoading } = useAuth();
+  // ... render form
 };
 ```
 
-## Database Tables (PostgreSQL)
-Core: `users`, `study_sessions`, `quiz_stats`, `mastery_scores`, `notebook_sources`, `notebook_messages`
-Curriculum: `boards`, `standards`, `mediums`, `curriculum`, `admin_users`
-Squads: `squads`, `squad_members`, `squad_messages`, `squad_challenges`
-  - `squads` extra cols: `standard`, `medium`, `streak`, `last_active_date`
-  - `squad_challenges` extra cols: `ai_verdict`, `ai_note` (from Daily Concept AI grading)
-  - `squad_doubts` — doubt posts per squad (status: open | answered)
-  - `squad_doubt_answers` — answers with `upvotes`, `ai_verdict`, `ai_note`
-  - `squad_doubt_upvotes` — (answer_id, user_id) composite PK prevents double-votes
-Bhool Bazaar: `bhool_cards`, `bhool_collections`, `bhool_reactions`
-Muqabla: `muqabla_battles`
-Parent: `parent_pins`
-All tables created idempotently in `backend/database.py`.
+### Import Rules
+```typescript
+// Module imports — use relative paths within module
+import { authApi } from './api';
+import { UserResponse } from './types';
 
-## Critical Rules — Never Break
+// Cross-module imports — use absolute paths
+import { useDebounce } from '@/shared/hooks';
+import { Button } from '@/shared/components';
 
-### 1. Language First
-Every single AI response must be in the student's `profile.language`. Use `LANG_RULES[profile.language]` in every system prompt. See `.github/instructions/language-enforcement.instructions.md`.
+// Redux store types
+import { RootState, AppDispatch } from '@/redux/store';
+```
 
-### 2. AI via Backend Only
-Never call Gemini/Groq/Claude/OpenAI directly from browser components. Always use `callAI()` from `shared.js` which calls `/api/ai/chat`. API keys live in `backend/.env` only.
+---
 
-### 3. Import Rules — Avoid Circular Deps
-```js
-// Tab components: import from shared.js or App.jsx (both work)
-import { COLORS, callAI, buildSystemPrompt } from '../../shared.js'
+## Backend Architecture
 
-// SettingsModal: MUST use shared.js only (NOT App.jsx)
-import { COLORS, AI_PROVIDERS } from '../shared.js'
+### Directory Structure
+```
+backend/app/
+├── main.py              # FastAPI app factory
+├── __init__.py
+├── core/                # Core configuration
+│   ├── config.py        # Settings (pydantic-settings)
+│   ├── security.py      # JWT, password hashing
+│   ├── dependency.py    # FastAPI dependencies
+│   └── constants.py     # App constants
+├── db/                  # Database layer
+│   ├── database.py      # Async engine setup
+│   ├── session.py       # Session dependency
+│   ├── base.py          # Base model class
+│   └── seed.py          # Database seeding
+├── modules/             # Feature modules
+│   ├── auth/
+│   │   ├── router.py    # API routes
+│   │   ├── service.py   # Business logic
+│   │   ├── query.py     # Database queries
+│   │   ├── schema.py    # Pydantic models
+│   │   ├── exceptions.py# Module exceptions
+│   │   └── __init__.py
+│   ├── users/           # (same pattern)
+│   ├── products/        # (same pattern)
+│   └── orders/          # (same pattern)
+├── utils/               # Utilities
+│   ├── helpers.py       # Helper functions
+│   ├── response.py      # Response formatters
+│   ├── logger.py        # Logging setup
+│   └── email.py         # Email utilities
+├── exceptions/          # Global exceptions
+│   ├── custom_exception.py
+│   └── handlers.py      # Exception handlers
+├── background_tasks/    # Async tasks
+│   ├── email_tasks.py
+│   └── cleanup_tasks.py
+└── websocket/           # WebSocket support
+    ├── manager.py       # Connection manager
+    └── websocket_routes.py
+```
+
+### Module Pattern
+```python
+# schema.py — Pydantic models (request/response)
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+    name: str
+
+class UserResponse(BaseModel):
+    id: str
+    email: str
+    name: str
+    class Config:
+        from_attributes = True
+
+# query.py — Database operations (SQLAlchemy)
+async def get_user_by_id(db: AsyncSession, user_id: str) -> User | None:
+    result = await db.execute(select(User).where(User.id == user_id))
+    return result.scalar_one_or_none()
+
+# service.py — Business logic
+async def get_user(db: AsyncSession, user_id: str) -> UserResponse:
+    user = await query_get_user_by_id(db, user_id)
+    if not user:
+        raise UserNotFoundException(user_id)
+    return UserResponse.model_validate(user)
+
+# router.py — API endpoints
+@router.get("/{user_id}", response_model=UserResponse)
+async def get_user_by_id(user_id: str, db: AsyncSession = Depends(get_db)):
+    return await service.get_user(db, user_id)
+```
+
+### Dependency Injection
+```python
+# Always use FastAPI dependencies
+from app.db.session import get_db
+from app.core.dependency import get_current_user, get_current_admin_user
+
+@router.get("/me")
+async def get_me(
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    return current_user
+```
+
+---
+
+## Critical Rules
+
+### 1. TypeScript Strict Mode
+- All files must pass `tsc --noEmit`
+- No `any` types unless absolutely necessary
+- Define interfaces for all API responses
+
+### 2. Redux Best Practices
+- Use `createAsyncThunk` for API calls
+- Keep reducers pure (no side effects)
+- Use `useSelector` with typed selectors
+
+### 3. API Error Handling
+```typescript
+// Frontend: Always handle errors in async thunks
+export const login = createAsyncThunk(
+  'auth/login',
+  async (credentials, { rejectWithValue }) => {
+    try {
+      return await authService.login(credentials);
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Login failed');
+    }
+  }
+);
+```
+
+```python
+# Backend: Use custom exceptions
+class UserNotFoundException(HTTPException):
+    def __init__(self, user_id: str = None):
+        super().__init__(status_code=404, detail=f"User not found: {user_id}")
+```
+
+### 4. Authentication Flow
+```
+1. User submits credentials
+2. Backend validates → returns { token, refreshToken, user }
+3. Frontend stores token in localStorage
+4. Axios interceptor adds `Authorization: Bearer <token>` to all requests
+5. 401 response → clear token → redirect to login
+```
+
+### 5. File Organization
+- One component per file
+- Export named exports (not default) for utilities
+- Use index.ts for module re-exports
+
+### 6. Tailwind Usage
+```tsx
+// Use Tailwind utility classes
+<button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+  Submit
+</button>
+
+// Use @apply for repeated patterns in global.css
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700;
+  }
+}
+```
+
+### 7. Database Migrations
+- Use Alembic for schema migrations (not yet configured)
+- Tables auto-create via `Base.metadata.create_all` on startup
+
+---
+
+## Environment Variables
+
+### Frontend (`frontend/.env`)
+```env
+VITE_API_URL=http://localhost:8000/api
+```
+
+### Backend (`backend/.env`)
+```env
+DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/dbname
+SECRET_KEY=your-secret-key
+```
+
+---
+
+## Commands
+
+### Frontend
+```bash
+cd frontend
+npm install          # Install dependencies
+npm run dev          # Start dev server (port 5173)
+npm run build        # Build for production
+npm run type-check   # TypeScript validation
+npm run lint         # ESLint
+```
+
+### Backend
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+python -m scripts.seed_db        # Seed database
+python -m scripts.create_admin   # Create admin user
+```
 import { apiGetParentPin, apiCreateParentPin } from '../api.js'
 
 // ParentDashboard: public page — define its own COLORS const locally, do not import from App.jsx

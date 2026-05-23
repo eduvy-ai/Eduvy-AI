@@ -27,6 +27,7 @@ POST   /api/admin/setup                    → create first superadmin (only if 
 """
 import json
 import os
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
@@ -688,16 +689,17 @@ class UserPlanUpdate(BaseModel):
 def admin_list_users(
     search: Optional[str] = None,
     plan: Optional[str] = None,
+    drishti: Optional[str] = None,
     admin_id: int = Depends(get_admin_user),
 ):
-    """List all student users with optional search and plan filter."""
+    """List all student users with optional search, plan, and drishti filter."""
     conn = get_db()
     try:
         cur = conn.cursor()
         query = """
             SELECT id, email, name, standard, board, language,
                    xp, streak, plan, plan_expires_at,
-                   ai_provider, ai_model, ai_admin_override, created_at
+                   ai_provider, ai_model, ai_admin_override, is_drishti, created_at
             FROM users
             WHERE 1=1
         """
@@ -709,9 +711,48 @@ def admin_list_users(
         if plan and plan in VALID_PLANS:
             query += " AND plan = %s"
             params.append(plan)
+        if drishti == "true":
+            query += " AND is_drishti = TRUE"
         query += " ORDER BY created_at DESC LIMIT 500"
         cur.execute(query, params)
         return [dict(r) for r in cur.fetchall()]
+    finally:
+        conn.close()
+
+
+class DrishtiStudentCreate(BaseModel):
+    name: str
+    email: str
+    password: str
+    standard: str
+    board: str
+    language: str = "Hindi"
+    is_drishti: bool = True
+
+
+@router.post("/admin/users/drishti", status_code=201)
+def admin_create_drishti_student(data: DrishtiStudentCreate, admin_id: int = Depends(get_admin_user)):
+    """Create a new Drishti student account (admin-only)."""
+    from passlib.hash import bcrypt
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        # Check if email already exists
+        cur.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(%s)", (data.email.strip(),))
+        if cur.fetchone():
+            raise HTTPException(status_code=400, detail="Email already registered")
+        
+        user_id = str(uuid.uuid4())
+        hashed_pw = bcrypt.hash(data.password)
+        cur.execute("""
+            INSERT INTO users (id, email, password_hash, name, standard, board, language, is_drishti, plan, xp, streak)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, TRUE, 'free', 0, 0)
+            RETURNING id, email, name, standard, board, language, is_drishti
+        """, (user_id, data.email.strip().lower(), hashed_pw, data.name.strip(), 
+              data.standard.strip(), data.board.strip(), data.language.strip()))
+        row = cur.fetchone()
+        conn.commit()
+        return dict(row)
     finally:
         conn.close()
 
@@ -971,6 +1012,235 @@ def admin_usage_top_users(
             (target_date,),
         )
         return {"date": target_date, "rows": [dict(r) for r in cur.fetchall()]}
+    finally:
+        conn.close()
+
+
+# ── Drishti — Helper management ───────────────────────────────────────────
+
+class HelperCreate(BaseModel):
+    helper_name: str
+    helper_email: str
+    helper_type: str = "teacher"   # teacher | volunteer | parent
+    notes: str = ""
+
+
+class HelperUpdate(BaseModel):
+    helper_name: Optional[str] = None
+    helper_type: Optional[str] = None
+    notes: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+@router.get("/admin/drishti-helpers")
+def admin_list_helpers(admin_id: int = Depends(get_admin_user)):
+    """List all Drishti helpers."""
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT h.id, h.helper_name, h.helper_email, h.helper_type,
+                   h.is_active, h.notes, h.created_at,
+                   CONCAT(LEFT(h.helper_token, 4), '****') AS token_preview,
+                   COUNT(m.student_id) AS student_count
+            FROM drishti_helpers h
+            LEFT JOIN helper_student_map m ON m.helper_id = h.id
+            GROUP BY h.id
+            ORDER BY h.created_at DESC
+        """)
+        return [dict(r) for r in cur.fetchall()]
+    finally:
+        conn.close()
+
+
+@router.post("/admin/drishti-helpers", status_code=201)
+def admin_create_helper(data: HelperCreate, admin_id: int = Depends(get_admin_user)):
+    """Create a new Drishti helper (teacher/volunteer/parent). Returns full token only once."""
+    if not data.helper_name.strip():
+        raise HTTPException(status_code=422, detail="Name is required")
+    email = data.helper_email.strip().lower()
+    if "@" not in email:
+        raise HTTPException(status_code=422, detail="Valid email required")
+    if data.helper_type not in {"teacher", "volunteer", "parent"}:
+        raise HTTPException(status_code=422, detail="helper_type must be teacher, volunteer, or parent")
+
+    token = str(uuid.uuid4())
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM drishti_helpers WHERE helper_email = %s", (email,))
+        if cur.fetchone():
+            raise HTTPException(status_code=409, detail="Email already registered as helper")
+        cur.execute(
+            """INSERT INTO drishti_helpers
+               (helper_name, helper_email, helper_type, helper_token, assigned_by, notes)
+               VALUES (%s,%s,%s,%s,%s,%s)
+               RETURNING id, helper_name, helper_email, helper_type, helper_token, notes, created_at""",
+            (data.helper_name.strip(), email, data.helper_type, token, admin_id, data.notes),
+        )
+        row = dict(cur.fetchone())
+        conn.commit()
+        return row
+    finally:
+        conn.close()
+
+
+@router.put("/admin/drishti-helpers/{helper_id}")
+def admin_update_helper(
+    helper_id: int, data: HelperUpdate, admin_id: int = Depends(get_admin_user)
+):
+    """Update a Drishti helper."""
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        sets, vals = [], []
+        if data.helper_name is not None:
+            sets.append("helper_name=%s"); vals.append(data.helper_name.strip())
+        if data.helper_type is not None:
+            if data.helper_type not in {"teacher", "volunteer", "parent"}:
+                raise HTTPException(status_code=422, detail="Invalid helper_type")
+            sets.append("helper_type=%s"); vals.append(data.helper_type)
+        if data.notes is not None:
+            sets.append("notes=%s"); vals.append(data.notes)
+        if data.is_active is not None:
+            sets.append("is_active=%s"); vals.append(data.is_active)
+        if not sets:
+            raise HTTPException(status_code=422, detail="Nothing to update")
+        vals.append(helper_id)
+        cur.execute(
+            f"UPDATE drishti_helpers SET {', '.join(sets)} WHERE id=%s RETURNING id, helper_name, helper_email, is_active",
+            vals,
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Helper not found")
+        conn.commit()
+        return dict(row)
+    finally:
+        conn.close()
+
+
+@router.delete("/admin/drishti-helpers/{helper_id}")
+def admin_delete_helper(helper_id: int, admin_id: int = Depends(get_admin_user)):
+    """Deactivate a Drishti helper (soft delete)."""
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE drishti_helpers SET is_active=FALSE WHERE id=%s RETURNING id",
+            (helper_id,),
+        )
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail="Helper not found")
+        conn.commit()
+        return {"ok": True}
+    finally:
+        conn.close()
+
+
+@router.get("/admin/drishti-helpers/{helper_id}/students")
+def admin_helper_students(helper_id: int, admin_id: int = Depends(get_admin_user)):
+    """List students assigned to a helper."""
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT u.id, u.name, u.email, u.standard, u.board, u.language,
+                   u.xp, u.streak, u.plan, m.assigned_at
+            FROM helper_student_map m
+            JOIN users u ON u.id = m.student_id
+            WHERE m.helper_id = %s
+            ORDER BY m.assigned_at DESC
+        """, (helper_id,))
+        return [dict(r) for r in cur.fetchall()]
+    finally:
+        conn.close()
+
+
+@router.post("/admin/drishti-helpers/{helper_id}/assign/{student_id}", status_code=201)
+def admin_assign_helper(
+    helper_id: int, student_id: str, admin_id: int = Depends(get_admin_user)
+):
+    """Assign a Drishti learner to a helper."""
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM drishti_helpers WHERE id=%s AND is_active=TRUE", (helper_id,))
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail="Helper not found or inactive")
+        cur.execute("SELECT id FROM users WHERE id=%s", (student_id,))
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail="Student not found")
+        cur.execute(
+            """INSERT INTO helper_student_map (helper_id, student_id)
+               VALUES (%s,%s) ON CONFLICT DO NOTHING""",
+            (helper_id, student_id),
+        )
+        conn.commit()
+        return {"ok": True}
+    finally:
+        conn.close()
+
+
+@router.delete("/admin/drishti-helpers/{helper_id}/assign/{student_id}")
+def admin_unassign_helper(
+    helper_id: int, student_id: str, admin_id: int = Depends(get_admin_user)
+):
+    """Remove a student assignment from a helper."""
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "DELETE FROM helper_student_map WHERE helper_id=%s AND student_id=%s",
+            (helper_id, student_id),
+        )
+        conn.commit()
+        return {"ok": True}
+    finally:
+        conn.close()
+
+
+@router.put("/admin/users/{user_id}/drishti")
+def admin_set_user_drishti(
+    user_id: str, is_drishti: bool = True, admin_id: int = Depends(get_admin_user)
+):
+    """Mark a user as a Drishti learner (is_drishti=true)."""
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """UPDATE users SET is_drishti=%s WHERE id=%s 
+               RETURNING id, name, email, is_drishti""",
+            (is_drishti, user_id),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="User not found")
+        conn.commit()
+        return dict(row)
+    finally:
+        conn.close()
+
+
+@router.get("/admin/drishti-students")
+def admin_list_drishti_students(admin_id: int = Depends(get_admin_user)):
+    """List all students with is_drishti=TRUE for assignment."""
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT u.id, u.name, u.email, u.standard, u.board, u.language, u.xp, u.streak,
+                   COALESCE(
+                       (SELECT h.helper_name FROM drishti_helpers h 
+                        JOIN helper_student_map m ON m.helper_id = h.id 
+                        WHERE m.student_id = u.id AND h.is_active = TRUE LIMIT 1),
+                       NULL
+                   ) AS assigned_to
+            FROM users u
+            WHERE u.is_drishti = TRUE
+            ORDER BY u.name
+        """)
+        return [dict(r) for r in cur.fetchall()]
     finally:
         conn.close()
 

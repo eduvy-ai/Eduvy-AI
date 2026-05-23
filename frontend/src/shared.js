@@ -18,6 +18,81 @@ export const COLORS = {
   muted:  "#6868a0",
 }
 
+// ─── Drishti — Accessibility defaults ────────────────────────
+export const DEFAULT_A11Y = {
+  screenReaderMode: false,
+  ttsEnabled:       false,
+  ttsSpeed:         1.0,    // 0.5 slow | 1.0 normal | 1.5 fast
+  highContrast:     false,
+  voiceInput:       false,
+  fontScale:        1.0,    // 1.0 normal | 1.25 large | 1.5 xlarge
+}
+
+// Maps profile.language → BCP-47 code for Web Speech API (Indian locales)
+export const LANG_TO_SPEECH_CODE = {
+  English:  'en-IN',
+  Hindi:    'hi-IN',
+  Gujarati: 'gu-IN',
+  Tamil:    'ta-IN',
+  Telugu:   'te-IN',
+  Kannada:  'kn-IN',
+  Marathi:  'mr-IN',
+  Bengali:  'bn-IN',
+  Punjabi:  'pa-IN',
+  Odia:     'or-IN',
+  Urdu:     'ur-PK',
+}
+
+/**
+ * Speaks text via browser SpeechSynthesis in the given BCP-47 lang code.
+ * Always cancels any ongoing speech first to avoid overlap.
+ * @param {string} text
+ * @param {string} langCode - BCP-47 e.g. 'hi-IN' (use LANG_TO_SPEECH_CODE)
+ * @param {number} speed - rate multiplier (0.5–2.0)
+ */
+export function speakText(text, langCode = 'en-IN', speed = 1.0) {
+  if (!window.speechSynthesis || !text) return
+  window.speechSynthesis.cancel()
+  const utt = new SpeechSynthesisUtterance(text)
+  utt.lang  = langCode
+  utt.rate  = Math.max(0.5, Math.min(2.0, speed))
+  window.speechSynthesis.speak(utt)
+}
+
+/** Stop any ongoing TTS speech. */
+export function stopSpeaking() {
+  if (window.speechSynthesis) window.speechSynthesis.cancel()
+}
+
+/** Returns true if TTS is currently speaking. */
+export function isSpeaking() {
+  return window.speechSynthesis?.speaking ?? false
+}
+
+/**
+ * Start voice input and return a promise that resolves with the transcript string.
+ * Rejects with an Error if the browser doesn't support speech recognition
+ * or if the user denies microphone access.
+ * @param {string} langCode - BCP-47 e.g. 'hi-IN'
+ * @returns {Promise<string>}
+ */
+export function startVoiceInput(langCode = 'en-IN') {
+  return new Promise((resolve, reject) => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR) {
+      reject(new Error('Voice input is not supported in this browser'))
+      return
+    }
+    const rec = new SR()
+    rec.lang             = langCode
+    rec.interimResults   = false
+    rec.maxAlternatives  = 1
+    rec.onresult  = (e) => resolve(e.results[0][0].transcript)
+    rec.onerror   = (e) => reject(new Error(e.error || 'Voice input failed'))
+    rec.start()
+  })
+}
+
 // ─── Subscription Plans ───────────────────────────────────────
 // Defines what each plan tier can access. Tab keys match NAV_ITEMS keys.
 // Lab keys match LABS keys in LabsTab.

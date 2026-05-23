@@ -4,6 +4,7 @@ import LandingPage from './components/LandingPage.jsx'
 import Onboard from './components/Onboard.jsx'
 import AuthScreen from './components/AuthScreen.jsx'
 import AdminPanel from './components/AdminPanel.jsx'
+import HelperPortal from './components/HelperPortal.jsx'
 import HomeTab from './components/tabs/HomeTab.jsx'
 import NotebookTab from './components/tabs/NotebookTab.jsx'
 import TutorTab from './components/tabs/TutorTab.jsx'
@@ -20,6 +21,7 @@ import {
   apiUpdateProfile, computeStreak,
   getAuthToken, setAuthToken, clearAuth, apiGetMe,
 } from './api.js'
+import { speakText, stopSpeaking, DEFAULT_A11Y } from './shared.js'
 
 // Re-export from shared.js so all tab components keep working unchanged.
 export {
@@ -33,7 +35,7 @@ export {
 import { COLORS, AI_PROVIDERS, setAIConfig, PLANS, planHasTab } from './shared.js'
 
 // ─── Defaults ────────────────────────────────────────────────
-const DEFAULT_PROFILE = { name: '', standard: 'Class 10', board: 'CBSE', language: 'English', subjects: [], plan: 'free', plan_expires_at: '' }
+const DEFAULT_PROFILE = { name: '', standard: 'Class 10', board: 'CBSE', language: 'English', subjects: [], plan: 'free', plan_expires_at: '', is_drishti: false }
 const DEFAULT_AI = { provider: 'groq', apiKey: '', model: 'llama-3.3-70b-versatile' }
 
 // All possible nav items — filtered at render time by plan.
@@ -57,6 +59,7 @@ function AppShell({
   showSettings, setShowSettings,
   aiConfig, savedAiKeys,
   handleLogout, handleAIConfigSave, handleProfileSave,
+  a11y, setA11y, helperNotes,
 }) {
   const { tab = 'home' } = useParams()
   const navigate = useNavigate()
@@ -218,6 +221,103 @@ function AppShell({
           onClose={() => setShowSettings(false)}
         />
       )}
+
+      {/* Drishti Accessibility Toolbar */}
+      {profile.is_drishti && (
+        <div style={{
+          position: 'fixed', bottom: 90, right: 16, zIndex: 999,
+          background: COLORS.card, border: `1px solid ${COLORS.border}`,
+          borderRadius: 16, padding: '12px 14px',
+          display: 'flex', flexDirection: 'column', gap: 8,
+          boxShadow: '0 4px 20px #0008',
+        }}>
+          <div style={{ fontSize: 11, color: COLORS.muted, fontWeight: 700, letterSpacing: '0.05em', marginBottom: 4 }}>👁️ DRISHTI</div>
+          
+          <button onClick={() => setA11y(a => ({ ...a, ttsEnabled: !a.ttsEnabled }))} style={{
+            background: a11y.ttsEnabled ? `${COLORS.green}25` : 'transparent',
+            border: `1px solid ${a11y.ttsEnabled ? COLORS.green : COLORS.border}`,
+            borderRadius: 10, padding: '8px 12px', cursor: 'pointer',
+            color: a11y.ttsEnabled ? COLORS.green : COLORS.text,
+            fontFamily: 'Sora, sans-serif', fontSize: 12, fontWeight: 600,
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <span>🔊</span> TTS {a11y.ttsEnabled ? 'On' : 'Off'}
+          </button>
+          
+          <button onClick={() => {
+            const next = !a11y.highContrast
+            setA11y(a => ({ ...a, highContrast: next }))
+            document.body.classList.toggle('high-contrast', next)
+          }} style={{
+            background: a11y.highContrast ? `${COLORS.yellow}25` : 'transparent',
+            border: `1px solid ${a11y.highContrast ? COLORS.yellow : COLORS.border}`,
+            borderRadius: 10, padding: '8px 12px', cursor: 'pointer',
+            color: a11y.highContrast ? COLORS.yellow : COLORS.text,
+            fontFamily: 'Sora, sans-serif', fontSize: 12, fontWeight: 600,
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <span>☀️</span> Contrast
+          </button>
+          
+          <button onClick={() => {
+            const sizes = ['normal', 'large', 'xlarge']
+            const idx = sizes.indexOf(a11y.fontSize)
+            const next = sizes[(idx + 1) % sizes.length]
+            setA11y(a => ({ ...a, fontSize: next }))
+            document.body.classList.remove('font-large', 'font-xlarge')
+            if (next !== 'normal') document.body.classList.add(`font-${next}`)
+          }} style={{
+            background: a11y.fontSize !== 'normal' ? `${COLORS.blue}25` : 'transparent',
+            border: `1px solid ${a11y.fontSize !== 'normal' ? COLORS.blue : COLORS.border}`,
+            borderRadius: 10, padding: '8px 12px', cursor: 'pointer',
+            color: a11y.fontSize !== 'normal' ? COLORS.blue : COLORS.text,
+            fontFamily: 'Sora, sans-serif', fontSize: 12, fontWeight: 600,
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <span>🔤</span> Font: {a11y.fontSize === 'normal' ? 'A' : a11y.fontSize === 'large' ? 'A+' : 'A++'}
+          </button>
+
+          {a11y.ttsEnabled && (
+            <button onClick={() => stopSpeaking()} style={{
+              background: `${COLORS.red}25`, border: `1px solid ${COLORS.red}40`,
+              borderRadius: 10, padding: '6px 12px', cursor: 'pointer',
+              color: COLORS.red, fontFamily: 'Sora, sans-serif', fontSize: 11, fontWeight: 600,
+            }}>
+              ⏹ Stop Speaking
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Helper Note Banner */}
+      {profile.is_drishti && helperNotes.length > 0 && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 998,
+          background: `linear-gradient(135deg, ${COLORS.blue}15, ${COLORS.green}15)`,
+          borderBottom: `1px solid ${COLORS.border}`,
+          padding: '10px 16px',
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <span style={{ fontSize: 18 }}>💬</span>
+          <div style={{ flex: 1 }}>
+            <p style={{ color: COLORS.text, fontSize: 13, fontWeight: 600, margin: 0 }}>
+              From {helperNotes[0].helper_name}:
+            </p>
+            <p style={{ color: COLORS.muted, fontSize: 12, margin: '2px 0 0' }}>
+              {helperNotes[0].message}
+            </p>
+          </div>
+          {a11y.ttsEnabled && (
+            <button onClick={() => speakText(helperNotes[0].message, profile.language === 'Hindi' ? 'hi-IN' : 'en-IN')} style={{
+              background: COLORS.green, border: 'none', borderRadius: 8,
+              padding: '6px 12px', cursor: 'pointer', color: '#04040e',
+              fontFamily: 'Sora, sans-serif', fontSize: 11, fontWeight: 700,
+            }}>
+              🔊 Play
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -249,6 +349,10 @@ export default function App() {
   const [showSettings,   setShowSettings]   = useState(false)
   const [aiConfig,       setAiConfigState]  = useState(DEFAULT_AI)
   const [savedAiKeys,    setSavedAiKeys]    = useState({})
+  
+  // Drishti accessibility state
+  const [a11y, setA11y] = useState({ ttsEnabled: false, highContrast: false, fontSize: 'normal' })
+  const [helperNotes, setHelperNotes] = useState([])
 
   // (splash coordination removed — LandingPage handles auth check itself)
 
@@ -264,11 +368,18 @@ export default function App() {
       parent_mobile:   data.parent_mobile || '',
       plan:            data.plan || 'free',
       plan_expires_at: data.plan_expires_at || '',
+      is_drishti:      data.is_drishti || false,
     }
     setProfile(p)
     setUserId(data.id)
     try { localStorage.setItem('eduvyai_profile', JSON.stringify({ ...p, id: data.id, xp: data.xp || 0, streak: data.streak || 1 })) } catch {}
     setXp(data.xp || 0)
+    
+    // If Drishti user, enable TTS by default and fetch helper notes
+    if (data.is_drishti) {
+      setA11y(a => ({ ...a, ttsEnabled: true }))
+      fetchHelperNotes(data.id)
+    }
 
     const { streak: newStreak, changed } = computeStreak(data.last_active || '', data.streak || 1)
     setStreak(newStreak)
@@ -330,6 +441,20 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // ── Fetch helper notes for Drishti users ──────────────────
+  const fetchHelperNotes = async (uid) => {
+    try {
+      const token = getAuthToken()
+      const res = await fetch(`/api/profile/${uid}/helper-notes`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const notes = await res.json()
+        setHelperNotes(Array.isArray(notes) ? notes : [])
+      }
+    } catch {}
+  }
+
   // ── Handlers ─────────────────────────────────────────────
   const handleAuth = (data) => {
     hydrateProfile(data)
@@ -384,6 +509,7 @@ export default function App() {
     showSettings, setShowSettings,
     aiConfig, savedAiKeys,
     handleLogout, handleAIConfigSave, handleProfileSave,
+    a11y, setA11y, helperNotes,
   }
 
   // ── Routes ────────────────────────────────────────────────
@@ -408,6 +534,9 @@ export default function App() {
 
       {/* Parent Dashboard — public, no auth */}
       <Route path="/parent/:pin" element={<ParentDashboard />} />
+
+      {/* Drishti Helper Portal — token-based auth */}
+      <Route path="/helper/:token" element={<HelperPortal />} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

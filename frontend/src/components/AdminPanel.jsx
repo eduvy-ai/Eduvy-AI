@@ -1206,11 +1206,29 @@ function UsersTab({ toast }) {
   const [users,   setUsers]   = useState([])
   const [search,  setSearch]  = useState("")
   const [planFilter, setPlanFilter] = useState("")
+  const [drishtiOnly, setDrishtiOnly] = useState(false)
   const [loading, setLoading] = useState(false)
   const [editing, setEditing] = useState(null)   // { id, name, email, plan, plan_expires_at }
   const [editPlan,    setEditPlan]    = useState('free')
   const [editExpiry,  setEditExpiry]  = useState('')
   const [saving, setSaving] = useState(false)
+  
+  // Curriculum data for dropdowns
+  const [boards, setBoards] = useState([])
+  const [standards, setStandards] = useState([])
+  const [mediums, setMediums] = useState([])
+  
+  // Create Drishti student state
+  const [showCreate, setShowCreate] = useState(false)
+  const [newStudent, setNewStudent] = useState({ name: '', email: '', password: '', standard: '', board: '', language: '' })
+  const [creating, setCreating] = useState(false)
+
+  // Load curriculum data for dropdowns
+  useEffect(() => {
+    API('/admin/boards').then(r => r.json()).then(d => setBoards(Array.isArray(d) ? d.filter(b => b.is_active) : [])).catch(() => {})
+    API('/admin/standards').then(r => r.json()).then(d => setStandards(Array.isArray(d) ? d.filter(s => s.is_active) : [])).catch(() => {})
+    API('/admin/mediums').then(r => r.json()).then(d => setMediums(Array.isArray(d) ? d.filter(m => m.is_active) : [])).catch(() => {})
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -1218,12 +1236,13 @@ function UsersTab({ toast }) {
       const params = new URLSearchParams()
       if (search)     params.set('search', search)
       if (planFilter) params.set('plan', planFilter)
+      if (drishtiOnly) params.set('drishti', 'true')
       const res = await API(`/admin/users?${params}`)
       if (res.ok) setUsers(await res.json())
     } finally {
       setLoading(false)
     }
-  }, [search, planFilter])
+  }, [search, planFilter, drishtiOnly])
 
   useEffect(() => { load() }, [load])
 
@@ -1252,6 +1271,45 @@ function UsersTab({ toast }) {
     } finally {
       setSaving(false)
     }
+  }
+
+  const toggleDrishti = async (user) => {
+    const newVal = !user.is_drishti
+    try {
+      const res = await API(`/admin/users/${user.id}/drishti?is_drishti=${newVal}`, { method: 'PUT' })
+      if (res.ok) {
+        toast(`${user.name} ${newVal ? 'marked as' : 'removed from'} Drishti`)
+        load()
+      } else {
+        const d = await res.json()
+        toast(d.detail || 'Failed', 'error')
+      }
+    } catch { toast('Failed to update', 'error') }
+  }
+
+  const createDrishtiStudent = async () => {
+    const { name, email, password, standard, board, language } = newStudent
+    if (!name || !email || !password || !standard || !board) {
+      toast('Please fill all required fields', 'error')
+      return
+    }
+    setCreating(true)
+    try {
+      const res = await API('/admin/users/drishti', {
+        method: 'POST',
+        body: JSON.stringify({ name, email, password, standard, board, language, is_drishti: true }),
+      })
+      if (res.ok) {
+        toast('Drishti student created!')
+        setShowCreate(false)
+        setNewStudent({ name: '', email: '', password: '', standard: '', board: '', language: 'Hindi' })
+        load()
+      } else {
+        const d = await res.json()
+        toast(d.detail || 'Failed to create', 'error')
+      }
+    } catch { toast('Failed to create student', 'error') }
+    setCreating(false)
   }
 
   return (
@@ -1328,10 +1386,75 @@ function UsersTab({ toast }) {
             <option key={p} value={p}>{PLAN_META[p].icon} {PLAN_META[p].label}</option>
           ))}
         </select>
+        <button
+          onClick={() => setDrishtiOnly(!drishtiOnly)}
+          style={{
+            ...ghostBtn,
+            background: drishtiOnly ? `${C.blue}25` : 'transparent',
+            color: drishtiOnly ? C.blue : C.muted,
+            borderColor: drishtiOnly ? C.blue : C.border,
+          }}
+        >
+          👁️ Drishti Only
+        </button>
+        <button onClick={() => setShowCreate(true)} style={{ ...btn(), padding: '9px 14px' }}>+ Add Drishti Student</button>
         <span style={{ color: C.muted, fontSize: 12, whiteSpace: "nowrap" }}>
           {loading ? "Loading…" : `${users.length} users`}
         </span>
       </div>
+
+      {/* Create Drishti Student Modal */}
+      {showCreate && (
+        <div style={{ position: 'fixed', inset: 0, background: '#000a', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: C.card, borderRadius: 18, padding: 28, width: '100%', maxWidth: 440, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <h3 style={{ color: C.text, margin: 0, fontSize: 16 }}>👁️ Create Drishti Student</h3>
+            <p style={{ color: C.muted, fontSize: 12, margin: 0 }}>This student will be automatically marked as a Drishti learner.</p>
+            
+            {[['Name *', 'name', 'text'], ['Email *', 'email', 'email'], ['Password *', 'password', 'password']].map(([label, key, type]) => (
+              <div key={key}>
+                <label style={{ display: 'block', color: C.muted, fontSize: 11, marginBottom: 4, fontWeight: 600 }}>{label}</label>
+                <input type={type} value={newStudent[key]} onChange={e => setNewStudent(s => ({ ...s, [key]: e.target.value }))}
+                  style={{ ...inp, width: '100%', boxSizing: 'border-box' }} />
+              </div>
+            ))}
+            
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', color: C.muted, fontSize: 11, marginBottom: 4, fontWeight: 600 }}>Class/Standard *</label>
+                <select value={newStudent.standard} onChange={e => setNewStudent(s => ({ ...s, standard: e.target.value }))}
+                  style={{ ...inp, width: '100%', boxSizing: 'border-box' }}>
+                  <option value="">Select Class</option>
+                  {standards.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', color: C.muted, fontSize: 11, marginBottom: 4, fontWeight: 600 }}>Board *</label>
+                <select value={newStudent.board} onChange={e => setNewStudent(s => ({ ...s, board: e.target.value }))}
+                  style={{ ...inp, width: '100%', boxSizing: 'border-box' }}>
+                  <option value="">Select Board</option>
+                  {boards.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+                </select>
+              </div>
+            </div>
+            
+            <div>
+              <label style={{ display: 'block', color: C.muted, fontSize: 11, marginBottom: 4, fontWeight: 600 }}>Medium/Language</label>
+              <select value={newStudent.language} onChange={e => setNewStudent(s => ({ ...s, language: e.target.value }))}
+                style={{ ...inp, width: '100%', boxSizing: 'border-box' }}>
+                <option value="">Select Medium</option>
+                {mediums.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+              </select>
+            </div>
+            
+            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+              <button onClick={createDrishtiStudent} disabled={creating} style={{ ...btn(), flex: 1 }}>
+                {creating ? 'Creating…' : 'Create Student'}
+              </button>
+              <button onClick={() => setShowCreate(false)} style={{ ...ghostBtn, flex: 1 }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <Table
@@ -1345,6 +1468,19 @@ function UsersTab({ toast }) {
           }},
           { key: "plan_expires_at", label: "Expires", render: v => v || "—" },
           { key: "xp",   label: "XP" },
+          { key: "is_drishti", label: "👁️", render: (v, row) => (
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleDrishti(row) }}
+              title={v ? "Remove from Drishti" : "Mark as Drishti learner"}
+              style={{
+                background: v ? `${C.blue}25` : 'transparent',
+                border: `1px solid ${v ? C.blue : C.border}`,
+                borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
+                color: v ? C.blue : C.muted, fontWeight: 600, fontSize: 11,
+                fontFamily: 'Sora, sans-serif',
+              }}
+            >{v ? '👁️ On' : 'Off'}</button>
+          )},
           { key: "created_at", label: "Joined" },
         ]}
         rows={users}
@@ -1536,7 +1672,8 @@ function AIConfigTab({ toast }) {
                   <span style={{
                     fontSize: 11, padding: "3px 8px", borderRadius: 20,
                     background: `${C.green}10`, border: `1px solid ${C.green}20`, color: C.muted,
-                  }}>⚙️ {envCount} env</span>
+                    cursor: slotInfo.env_hints?.length ? "help" : "default",
+                  }} title={slotInfo.env_hints?.join(", ") || ""}>⚙️ {envCount} env{slotInfo.env_hints?.length > 0 ? `: ${slotInfo.env_hints.join(", ")}` : ""}</span>
                 )}
                 <span style={{
                   fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
@@ -1551,6 +1688,7 @@ function AIConfigTab({ toast }) {
               {[1, 2, 3, 4, 5].map(slot => {
                 const slotKey = `${provider}-${slot}`
                 const isSet   = !!slotInfo.db_slots[slot]
+                const keyHint = slotInfo.db_hints?.[slot] || ""
                 const inputVal  = keyInputs[slotKey] || ""
                 const isVisible = !!keyVisible[slotKey]
                 const isSaving  = keySaving === slotKey
@@ -1564,11 +1702,18 @@ function AIConfigTab({ toast }) {
                     <span style={{ fontSize: 11, fontWeight: 700, width: 52, flexShrink: 0, color: isSet ? meta.color : C.muted }}>
                       {isSet ? "●" : "○"} Slot {slot}
                     </span>
+                    {isSet && keyHint && (
+                      <span style={{
+                        fontSize: 11, fontFamily: "monospace", padding: "3px 8px",
+                        background: `${meta.color}15`, borderRadius: 6, color: meta.color,
+                        border: `1px solid ${meta.color}30`, flexShrink: 0,
+                      }}>{keyHint}</span>
+                    )}
                     <div style={{ flex: 1, position: "relative" }}>
                       <input
                         style={{ ...inp, paddingRight: 38 }}
                         type={isVisible ? "text" : "password"}
-                        placeholder={isSet ? `Slot ${slot} is set — paste to replace` : `Paste key for slot ${slot}${slot === 1 ? " (primary)" : ""}…`}
+                        placeholder={isSet ? `Paste new key to replace` : `Paste key for slot ${slot}${slot === 1 ? " (primary)" : ""}…`}
                         value={inputVal}
                         onChange={e => setKeyInputs(k => ({ ...k, [slotKey]: e.target.value }))}
                         onKeyDown={e => e.key === "Enter" && saveApiKeySlot(provider, slot)}
@@ -1797,11 +1942,254 @@ function AIConfigTab({ toast }) {
   )
 }
 
+// ── Drishti Helpers Tab ──────────────────────────────────────
+function DrishtiHelpersTab({ toast }) {
+  const [helpers, setHelpers]   = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [showModal, setShowModal] = useState(false)
+  const [editing, setEditing]   = useState(null)
+  const [newToken, setNewToken]  = useState(null)
+  const [form, setForm]         = useState({ helper_name: '', helper_email: '', helper_type: 'teacher', notes: '' })
+  
+  // Student assignment state
+  const [assignModal, setAssignModal] = useState(null) // helper object or null
+  const [assignedStudents, setAssignedStudents] = useState([])
+  const [allDrishtiStudents, setAllDrishtiStudents] = useState([])
+  const [assignLoading, setAssignLoading] = useState(false)
+
+  const token = () => localStorage.getItem('eduvyai_admin_token')
+
+  const load = async () => {
+    setLoading(true)
+    try {
+      const r = await fetch('/api/admin/drishti-helpers', { headers: { Authorization: `Bearer ${token()}` } })
+      const d = await r.json()
+      setHelpers(Array.isArray(d) ? d : [])
+    } catch { toast('Failed to load helpers', 'error') }
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [])
+
+  const openCreate = () => {
+    setEditing(null)
+    setNewToken(null)
+    setForm({ helper_name: '', helper_email: '', helper_type: 'teacher', notes: '' })
+    setShowModal(true)
+  }
+
+  const openEdit = (h) => {
+    setEditing(h)
+    setNewToken(null)
+    setForm({ helper_name: h.helper_name, helper_email: h.helper_email, helper_type: h.helper_type, notes: h.notes || '' })
+    setShowModal(true)
+  }
+
+  const save = async () => {
+    try {
+      const method = editing ? 'PUT' : 'POST'
+      const url = editing ? `/api/admin/drishti-helpers/${editing.id}` : '/api/admin/drishti-helpers'
+      const r = await fetch(url, {
+        method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+        body: JSON.stringify(form),
+      })
+      if (!r.ok) { const e = await r.json(); throw new Error(e.detail || 'Save failed') }
+      const d = await r.json()
+      if (!editing && d.helper_token) setNewToken(d.helper_token)
+      else { toast(editing ? 'Helper updated' : 'Helper created'); setShowModal(false) }
+      load()
+    } catch (e) { toast(e.message, 'error') }
+  }
+
+  const deactivate = async (id) => {
+    if (!confirm('Deactivate this helper?')) return
+    try {
+      const r = await fetch(`/api/admin/drishti-helpers/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token()}` } })
+      if (!r.ok) throw new Error('Failed')
+      toast('Helper deactivated')
+      load()
+    } catch (e) { toast(e.message, 'error') }
+  }
+
+  const copyPortalUrl = (tok) => {
+    const url = `${window.location.origin}/helper/${tok}`
+    navigator.clipboard.writeText(url).then(() => toast('Portal URL copied!')).catch(() => toast(url, 'info'))
+  }
+
+  // ── Student Assignment ──
+  const openAssignModal = async (helper) => {
+    setAssignModal(helper)
+    setAssignLoading(true)
+    try {
+      const [assignedRes, allRes] = await Promise.all([
+        fetch(`/api/admin/drishti-helpers/${helper.id}/students`, { headers: { Authorization: `Bearer ${token()}` } }),
+        fetch('/api/admin/drishti-students', { headers: { Authorization: `Bearer ${token()}` } }),
+      ])
+      const assigned = await assignedRes.json()
+      const all = await allRes.json()
+      setAssignedStudents(Array.isArray(assigned) ? assigned : [])
+      setAllDrishtiStudents(Array.isArray(all) ? all : [])
+    } catch { toast('Failed to load students', 'error') }
+    setAssignLoading(false)
+  }
+
+  const assignStudent = async (studentId) => {
+    try {
+      const r = await fetch(`/api/admin/drishti-helpers/${assignModal.id}/assign/${studentId}`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token()}` },
+      })
+      if (!r.ok) throw new Error('Failed to assign')
+      toast('Student assigned')
+      openAssignModal(assignModal) // refresh
+      load()
+    } catch (e) { toast(e.message, 'error') }
+  }
+
+  const unassignStudent = async (studentId) => {
+    try {
+      const r = await fetch(`/api/admin/drishti-helpers/${assignModal.id}/assign/${studentId}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token()}` },
+      })
+      if (!r.ok) throw new Error('Failed to unassign')
+      toast('Student removed')
+      openAssignModal(assignModal) // refresh
+      load()
+    } catch (e) { toast(e.message, 'error') }
+  }
+
+  const assignedIds = new Set(assignedStudents.map(s => s.id))
+  const unassignedStudents = allDrishtiStudents.filter(s => !assignedIds.has(s.id))
+
+  return (
+    <div>
+      <button onClick={openCreate} style={{ ...btn(), padding: '9px 18px', width: 'auto', marginBottom: 16 }}>+ Add Helper</button>
+
+      {loading ? <p style={{ color: C.muted }}>Loading…</p> : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {helpers.map(h => (
+            <div key={h.id} style={{ background: C.card2, border: `1px solid ${C.border}`, borderRadius: 14, padding: '14px 16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+                <div>
+                  <p style={{ color: C.text, fontWeight: 700, fontSize: 14, margin: 0 }}>{h.helper_name}</p>
+                  <p style={{ color: C.muted, fontSize: 12, margin: '4px 0' }}>{h.helper_email} · {h.helper_type}</p>
+                  <p style={{ color: C.muted, fontSize: 11, margin: 0 }}>Students: <strong style={{ color: C.text }}>{h.student_count || 0}</strong> · Token: <code style={{ color: C.yellow }}>{h.token_preview}</code></p>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button onClick={() => openAssignModal(h)} style={{ ...ghostBtn, color: C.blue, borderColor: `${C.blue}40` }}>👥 Assign</button>
+                  <button onClick={() => openEdit(h)} style={ghostBtn}>Edit</button>
+                  {h.is_active && <button onClick={() => deactivate(h.id)} style={{ ...ghostBtn, color: C.red, borderColor: `${C.red}40` }}>Deactivate</button>}
+                </div>
+              </div>
+            </div>
+          ))}
+          {helpers.length === 0 && <p style={{ color: C.muted, textAlign: 'center', padding: 24 }}>No helpers yet. Click "+ Add Helper" to create one.</p>}
+        </div>
+      )}
+
+      {/* Create/Edit Helper Modal */}
+      {showModal && (
+        <div style={{ position: 'fixed', inset: 0, background: '#00000088', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: C.card, borderRadius: 16, padding: 24, width: '100%', maxWidth: 440, border: `1px solid ${C.border}` }}>
+            {newToken ? (
+              <>
+                <h3 style={{ color: C.green, marginBottom: 12, fontSize: 16 }}>✓ Helper Created!</h3>
+                <p style={{ color: C.muted, fontSize: 13, marginBottom: 10 }}>Share this portal URL with the helper. The token will NOT be shown again.</p>
+                <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 14px', wordBreak: 'break-all', fontSize: 12, color: C.yellow, marginBottom: 16 }}>
+                  {window.location.origin}/helper/{newToken}
+                </div>
+                <button onClick={() => copyPortalUrl(newToken)} style={{ ...btn(), marginBottom: 10, width: '100%' }}>📋 Copy Portal URL</button>
+                <button onClick={() => setShowModal(false)} style={{ width: '100%', background: 'transparent', border: 'none', color: C.muted, cursor: 'pointer', fontFamily: 'Sora, sans-serif' }}>Close</button>
+              </>
+            ) : (
+              <>
+                <h3 style={{ color: C.text, marginBottom: 18, fontSize: 16 }}>{editing ? 'Edit Helper' : 'Add Helper'}</h3>
+                {[
+                  ['Name', 'helper_name', 'text', "Helper's full name"],
+                  ['Email', 'helper_email', 'email', 'helper@example.com'],
+                  ['Type', 'helper_type', 'text', 'teacher / volunteer / parent'],
+                  ['Notes', 'notes', 'text', 'Optional notes'],
+                ].map(([label, key, type, ph]) => (
+                  <div key={key} style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', color: C.muted, fontSize: 12, marginBottom: 4, fontWeight: 600 }}>{label}</label>
+                    <input type={type} value={form[key] || ''} placeholder={ph}
+                      onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                      style={{ ...inp, width: '100%', boxSizing: 'border-box' }} />
+                  </div>
+                ))}
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={save} style={{ ...btn(), flex: 1 }}>{editing ? 'Save' : 'Create'}</button>
+                  <button onClick={() => setShowModal(false)} style={{ flex: 1, background: C.card2, border: `1px solid ${C.border}`, borderRadius: 12, color: C.muted, cursor: 'pointer', fontFamily: 'Sora, sans-serif', fontWeight: 600, fontSize: 13 }}>Cancel</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Assign Students Modal */}
+      {assignModal && (
+        <div style={{ position: 'fixed', inset: 0, background: '#00000088', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: C.card, borderRadius: 16, padding: 24, width: '100%', maxWidth: 560, maxHeight: '80vh', overflow: 'auto', border: `1px solid ${C.border}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ color: C.text, fontSize: 16, margin: 0 }}>👥 Assign Students to {assignModal.helper_name}</h3>
+              <button onClick={() => setAssignModal(null)} style={{ background: 'transparent', border: 'none', color: C.muted, cursor: 'pointer', fontSize: 20 }}>×</button>
+            </div>
+
+            {assignLoading ? <p style={{ color: C.muted }}>Loading…</p> : (
+              <>
+                {/* Currently Assigned */}
+                <div style={{ marginBottom: 20 }}>
+                  <p style={{ color: C.muted, fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', marginBottom: 8 }}>ASSIGNED ({assignedStudents.length})</p>
+                  {assignedStudents.length === 0 ? (
+                    <p style={{ color: C.muted, fontSize: 13 }}>No students assigned yet.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {assignedStudents.map(s => (
+                        <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.card2, borderRadius: 10, padding: '8px 12px' }}>
+                          <div>
+                            <p style={{ color: C.text, fontSize: 13, fontWeight: 600, margin: 0 }}>{s.name}</p>
+                            <p style={{ color: C.muted, fontSize: 11, margin: 0 }}>Class {s.standard} · {s.board}</p>
+                          </div>
+                          <button onClick={() => unassignStudent(s.id)} style={{ ...ghostBtn, padding: '4px 10px', fontSize: 11, color: C.red, borderColor: `${C.red}30` }}>Remove</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Available to Assign */}
+                <div>
+                  <p style={{ color: C.muted, fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', marginBottom: 8 }}>AVAILABLE DRISHTI STUDENTS ({unassignedStudents.length})</p>
+                  {unassignedStudents.length === 0 ? (
+                    <p style={{ color: C.muted, fontSize: 13 }}>No unassigned Drishti students. Mark students as Drishti learners in the Users tab first.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {unassignedStudents.map(s => (
+                        <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.card2, borderRadius: 10, padding: '8px 12px' }}>
+                          <div>
+                            <p style={{ color: C.text, fontSize: 13, fontWeight: 600, margin: 0 }}>{s.name}</p>
+                            <p style={{ color: C.muted, fontSize: 11, margin: 0 }}>Class {s.standard} · {s.board} {s.assigned_to && <span style={{ color: C.yellow }}>· with {s.assigned_to}</span>}</p>
+                          </div>
+                          <button onClick={() => assignStudent(s.id)} style={{ ...btn(), padding: '4px 12px', fontSize: 11 }}>+ Assign</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main Admin Panel ──────────────────────────────────────────
 export default function AdminPanel() {
   const navigate  = useNavigate()
   const { section = 'curriculum' } = useParams()
-  const activeTab = ['curriculum','boards','standards','mediums','users','usage','aiconfig'].includes(section)
+  const activeTab = ['curriculum','boards','standards','mediums','users','usage','aiconfig','drishti'].includes(section)
     ? section : 'curriculum'
 
   const [authed, setAuthed]   = useState(!!localStorage.getItem('eduvyai_admin_token'))
@@ -1847,6 +2235,7 @@ export default function AdminPanel() {
     { id: "users",      label: "👥 Users",         short: "👥" },
     { id: "usage",      label: "📊 AI Usage",      short: "📊" },
     { id: "aiconfig",   label: "🤖 AI Models",     short: "🤖" },
+    { id: "drishti",    label: "👁️ Drishti",       short: "👁️" },
   ]
 
   const contentMap = {
@@ -1857,6 +2246,7 @@ export default function AdminPanel() {
     users:      <UsersTab      toast={showToast} />,
     usage:      <UsageTab      toast={showToast} />,
     aiconfig:   <AIConfigTab   toast={showToast} />,
+    drishti:    <DrishtiHelpersTab toast={showToast} />,
   }
 
   // Shared title bar rendered inside content area for all breakpoints

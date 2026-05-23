@@ -1,52 +1,200 @@
 # Eduvy-AI
 
-> विद्या + AI = आपका भविष्य *(Knowledge + AI = Your Future)*
-
-AI-powered education platform for Indian students (Class 1–12). Every AI response is delivered in the student's chosen language across **11 Indian languages**.
+> Full-stack modular application with React + Redux + TypeScript + Tailwind CSS frontend and FastAPI + PostgreSQL backend.
 
 ---
 
-## Features
+## Tech Stack
 
-### Core Learning
-- **Personal AI Tutor** — 24/7 Socratic tutor that guides to answers, never spoon-feeds
-- **Smart Notebook** — NotebookLM-style: upload any textbook, AI masters it and answers questions
-- **Whiteboard Video Lessons** — Curated YouTube videos with AI-generated summaries
-- **Learn TV** — Immersive whiteboard-style lesson player
+### Frontend
+| Technology | Purpose |
+|------------|---------|
+| React 18 | UI Framework |
+| TypeScript | Type Safety |
+| Redux Toolkit | State Management |
+| Tailwind CSS | Styling |
+| Vite | Build Tool |
+| React Router v6 | Routing |
+| Axios | HTTP Client |
 
-### Labs
-- **Quiz Arena** — Adaptive MCQ practice aligned to board, class, and mastery
-- **AI Examiner** — Mock exam with subjective answer evaluation
-- **Samjhao Lab** — "Explain like I'm 5" simplifier for any concept
-- **AI Podcast** — Two AI hosts debate and discuss syllabus topics
-- **Essay Lab** — AI-assisted essay writing with feedback
-- **Mental Wellness Coach** — Handles exam stress, anxiety, and motivation
-
-### Social & Competitive
-- **🤝 Sathi Study Squads** — 3-tab squad experience:
-  - **Chat** — Group chat with AI peer "Gyaani", teach-back challenges (+50 XP), squad streak
-  - **Doubts Board** — Post doubts, squad answers, AI auto-verifies each answer (✅ Correct / ⚠️ Partial / ✗ Incorrect), upvote best answers (+15 XP); per-day posting limits by plan (Free: 2, Basic: 5, Pro: 15, Premium: ∞)
-  - **Daily Concept** — One concept/day from squad's focus subject; students write explanations in their own words; AI grades and awards XP dynamically (correct→+30, partial→+15, incorrect→+5); one submission per student per day
-  - Squad matching by class + medium; squad streak tracks daily activity
-- **📛 Bhool Bazaar** — Mistake Marketplace: turn wrong answers into published learning cards with Bhool Coins economy
-- **⚔️ Muqabla Battles** — Student vs Student + School vs School battles; AI generates 5 MCQ questions per battle; weekly leaderboard
-
-### Parent & Admin
-- **👨‍👩‍👦 Parent Dashboard** — PIN-based shareable link (no parent account needed); shows mastery, quizzes, AI usage, streaks, battle stats
-- **🛡 Superadmin Panel** — Manage boards, standards, mediums, curriculum with bulk import
-
-All features work in **Hindi, English, Gujarati, Tamil, Telugu, Kannada, Marathi, Bengali, Punjabi, Odia, and Urdu**.
+### Backend
+| Technology | Purpose |
+|------------|---------|
+| FastAPI | API Framework |
+| PostgreSQL | Database |
+| SQLAlchemy 2.0 | Async ORM |
+| Pydantic v2 | Data Validation |
+| JWT | Authentication |
+| bcrypt | Password Hashing |
 
 ---
 
-## Plans
+## Project Structure
 
-| Plan | Price | Key Features |
-|---|---|---|
-| 🆓 **Free** | ₹0 | AI Tutor (10/day), Bhool Bazaar, Muqabla |
-| ⭐ **Basic** | ₹99/mo | + Notebook, Videos, 50 AI calls/day |
-| 🚀 **Pro** | ₹249/mo | + Labs, Sathi Squads, 200 AI calls/day |
-| 👑 **Premium** | ₹499/mo | + All Labs, Podcast, Essay, Discover, Unlimited AI |
+```
+eduvy-ai/
+├── frontend/
+│   ├── src/
+│   │   ├── routes/          # React Router setup
+│   │   ├── modules/         # Feature modules (auth, users, products, orders)
+│   │   ├── redux/           # Store configuration
+│   │   ├── services/        # Axios config & interceptors
+│   │   ├── layouts/         # Page layouts
+│   │   ├── shared/          # Shared components, hooks, utils
+│   │   ├── styles/          # Global CSS + Tailwind
+│   │   └── assets/          # Images, icons
+│   ├── tsconfig.json
+│   ├── tailwind.config.js
+│   └── package.json
+│
+├── backend/
+│   ├── app/
+│   │   ├── core/            # Config, security, dependencies
+│   │   ├── db/              # Database setup
+│   │   ├── modules/         # Feature modules (auth, users, products, orders)
+│   │   ├── utils/           # Helpers, logging, email
+│   │   ├── exceptions/      # Custom exceptions
+│   │   ├── background_tasks/# Async tasks
+│   │   └── websocket/       # WebSocket support
+│   ├── scripts/             # CLI scripts
+│   └── requirements.txt
+│
+└── .github/
+    ├── copilot-instructions.md
+    └── instructions/        # Coding guidelines
+```
+
+---
+
+## Quick Start
+
+### Prerequisites
+- Node.js 18+
+- Python 3.11+
+- PostgreSQL 14+
+
+### Frontend Setup
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### Backend Setup
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env      # Configure your environment
+uvicorn app.main:app --reload
+```
+
+### Environment Variables
+
+**Frontend** (`frontend/.env`):
+```env
+VITE_API_URL=http://localhost:8000/api
+```
+
+**Backend** (`backend/.env`):
+```env
+DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/eduvy
+SECRET_KEY=your-secret-key-here
+```
+
+---
+
+## Module Architecture
+
+### Frontend Module Pattern
+Each feature module contains:
+```
+modules/auth/
+├── api.ts       # API calls
+├── slice.ts     # Redux slice + thunks
+├── service.ts   # Business logic
+├── hooks.ts     # Custom hooks
+├── types.ts     # TypeScript types
+├── pages/       # Page components
+├── components/  # Module components
+└── utils/       # Module utilities
+```
+
+### Backend Module Pattern
+Each feature module contains:
+```
+modules/auth/
+├── router.py      # API endpoints
+├── service.py     # Business logic
+├── query.py       # Database queries
+├── schema.py      # Pydantic models
+├── exceptions.py  # Custom exceptions
+└── __init__.py
+```
+
+---
+
+## Available Scripts
+
+### Frontend
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run type-check` | TypeScript validation |
+| `npm run lint` | Run ESLint |
+
+### Backend
+| Command | Description |
+|---------|-------------|
+| `uvicorn app.main:app --reload` | Start dev server |
+| `python -m scripts.seed_db` | Seed database |
+| `python -m scripts.create_admin email password name` | Create admin |
+
+---
+
+## API Endpoints
+
+### Authentication
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/login` | User login |
+| POST | `/api/auth/register` | User registration |
+| GET | `/api/auth/me` | Get current user |
+| POST | `/api/auth/logout` | Logout |
+
+### Users (Admin)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/users` | List all users |
+| GET | `/api/users/{id}` | Get user by ID |
+| POST | `/api/users` | Create user |
+| PUT | `/api/users/{id}` | Update user |
+| DELETE | `/api/users/{id}` | Delete user |
+
+### Products
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/products` | List products |
+| GET | `/api/products/{id}` | Get product |
+| POST | `/api/products` | Create product (admin) |
+| PUT | `/api/products/{id}` | Update product (admin) |
+| DELETE | `/api/products/{id}` | Delete product (admin) |
+
+### Orders
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/orders` | List orders (admin) |
+| GET | `/api/orders/my` | My orders |
+| POST | `/api/orders` | Create order |
+| POST | `/api/orders/{id}/cancel` | Cancel order |
+
+---
+
+## License
+
+MIT
 
 ---
 
