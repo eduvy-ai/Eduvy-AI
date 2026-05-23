@@ -66,6 +66,20 @@
   .ai-card {
     @apply bg-app-card2 border border-app-border rounded-[14px] p-4;
   }
+  
+  /* Tutor chat bubbles */
+  .user-bubble {
+    @apply self-end bg-gradient-to-br from-app-green to-[#33cc88] text-app-bg font-semibold rounded-[14px] rounded-br-[3px] py-2.5 px-3 max-w-[88%] text-[13px] leading-normal break-words;
+  }
+  
+  .ai-bubble {
+    @apply self-start bg-app-card2 border border-app-border text-app-text rounded-[14px] rounded-bl-[3px] py-2.5 px-3 max-w-[88%] text-[13px] leading-relaxed whitespace-pre-wrap;
+  }
+  
+  /* Tutor input */
+  .tutor-input {
+    @apply w-full bg-app-card2 border border-white/10 rounded-xl py-2.5 px-3.5 text-app-text text-[13px] font-[Sora,sans-serif] outline-none;
+  }
 }
 
 @layer base {

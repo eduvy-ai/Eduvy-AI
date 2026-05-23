@@ -242,17 +242,9 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 130px)" }}>
+    <div className="flex flex-col h-[calc(100vh-130px)]">
       {/* Mode tabs */}
-      <div style={{
-        display: "flex",
-        overflowX: "auto",
-        gap: 6,
-        padding: "10px 14px",
-        background: COLORS.card,
-        borderBottom: `1px solid ${COLORS.border}`,
-        flexShrink: 0,
-      }}>
+      <div className="flex overflow-x-auto gap-1.5 py-2.5 px-3.5 bg-app-card border-b border-app-border shrink-0">
         {MODE_KEYS.map(m => {
           const ui = li(getDisplayLang(profile))
           const label = ui[m.labelKey] || m.key
@@ -260,22 +252,11 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
             <button
               key={m.key}
               onClick={() => switchMode(m.key)}
-              style={{
-                background: mode === m.key ? `${COLORS.green}20` : COLORS.card2,
-                border: `1px solid ${mode === m.key ? COLORS.green : COLORS.border}`,
-                borderRadius: 10,
-                padding: "7px 12px",
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-                whiteSpace: "nowrap",
-                cursor: "pointer",
-                fontFamily: "Sora, sans-serif",
-                fontSize: 12,
-                fontWeight: mode === m.key ? 700 : 500,
-                color: mode === m.key ? COLORS.green : COLORS.text,
-                flexShrink: 0,
-              }}
+              className={`rounded-[10px] py-1.5 px-3 flex items-center gap-1.5 whitespace-nowrap cursor-pointer font-[Sora,sans-serif] text-xs shrink-0 border ${
+                mode === m.key 
+                  ? 'bg-app-green/20 border-app-green font-bold text-app-green' 
+                  : 'bg-app-card2 border-app-border font-medium text-app-text'
+              }`}
             >
               {m.icon} {label}
             </button>
@@ -284,29 +265,25 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
       </div>
 
       {/* Chat / draw area */}
-      <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
+      <div className="flex-1 overflow-y-auto p-3.5">
 
         {/* ── Bahas (Debate) mode: round tracker + verdict button ── */}
         {mode === "bahas" && messages.length > 0 && (
-          <div style={{
-            background: `${COLORS.red}10`, border: `1px solid ${COLORS.red}25`,
-            borderRadius: 12, padding: "10px 14px", marginBottom: 12,
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-          }}>
+          <div className="bg-app-red/10 border border-app-red/20 rounded-xl py-2.5 px-3.5 mb-3 flex items-center justify-between">
             <div>
-              <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.red }}>
+              <span className="text-xs font-bold text-app-red">
                 ⚔️ Debate Round {Math.floor(messages.length / 2)}
               </span>
               {Math.floor(messages.length / 2) >= 5 && !debateVerdict && (
-                <span style={{ fontSize: 11, color: COLORS.muted, marginLeft: 8 }}>Ready for verdict!</span>
+                <span className="text-[11px] text-app-muted ml-2">Ready for verdict!</span>
               )}
             </div>
             {Math.floor(messages.length / 2) >= 3 && !debateVerdict && (
-              <button onClick={requestVerdict} disabled={loading} style={{
-                background: `${COLORS.yellow}20`, border: `1px solid ${COLORS.yellow}40`,
-                borderRadius: 8, padding: "5px 12px", fontSize: 11, fontWeight: 700,
-                color: COLORS.yellow, cursor: "pointer", fontFamily: "Sora, sans-serif",
-              }}>
+              <button 
+                onClick={requestVerdict} 
+                disabled={loading} 
+                className="bg-app-yellow/20 border border-app-yellow/40 rounded-lg py-1.5 px-3 text-[11px] font-bold text-app-yellow cursor-pointer font-[Sora,sans-serif]"
+              >
                 🏆 Get Verdict
               </button>
             )}
@@ -315,27 +292,15 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
 
         {/* Draw mode canvas */}
         {mode === "draw" && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{
-              background: COLORS.card,
-              border: `1px solid ${COLORS.border}`,
-              borderRadius: 14,
-              padding: 12,
-              marginBottom: 10,
-            }}>
-              <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 8 }}>✏️ Draw below — use finger or mouse</div>
+          <div className="mb-4">
+            <div className="bg-app-card border border-app-border rounded-[14px] p-3 mb-2.5">
+              <div className="text-xs text-app-muted mb-2">✏️ Draw below — use finger or mouse</div>
               <canvas
                 ref={canvasRef}
                 width={320}
                 height={175}
-                style={{
-                  width: "100%",
-                  background: "#080818",
-                  borderRadius: 10,
-                  touchAction: "none",
-                  display: "block",
-                  cursor: "crosshair",
-                }}
+                className="w-full bg-[#080818] rounded-[10px] block cursor-crosshair"
+                style={{ touchAction: "none" }}
                 onMouseDown={startDraw}
                 onMouseMove={draw}
                 onMouseUp={stopDraw}
@@ -346,19 +311,13 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
               />
               <button
                 onClick={clearCanvas}
-                style={{
-                  ...secondaryBtn,
-                  marginTop: 8,
-                  padding: "6px 14px",
-                  width: "auto",
-                  fontSize: 12,
-                }}
+                className="ghost-btn mt-2 py-1.5 px-3.5 !w-auto text-xs"
               >
                 🗑 Clear
               </button>
             </div>
             <input
-              style={inputStyle}
+              className="tutor-input"
               type="text"
               placeholder="Describe what you drew (e.g. plant cell)"
               value={drawDesc}
@@ -367,7 +326,7 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
             <button
               onClick={explainDiagram}
               disabled={drawLoading}
-              style={{ ...primaryBtn, marginTop: 10 }}
+              className="primary-btn mt-2.5"
             >
               {drawLoading ? "Analyzing…" : "🔍 Explain My Diagram"}
             </button>
@@ -376,24 +335,14 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
 
         {/* Starter questions (empty chat) */}
         {messages.length === 0 && mode !== "draw" && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 8 }}>Try asking:</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="mb-4">
+            <div className="text-xs text-app-muted mb-2">Try asking:</div>
+            <div className="flex flex-col gap-2">
               {getStarters(getDisplayLang(profile), mode === 'socratic' ? 'socratic' : mode === 'explain' ? 'explain' : mode === 'homework' ? 'homework' : mode === 'bahas' ? 'bahas' : mode === 'kahani' ? 'kahani' : mode === 'kyun' ? 'kyun' : 'tutor').map(s => (
                 <button
                   key={s}
                   onClick={() => sendMessage(s)}
-                  style={{
-                    background: COLORS.card,
-                    border: `1px solid ${COLORS.border}`,
-                    borderRadius: 10,
-                    padding: "10px 14px",
-                    color: COLORS.text,
-                    fontSize: 13,
-                    cursor: "pointer",
-                    textAlign: "left",
-                    fontFamily: "Sora, sans-serif",
-                  }}
+                  className="bg-app-card border border-app-border rounded-[10px] py-2.5 px-3.5 text-app-text text-[13px] cursor-pointer text-left font-[Sora,sans-serif]"
                 >
                   {s}
                 </button>
@@ -403,28 +352,21 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
         )}
 
         {/* Messages */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div className="flex flex-col gap-2.5">
           {messages.map((m, i) => (
-            <div key={i} style={m.role === "user" ? userBubble : aiBubble}>
+            <div key={i} className={m.role === "user" ? "user-bubble" : "ai-bubble"}>
               {m.content}
             </div>
           ))}
-          {loading && <div style={aiBubble}>Thinking…</div>}
+          {loading && <div className="ai-bubble">Thinking…</div>}
           <div ref={chatEndRef} />
         </div>
       </div>
 
       {/* Input bar */}
-      <div style={{
-        padding: "10px 14px",
-        background: COLORS.card,
-        borderTop: `1px solid ${COLORS.border}`,
-        display: "flex",
-        gap: 8,
-        flexShrink: 0,
-      }}>
+      <div className="py-2.5 px-3.5 bg-app-card border-t border-app-border flex gap-2 shrink-0">
         <input
-          style={{ ...inputStyle, flex: 1, padding: "10px 14px" }}
+          className="tutor-input flex-1 py-2.5 px-3.5"
           type="text"
           placeholder="Ask your doubt…"
           value={input}
@@ -434,15 +376,7 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
         <button
           onClick={() => sendMessage()}
           disabled={loading || !input.trim()}
-          style={{
-            ...primaryBtn,
-            width: 44,
-            height: 44,
-            padding: 0,
-            borderRadius: 12,
-            fontSize: 18,
-            flexShrink: 0,
-          }}
+          className="primary-btn w-11 h-11 !p-0 !rounded-xl text-lg shrink-0"
         >
           ↑
         </button>
@@ -451,67 +385,3 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
   )
 }
 
-const inputStyle = {
-  width: "100%",
-  background: "#101022",
-  border: "1px solid #ffffff15",
-  borderRadius: 12,
-  padding: "11px 14px",
-  color: "#eeeeff",
-  fontSize: 13,
-  fontFamily: "Sora, sans-serif",
-}
-
-const primaryBtn = {
-  background: "linear-gradient(135deg, #00E5A0, #33cc88)",
-  color: "#04040e",
-  border: "none",
-  borderRadius: 12,
-  padding: "12px 16px",
-  fontSize: 13,
-  fontWeight: 800,
-  cursor: "pointer",
-  width: "100%",
-  fontFamily: "Sora, sans-serif",
-}
-
-const secondaryBtn = {
-  background: "transparent",
-  border: "1px solid #ffffff15",
-  borderRadius: 12,
-  padding: "12px 16px",
-  fontSize: 13,
-  fontWeight: 600,
-  color: "#eeeeff",
-  cursor: "pointer",
-  width: "100%",
-  fontFamily: "Sora, sans-serif",
-}
-
-const userBubble = {
-  alignSelf: "flex-end",
-  background: "linear-gradient(135deg, #00E5A0, #33cc88)",
-  color: "#04040e",
-  fontWeight: 600,
-  borderRadius: 14,
-  borderBottomRightRadius: 3,
-  padding: "10px 12px",
-  maxWidth: "88%",
-  fontSize: 13,
-  lineHeight: 1.5,
-  wordBreak: "break-word",
-}
-
-const aiBubble = {
-  alignSelf: "flex-start",
-  background: "#101022",
-  border: "1px solid #ffffff08",
-  color: "#eeeeff",
-  borderRadius: 14,
-  borderBottomLeftRadius: 3,
-  padding: "10px 12px",
-  maxWidth: "88%",
-  fontSize: 13,
-  lineHeight: 1.6,
-  whiteSpace: "pre-wrap",
-}
