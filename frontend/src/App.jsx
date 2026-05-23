@@ -92,33 +92,34 @@ function AppShell({
 
       {/* ── Desktop Sidebar Nav ── */}
       <nav className="side-nav">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32, padding: '0 8px' }}>
-          <span style={{ fontSize: 26 }}>🎓</span>
-          <span style={{ fontWeight: 900, fontSize: 18, color: COLORS.green, letterSpacing: '-0.5px' }}>Eduvy-AI</span>
+        <div className="flex items-center gap-2.5 mb-8 px-2">
+          <span className="text-[26px]">🎓</span>
+          <span className="font-black text-lg text-app-green tracking-tight">Eduvy-AI</span>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+        <div className="flex flex-col gap-1 flex-1">
           {NAV_ITEMS.map(n => (
-            <button key={n.key} onClick={() => setTab(n.key)} style={{
-              background: tab === n.key ? `${COLORS.green}15` : 'transparent',
-              border: `1.5px solid ${tab === n.key ? COLORS.green + '40' : 'transparent'}`,
-              borderRadius: 12, padding: '11px 14px',
-              display: 'flex', alignItems: 'center', gap: 12,
-              cursor: 'pointer', fontFamily: 'Sora, sans-serif', textAlign: 'left',
-              transition: 'all 0.15s',
-            }}>
-              <span style={{ fontSize: 20, width: 24, textAlign: 'center' }}>{n.icon}</span>
-              <span style={{ fontSize: 14, fontWeight: tab === n.key ? 700 : 500, color: tab === n.key ? COLORS.green : COLORS.text }}>
+            <button 
+              key={n.key} 
+              onClick={() => setTab(n.key)} 
+              className={`rounded-xl py-2.5 px-3.5 flex items-center gap-3 cursor-pointer font-[Sora,sans-serif] text-left transition-all duration-150 border-[1.5px] ${
+                tab === n.key 
+                  ? 'bg-app-green/10 border-app-green/30' 
+                  : 'bg-transparent border-transparent'
+              }`}
+            >
+              <span className="text-xl w-6 text-center">{n.icon}</span>
+              <span className={`text-sm ${tab === n.key ? 'font-bold text-app-green' : 'font-medium text-app-text'}`}>
                 {li(getDisplayLang(profile))[n.labelKey]?.replace(/^[^\s]+\s/, '') || n.key}
               </span>
             </button>
           ))}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20 }}>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <div style={{ flex: 1, background: COLORS.card2, borderRadius: 10, padding: '7px 8px', fontSize: 12, fontWeight: 700, color: COLORS.yellow, textAlign: 'center', border: `1px solid ${COLORS.border}` }}>
+        <div className="flex flex-col gap-2 mt-5">
+          <div className="flex gap-1.5">
+            <div className="flex-1 bg-app-card2 rounded-[10px] py-1.5 px-2 text-xs font-bold text-app-yellow text-center border border-app-border">
               ⚡ {xp} XP
             </div>
-            <div style={{ flex: 1, background: COLORS.card2, borderRadius: 10, padding: '7px 8px', fontSize: 12, fontWeight: 700, color: COLORS.orange, textAlign: 'center', border: `1px solid ${COLORS.border}` }}>
+            <div className="flex-1 bg-app-card2 rounded-[10px] py-1.5 px-2 text-xs font-bold text-app-orange text-center border border-app-border">
               🔥 {streak}
             </div>
           </div>
@@ -126,69 +127,61 @@ function AppShell({
           {(() => {
             const planInfo = PLANS[userPlan] || PLANS.free
             return (
-              <div style={{
-                background: `${planInfo.color}15`, border: `1px solid ${planInfo.color}40`,
-                borderRadius: 10, padding: '7px 12px', display: 'flex', alignItems: 'center', gap: 6,
-              }}>
-                <span style={{ fontSize: 14 }}>{planInfo.icon}</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: planInfo.color }}>{planInfo.label}</span>
-                <span style={{ fontSize: 10, color: COLORS.muted, marginLeft: 'auto' }}>Plan</span>
+              <div 
+                className="rounded-[10px] py-1.5 px-3 flex items-center gap-1.5 border"
+                style={{ background: `${planInfo.color}15`, borderColor: `${planInfo.color}40` }}
+              >
+                <span className="text-sm">{planInfo.icon}</span>
+                <span className="text-xs font-bold" style={{ color: planInfo.color }}>{planInfo.label}</span>
+                <span className="text-[10px] text-app-muted ml-auto">Plan</span>
               </div>
             )
           })()}
-          <button onClick={() => setShowSettings(true)} style={{
-            background: `${providerInfo.color}12`, border: `1px solid ${providerInfo.color}40`,
-            borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center',
-            gap: 8, cursor: 'pointer', fontFamily: 'Sora, sans-serif', width: '100%',
-          }}>
-            <span style={{ fontSize: 16 }}>{providerInfo.icon}</span>
-            <div style={{ flex: 1, textAlign: 'left' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: providerInfo.color }}>{providerInfo.label}</div>
-              <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 1 }}>⚙️ Change AI</div>
+          <button 
+            onClick={() => setShowSettings(true)} 
+            className="rounded-[10px] py-2.5 px-3 flex items-center gap-2 cursor-pointer font-[Sora,sans-serif] w-full border"
+            style={{ background: `${providerInfo.color}12`, borderColor: `${providerInfo.color}40` }}
+          >
+            <span className="text-base">{providerInfo.icon}</span>
+            <div className="flex-1 text-left">
+              <div className="text-[11px] font-bold" style={{ color: providerInfo.color }}>{providerInfo.label}</div>
+              <div className="text-[10px] text-app-muted mt-px">⚙️ Change AI</div>
             </div>
           </button>
-          <div style={{ fontSize: 11, color: COLORS.muted, textAlign: 'center', paddingTop: 4 }}>
+          <div className="text-[11px] text-app-muted text-center pt-1">
             {profile.name && `${profile.name} · ${profile.standard}`}
           </div>
-          <button onClick={handleLogout} style={{
-            background: `${COLORS.red}10`, border: `1px solid ${COLORS.red}30`,
-            borderRadius: 10, padding: '8px 12px', fontSize: 12, color: COLORS.red,
-            cursor: 'pointer', fontFamily: 'Sora, sans-serif', width: '100%', fontWeight: 600,
-          }}>🚪 Logout</button>
+          <button 
+            onClick={handleLogout} 
+            className="bg-app-red/10 border border-app-red/30 rounded-[10px] py-2 px-3 text-xs text-app-red cursor-pointer font-[Sora,sans-serif] w-full font-semibold"
+          >🚪 Logout</button>
         </div>
       </nav>
 
       {/* ── Right panel ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         {/* Mobile top header */}
-        <div className="app-header" style={{
-          background: COLORS.card, borderBottom: `1px solid ${COLORS.border}`,
-          padding: '11px 14px', display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 20 }}>🎓</span>
-            <span style={{ fontWeight: 800, fontSize: 16, color: COLORS.green }}>Eduvy-AI</span>
+        <div className="app-header bg-app-card border-b border-app-border py-2.5 px-3.5 flex items-center justify-between sticky top-0 z-[100]">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🎓</span>
+            <span className="font-extrabold text-base text-app-green">Eduvy-AI</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ background: COLORS.card2, borderRadius: 20, padding: '3px 9px', fontSize: 12, fontWeight: 700, color: COLORS.yellow, border: `1px solid ${COLORS.border}` }}>⚡ {xp} XP</div>
-            <div style={{ background: COLORS.card2, borderRadius: 20, padding: '3px 9px', fontSize: 12, fontWeight: 700, color: COLORS.orange, border: `1px solid ${COLORS.border}` }}>🔥 {streak}</div>
-            <button onClick={() => setShowSettings(true)} style={{
-              background: `${providerInfo.color}18`, border: `1px solid ${providerInfo.color}50`,
-              borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700,
-              color: providerInfo.color, cursor: 'pointer', fontFamily: 'Sora, sans-serif',
-              display: 'flex', alignItems: 'center', gap: 4,
-            }}>{providerInfo.icon} {providerInfo.label.split(' ')[0]}</button>
-            <button onClick={() => setShowSettings(true)} style={{
-              background: 'transparent', border: `1px solid ${COLORS.border}`,
-              borderRadius: 8, padding: '4px 8px', fontSize: 14, color: COLORS.muted,
-              cursor: 'pointer', fontFamily: 'Sora, sans-serif',
-            }}>⚙️</button>
-            <button onClick={handleLogout} style={{
-              background: 'transparent', border: `1px solid ${COLORS.red}30`,
-              borderRadius: 8, padding: '4px 8px', fontSize: 13, color: COLORS.red,
-              cursor: 'pointer', fontFamily: 'Sora, sans-serif',
-            }}>🚪</button>
+          <div className="flex items-center gap-2">
+            <div className="bg-app-card2 rounded-full py-0.5 px-2.5 text-xs font-bold text-app-yellow border border-app-border">⚡ {xp} XP</div>
+            <div className="bg-app-card2 rounded-full py-0.5 px-2.5 text-xs font-bold text-app-orange border border-app-border">🔥 {streak}</div>
+            <button 
+              onClick={() => setShowSettings(true)} 
+              className="rounded-full py-0.5 px-2.5 text-[11px] font-bold cursor-pointer font-[Sora,sans-serif] flex items-center gap-1 border"
+              style={{ background: `${providerInfo.color}18`, borderColor: `${providerInfo.color}50`, color: providerInfo.color }}
+            >{providerInfo.icon} {providerInfo.label.split(' ')[0]}</button>
+            <button 
+              onClick={() => setShowSettings(true)} 
+              className="bg-transparent border border-app-border rounded-lg py-1 px-2 text-sm text-app-muted cursor-pointer font-[Sora,sans-serif]"
+            >⚙️</button>
+            <button 
+              onClick={handleLogout} 
+              className="bg-transparent border border-app-red/30 rounded-lg py-1 px-2 text-[13px] text-app-red cursor-pointer font-[Sora,sans-serif]"
+            >🚪</button>
           </div>
         </div>
         <div className="tab-content">{tabs[tab]}</div>
@@ -197,16 +190,16 @@ function AppShell({
       {/* ── Mobile Bottom Nav ── */}
       <nav className="bottom-nav">
         {NAV_ITEMS.map(n => (
-          <button key={n.key} onClick={() => setTab(n.key)} style={{
-            flex: 1, background: 'transparent', border: 'none',
-            padding: '10px 4px 8px', display: 'flex', flexDirection: 'column',
-            alignItems: 'center', gap: 3, cursor: 'pointer', fontFamily: 'Sora, sans-serif',
-          }}>
-            <span style={{ fontSize: 19 }}>{n.icon}</span>
-            <span style={{ fontSize: 10, fontWeight: tab === n.key ? 700 : 400, color: tab === n.key ? COLORS.green : COLORS.muted }}>
+          <button 
+            key={n.key} 
+            onClick={() => setTab(n.key)} 
+            className="flex-1 bg-transparent border-none pt-2.5 pb-2 px-1 flex flex-col items-center gap-0.5 cursor-pointer font-[Sora,sans-serif]"
+          >
+            <span className="text-[19px]">{n.icon}</span>
+            <span className={`text-[10px] ${tab === n.key ? 'font-bold text-app-green' : 'font-normal text-app-muted'}`}>
               {li(getDisplayLang(profile))[n.labelKey]?.replace(/^[^\s]+\s/, '') || n.key}
             </span>
-            {tab === n.key && <div style={{ width: 4, height: 4, borderRadius: '50%', background: COLORS.green }} />}
+            {tab === n.key && <div className="w-1 h-1 rounded-full bg-app-green" />}
           </button>
         ))}
       </nav>
@@ -224,65 +217,58 @@ function AppShell({
 
       {/* Drishti Accessibility Toolbar */}
       {profile.is_drishti && (
-        <div style={{
-          position: 'fixed', bottom: 90, right: 16, zIndex: 999,
-          background: COLORS.card, border: `1px solid ${COLORS.border}`,
-          borderRadius: 16, padding: '12px 14px',
-          display: 'flex', flexDirection: 'column', gap: 8,
-          boxShadow: '0 4px 20px #0008',
-        }}>
-          <div style={{ fontSize: 11, color: COLORS.muted, fontWeight: 700, letterSpacing: '0.05em', marginBottom: 4 }}>👁️ DRISHTI</div>
+        <div className="fixed bottom-[90px] right-4 z-[999] bg-app-card border border-app-border rounded-2xl py-3 px-3.5 flex flex-col gap-2 shadow-[0_4px_20px_#0008]">
+          <div className="text-[11px] text-app-muted font-bold tracking-wider mb-1">👁️ DRISHTI</div>
           
-          <button onClick={() => setA11y(a => ({ ...a, ttsEnabled: !a.ttsEnabled }))} style={{
-            background: a11y.ttsEnabled ? `${COLORS.green}25` : 'transparent',
-            border: `1px solid ${a11y.ttsEnabled ? COLORS.green : COLORS.border}`,
-            borderRadius: 10, padding: '8px 12px', cursor: 'pointer',
-            color: a11y.ttsEnabled ? COLORS.green : COLORS.text,
-            fontFamily: 'Sora, sans-serif', fontSize: 12, fontWeight: 600,
-            display: 'flex', alignItems: 'center', gap: 8,
-          }}>
+          <button 
+            onClick={() => setA11y(a => ({ ...a, ttsEnabled: !a.ttsEnabled }))} 
+            className={`rounded-[10px] py-2 px-3 cursor-pointer font-[Sora,sans-serif] text-xs font-semibold flex items-center gap-2 border ${
+              a11y.ttsEnabled 
+                ? 'bg-app-green/20 border-app-green text-app-green' 
+                : 'bg-transparent border-app-border text-app-text'
+            }`}
+          >
             <span>🔊</span> TTS {a11y.ttsEnabled ? 'On' : 'Off'}
           </button>
           
-          <button onClick={() => {
-            const next = !a11y.highContrast
-            setA11y(a => ({ ...a, highContrast: next }))
-            document.body.classList.toggle('high-contrast', next)
-          }} style={{
-            background: a11y.highContrast ? `${COLORS.yellow}25` : 'transparent',
-            border: `1px solid ${a11y.highContrast ? COLORS.yellow : COLORS.border}`,
-            borderRadius: 10, padding: '8px 12px', cursor: 'pointer',
-            color: a11y.highContrast ? COLORS.yellow : COLORS.text,
-            fontFamily: 'Sora, sans-serif', fontSize: 12, fontWeight: 600,
-            display: 'flex', alignItems: 'center', gap: 8,
-          }}>
+          <button 
+            onClick={() => {
+              const next = !a11y.highContrast
+              setA11y(a => ({ ...a, highContrast: next }))
+              document.body.classList.toggle('high-contrast', next)
+            }} 
+            className={`rounded-[10px] py-2 px-3 cursor-pointer font-[Sora,sans-serif] text-xs font-semibold flex items-center gap-2 border ${
+              a11y.highContrast 
+                ? 'bg-app-yellow/20 border-app-yellow text-app-yellow' 
+                : 'bg-transparent border-app-border text-app-text'
+            }`}
+          >
             <span>☀️</span> Contrast
           </button>
           
-          <button onClick={() => {
-            const sizes = ['normal', 'large', 'xlarge']
-            const idx = sizes.indexOf(a11y.fontSize)
-            const next = sizes[(idx + 1) % sizes.length]
-            setA11y(a => ({ ...a, fontSize: next }))
-            document.body.classList.remove('font-large', 'font-xlarge')
-            if (next !== 'normal') document.body.classList.add(`font-${next}`)
-          }} style={{
-            background: a11y.fontSize !== 'normal' ? `${COLORS.blue}25` : 'transparent',
-            border: `1px solid ${a11y.fontSize !== 'normal' ? COLORS.blue : COLORS.border}`,
-            borderRadius: 10, padding: '8px 12px', cursor: 'pointer',
-            color: a11y.fontSize !== 'normal' ? COLORS.blue : COLORS.text,
-            fontFamily: 'Sora, sans-serif', fontSize: 12, fontWeight: 600,
-            display: 'flex', alignItems: 'center', gap: 8,
-          }}>
+          <button 
+            onClick={() => {
+              const sizes = ['normal', 'large', 'xlarge']
+              const idx = sizes.indexOf(a11y.fontSize)
+              const next = sizes[(idx + 1) % sizes.length]
+              setA11y(a => ({ ...a, fontSize: next }))
+              document.body.classList.remove('font-large', 'font-xlarge')
+              if (next !== 'normal') document.body.classList.add(`font-${next}`)
+            }} 
+            className={`rounded-[10px] py-2 px-3 cursor-pointer font-[Sora,sans-serif] text-xs font-semibold flex items-center gap-2 border ${
+              a11y.fontSize !== 'normal' 
+                ? 'bg-app-blue/20 border-app-blue text-app-blue' 
+                : 'bg-transparent border-app-border text-app-text'
+            }`}
+          >
             <span>🔤</span> Font: {a11y.fontSize === 'normal' ? 'A' : a11y.fontSize === 'large' ? 'A+' : 'A++'}
           </button>
 
           {a11y.ttsEnabled && (
-            <button onClick={() => stopSpeaking()} style={{
-              background: `${COLORS.red}25`, border: `1px solid ${COLORS.red}40`,
-              borderRadius: 10, padding: '6px 12px', cursor: 'pointer',
-              color: COLORS.red, fontFamily: 'Sora, sans-serif', fontSize: 11, fontWeight: 600,
-            }}>
+            <button 
+              onClick={() => stopSpeaking()} 
+              className="bg-app-red/20 border border-app-red/40 rounded-[10px] py-1.5 px-3 cursor-pointer text-app-red font-[Sora,sans-serif] text-[11px] font-semibold"
+            >
               ⏹ Stop Speaking
             </button>
           )}
@@ -291,28 +277,21 @@ function AppShell({
 
       {/* Helper Note Banner */}
       {profile.is_drishti && helperNotes.length > 0 && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 998,
-          background: `linear-gradient(135deg, ${COLORS.blue}15, ${COLORS.green}15)`,
-          borderBottom: `1px solid ${COLORS.border}`,
-          padding: '10px 16px',
-          display: 'flex', alignItems: 'center', gap: 10,
-        }}>
-          <span style={{ fontSize: 18 }}>💬</span>
-          <div style={{ flex: 1 }}>
-            <p style={{ color: COLORS.text, fontSize: 13, fontWeight: 600, margin: 0 }}>
+        <div className="fixed top-0 left-0 right-0 z-[998] bg-gradient-to-br from-app-blue/10 to-app-green/10 border-b border-app-border py-2.5 px-4 flex items-center gap-2.5">
+          <span className="text-lg">💬</span>
+          <div className="flex-1">
+            <p className="text-app-text text-[13px] font-semibold m-0">
               From {helperNotes[0].helper_name}:
             </p>
-            <p style={{ color: COLORS.muted, fontSize: 12, margin: '2px 0 0' }}>
+            <p className="text-app-muted text-xs m-0 mt-0.5">
               {helperNotes[0].message}
             </p>
           </div>
           {a11y.ttsEnabled && (
-            <button onClick={() => speakText(helperNotes[0].message, profile.language === 'Hindi' ? 'hi-IN' : 'en-IN')} style={{
-              background: COLORS.green, border: 'none', borderRadius: 8,
-              padding: '6px 12px', cursor: 'pointer', color: '#04040e',
-              fontFamily: 'Sora, sans-serif', fontSize: 11, fontWeight: 700,
-            }}>
+            <button 
+              onClick={() => speakText(helperNotes[0].message, profile.language === 'Hindi' ? 'hi-IN' : 'en-IN')} 
+              className="bg-app-green border-none rounded-lg py-1.5 px-3 cursor-pointer text-[#04040e] font-[Sora,sans-serif] text-[11px] font-bold"
+            >
               🔊 Play
             </button>
           )}

@@ -25,12 +25,9 @@ const PLAN_INFO = {
 }
 
 // ── Helpers ────────────────────────────────────────────────────
-function Card({ children, style }) {
+function Card({ children, className = '' }) {
   return (
-    <div style={{
-      background: C.card, border: `1px solid ${C.border}`,
-      borderRadius: 16, padding: '16px 18px', ...style,
-    }}>
+    <div className={`bg-app-card border border-app-border rounded-2xl py-4 px-[18px] ${className}`}>
       {children}
     </div>
   )
@@ -38,7 +35,7 @@ function Card({ children, style }) {
 
 function SectionTitle({ icon, title }) {
   return (
-    <h3 style={{ color: C.text, fontSize: 15, fontWeight: 800, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+    <h3 className="text-app-text text-[15px] font-extrabold m-0 mb-3 flex items-center gap-2">
       <span>{icon}</span>{title}
     </h3>
   )
@@ -46,13 +43,10 @@ function SectionTitle({ icon, title }) {
 
 function StatBox({ label, value, color = C.text, icon }) {
   return (
-    <div style={{
-      background: C.card2, borderRadius: 12, padding: '12px 14px',
-      display: 'flex', flexDirection: 'column', gap: 4, flex: 1,
-    }}>
-      {icon && <span style={{ fontSize: 20 }}>{icon}</span>}
-      <div style={{ color, fontSize: 22, fontWeight: 900 }}>{value}</div>
-      <div style={{ color: C.muted, fontSize: 11 }}>{label}</div>
+    <div className="bg-app-card2 rounded-xl py-3 px-3.5 flex flex-col gap-1 flex-1">
+      {icon && <span className="text-xl">{icon}</span>}
+      <div className="text-[22px] font-black" style={{ color }}>{value}</div>
+      <div className="text-app-muted text-[11px]">{label}</div>
     </div>
   )
 }
@@ -60,23 +54,22 @@ function StatBox({ label, value, color = C.text, icon }) {
 function MasteryBar({ subject, score }) {
   const color = score >= 75 ? C.green : score >= 50 ? C.yellow : C.red
   return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <span style={{ color: C.text, fontSize: 13 }}>{subject}</span>
-        <span style={{ color, fontSize: 13, fontWeight: 700 }}>{score}%</span>
+    <div className="mb-2.5">
+      <div className="flex justify-between mb-1">
+        <span className="text-app-text text-[13px]">{subject}</span>
+        <span className="text-[13px] font-bold" style={{ color }}>{score}%</span>
       </div>
-      <div style={{ background: C.card2, borderRadius: 4, height: 8 }}>
-        <div style={{
-          background: color, height: 8, borderRadius: 4,
-          width: `${score}%`, transition: 'width .6s ease',
-        }} />
+      <div className="bg-app-card2 rounded h-2">
+        <div 
+          className="h-2 rounded transition-[width] duration-500 ease-out"
+          style={{ background: color, width: `${score}%` }}
+        />
       </div>
     </div>
   )
 }
 
 function ActivityDots({ activity }) {
-  // Show last 7 days, fill in missing days
   const days = []
   for (let i = 6; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i)
@@ -86,16 +79,18 @@ function ActivityDots({ activity }) {
   }
   const max = Math.max(...days.map(d => d.quizzes), 1)
   return (
-    <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 60 }}>
+    <div className="flex gap-1.5 items-end h-[60px]">
       {days.map(d => (
-        <div key={d.key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-          <div style={{
-            width: '100%', borderRadius: 4,
-            background: d.quizzes > 0 ? C.green : C.card2,
-            opacity: d.quizzes > 0 ? 0.4 + 0.6 * (d.quizzes / max) : 1,
-            height: `${Math.max(8, (d.quizzes / max) * 44)}px`,
-          }} />
-          <span style={{ color: C.muted, fontSize: 10 }}>{d.day}</span>
+        <div key={d.key} className="flex-1 flex flex-col items-center gap-1">
+          <div 
+            className="w-full rounded"
+            style={{
+              background: d.quizzes > 0 ? C.green : C.card2,
+              opacity: d.quizzes > 0 ? 0.4 + 0.6 * (d.quizzes / max) : 1,
+              height: `${Math.max(8, (d.quizzes / max) * 44)}px`,
+            }}
+          />
+          <span className="text-app-muted text-[10px]">{d.day}</span>
         </div>
       ))}
     </div>
@@ -124,28 +119,20 @@ export default function ParentDashboard() {
 
   if (loading) {
     return (
-      <div style={{
-        minHeight: '100vh', background: C.bg, display: 'flex',
-        alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16,
-        fontFamily: 'Sora, sans-serif',
-      }}>
-        <div style={{ fontSize: 48 }}>🎓</div>
-        <p style={{ color: C.muted, fontSize: 14 }}>Loading dashboard…</p>
+      <div className="min-h-screen bg-app-bg flex items-center justify-center flex-col gap-4 font-[Sora,sans-serif]">
+        <div className="text-5xl">🎓</div>
+        <p className="text-app-muted text-sm">Loading dashboard…</p>
       </div>
     )
   }
 
   if (err) {
     return (
-      <div style={{
-        minHeight: '100vh', background: C.bg, display: 'flex',
-        alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16,
-        fontFamily: 'Sora, sans-serif', padding: 24, textAlign: 'center',
-      }}>
-        <div style={{ fontSize: 56 }}>🔒</div>
-        <h2 style={{ color: C.text, margin: 0 }}>Link Not Found</h2>
-        <p style={{ color: C.muted, fontSize: 14, maxWidth: 380 }}>{err}</p>
-        <div style={{ color: C.muted, fontSize: 12 }}>Powered by Eduvy-AI</div>
+      <div className="min-h-screen bg-app-bg flex items-center justify-center flex-col gap-4 font-[Sora,sans-serif] p-6 text-center">
+        <div className="text-6xl">🔒</div>
+        <h2 className="text-app-text m-0">Link Not Found</h2>
+        <p className="text-app-muted text-sm max-w-[380px]">{err}</p>
+        <div className="text-app-muted text-xs">Powered by Eduvy-AI</div>
       </div>
     )
   }
@@ -157,55 +144,47 @@ export default function ParentDashboard() {
     : null
 
   return (
-    <div style={{
-      minHeight: '100vh', background: C.bg,
-      fontFamily: 'Sora, sans-serif', color: C.text,
-      padding: '0 0 48px',
-    }}>
+    <div className="min-h-screen bg-app-bg font-[Sora,sans-serif] text-app-text pb-12">
       {/* ── Header ── */}
-      <div style={{
-        background: `linear-gradient(135deg, ${C.card} 0%, #0e0e28 100%)`,
-        borderBottom: `1px solid ${C.border}`,
-        padding: '24px 20px 20px',
-      }}>
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <span style={{ fontSize: 28 }}>🎓</span>
-            <span style={{ fontWeight: 900, fontSize: 18, color: C.green }}>Eduvy-AI</span>
-            <span style={{
-              marginLeft: 'auto', background: `${C.muted}22`,
-              border: `1px solid ${C.border}`, color: C.muted,
-              borderRadius: 10, padding: '3px 10px', fontSize: 11,
-            }}>👨‍👩‍👦 Parent View • Read Only</span>
+      <div 
+        className="border-b border-app-border py-5 px-5"
+        style={{ background: `linear-gradient(135deg, ${C.card} 0%, #0e0e28 100%)` }}
+      >
+        <div className="max-w-[720px] mx-auto">
+          <div className="flex items-center gap-2.5 mb-4">
+            <span className="text-[28px]">🎓</span>
+            <span className="font-black text-lg text-app-green">Eduvy-AI</span>
+            <span className="ml-auto bg-app-muted/15 border border-app-border text-app-muted rounded-[10px] py-0.5 px-2.5 text-[11px]">
+              👨‍👩‍👦 Parent View • Read Only
+            </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div className="flex items-center gap-3.5">
             {/* Avatar */}
-            <div style={{
-              width: 60, height: 60, borderRadius: '50%', flexShrink: 0,
-              background: `hsl(${((profile.name?.charCodeAt(0) || 65) * 37) % 360},55%,30%)`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 24, fontWeight: 900, border: `3px solid ${C.green}44`,
-            }}>{profile.name?.charAt(0)?.toUpperCase() || '?'}</div>
+            <div 
+              className="w-[60px] h-[60px] rounded-full shrink-0 flex items-center justify-center text-2xl font-black"
+              style={{ 
+                background: `hsl(${((profile.name?.charCodeAt(0) || 65) * 37) % 360},55%,30%)`,
+                border: `3px solid ${C.green}44` 
+              }}
+            >{profile.name?.charAt(0)?.toUpperCase() || '?'}</div>
             <div>
-              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900 }}>{profile.name}</h1>
-              <div style={{ color: C.muted, fontSize: 13, marginTop: 3 }}>
+              <h1 className="m-0 text-[22px] font-black">{profile.name}</h1>
+              <div className="text-app-muted text-[13px] mt-0.5">
                 {profile.standard} · {profile.board}
                 {profile.school && ` · ${profile.school}`}
               </div>
-              <div style={{ marginTop: 6, display: 'flex', gap: 6 }}>
-                <span style={{
-                  background: `${planInfo.color}20`, border: `1px solid ${planInfo.color}40`,
-                  color: planInfo.color, fontSize: 11, borderRadius: 10, padding: '2px 8px', fontWeight: 700,
-                }}>{planInfo.icon} {planInfo.label}</span>
-                <span style={{
-                  background: `${C.yellow}15`, border: `1px solid ${C.yellow}30`,
-                  color: C.yellow, fontSize: 11, borderRadius: 10, padding: '2px 8px', fontWeight: 700,
-                }}>⚡ {profile.xp} XP</span>
-                <span style={{
-                  background: `${C.orange}15`, border: `1px solid ${C.orange}30`,
-                  color: C.orange, fontSize: 11, borderRadius: 10, padding: '2px 8px', fontWeight: 700,
-                }}>🔥 {profile.streak} day streak</span>
+              <div className="mt-1.5 flex gap-1.5">
+                <span 
+                  className="text-[11px] rounded-[10px] py-0.5 px-2 font-bold"
+                  style={{ background: `${planInfo.color}20`, border: `1px solid ${planInfo.color}40`, color: planInfo.color }}
+                >{planInfo.icon} {planInfo.label}</span>
+                <span className="bg-app-yellow/10 border border-app-yellow/20 text-app-yellow text-[11px] rounded-[10px] py-0.5 px-2 font-bold">
+                  ⚡ {profile.xp} XP
+                </span>
+                <span className="bg-app-orange/10 border border-app-orange/20 text-app-orange text-[11px] rounded-[10px] py-0.5 px-2 font-bold">
+                  🔥 {profile.streak} day streak
+                </span>
               </div>
             </div>
           </div>
@@ -213,19 +192,19 @@ export default function ParentDashboard() {
       </div>
 
       {/* ── Content ── */}
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="max-w-[720px] mx-auto py-5 px-4 flex flex-col gap-4">
 
         {/* ── Activity 7-day ── */}
         <Card>
           <SectionTitle icon="📅" title="7-Day Activity" />
           <ActivityDots activity={activity} />
-          <p style={{ color: C.muted, fontSize: 12, margin: '8px 0 0' }}>
+          <p className="text-app-muted text-xs mt-2 m-0">
             Quizzes attempted per day this week
           </p>
         </Card>
 
         {/* ── Quick stats ── */}
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div className="flex gap-2.5 flex-wrap">
           <StatBox icon="🤖" label="AI Calls Today"  value={ai_today.call_count || 0} color={C.blue}   />
           <StatBox icon="📊" label="AI Calls (Month)" value={monthly_calls || 0}      color={C.blue}   />
           <StatBox icon="📝" label="Quizzes Taken"    value={quizzes.length}          color={C.yellow} />
@@ -242,11 +221,10 @@ export default function ParentDashboard() {
         {mastery.length > 0 && (
           <Card>
             <SectionTitle icon="🧠" title="Subject Mastery" />
-            {/* Weak first */}
             {[...mastery].sort((a, b) => a.score - b.score).map(m => (
               <MasteryBar key={m.subject} subject={m.subject} score={m.score} />
             ))}
-            <p style={{ color: C.muted, fontSize: 11, margin: '8px 0 0' }}>
+            <p className="text-app-muted text-[11px] mt-2 m-0">
               🔴 Below 50 = needs attention · 🟡 50–74 = improving · 🟢 75+ = strong
             </p>
           </Card>
@@ -256,28 +234,23 @@ export default function ParentDashboard() {
         {quizzes.length > 0 && (
           <Card>
             <SectionTitle icon="📝" title="Recent Quizzes" />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="flex flex-col gap-2">
               {quizzes.map((q, i) => {
                 const pct = Math.round((q.correct / q.total) * 100)
                 const color = pct >= 70 ? C.green : pct >= 50 ? C.yellow : C.red
                 return (
-                  <div key={i} style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    background: C.card2, borderRadius: 10, padding: '10px 12px',
-                  }}>
-                    <div style={{
-                      width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                      background: `${color}22`, border: `1px solid ${color}44`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontWeight: 900, color, fontSize: 14,
-                    }}>{pct}%</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ color: C.text, fontSize: 13, fontWeight: 600 }}>{q.subject}</div>
-                      <div style={{ color: C.muted, fontSize: 11 }}>
+                  <div key={i} className="flex items-center gap-3 bg-app-card2 rounded-[10px] py-2.5 px-3">
+                    <div 
+                      className="w-10 h-10 rounded-[10px] shrink-0 flex items-center justify-center font-black text-sm"
+                      style={{ background: `${color}22`, border: `1px solid ${color}44`, color }}
+                    >{pct}%</div>
+                    <div className="flex-1">
+                      <div className="text-app-text text-[13px] font-semibold">{q.subject}</div>
+                      <div className="text-app-muted text-[11px]">
                         {q.correct}/{q.total} correct · {q.difficulty}
                       </div>
                     </div>
-                    <div style={{ color: C.muted, fontSize: 11 }}>
+                    <div className="text-app-muted text-[11px]">
                       {new Date(q.created_at).toLocaleDateString('en', { day: 'numeric', month: 'short' })}
                     </div>
                   </div>
@@ -288,44 +261,44 @@ export default function ParentDashboard() {
         )}
 
         {/* ── Bhool + Muqabla stats side by side ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div className="grid grid-cols-2 gap-3">
           <Card>
             <SectionTitle icon="📛" title="Bhool Bazaar" />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: C.muted, fontSize: 13 }}>Cards saved</span>
-                <span style={{ color: C.text, fontWeight: 700 }}>{bhool.total}</span>
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between">
+                <span className="text-app-muted text-[13px]">Cards saved</span>
+                <span className="text-app-text font-bold">{bhool.total}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: C.muted, fontSize: 13 }}>Published</span>
-                <span style={{ color: C.green, fontWeight: 700 }}>{bhool.published}</span>
+              <div className="flex justify-between">
+                <span className="text-app-muted text-[13px]">Published</span>
+                <span className="text-app-green font-bold">{bhool.published}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: C.muted, fontSize: 13 }}>Collected</span>
-                <span style={{ color: C.blue, fontWeight: 700 }}>{bhool.collected}</span>
+              <div className="flex justify-between">
+                <span className="text-app-muted text-[13px]">Collected</span>
+                <span className="text-app-blue font-bold">{bhool.collected}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: C.muted, fontSize: 13 }}>🪙 Coins</span>
-                <span style={{ color: C.orange, fontWeight: 700 }}>{bhool.coins}</span>
+              <div className="flex justify-between">
+                <span className="text-app-muted text-[13px]">🪙 Coins</span>
+                <span className="text-app-orange font-bold">{bhool.coins}</span>
               </div>
             </div>
           </Card>
 
           <Card>
             <SectionTitle icon="⚔️" title="Muqabla" />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: C.muted, fontSize: 13 }}>Battles</span>
-                <span style={{ color: C.text, fontWeight: 700 }}>{muqabla.battles_played}</span>
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between">
+                <span className="text-app-muted text-[13px]">Battles</span>
+                <span className="text-app-text font-bold">{muqabla.battles_played}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: C.muted, fontSize: 13 }}>Wins</span>
-                <span style={{ color: C.green, fontWeight: 700 }}>{muqabla.battles_won}</span>
+              <div className="flex justify-between">
+                <span className="text-app-muted text-[13px]">Wins</span>
+                <span className="text-app-green font-bold">{muqabla.battles_won}</span>
               </div>
               {muqabla.battles_played > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: C.muted, fontSize: 13 }}>Win rate</span>
-                  <span style={{ color: C.yellow, fontWeight: 700 }}>
+                <div className="flex justify-between">
+                  <span className="text-app-muted text-[13px]">Win rate</span>
+                  <span className="text-app-yellow font-bold">
                     {Math.round((muqabla.battles_won / muqabla.battles_played) * 100)}%
                   </span>
                 </div>
@@ -335,14 +308,14 @@ export default function ParentDashboard() {
         </div>
 
         {/* ── Footer ── */}
-        <div style={{ textAlign: 'center', paddingTop: 8 }}>
-          <div style={{ color: C.muted, fontSize: 11 }}>
+        <div className="text-center pt-2">
+          <div className="text-app-muted text-[11px]">
             📋 Last updated: {new Date(data.fetched_at).toLocaleString()}
           </div>
-          <div style={{ color: C.muted, fontSize: 11, marginTop: 4 }}>
-            Powered by <span style={{ color: C.green, fontWeight: 700 }}>Eduvy-AI</span> · Read-only parent view
+          <div className="text-app-muted text-[11px] mt-1">
+            Powered by <span className="text-app-green font-bold">Eduvy-AI</span> · Read-only parent view
           </div>
-          <div style={{ color: C.muted, fontSize: 10, marginTop: 6 }}>
+          <div className="text-app-muted text-[10px] mt-1.5">
             To revoke access, ask your child to go to Settings → Profile → Revoke Access
           </div>
         </div>

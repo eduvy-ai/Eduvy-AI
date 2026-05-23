@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react'
-import { COLORS, BOARDS, LANGS, PLANS, getDisplayLang } from '../shared.js'
+import { BOARDS, LANGS, PLANS, getDisplayLang } from '../shared.js'
 import { apiGetParentPin, apiCreateParentPin, apiRevokeParentPin, apiGetMyReferralCode } from '../api.js'
 import { li } from '../i18n/index.js'
 import UpgradePlanModal from './UpgradePlanModal.jsx'
 
 const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
+
+// Reusable Tailwind classes
+const inputClass = "w-full bg-app-card2 border border-white/10 rounded-xl py-2.5 px-3.5 text-app-text text-sm cursor-pointer font-[Sora,sans-serif]"
+const labelClass = "block text-[11px] font-bold text-app-muted mb-1.5 tracking-wider"
 
 // Maps plan → model label shown to student (read-only info)
 const PLAN_MODEL_LABEL = {
@@ -79,120 +83,93 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
 
   return (
     <>
-    <div style={{
-      position: "fixed",
-      inset: 0,
-      background: "rgba(0,0,0,0.75)",
-      zIndex: 999,
-      display: "flex",
-      alignItems: "flex-end",
-      justifyContent: "center",
-    }} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{
-        width: "100%",
-        maxWidth: 480,
-        background: "#0e0e20",
-        borderRadius: "20px 20px 0 0",
-        border: `1px solid ${COLORS.border}`,
-        maxHeight: "92vh",
-        overflowY: "auto",
-        paddingBottom: 24,
-      }}>
+    <div className="fixed inset-0 bg-black/75 z-[999] flex items-end justify-center" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="w-full max-w-[480px] bg-[#0e0e20] rounded-t-[20px] border border-app-border max-h-[92vh] overflow-y-auto pb-6">
         {/* Handle */}
-        <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: "#ffffff20" }} />
+        <div className="flex justify-center py-3 pb-1">
+          <div className="w-9 h-1 rounded-sm bg-white/10" />
         </div>
 
-        <div style={{ padding: "8px 18px 0" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+        <div className="px-[18px] pt-2">
+          <div className="flex items-center justify-between mb-3.5">
             <div>
-              <h2 style={{ fontSize: 17, fontWeight: 800, color: COLORS.text }}>⚙️ {ui.settings}</h2>
+              <h2 className="text-[17px] font-extrabold text-app-text">⚙️ {ui.settings}</h2>
             </div>
-            <button onClick={onClose} style={{ background: "transparent", border: "none", color: COLORS.muted, fontSize: 20, cursor: "pointer", fontFamily: "Sora, sans-serif" }}>✕</button>
+            <button onClick={onClose} className="bg-transparent border-none text-app-muted text-xl cursor-pointer font-[Sora,sans-serif]">✕</button>
           </div>
 
           {/* Tab switcher */}
-          <div style={{ display: "flex", background: COLORS.card, borderRadius: 12, padding: 4, marginBottom: 18, border: `1px solid ${COLORS.border}`, gap: 4 }}>
+          <div className="flex bg-app-card rounded-xl p-1 mb-[18px] border border-app-border gap-1">
             {[["ai", ui.aiTab], ["profile", ui.profileTab], ["plan", ui.planTab]].map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
-                style={{
-                  flex: 1,
-                  background: activeTab === key ? `linear-gradient(135deg, ${COLORS.green}, #33cc88)` : "transparent",
-                  border: "none",
-                  borderRadius: 9,
-                  padding: "9px 8px",
-                  fontSize: 12,
-                  fontWeight: activeTab === key ? 800 : 500,
-                  color: activeTab === key ? "#04040e" : COLORS.muted,
-                  cursor: "pointer",
-                  fontFamily: "Sora, sans-serif",
-                }}
+                className={`flex-1 border-none rounded-[9px] py-2 px-2 text-xs cursor-pointer font-[Sora,sans-serif] ${
+                  activeTab === key 
+                    ? 'bg-gradient-to-br from-app-green to-emerald-500 font-extrabold text-app-bg' 
+                    : 'bg-transparent font-medium text-app-muted'
+                }`}
               >{label}</button>
             ))}
           </div>
 
           {/* ── Profile Edit tab ── */}
           {activeTab === "profile" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div className="flex flex-col gap-3.5">
               <div>
-                <label style={labelStyle}>{ui.yourName}</label>
-                <input style={inputStyle} type="text" value={pName} onChange={e => setPName(e.target.value)} placeholder={ui.namePlaceholder} />
+                <label className={labelClass}>{ui.yourName}</label>
+                <input className={inputClass} type="text" value={pName} onChange={e => setPName(e.target.value)} placeholder={ui.namePlaceholder} />
               </div>
               <div>
-                <label style={labelStyle}>{ui.classLabel}</label>
-                <select style={inputStyle} value={pStd} onChange={e => setPStd(e.target.value)}>
+                <label className={labelClass}>{ui.classLabel}</label>
+                <select className={inputClass} value={pStd} onChange={e => setPStd(e.target.value)}>
                   {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
-                <label style={labelStyle}>{ui.boardLabel}</label>
-                <select style={inputStyle} value={pBoard} onChange={e => setPBoard(e.target.value)}>
+                <label className={labelClass}>{ui.boardLabel}</label>
+                <select className={inputClass} value={pBoard} onChange={e => setPBoard(e.target.value)}>
                   {BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
               <div>
-                <label style={labelStyle}>{ui.languageLabel}</label>
-                <select style={inputStyle} value={pLang} onChange={e => setPLang(e.target.value)}>
+                <label className={labelClass}>{ui.languageLabel}</label>
+                <select className={inputClass} value={pLang} onChange={e => setPLang(e.target.value)}>
                   {LANGS.map(l => <option key={l} value={l}>{l}</option>)}
                 </select>
               </div>
               <div>
-                <label style={labelStyle}>{ui.displayLanguageLabel}</label>
-                <select style={inputStyle} value={pDisplayLang} onChange={e => setPDisplayLang(e.target.value)}>
+                <label className={labelClass}>{ui.displayLanguageLabel}</label>
+                <select className={inputClass} value={pDisplayLang} onChange={e => setPDisplayLang(e.target.value)}>
                   <option value="english">{ui.displayLangEnglish}</option>
                   <option value="medium">{ui.displayLangMedium} ({pLang})</option>
                 </select>
               </div>
               <div>
-                <label style={labelStyle}>{ui.schoolName}</label>
-                <input style={inputStyle} type="text" value={pSchool} onChange={e => setPSchool(e.target.value)} placeholder={ui.schoolPlaceholder} maxLength={100} />
+                <label className={labelClass}>{ui.schoolName}</label>
+                <input className={inputClass} type="text" value={pSchool} onChange={e => setPSchool(e.target.value)} placeholder={ui.schoolPlaceholder} maxLength={100} />
               </div>
-              <button onClick={saveProfile} style={primaryBtn}>
+              <button onClick={saveProfile} className="w-full bg-gradient-to-br from-app-green to-emerald-500 text-app-bg border-none rounded-xl py-3 px-4 text-sm font-extrabold cursor-pointer font-[Sora,sans-serif]">
                 {profileSaved ? `✅ ${ui.saved}` : ui.saveProfile}
               </button>
 
               {/* ── Refer Friends ── */}
-              <div style={{
-                marginTop: 8, background: `${COLORS.blue}0d`,
-                border: `1px solid ${COLORS.blue}33`, borderRadius: 14, padding: '16px',
-              }}>
-                <div style={{ fontWeight: 700, color: COLORS.blue, fontSize: 14, marginBottom: 6 }}>
+              <div className="mt-2 bg-app-blue/5 border border-app-blue/20 rounded-[14px] p-4">
+                <div className="font-bold text-app-blue text-sm mb-1.5">
                   {ui.referFriends}
                 </div>
-                <p style={{ color: COLORS.muted, fontSize: 12, margin: '0 0 12px' }}>
+                <p className="text-app-muted text-xs m-0 mb-3">
                   {ui.referDescription}
                 </p>
                 {referral ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: COLORS.card2, borderRadius: 10, padding: '10px 14px' }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ color: COLORS.muted, fontSize: 10, marginBottom: 2 }}>{ui.yourReferralCode}</div>
-                      <div style={{ fontFamily: 'monospace', fontSize: 20, fontWeight: 900, color: COLORS.blue, letterSpacing: 4 }}>
+                  <div className="flex items-center gap-2.5 bg-app-card2 rounded-[10px] py-2.5 px-3.5">
+                    <div className="flex-1">
+                      <div className="text-app-muted text-[10px] mb-0.5">{ui.yourReferralCode}</div>
+                      <div className="font-mono text-xl font-black text-app-blue tracking-[4px]">
                         {referral.code}
                       </div>
                       {referral.referred_count > 0 && (
-                        <div style={{ color: COLORS.green, fontSize: 11, marginTop: 2 }}>
+                        <div className="text-app-green text-[11px] mt-0.5">
                           ✓ {referral.referred_count} {ui.friendsJoined}
                         </div>
                       )}
@@ -208,41 +185,29 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                           setTimeout(() => setRefCopied(false), 2000)
                         }
                       }}
-                      style={{ background: refCopied ? `${COLORS.green}22` : `${COLORS.blue}22`, border: `1px solid ${refCopied ? COLORS.green : COLORS.blue}44`, color: refCopied ? COLORS.green : COLORS.blue, borderRadius: 10, padding: '7px 12px', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}
+                      className={`rounded-[10px] py-1.5 px-3 text-xs cursor-pointer font-bold ${refCopied ? 'bg-app-green/15 border border-app-green/30 text-app-green' : 'bg-app-blue/15 border border-app-blue/30 text-app-blue'}`}
                     >{refCopied ? `✅ ${ui.copied}` : `📲 ${ui.share}`}</button>
                   </div>
                 ) : (
-                  <div style={{ color: COLORS.muted, fontSize: 12 }}>{ui.loading}...</div>
+                  <div className="text-app-muted text-xs">{ui.loading}...</div>
                 )}
               </div>
 
               {/* ── Share with Parent ── */}
-              <div style={{
-                marginTop: 8,
-                background: `${COLORS.green}0d`,
-                border: `1px solid ${COLORS.green}33`,
-                borderRadius: 14, padding: '16px',
-              }}>
-                <div style={{ fontWeight: 700, color: COLORS.green, fontSize: 14, marginBottom: 6 }}>
+              <div className="mt-2 bg-app-green/5 border border-app-green/20 rounded-[14px] p-4">
+                <div className="font-bold text-app-green text-sm mb-1.5">
                   👨‍👩‍👦 {ui.shareWithParent}
                 </div>
-                <p style={{ color: COLORS.muted, fontSize: 12, margin: '0 0 12px' }}>
+                <p className="text-app-muted text-xs m-0 mb-3">
                   {ui.parentPinDescription}
                 </p>
                 {parentPin ? (
                   <>
-                    <div style={{
-                      background: COLORS.card2, borderRadius: 10, padding: '10px 14px',
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      marginBottom: 8,
-                    }}>
+                    <div className="bg-app-card2 rounded-[10px] py-2.5 px-3.5 flex items-center justify-between mb-2">
                       <div>
-                        <div style={{ color: COLORS.muted, fontSize: 10, marginBottom: 2 }}>{ui.parentLink}</div>
-                        <div style={{
-                          fontFamily: 'monospace', fontSize: 16, fontWeight: 900,
-                          color: COLORS.yellow, letterSpacing: 3,
-                        }}>{parentPin}</div>
-                        <div style={{ color: COLORS.muted, fontSize: 10, marginTop: 2 }}>
+                        <div className="text-app-muted text-[10px] mb-0.5">{ui.parentLink}</div>
+                        <div className="font-mono text-base font-black text-app-yellow tracking-[3px]">{parentPin}</div>
+                        <div className="text-app-muted text-[10px] mt-0.5">
                           {window.location.origin}/parent/{parentPin}
                         </div>
                       </div>
@@ -252,16 +217,11 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                           setPinCopied(true)
                           setTimeout(() => setPinCopied(false), 2000)
                         }}
-                        style={{
-                          background: pinCopied ? `${COLORS.green}22` : COLORS.card,
-                          border: `1px solid ${pinCopied ? COLORS.green : COLORS.border}`,
-                          color: pinCopied ? COLORS.green : COLORS.text,
-                          borderRadius: 10, padding: '6px 12px', fontSize: 12, cursor: 'pointer',
-                        }}
+                        className={`rounded-[10px] py-1.5 px-3 text-xs cursor-pointer ${pinCopied ? 'bg-app-green/15 border border-app-green text-app-green' : 'bg-app-card border border-app-border text-app-text'}`}
                       >{pinCopied ? `✅ ${ui.copied}` : `📋 ${ui.copy}`}</button>
                     </div>
                     {parentExpires && (
-                      <div style={{ color: COLORS.muted, fontSize: 11, marginBottom: 8 }}>
+                      <div className="text-app-muted text-[11px] mb-2">
                         ⏰ {ui.validUntil} {new Date(parentExpires).toLocaleDateString()}
                       </div>
                     )}
@@ -274,11 +234,7 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                           if (r.revoked) { setParentPin(null); setParentExpires(null) }
                         } finally { setPinLoading(false) }
                       }}
-                      style={{
-                        background: `${COLORS.red}15`, border: `1px solid ${COLORS.red}33`,
-                        color: COLORS.red, borderRadius: 10, padding: '6px 14px',
-                        fontSize: 12, cursor: 'pointer', width: '100%',
-                      }}
+                      className="w-full bg-app-red/10 border border-app-red/20 text-app-red rounded-[10px] py-1.5 px-3.5 text-xs cursor-pointer"
                     >{pinLoading ? `${ui.revoking}...` : `🗑 ${ui.revokeAccess}`}</button>
                   </>
                 ) : (
@@ -291,11 +247,7 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                         setParentPin(r.pin); setParentExpires(r.expires_at)
                       } finally { setPinLoading(false) }
                     }}
-                    style={{
-                      background: `${COLORS.green}22`, border: `1px solid ${COLORS.green}44`,
-                      color: COLORS.green, borderRadius: 10, padding: '10px',
-                      fontSize: 14, fontWeight: 700, cursor: 'pointer', width: '100%',
-                    }}
+                    className="w-full bg-app-green/15 border border-app-green/30 text-app-green rounded-[10px] py-2.5 text-sm font-bold cursor-pointer"
                   >{pinLoading ? `${ui.generating}...` : `🔗 ${ui.generateParentLink}`}</button>
                 )}
               </div>
@@ -308,20 +260,18 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
             const planOrder = ['free', 'basic', 'pro', 'premium']
             const currentPlanInfo = PLANS[userPlan] || PLANS.free
             return (
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div className="flex flex-col gap-4">
                 {/* Current plan card */}
-                <div style={{
-                  background: `${currentPlanInfo.color}15`,
-                  border: `2px solid ${currentPlanInfo.color}50`,
-                  borderRadius: 16, padding: 20,
-                  display: "flex", alignItems: "center", gap: 14,
-                }}>
-                  <span style={{ fontSize: 36 }}>{currentPlanInfo.icon}</span>
+                <div 
+                  className="rounded-2xl p-5 flex items-center gap-3.5"
+                  style={{ background: `${currentPlanInfo.color}15`, border: `2px solid ${currentPlanInfo.color}50` }}
+                >
+                  <span className="text-4xl">{currentPlanInfo.icon}</span>
                   <div>
-                    <div style={{ fontSize: 18, fontWeight: 900, color: currentPlanInfo.color }}>{currentPlanInfo.label}</div>
-                    <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>{ui.yourCurrentPlan}</div>
+                    <div className="text-lg font-black" style={{ color: currentPlanInfo.color }}>{currentPlanInfo.label}</div>
+                    <div className="text-xs text-app-muted mt-0.5">{ui.yourCurrentPlan}</div>
                     {profile?.plan_expires_at && (
-                      <div style={{ fontSize: 11, color: COLORS.yellow, marginTop: 4 }}>
+                      <div className="text-[11px] text-app-yellow mt-1">
                         ⏰ Expires: {profile.plan_expires_at}
                       </div>
                     )}
@@ -329,50 +279,48 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                 </div>
 
                 {/* Feature comparison */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div className="flex flex-col gap-2">
                   {planOrder.map(p => {
                     const info = PLANS[p]
                     const isActive = p === userPlan
                     const isLocked = planOrder.indexOf(p) > planOrder.indexOf(userPlan)
                     return (
-                      <div key={p} style={{
-                        background: isActive ? `${info.color}10` : COLORS.card,
-                        border: `1.5px solid ${isActive ? info.color + '50' : COLORS.border}`,
-                        borderRadius: 14, padding: "14px 16px",
-                        opacity: isLocked ? 0.55 : 1,
-                      }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                          <span style={{ fontSize: 18 }}>{info.icon}</span>
-                          <span style={{ fontSize: 14, fontWeight: 800, color: isActive ? info.color : COLORS.text }}>{info.label}</span>
-                          {isActive && <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 700, color: info.color, background: `${info.color}20`, borderRadius: 6, padding: "2px 8px" }}>{ui.active}</span>}
+                      <div 
+                        key={p} 
+                        className="rounded-[14px] py-3.5 px-4"
+                        style={{
+                          background: isActive ? `${info.color}10` : '#0b0b1c',
+                          border: `1.5px solid ${isActive ? info.color + '50' : '#ffffff08'}`,
+                          opacity: isLocked ? 0.55 : 1,
+                        }}
+                      >
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-lg">{info.icon}</span>
+                          <span className="text-sm font-extrabold" style={{ color: isActive ? info.color : '#eeeeff' }}>{info.label}</span>
+                          {isActive && <span className="ml-auto text-[10px] font-bold rounded-md py-0.5 px-2" style={{ color: info.color, background: `${info.color}20` }}>{ui.active}</span>}
                         </div>
-                        <div style={{ fontSize: 11, color: COLORS.muted, lineHeight: 1.5 }}>
+                        <div className="text-[11px] text-app-muted leading-relaxed">
                           Tabs: {info.tabs.join(" · ")}
                         </div>
                         {info.labs.length > 0 && (
-                          <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>
+                          <div className="text-[11px] text-app-muted mt-0.5">
                             Labs: {info.labs.join(" · ")}
                           </div>
                         )}
-                        <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>
+                        <div className="text-[11px] text-app-muted mt-0.5">
                           {ui.aiCallsPerDay}: {info.aiCallsPerDay === Infinity ? ui.unlimited : info.aiCallsPerDay}
                         </div>
                       </div>
                     )
                   })}
                 </div>
-                <p style={{ fontSize: 11, color: COLORS.muted, textAlign: "center", margin: 0 }}>
+                <p className="text-[11px] text-app-muted text-center m-0">
                   {ui.contactToUpgrade}
                 </p>
                 {profile?.plan !== 'premium' && (
                   <button
                     onClick={() => setShowUpgrade(true)}
-                    style={{
-                      width: '100%', padding: '13px', borderRadius: 14, marginTop: 4,
-                      background: 'linear-gradient(135deg, #00E5A0, #7B9CFF)',
-                      border: 'none', color: '#04040e', fontSize: 14, fontWeight: 900,
-                      cursor: 'pointer', fontFamily: 'Sora, sans-serif',
-                    }}
+                    className="w-full py-3 rounded-[14px] mt-1 bg-gradient-to-br from-app-green to-app-blue border-none text-app-bg text-sm font-black cursor-pointer font-[Sora,sans-serif]"
                   >
                     ⬆️ {ui.upgradePlan}
                   </button>
@@ -389,66 +337,50 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
             const limit = usage?.daily_quota  || planInfo.aiCallsPerDay || 10
             const remaining = usage?.today?.remaining ?? Math.max(0, limit - used)
             const pct = Math.min(100, limit > 0 ? Math.round((used / limit) * 100) : 0)
-            const barColor = pct >= 90 ? COLORS.red : pct >= 70 ? COLORS.yellow : COLORS.green
+            const barColor = pct >= 90 ? '#FF6B6B' : pct >= 70 ? '#FFD166' : '#00E5A0'
             return (
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div className="flex flex-col gap-4">
 
                 {/* Managed AI notice */}
-                <div style={{
-                  background: `${COLORS.green}10`,
-                  border: `1px solid ${COLORS.green}30`,
-                  borderRadius: 14, padding: "14px 16px",
-                  display: "flex", alignItems: "center", gap: 12,
-                }}>
-                  <span style={{ fontSize: 28, flexShrink: 0 }}>🔐</span>
+                <div className="bg-app-green/5 border border-app-green/20 rounded-[14px] py-3.5 px-4 flex items-center gap-3">
+                  <span className="text-[28px] shrink-0">🔐</span>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: COLORS.green }}>AI Managed by Eduvy-AI</div>
-                    <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 3, lineHeight: 1.5 }}>
+                    <div className="text-[13px] font-extrabold text-app-green">AI Managed by Eduvy-AI</div>
+                    <div className="text-[11px] text-app-muted mt-0.5 leading-relaxed">
                       Everything is handled on our servers. No API keys needed.
                     </div>
                   </div>
                 </div>
 
                 {/* Today's usage meter */}
-                <div style={{
-                  background: COLORS.card,
-                  border: `1px solid ${COLORS.border}`,
-                  borderRadius: 14, padding: "16px 18px",
-                }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, marginBottom: 12, letterSpacing: "0.05em" }}>TODAY'S AI CALLS</div>
+                <div className="bg-app-card border border-app-border rounded-[14px] py-4 px-[18px]">
+                  <div className="text-[11px] font-bold text-app-muted mb-3 tracking-wider">TODAY'S AI CALLS</div>
                   {usageLoading ? (
-                    <div style={{ fontSize: 12, color: COLORS.muted }}>Loading…</div>
+                    <div className="text-xs text-app-muted">Loading…</div>
                   ) : (
                     <>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 10 }}>
-                        <span style={{ fontSize: 32, fontWeight: 900, color: barColor }}>{used}</span>
-                        <span style={{ fontSize: 14, color: COLORS.muted }}>/ {limit === Infinity ? '∞' : limit} calls</span>
+                      <div className="flex items-baseline gap-1.5 mb-2.5">
+                        <span className="text-[32px] font-black" style={{ color: barColor }}>{used}</span>
+                        <span className="text-sm text-app-muted">/ {limit === Infinity ? '∞' : limit} calls</span>
                       </div>
-                      <div style={{ height: 8, borderRadius: 4, background: COLORS.card2, overflow: "hidden", marginBottom: 8 }}>
-                        <div style={{
-                          height: "100%",
-                          width: `${pct}%`,
-                          background: barColor,
-                          borderRadius: 4,
-                          transition: "width 0.4s",
-                        }} />
+                      <div className="h-2 rounded bg-app-card2 overflow-hidden mb-2">
+                        <div 
+                          className="h-full rounded transition-[width] duration-400"
+                          style={{ width: `${pct}%`, background: barColor }}
+                        />
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span style={{ fontSize: 11, color: COLORS.muted }}>
+                      <div className="flex justify-between">
+                        <span className="text-[11px] text-app-muted">
                           {remaining} remaining today
                         </span>
                         {usage?.today?.tokens > 0 && (
-                          <span style={{ fontSize: 11, color: COLORS.muted }}>
+                          <span className="text-[11px] text-app-muted">
                             ~{((usage.today.tokens) / 1000).toFixed(1)}K tokens used
                           </span>
                         )}
                       </div>
                       {pct >= 90 && (
-                        <div style={{
-                          marginTop: 10, fontSize: 12, color: COLORS.red,
-                          background: `${COLORS.red}12`, borderRadius: 8,
-                          padding: "8px 10px", lineHeight: 1.5,
-                        }}>
+                        <div className="mt-2.5 text-xs text-app-red bg-app-red/10 rounded-lg py-2 px-2.5 leading-relaxed">
                           ⚠️ Almost at your daily limit. Resets at midnight.
                           {userPlan !== 'premium' && " Upgrade your plan for more calls."}
                         </div>
@@ -458,19 +390,14 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                 </div>
 
                 {/* Active model info */}
-                <div style={{
-                  background: COLORS.card,
-                  border: `1px solid ${COLORS.border}`,
-                  borderRadius: 14, padding: "14px 16px",
-                  display: "flex", alignItems: "center", gap: 12,
-                }}>
-                  <span style={{ fontSize: 22, flexShrink: 0 }}>🤖</span>
+                <div className="bg-app-card border border-app-border rounded-[14px] py-3.5 px-4 flex items-center gap-3">
+                  <span className="text-[22px] shrink-0">🤖</span>
                   <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, marginBottom: 3 }}>YOUR AI MODEL</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.text }}>
+                    <div className="text-[11px] font-bold text-app-muted mb-0.5">YOUR AI MODEL</div>
+                    <div className="text-[13px] font-bold text-app-text">
                       {PLAN_MODEL_LABEL[userPlan] || 'Auto-selected'}
                     </div>
-                    <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>
+                    <div className="text-[11px] text-app-muted mt-0.5">
                       Assigned by your {planInfo.icon} {planInfo.label} plan
                     </div>
                   </div>
@@ -478,22 +405,18 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
 
                 {/* Monthly usage */}
                 {usage?.this_month && (
-                  <div style={{
-                    background: COLORS.card,
-                    border: `1px solid ${COLORS.border}`,
-                    borderRadius: 14, padding: "14px 16px",
-                  }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, marginBottom: 10, letterSpacing: "0.05em" }}>THIS MONTH</div>
-                    <div style={{ display: "flex", gap: 20 }}>
+                  <div className="bg-app-card border border-app-border rounded-[14px] py-3.5 px-4">
+                    <div className="text-[11px] font-bold text-app-muted mb-2.5 tracking-wider">THIS MONTH</div>
+                    <div className="flex gap-5">
                       <div>
-                        <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.blue }}>{usage.this_month.calls}</div>
-                        <div style={{ fontSize: 10, color: COLORS.muted }}>total calls</div>
+                        <div className="text-lg font-black text-app-blue">{usage.this_month.calls}</div>
+                        <div className="text-[10px] text-app-muted">total calls</div>
                       </div>
                       <div>
-                        <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.blue }}>
+                        <div className="text-lg font-black text-app-blue">
                           {((usage.this_month.tokens || 0) / 1000).toFixed(1)}K
                         </div>
-                        <div style={{ fontSize: 10, color: COLORS.muted }}>tokens</div>
+                        <div className="text-[10px] text-app-muted">tokens</div>
                       </div>
                     </div>
                   </div>
@@ -518,38 +441,4 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
     )}
     </>
   )
-}
-
-const labelStyle = {
-  display: "block",
-  fontSize: 11,
-  fontWeight: 700,
-  color: COLORS.muted,
-  marginBottom: 6,
-  letterSpacing: "0.05em",
-}
-
-const inputStyle = {
-  width: "100%",
-  background: "#101022",
-  border: "1px solid #ffffff15",
-  borderRadius: 12,
-  padding: "11px 14px",
-  color: "#eeeeff",
-  fontSize: 13,
-  fontFamily: "Sora, sans-serif",
-  cursor: "pointer",
-}
-
-const primaryBtn = {
-  background: "linear-gradient(135deg, #00E5A0, #33cc88)",
-  color: "#04040e",
-  border: "none",
-  borderRadius: 12,
-  padding: "12px 16px",
-  fontSize: 13,
-  fontWeight: 800,
-  cursor: "pointer",
-  fontFamily: "Sora, sans-serif",
-  width: "100%",
 }

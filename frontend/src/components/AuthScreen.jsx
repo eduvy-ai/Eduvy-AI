@@ -1,46 +1,9 @@
 import { useState } from 'react'
-import { COLORS, BOARDS, LANGS, SUBS } from '../shared.js'
+import { BOARDS, LANGS, SUBS } from '../shared.js'
 import { apiLogin, apiRegister, setAuthToken } from '../api.js'
 import { li } from '../i18n/index.js'
 
 const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
-
-const inp = {
-  width: '100%',
-  background: '#101022',
-  border: '1px solid #ffffff18',
-  borderRadius: 12,
-  padding: '13px 14px',
-  color: COLORS.text,
-  fontSize: 14,
-  fontFamily: 'Sora, sans-serif',
-  outline: 'none',
-  boxSizing: 'border-box',
-}
-
-const btn = {
-  width: '100%',
-  padding: '14px',
-  borderRadius: 12,
-  border: 'none',
-  background: `linear-gradient(135deg, ${COLORS.green}, ${COLORS.blue})`,
-  color: '#04040e',
-  fontWeight: 700,
-  fontSize: 15,
-  fontFamily: 'Sora, sans-serif',
-  cursor: 'pointer',
-}
-
-const linkBtn = {
-  background: 'none',
-  border: 'none',
-  color: COLORS.green,
-  fontFamily: 'Sora, sans-serif',
-  fontSize: 13,
-  cursor: 'pointer',
-  fontWeight: 600,
-  padding: 0,
-}
 
 export default function AuthScreen({ onAuth }) {
   const [mode, setMode] = useState('login') // 'login' | 'register'
@@ -117,60 +80,41 @@ export default function AuthScreen({ onAuth }) {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: COLORS.bg,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 16,
-      fontFamily: 'Sora, sans-serif',
-    }}>
-      <div style={{ width: '100%', maxWidth: 420 }}>
+    <div className="min-h-screen bg-app-bg flex items-center justify-center p-4 font-sans">
+      <div className="w-full max-w-[420px]">
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 42, marginBottom: 8 }}>🎓</div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: COLORS.text }}>Eduvy-AI</div>
-          <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>
-            {ui.tagline}
-          </div>
+        <div className="text-center mb-8">
+          <div className="text-[42px] mb-2">🎓</div>
+          <div className="text-2xl font-extrabold text-app-text">Eduvy-AI</div>
+          <div className="text-sm text-app-muted mt-1">{ui.tagline}</div>
         </div>
 
         {/* Card */}
-        <div style={{
-          background: COLORS.card,
-          borderRadius: 20,
-          border: `1px solid ${COLORS.border}`,
-          padding: 24,
-        }}>
+        <div className="bg-app-card rounded-2xl border border-app-border p-6">
           {/* Tab toggle */}
-          <div style={{ display: 'flex', gap: 4, background: COLORS.card2, borderRadius: 12, padding: 4, marginBottom: 24 }}>
+          <div className="flex gap-1 bg-app-card2 rounded-xl p-1 mb-6">
             {['login', 'register'].map(m => (
               <button
                 key={m}
                 onClick={() => { setMode(m); setError(''); setRegStep(1) }}
-                style={{
-                  flex: 1, padding: '9px 0', borderRadius: 10, border: 'none',
-                  background: mode === m ? `linear-gradient(135deg, ${COLORS.green}22, ${COLORS.blue}22)` : 'transparent',
-                  color: mode === m ? COLORS.text : COLORS.muted,
-                  fontWeight: mode === m ? 700 : 500,
-                  fontSize: 14,
-                  fontFamily: 'Sora, sans-serif',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  outline: mode === m ? `1.5px solid ${COLORS.green}50` : 'none',
-                }}
-              >{m === 'login' ? ui.login : ui.register}</button>
+                className={`flex-1 py-2.5 rounded-lg border-none text-sm cursor-pointer transition-all
+                  ${mode === m 
+                    ? 'bg-gradient-to-br from-app-green/20 to-app-blue/20 text-app-text font-bold ring-1 ring-app-green/50' 
+                    : 'bg-transparent text-app-muted font-medium'
+                  }`}
+              >
+                {m === 'login' ? ui.login : ui.register}
+              </button>
             ))}
           </div>
 
           {/* ─── LOGIN FORM ─── */}
           {mode === 'login' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="flex flex-col gap-3.5">
               <div>
-                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>{ui.emailLabel}</label>
+                <label className="text-[11px] text-app-muted font-semibold block mb-1.5">{ui.emailLabel}</label>
                 <input
-                  style={inp}
+                  className="w-full bg-app-card2 border border-white/10 rounded-xl py-3 px-3.5 text-app-text text-sm outline-none focus:ring-1 focus:ring-app-green/50"
                   type="email"
                   placeholder={ui.emailPlaceholder}
                   value={email}
@@ -180,10 +124,10 @@ export default function AuthScreen({ onAuth }) {
                 />
               </div>
               <div>
-                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>{ui.passwordLabel}</label>
-                <div style={{ position: 'relative' }}>
+                <label className="text-[11px] text-app-muted font-semibold block mb-1.5">{ui.passwordLabel}</label>
+                <div className="relative">
                   <input
-                    style={inp}
+                    className="w-full bg-app-card2 border border-white/10 rounded-xl py-3 px-3.5 text-app-text text-sm outline-none focus:ring-1 focus:ring-app-green/50 pr-10"
                     type={showPw ? 'text' : 'password'}
                     placeholder={ui.passwordPlaceholder}
                     value={password}
@@ -193,44 +137,68 @@ export default function AuthScreen({ onAuth }) {
                   />
                   <button
                     onClick={() => setShowPw(p => !p)}
-                    style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: COLORS.muted, fontSize: 16 }}
-                  >{showPw ? '🙈' : '👁️'}</button>
+                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-app-muted text-base"
+                  >
+                    {showPw ? '🙈' : '👁️'}
+                  </button>
                 </div>
               </div>
 
-              {error && <div style={{ fontSize: 12, color: COLORS.red, background: `${COLORS.red}15`, borderRadius: 8, padding: '8px 12px' }}>{error}</div>}
+              {error && (
+                <div className="text-xs text-app-red bg-app-red/15 rounded-lg py-2 px-3">{error}</div>
+              )}
 
-              <button onClick={doLogin} disabled={loading} style={{ ...btn, opacity: loading ? 0.7 : 1 }}>
+              <button 
+                onClick={doLogin} 
+                disabled={loading} 
+                className={`w-full py-3.5 rounded-xl border-none bg-gradient-to-br from-app-green to-app-blue text-app-bg font-bold text-[15px] cursor-pointer
+                  ${loading ? 'opacity-70' : 'hover:opacity-90'}`}
+              >
                 {loading ? ui.loggingIn : `${ui.login} →`}
               </button>
 
-              <div style={{ textAlign: 'center', fontSize: 13, color: COLORS.muted }}>
+              <div className="text-center text-sm text-app-muted">
                 {ui.noAccount}{' '}
-                <button style={linkBtn} onClick={() => { setMode('register'); setError('') }}>{ui.createAccount}</button>
+                <button 
+                  className="bg-transparent border-none text-app-green font-semibold text-sm cursor-pointer p-0"
+                  onClick={() => { setMode('register'); setError('') }}
+                >
+                  {ui.createAccount}
+                </button>
               </div>
             </div>
           )}
 
           {/* ─── REGISTER FORM — STEP 1: Credentials ─── */}
           {mode === 'register' && regStep === 1 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.text, marginBottom: 2 }}>
-                {ui.step1of2}
-              </div>
+            <div className="flex flex-col gap-3.5">
+              <div className="text-sm font-bold text-app-text mb-0.5">{ui.step1of2}</div>
 
               <div>
-                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>{ui.yourName}</label>
-                <input style={inp} placeholder={ui.namePlaceholder} value={name} onChange={e => setName(e.target.value)} />
+                <label className="text-[11px] text-app-muted font-semibold block mb-1.5">{ui.yourName}</label>
+                <input 
+                  className="w-full bg-app-card2 border border-white/10 rounded-xl py-3 px-3.5 text-app-text text-sm outline-none focus:ring-1 focus:ring-app-green/50"
+                  placeholder={ui.namePlaceholder} 
+                  value={name} 
+                  onChange={e => setName(e.target.value)} 
+                />
               </div>
               <div>
-                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>{ui.emailLabel}</label>
-                <input style={inp} type="email" placeholder={ui.emailPlaceholder} value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
+                <label className="text-[11px] text-app-muted font-semibold block mb-1.5">{ui.emailLabel}</label>
+                <input 
+                  className="w-full bg-app-card2 border border-white/10 rounded-xl py-3 px-3.5 text-app-text text-sm outline-none focus:ring-1 focus:ring-app-green/50"
+                  type="email" 
+                  placeholder={ui.emailPlaceholder} 
+                  value={email} 
+                  onChange={e => setEmail(e.target.value)} 
+                  autoComplete="email" 
+                />
               </div>
               <div>
-                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>{ui.passwordLabel}</label>
-                <div style={{ position: 'relative' }}>
+                <label className="text-[11px] text-app-muted font-semibold block mb-1.5">{ui.passwordLabel}</label>
+                <div className="relative">
                   <input
-                    style={inp}
+                    className="w-full bg-app-card2 border border-white/10 rounded-xl py-3 px-3.5 text-app-text text-sm outline-none focus:ring-1 focus:ring-app-green/50 pr-10"
                     type={showPw ? 'text' : 'password'}
                     placeholder={ui.passwordMinChars}
                     value={password}
@@ -239,96 +207,137 @@ export default function AuthScreen({ onAuth }) {
                   />
                   <button
                     onClick={() => setShowPw(p => !p)}
-                    style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: COLORS.muted, fontSize: 16 }}
-                  >{showPw ? '🙈' : '👁️'}</button>
+                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-app-muted text-base"
+                  >
+                    {showPw ? '🙈' : '👁️'}
+                  </button>
                 </div>
               </div>
               <div>
-                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>{ui.mobileOptional}</label>
-                <input style={inp} type="tel" placeholder={ui.mobilePlaceholder} value={mobile} onChange={e => setMobile(e.target.value)} />
+                <label className="text-[11px] text-app-muted font-semibold block mb-1.5">{ui.mobileOptional}</label>
+                <input 
+                  className="w-full bg-app-card2 border border-white/10 rounded-xl py-3 px-3.5 text-app-text text-sm outline-none focus:ring-1 focus:ring-app-green/50"
+                  type="tel" 
+                  placeholder={ui.mobilePlaceholder} 
+                  value={mobile} 
+                  onChange={e => setMobile(e.target.value)} 
+                />
               </div>
 
-              {error && <div style={{ fontSize: 12, color: COLORS.red, background: `${COLORS.red}15`, borderRadius: 8, padding: '8px 12px' }}>{error}</div>}
+              {error && (
+                <div className="text-xs text-app-red bg-app-red/15 rounded-lg py-2 px-3">{error}</div>
+              )}
 
-              <button onClick={goStep2} style={btn}>{ui.nextProfile} →</button>
+              <button 
+                onClick={goStep2} 
+                className="w-full py-3.5 rounded-xl border-none bg-gradient-to-br from-app-green to-app-blue text-app-bg font-bold text-[15px] cursor-pointer hover:opacity-90"
+              >
+                {ui.nextProfile} →
+              </button>
 
-              <div style={{ textAlign: 'center', fontSize: 13, color: COLORS.muted }}>
+              <div className="text-center text-sm text-app-muted">
                 {ui.alreadyRegistered}{' '}
-                <button style={linkBtn} onClick={() => { setMode('login'); setError('') }}>{ui.login}</button>
+                <button 
+                  className="bg-transparent border-none text-app-green font-semibold text-sm cursor-pointer p-0"
+                  onClick={() => { setMode('login'); setError('') }}
+                >
+                  {ui.login}
+                </button>
               </div>
             </div>
           )}
 
           {/* ─── REGISTER FORM — STEP 2: Student Profile ─── */}
           {mode === 'register' && regStep === 2 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
-                <button onClick={() => setRegStep(1)} style={{ ...linkBtn, fontSize: 12 }}>← {ui.back}</button>
-                <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.text }}>{ui.step2of2}</span>
+            <div className="flex flex-col gap-3.5">
+              <div className="flex items-center gap-2.5 mb-0.5">
+                <button 
+                  onClick={() => setRegStep(1)} 
+                  className="bg-transparent border-none text-app-green font-semibold text-xs cursor-pointer p-0"
+                >
+                  ← {ui.back}
+                </button>
+                <span className="text-sm font-bold text-app-text">{ui.step2of2}</span>
               </div>
 
-              <div style={{ display: 'flex', gap: 10 }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>{ui.classLabel}</label>
+              <div className="flex gap-2.5">
+                <div className="flex-1">
+                  <label className="text-[11px] text-app-muted font-semibold block mb-1.5">{ui.classLabel}</label>
                   <select
-                    style={{ ...inp, cursor: 'pointer' }}
+                    className="w-full bg-app-card2 border border-white/10 rounded-xl py-3 px-3.5 text-app-text text-sm outline-none cursor-pointer focus:ring-1 focus:ring-app-green/50"
                     value={standard}
                     onChange={e => { setStd(e.target.value); setSubs([]) }}
                   >
                     {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>{ui.boardLabel}</label>
-                  <select style={{ ...inp, cursor: 'pointer' }} value={board} onChange={e => setBoard(e.target.value)}>
+                <div className="flex-1">
+                  <label className="text-[11px] text-app-muted font-semibold block mb-1.5">{ui.boardLabel}</label>
+                  <select 
+                    className="w-full bg-app-card2 border border-white/10 rounded-xl py-3 px-3.5 text-app-text text-sm outline-none cursor-pointer focus:ring-1 focus:ring-app-green/50"
+                    value={board} 
+                    onChange={e => setBoard(e.target.value)}
+                  >
                     {BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
                   </select>
                 </div>
               </div>
 
               <div>
-                <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, display: 'block', marginBottom: 6 }}>{ui.languageLabel}</label>
-                <select style={{ ...inp, cursor: 'pointer' }} value={language} onChange={e => setLang(e.target.value)}>
+                <label className="text-[11px] text-app-muted font-semibold block mb-1.5">{ui.languageLabel}</label>
+                <select 
+                  className="w-full bg-app-card2 border border-white/10 rounded-xl py-3 px-3.5 text-app-text text-sm outline-none cursor-pointer focus:ring-1 focus:ring-app-green/50"
+                  value={language} 
+                  onChange={e => setLang(e.target.value)}
+                >
                   {LANGS.map(l => <option key={l} value={l}>{l}</option>)}
                 </select>
               </div>
 
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <label style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600 }}>{ui.subjectsLabel}</label>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-[11px] text-app-muted font-semibold">{ui.subjectsLabel}</label>
                   <button
                     onClick={() => setSubs(subjects.length === allSubs.length ? [] : [...allSubs])}
-                    style={{ ...linkBtn, fontSize: 11 }}
-                  >{subjects.length === allSubs.length ? ui.deselectAll : ui.selectAll}</button>
+                    className="bg-transparent border-none text-app-green font-semibold text-[11px] cursor-pointer p-0"
+                  >
+                    {subjects.length === allSubs.length ? ui.deselectAll : ui.selectAll}
+                  </button>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                <div className="flex flex-wrap gap-1.5">
                   {allSubs.map(s => (
                     <button
                       key={s}
                       onClick={() => toggleSub(s)}
-                      style={{
-                        padding: '6px 12px', borderRadius: 20, border: 'none', fontSize: 12,
-                        fontFamily: 'Sora, sans-serif', cursor: 'pointer',
-                        background: subjects.includes(s) ? `${COLORS.green}25` : COLORS.card2,
-                        color: subjects.includes(s) ? COLORS.green : COLORS.muted,
-                        outline: subjects.includes(s) ? `1.5px solid ${COLORS.green}60` : '1.5px solid transparent',
-                        fontWeight: subjects.includes(s) ? 700 : 400,
-                      }}
-                    >{s}</button>
+                      className={`py-1.5 px-3 rounded-full border-none text-xs cursor-pointer transition-all
+                        ${subjects.includes(s) 
+                          ? 'bg-app-green/25 text-app-green font-bold ring-1 ring-app-green/60' 
+                          : 'bg-app-card2 text-app-muted font-normal'
+                        }`}
+                    >
+                      {s}
+                    </button>
                   ))}
                 </div>
               </div>
 
-              {error && <div style={{ fontSize: 12, color: COLORS.red, background: `${COLORS.red}15`, borderRadius: 8, padding: '8px 12px' }}>{error}</div>}
+              {error && (
+                <div className="text-xs text-app-red bg-app-red/15 rounded-lg py-2 px-3">{error}</div>
+              )}
 
-              <button onClick={doRegister} disabled={loading} style={{ ...btn, opacity: loading ? 0.7 : 1 }}>
+              <button 
+                onClick={doRegister} 
+                disabled={loading} 
+                className={`w-full py-3.5 rounded-xl border-none bg-gradient-to-br from-app-green to-app-blue text-app-bg font-bold text-[15px] cursor-pointer
+                  ${loading ? 'opacity-70' : 'hover:opacity-90'}`}
+              >
                 {loading ? ui.creatingAccount : ui.startLearning}
               </button>
             </div>
           )}
         </div>
 
-        <div style={{ textAlign: 'center', marginTop: 20, fontSize: 11, color: COLORS.muted, lineHeight: 1.6 }}>
+        <div className="text-center mt-5 text-[11px] text-app-muted leading-relaxed">
           {ui.termsNotice}
         </div>
       </div>

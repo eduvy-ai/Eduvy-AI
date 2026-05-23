@@ -215,85 +215,65 @@ Write entirely in ${profile.language}.`)
   const ui = li(getDisplayLang(profile))
 
   return (
-    <div style={{ padding: "16px 16px 24px", maxWidth: 720, margin: "0 auto" }}>
+    <div className="py-4 px-4 pb-6 max-w-[720px] mx-auto">
 
       {/* ── Mood Check (fresh each day) ───────────────────── */}
       {!mood ? (
-        <div style={{
-          background: COLORS.card, border: `1px solid ${COLORS.border}`,
-          borderRadius: 18, padding: "16px 16px 14px", marginBottom: 14,
-        }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text, marginBottom: 12 }}>
+        <div className="bg-app-card border border-app-border rounded-[18px] pt-4 px-4 pb-3.5 mb-3.5">
+          <div className="text-sm font-bold text-app-text mb-3">
             {ui.moodCheck} 🌱
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="flex gap-2">
             {[
               { key: "fresh",    icon: "😄", labelKey: "moodFresh",    color: COLORS.green  },
               { key: "okay",     icon: "😐", labelKey: "moodOkay",     color: COLORS.blue   },
               { key: "stressed", icon: "😟", labelKey: "moodStressed", color: COLORS.yellow },
               { key: "tired",    icon: "😴", labelKey: "moodTired",    color: COLORS.muted  },
             ].map(m => (
-              <button key={m.key} onClick={() => saveMood(m.key)} style={{
-                flex: 1, background: `${m.color}15`, border: `1px solid ${m.color}30`,
-                borderRadius: 12, padding: "10px 4px", cursor: "pointer",
-                fontFamily: "Sora, sans-serif",
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-              }}>
-                <span style={{ fontSize: 22 }}>{m.icon}</span>
-                <span style={{ fontSize: 10, fontWeight: 700, color: m.color }}>{ui[m.labelKey]?.replace(/^😊|😴|😰|😐\s*/,'') || m.key}</span>
+              <button 
+                key={m.key} 
+                onClick={() => saveMood(m.key)} 
+                className="flex-1 rounded-xl py-2.5 px-1 cursor-pointer font-[Sora,sans-serif] flex flex-col items-center gap-1 border"
+                style={{ background: `${m.color}15`, borderColor: `${m.color}30` }}
+              >
+                <span className="text-[22px]">{m.icon}</span>
+                <span className="text-[10px] font-bold" style={{ color: m.color }}>{ui[m.labelKey]?.replace(/^😊|😴|😰|😐\s*/,'') || m.key}</span>
               </button>
             ))}
           </div>
         </div>
       ) : (
-        <div style={{
-          background: COLORS.card2, border: `1px solid ${COLORS.border}`,
-          borderRadius: 14, padding: "10px 14px", marginBottom: 14,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-        }}>
-          <span style={{ fontSize: 13, color: COLORS.muted }}>
+        <div className="bg-app-card2 border border-app-border rounded-[14px] py-2.5 px-3.5 mb-3.5 flex items-center justify-between">
+          <span className="text-[13px] text-app-muted">
             {mood === "fresh"    && "😄 You're fresh — tackle the hard topics today! 🚀"}
             {mood === "okay"     && "😐 You're doing okay — steady progress wins. 💪"}
             {mood === "stressed" && "😟 You're stressed — quick wins only, no new topics. 🧘"}
             {mood === "tired"    && "😴 You're tired — try Story Mode in the Tutor tab. 📖"}
           </span>
-          <button onClick={() => { setMood(null); localStorage.removeItem('eduvyai_mood') }} style={{
-            background: "transparent", border: "none", fontSize: 11,
-            color: COLORS.muted, cursor: "pointer", fontFamily: "Sora, sans-serif",
-          }}>{ui.change || 'change'}</button>
+          <button 
+            onClick={() => { setMood(null); localStorage.removeItem('eduvyai_mood') }} 
+            className="bg-transparent border-none text-[11px] text-app-muted cursor-pointer font-[Sora,sans-serif]"
+          >{ui.change || 'change'}</button>
         </div>
       )}
 
       {/* ── Hero Card ──────────────────────────────────────── */}
-      <div style={{
-        background: "linear-gradient(135deg, #0b1a2e 0%, #0b1422 60%, #0a1a15 100%)",
-        border: `1px solid ${COLORS.green}25`,
-        borderRadius: 20,
-        padding: "20px 20px 16px",
-        marginBottom: 14,
-        position: "relative",
-        overflow: "hidden",
-      }}>
+      <div className="bg-gradient-to-br from-[#0b1a2e] via-[#0b1422] to-[#0a1a15] border border-app-green/20 rounded-[20px] pt-5 px-5 pb-4 mb-3.5 relative overflow-hidden">
         {/* Decorative glow */}
-        <div style={{
-          position: "absolute", top: -40, right: -40,
-          width: 120, height: 120,
-          background: `radial-gradient(circle, ${COLORS.green}20, transparent 70%)`,
-          pointerEvents: "none",
-        }} />
+        <div className="absolute -top-10 -right-10 w-[120px] h-[120px] bg-[radial-gradient(circle,_#00E5A020,_transparent_70%)] pointer-events-none" />
 
-        <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 4 }}>
+        <div className="text-[13px] text-app-muted mb-1">
           {greeting}
         </div>
-        <h2 style={{ fontSize: 22, fontWeight: 900, color: COLORS.text, margin: "0 0 2px" }}>
+        <h2 className="text-[22px] font-black text-app-text m-0 mb-0.5">
           {profile.name || "Student"} 👋
         </h2>
-        <p style={{ fontSize: 12, color: COLORS.muted, margin: "0 0 16px" }}>
+        <p className="text-xs text-app-muted m-0 mb-4">
           {profile.standard} &nbsp;·&nbsp; {profile.board} &nbsp;·&nbsp; {profile.language}
         </p>
 
         {/* Stats row */}
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="flex gap-2">
           <StatChip icon="⚡" value={`${xp} XP`} color={COLORS.yellow} />
           <StatChip icon="🔥" value={`${streak} day${streak !== 1 ? "s" : ""}`} color={COLORS.orange} />
           <StatChip icon="🧠" value={`${avgMastery}% avg`} color={masteryColor(avgMastery)} />
@@ -302,32 +282,16 @@ Write entirely in ${profile.language}.`)
 
       {/* ── Quick Actions ─────────────────────────────────── */}
       <Section title={`⚡ ${ui.quickActions || 'Quick Actions'}`}>
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: 10,
-        }}>
+        <div className="grid grid-cols-3 gap-2.5">
           {QUICK_ACTION_KEYS.map(btn => (
             <button
               key={btn.labelKey}
               onClick={() => setTab(btn.tab)}
-              style={{
-                background: btn.grad,
-                border: `1px solid ${btn.accent}30`,
-                borderRadius: 14,
-                padding: "14px 8px",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 7,
-                cursor: "pointer",
-                fontFamily: "Sora, sans-serif",
-                minHeight: 76,
-              }}
+              className="rounded-[14px] py-3.5 px-2 flex flex-col items-center justify-center gap-1.5 cursor-pointer font-[Sora,sans-serif] min-h-[76px] border"
+              style={{ background: btn.grad, borderColor: `${btn.accent}30` }}
             >
-              <span style={{ fontSize: 24 }}>{btn.icon}</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: btn.accent, textAlign: "center", lineHeight: 1.2 }}>
+              <span className="text-2xl">{btn.icon}</span>
+              <span className="text-[11px] font-bold text-center leading-tight" style={{ color: btn.accent }}>
                 {ui[btn.labelKey] || btn.labelKey}
               </span>
             </button>
@@ -338,16 +302,20 @@ Write entirely in ${profile.language}.`)
       {/* ── Daily Brain Brief ─────────────────────────────── */}
       <Section title={`🌅 ${ui.dailyBrief?.replace(/^📋\s*/, '') || 'Daily Brain Brief'}`}>
         {!brief ? (
-          <button onClick={generateBrief} disabled={briefLoading} style={primaryBtn}>
+          <button onClick={generateBrief} disabled={briefLoading} className="primary-btn">
             {briefLoading ? `✨ ${ui.generating || 'Generating'}…` : ui.generateBrief || '✨ Generate Today\'s Brief'}
           </button>
         ) : (
           <>
-            <div style={aiCard}>
-              <p style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.8, whiteSpace: "pre-wrap", margin: 0 }}>{brief}</p>
+            <div className="ai-card">
+              <p className="text-[13px] text-app-text leading-[1.8] whitespace-pre-wrap m-0">{brief}</p>
             </div>
-            <button onClick={generateBrief} disabled={briefLoading} style={{ ...ghostBtn, marginTop: 10 }}>
+            <button onClick={generateBrief} disabled={briefLoading} className="ghost-btn mt-2.5">
               {briefLoading ? "Refreshing…" : "↺ Refresh Brief"}
+            </button>
+          </>
+        )}
+      </Section>
             </button>
           </>
         )}
@@ -356,46 +324,45 @@ Write entirely in ${profile.language}.`)
       {/* ── Bhool Curve Memory Health ─────────────────────── */}
       {bhoolDue > 0 && (
         <Section title="🧠 Memory Health — Bhool Curve">
-          <p style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>
+          <p className="text-xs text-app-muted mb-3">
             Based on spaced repetition science — these concepts need review before you forget them
           </p>
-          <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+          <div className="flex gap-2 mb-3.5">
             {bhool.overdue.length > 0 && (
-              <div style={{ flex: 1, background: `${COLORS.red}12`, border: `1px solid ${COLORS.red}30`, borderRadius: 12, padding: "10px 12px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, marginBottom: 4 }}>🔴</div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.red }}>{bhool.overdue.length}</div>
-                <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2 }}>Forget today</div>
+              <div className="flex-1 bg-app-red/10 border border-app-red/30 rounded-xl py-2.5 px-3 text-center">
+                <div className="text-xl mb-1">🔴</div>
+                <div className="text-lg font-black text-app-red">{bhool.overdue.length}</div>
+                <div className="text-[10px] text-app-muted mt-0.5">Forget today</div>
               </div>
             )}
             {bhool.soon.length > 0 && (
-              <div style={{ flex: 1, background: `${COLORS.yellow}12`, border: `1px solid ${COLORS.yellow}30`, borderRadius: 12, padding: "10px 12px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, marginBottom: 4 }}>🟡</div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.yellow }}>{bhool.soon.length}</div>
-                <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2 }}>Due in 48h</div>
+              <div className="flex-1 bg-app-yellow/10 border border-app-yellow/30 rounded-xl py-2.5 px-3 text-center">
+                <div className="text-xl mb-1">🟡</div>
+                <div className="text-lg font-black text-app-yellow">{bhool.soon.length}</div>
+                <div className="text-[10px] text-app-muted mt-0.5">Due in 48h</div>
               </div>
             )}
             {bhool.fresh.length > 0 && (
-              <div style={{ flex: 1, background: `${COLORS.green}10`, border: `1px solid ${COLORS.green}25`, borderRadius: 12, padding: "10px 12px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, marginBottom: 4 }}>🟢</div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.green }}>{bhool.fresh.length}</div>
-                <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2 }}>Fresh</div>
+              <div className="flex-1 bg-app-green/10 border border-app-green/20 rounded-xl py-2.5 px-3 text-center">
+                <div className="text-xl mb-1">🟢</div>
+                <div className="text-lg font-black text-app-green">{bhool.fresh.length}</div>
+                <div className="text-[10px] text-app-muted mt-0.5">Fresh</div>
               </div>
             )}
           </div>
-          <div style={{ marginBottom: 10 }}>
+          <div className="mb-2.5">
             {bhool.overdue.slice(0, 4).map((item, i) => (
-              <div key={i} style={{
-                display: "flex", alignItems: "center", gap: 8,
-                background: COLORS.card2, borderRadius: 8, padding: "7px 10px", marginBottom: 6,
-                border: `1px solid ${COLORS.red}20`,
-              }}>
-                <span style={{ fontSize: 10, background: COLORS.red, color: "#fff", borderRadius: 4, padding: "1px 6px", fontWeight: 700 }}>REVIEW</span>
-                <span style={{ fontSize: 12, color: COLORS.text, fontWeight: 600 }}>{item.concept}</span>
-                <span style={{ fontSize: 11, color: COLORS.muted, marginLeft: "auto" }}>{item.subject}</span>
+              <div 
+                key={i} 
+                className="flex items-center gap-2 bg-app-card2 rounded-lg py-1.5 px-2.5 mb-1.5 border border-app-red/20"
+              >
+                <span className="text-[10px] bg-app-red text-white rounded py-px px-1.5 font-bold">REVIEW</span>
+                <span className="text-xs text-app-text font-semibold">{item.concept}</span>
+                <span className="text-[11px] text-app-muted ml-auto">{item.subject}</span>
               </div>
             ))}
           </div>
-          <button onClick={() => setTab('labs')} style={primaryBtn}>
+          <button onClick={() => setTab('labs')} className="primary-btn">
             ⚡ Quick Revise Now
           </button>
         </Section>
@@ -403,45 +370,40 @@ Write entirely in ${profile.language}.`)
 
       {/* ── Mera Sawaal — Hyper-local Daily Problem ──────── */}
       <Section title="🎯 Mera Sawaal — Today's Challenge">
-        <p style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>
+        <p className="text-xs text-app-muted mb-3">
           A real-world problem using examples from your own state and culture
         </p>
         {!dailyQ ? (
-          <button onClick={generateDailyQ} disabled={dailyQLoad} style={primaryBtn}>
+          <button onClick={generateDailyQ} disabled={dailyQLoad} className="primary-btn">
             {dailyQLoad ? "🎲 Generating…" : "🎲 Get Today's Problem"}
           </button>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <div style={{
-              background: COLORS.card2, border: `1px solid ${COLORS.blue}25`,
-              borderRadius: 14, padding: 14,
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.blue, background: `${COLORS.blue}18`, borderRadius: 6, padding: "2px 8px" }}>
+          <div className="flex flex-col gap-2.5">
+            <div className="bg-app-card2 border border-app-blue/20 rounded-[14px] p-3.5">
+              <div className="flex items-center gap-1.5 mb-2">
+                <span className="text-[11px] font-bold text-app-blue bg-app-blue/15 rounded-md py-0.5 px-2">
                   {dailyQ.subject}
                 </span>
-                <span style={{ fontSize: 11, color: COLORS.muted }}>{dailyQ.concept}</span>
+                <span className="text-[11px] text-app-muted">{dailyQ.concept}</span>
               </div>
-              <p style={{ fontSize: 14, color: COLORS.text, fontWeight: 600, lineHeight: 1.6, margin: 0 }}>
+              <p className="text-sm text-app-text font-semibold leading-relaxed m-0">
                 {dailyQ.q}
               </p>
             </div>
             {!dailyAns ? (
-              <button onClick={() => { setDailyAns(true); addXp(8) }} style={{
-                ...primaryBtn,
-                background: `${COLORS.yellow}20`,
-                border: `1px solid ${COLORS.yellow}40`,
-                color: COLORS.yellow,
-              }}>
+              <button 
+                onClick={() => { setDailyAns(true); addXp(8) }} 
+                className="primary-btn bg-app-yellow/20 border border-app-yellow/40 !text-app-yellow"
+              >
                 💡 Show Solution (+8 XP)
               </button>
             ) : (
-              <div style={{ background: `${COLORS.green}10`, border: `1px solid ${COLORS.green}25`, borderRadius: 12, padding: 14 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.green, marginBottom: 6 }}>✅ Solution</div>
-                <p style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.7, whiteSpace: "pre-wrap", margin: 0 }}>{dailyQ.a}</p>
+              <div className="bg-app-green/10 border border-app-green/20 rounded-xl p-3.5">
+                <div className="text-xs font-bold text-app-green mb-1.5">✅ Solution</div>
+                <p className="text-[13px] text-app-text leading-[1.7] whitespace-pre-wrap m-0">{dailyQ.a}</p>
               </div>
             )}
-            <button onClick={generateDailyQ} disabled={dailyQLoad} style={ghostBtn}>
+            <button onClick={generateDailyQ} disabled={dailyQLoad} className="ghost-btn">
               {dailyQLoad ? "Generating…" : "↺ New Problem"}
             </button>
           </div>
@@ -450,10 +412,10 @@ Write entirely in ${profile.language}.`)
 
       {/* ── Subject Mastery ───────────────────────────────── */}
       <Section title="📚 Subject Mastery">
-        <p style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>
+        <p className="text-xs text-app-muted mb-3">
           Tap a subject to get a personalised study plan
         </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="flex flex-col gap-2">
           {subjects.map(sub => {
             const pct = masteries[sub] ?? 0
             const color = pct === 0 ? COLORS.muted : masteryColor(pct)
@@ -462,40 +424,32 @@ Write entirely in ${profile.language}.`)
               <button
                 key={sub}
                 onClick={() => tapSubject(sub)}
+                className="rounded-[14px] py-3 px-3.5 cursor-pointer font-[Sora,sans-serif] text-left transition-all duration-150 border"
                 style={{
                   background: isSelected ? `${color}12` : COLORS.card2,
-                  border: `1px solid ${isSelected ? color + "50" : COLORS.border}`,
-                  borderRadius: 14,
-                  padding: "12px 14px",
-                  cursor: "pointer",
-                  fontFamily: "Sora, sans-serif",
-                  textAlign: "left",
-                  transition: "border-color 0.15s, background 0.15s",
+                  borderColor: isSelected ? `${color}50` : COLORS.border,
                 }}
               >
                 {/* Top row */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 18 }}>{subIcon(sub)}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.text }}>{sub}</span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{subIcon(sub)}</span>
+                    <span className="text-[13px] font-bold text-app-text">{sub}</span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ fontSize: 11, color, fontWeight: 700 }}>{masteryLabel(pct, getDisplayLang(profile))}</span>
-                    <span style={{
-                      fontSize: 12, fontWeight: 900, color,
-                      background: `${color}15`, borderRadius: 8, padding: "2px 8px",
-                    }}>{pct}%</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-bold" style={{ color }}>{masteryLabel(pct, getDisplayLang(profile))}</span>
+                    <span 
+                      className="text-xs font-black rounded-lg py-0.5 px-2"
+                      style={{ color, background: `${color}15` }}
+                    >{pct}%</span>
                   </div>
                 </div>
                 {/* Progress bar */}
-                <div style={{ height: 5, background: "#ffffff10", borderRadius: 999, overflow: "hidden" }}>
-                  <div style={{
-                    height: "100%",
-                    width: `${pct}%`,
-                    background: `linear-gradient(90deg, ${color}, ${color}bb)`,
-                    borderRadius: 999,
-                    transition: "width 0.6s ease",
-                  }} />
+                <div className="h-[5px] bg-white/5 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full rounded-full transition-[width] duration-[600ms] ease-out"
+                    style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${color}, ${color}bb)` }}
+                  />
                 </div>
               </button>
             )
@@ -504,15 +458,15 @@ Write entirely in ${profile.language}.`)
 
         {/* Study plan output */}
         {(subLoading || subPlan) && (
-          <div style={{ marginTop: 12 }}>
+          <div className="mt-3">
             {subLoading
               ? <LoadingDots label={`Generating plan for ${selectedSub}…`} />
               : (
-                <div style={{ ...aiCard, borderColor: `${masteryColor(masteries[selectedSub] ?? 0)}30` }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: masteryColor(masteries[selectedSub] ?? 0), marginBottom: 6 }}>
+                <div className="ai-card" style={{ borderColor: `${masteryColor(masteries[selectedSub] ?? 0)}30` }}>
+                  <div className="text-xs font-bold mb-1.5" style={{ color: masteryColor(masteries[selectedSub] ?? 0) }}>
                     📋 Study Plan — {selectedSub}
                   </div>
-                  <p style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.8, whiteSpace: "pre-wrap", margin: 0 }}>{subPlan}</p>
+                  <p className="text-[13px] text-app-text leading-[1.8] whitespace-pre-wrap m-0">{subPlan}</p>
                 </div>
               )
             }
@@ -522,48 +476,40 @@ Write entirely in ${profile.language}.`)
 
       {/* ── Exam Oracle ───────────────────────────────────── */}
       <Section title="🔮 Exam Oracle">
-        <p style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>
+        <p className="text-xs text-app-muted mb-3">
           AI predicts the most likely topics for your {profile.board} {profile.standard} exam
         </p>
         {!oracleTopics.length ? (
-          <button onClick={generateOracle} disabled={oracleLoading} style={primaryBtn}>
+          <button onClick={generateOracle} disabled={oracleLoading} className="primary-btn">
             {oracleLoading ? "🔮 Predicting…" : "⚡ Predict This Year's Topics"}
           </button>
         ) : (
           <>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="flex flex-col gap-2">
               {oracleTopics.map((t, i) => {
                 const topicColor = t.pct >= 80 ? COLORS.red : t.pct >= 60 ? COLORS.yellow : COLORS.green
                 return (
                   <button
                     key={i}
                     onClick={() => deepDive(t)}
+                    className="rounded-xl py-3 px-3.5 flex items-center justify-between cursor-pointer font-[Sora,sans-serif] text-left border"
                     style={{
                       background: oracleSel?.topic === t.topic ? `${topicColor}12` : COLORS.card2,
-                      border: `1px solid ${oracleSel?.topic === t.topic ? topicColor + "50" : COLORS.border}`,
-                      borderRadius: 12,
-                      padding: "12px 14px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      cursor: "pointer",
-                      fontFamily: "Sora, sans-serif",
-                      textAlign: "left",
+                      borderColor: oracleSel?.topic === t.topic ? `${topicColor}50` : COLORS.border,
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{
-                        fontSize: 11, fontWeight: 800, color: topicColor,
-                        background: `${topicColor}15`, borderRadius: 6,
-                        padding: "2px 7px", minWidth: 20, textAlign: "center",
-                      }}>{i + 1}</span>
-                      <span style={{ fontSize: 13, color: COLORS.text, fontWeight: 600 }}>{t.topic}</span>
+                    <div className="flex items-center gap-2.5">
+                      <span 
+                        className="text-[11px] font-extrabold rounded-md py-0.5 px-1.5 min-w-[20px] text-center"
+                        style={{ color: topicColor, background: `${topicColor}15` }}
+                      >{i + 1}</span>
+                      <span className="text-[13px] text-app-text font-semibold">{t.topic}</span>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                      <div style={{ width: 48, height: 4, background: "#ffffff10", borderRadius: 999, overflow: "hidden" }}>
-                        <div style={{ width: `${t.pct}%`, height: "100%", background: topicColor, borderRadius: 999 }} />
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="w-12 h-1 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${t.pct}%`, background: topicColor }} />
                       </div>
-                      <span style={{ fontSize: 12, fontWeight: 900, color: topicColor, minWidth: 32, textAlign: "right" }}>{t.pct}%</span>
+                      <span className="text-xs font-black min-w-[32px] text-right" style={{ color: topicColor }}>{t.pct}%</span>
                     </div>
                   </button>
                 )
@@ -572,7 +518,7 @@ Write entirely in ${profile.language}.`)
             <button
               onClick={generateOracle}
               disabled={oracleLoading}
-              style={{ ...ghostBtn, marginTop: 10 }}
+              className="ghost-btn mt-2.5"
             >
               {oracleLoading ? "Predicting…" : "↺ Re-predict"}
             </button>
@@ -580,15 +526,15 @@ Write entirely in ${profile.language}.`)
         )}
 
         {(deepLoading || oracleDeep) && (
-          <div style={{ marginTop: 12 }}>
+          <div className="mt-3">
             {deepLoading
               ? <LoadingDots label={`Deep diving into ${oracleSel?.topic}…`} />
               : (
-                <div style={{ ...aiCard, borderColor: `${COLORS.yellow}30` }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.yellow, marginBottom: 6 }}>
+                <div className="ai-card border-app-yellow/30">
+                  <div className="text-xs font-bold text-app-yellow mb-1.5">
                     🔮 Deep Dive — {oracleSel?.topic}
                   </div>
-                  <p style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.8, whiteSpace: "pre-wrap", margin: 0 }}>{oracleDeep}</p>
+                  <p className="text-[13px] text-app-text leading-[1.8] whitespace-pre-wrap m-0">{oracleDeep}</p>
                 </div>
               )
             }
@@ -613,20 +559,10 @@ function getTimeGreeting(lang) {
 
 function StatChip({ icon, value, color }) {
   return (
-    <div style={{
-      background: `${color}15`,
-      border: `1px solid ${color}30`,
-      borderRadius: 20,
-      padding: "5px 12px",
-      display: "flex",
-      alignItems: "center",
-      gap: 5,
-      fontSize: 12,
-      fontWeight: 700,
-      color,
-      flex: 1,
-      justifyContent: "center",
-    }}>
+    <div 
+      className="rounded-full py-1.5 px-3 flex items-center gap-1.5 text-xs font-bold flex-1 justify-center border"
+      style={{ background: `${color}15`, borderColor: `${color}30`, color }}
+    >
       <span>{icon}</span>
       <span>{value}</span>
     </div>
@@ -635,65 +571,28 @@ function StatChip({ icon, value, color }) {
 
 function LoadingDots({ label }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 0", justifyContent: "center" }}>
-      <div style={{ display: "flex", gap: 4 }}>
+    <div className="flex items-center gap-2 py-2.5 justify-center">
+      <div className="flex gap-1">
         {[0, 1, 2].map(i => (
-          <div key={i} style={{
-            width: 6, height: 6, borderRadius: "50%",
-            background: COLORS.green, opacity: 0.6,
-            animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
-          }} />
+          <div 
+            key={i} 
+            className="w-1.5 h-1.5 rounded-full bg-app-green opacity-60"
+            style={{ animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite` }}
+          />
         ))}
       </div>
-      <span style={{ fontSize: 12, color: COLORS.muted }}>{label}</span>
+      <span className="text-xs text-app-muted">{label}</span>
     </div>
   )
 }
 
 function Section({ title, children }) {
   return (
-    <div style={{
-      background: COLORS.card,
-      border: `1px solid ${COLORS.border}`,
-      borderRadius: 18,
-      padding: 16,
-      marginBottom: 14,
-    }}>
-      <h3 style={{ fontSize: 14, fontWeight: 800, color: COLORS.text, marginBottom: 12 }}>{title}</h3>
+    <div className="bg-app-card border border-app-border rounded-[18px] p-4 mb-3.5">
+      <h3 className="text-sm font-extrabold text-app-text mb-3">{title}</h3>
       {children}
     </div>
   )
 }
 
-const primaryBtn = {
-  background: "linear-gradient(135deg, #00E5A0, #33cc88)",
-  color: "#04040e",
-  border: "none",
-  borderRadius: 13,
-  padding: "12px 18px",
-  fontSize: 13,
-  fontWeight: 800,
-  cursor: "pointer",
-  width: "100%",
-  fontFamily: "Sora, sans-serif",
-}
-
-const ghostBtn = {
-  background: "transparent",
-  color: COLORS.muted,
-  border: `1px solid ${COLORS.border}`,
-  borderRadius: 10,
-  padding: "8px 14px",
-  fontSize: 12,
-  fontWeight: 600,
-  cursor: "pointer",
-  width: "100%",
-  fontFamily: "Sora, sans-serif",
-}
-
-const aiCard = {
-  background: COLORS.card2,
-  border: `1px solid ${COLORS.border}`,
-  borderRadius: 14,
-  padding: 16,
-}
+// Note: primaryBtn, ghostBtn, aiCard classes are defined in index.css

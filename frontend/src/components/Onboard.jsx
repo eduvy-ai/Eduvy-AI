@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { COLORS, BOARDS, LANGS, SUBS } from '../shared.js'
+import { BOARDS, LANGS, SUBS } from '../shared.js'
 import { getDeviceId, apiCreateProfile, apiApplyReferralCode } from '../api.js'
 import { li } from '../i18n/index.js'
 
@@ -51,19 +51,9 @@ async function fetchSubjects(board, standard, medium) {
   return SUBS[standard] || [] // fallback
 }
 
-const inputStyle = {
-  width: "100%",
-  background: "#101022",
-  border: "1px solid #ffffff15",
-  borderRadius: 12,
-  padding: "12px 14px",
-  color: "#eeeeff",
-  fontSize: 14,
-  fontFamily: "Sora, sans-serif",
-  outline: "none",
-}
-
-const selectStyle = { ...inputStyle, cursor: "pointer" }
+// Tailwind class constants for reuse
+const inputClass = "w-full bg-app-card2 border border-white/10 rounded-xl py-3 px-3.5 text-app-text text-sm outline-none focus:ring-1 focus:ring-app-green/50"
+const selectClass = "w-full bg-app-card2 border border-white/10 rounded-xl py-3 px-3.5 text-app-text text-sm outline-none cursor-pointer focus:ring-1 focus:ring-app-green/50"
 
 export default function Onboard({ onComplete }) {
   const [step, setStep]           = useState(1)
@@ -161,69 +151,46 @@ export default function Onboard({ onComplete }) {
   const ui = li(language)
 
   return (
-    <div style={{
-      width: "100%",
-      maxWidth: 480,
-      minHeight: "100vh",
-      background: COLORS.bg,
-      display: "flex",
-      flexDirection: "column",
-    }}>
+    <div className="w-full max-w-[480px] min-h-screen bg-app-bg flex flex-col">
       {/* Progress bar */}
-      <div style={{
-        height: 3,
-        background: "#ffffff10",
-        width: "100%",
-      }}>
-        <div style={{
-          height: "100%",
-          width: `${(step / 3) * 100}%`,
-          background: `linear-gradient(90deg, ${COLORS.green}, #33cc88)`,
-          transition: "width 0.4s ease",
-        }} />
+      <div className="h-[3px] bg-white/10 w-full">
+        <div 
+          className="h-full bg-gradient-to-r from-app-green to-emerald-400 transition-[width] duration-400"
+          style={{ width: `${(step / 3) * 100}%` }}
+        />
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "28px 20px 40px" }}>
+      <div className="flex-1 overflow-y-auto p-5 pb-10 pt-7">
         {/* Step indicator */}
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          marginBottom: 24,
-        }}>
+        <div className="flex items-center gap-2 mb-6">
           {[1,2,3].map(s => (
-            <div key={s} style={{
-              width: s === step ? 28 : 8,
-              height: 8,
-              borderRadius: 4,
-              background: s <= step ? COLORS.green : "#ffffff15",
-              transition: "all 0.3s ease",
-            }} />
+            <div 
+              key={s} 
+              className={`h-2 rounded transition-all duration-300 ${
+                s <= step ? 'bg-app-green' : 'bg-white/10'
+              } ${s === step ? 'w-7' : 'w-2'}`}
+            />
           ))}
-          <span style={{ marginLeft: 4, fontSize: 12, color: COLORS.muted }}>
+          <span className="ml-1 text-xs text-app-muted">
             Step {step} of 3
           </span>
         </div>
 
         {/* ── Step 1: Personal Details ── */}
         {step === 1 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="flex flex-col gap-4">
             <div>
-              <h2 style={{ fontSize: 22, fontWeight: 800, color: COLORS.text, marginBottom: 4 }}>
+              <h2 className="text-[22px] font-extrabold text-app-text mb-1">
                 {ui.welcome} 👋
               </h2>
-              <p style={{ fontSize: 14, color: COLORS.muted }}>
-                {ui.setupProfile}
-              </p>
+              <p className="text-sm text-app-muted">{ui.setupProfile}</p>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div className="flex flex-col gap-3">
               <div>
-                <label style={{ fontSize: 12, color: COLORS.muted, fontWeight: 600, marginBottom: 6, display: "block" }}>
-                  {ui.yourName} *
-                </label>
+                <label className="text-xs text-app-muted font-semibold mb-1.5 block">{ui.yourName} *</label>
                 <input
-                  style={inputStyle}
+                  className={inputClass}
                   type="text"
                   placeholder={ui.namePlaceholder}
                   value={name}
@@ -232,11 +199,9 @@ export default function Onboard({ onComplete }) {
               </div>
 
               <div>
-                <label style={{ fontSize: 12, color: COLORS.muted, fontWeight: 600, marginBottom: 6, display: "block" }}>
-                  {ui.yourMobile}
-                </label>
+                <label className="text-xs text-app-muted font-semibold mb-1.5 block">{ui.yourMobile}</label>
                 <input
-                  style={inputStyle}
+                  className={inputClass}
                   type="tel"
                   placeholder={ui.mobilePlaceholder}
                   value={mobile}
@@ -246,11 +211,9 @@ export default function Onboard({ onComplete }) {
               </div>
 
               <div>
-                <label style={{ fontSize: 12, color: COLORS.muted, fontWeight: 600, marginBottom: 6, display: "block" }}>
-                  {ui.parentMobile}
-                </label>
+                <label className="text-xs text-app-muted font-semibold mb-1.5 block">{ui.parentMobile}</label>
                 <input
-                  style={inputStyle}
+                  className={inputClass}
                   type="tel"
                   placeholder={ui.parentMobilePlaceholder}
                   value={parent}
@@ -260,45 +223,31 @@ export default function Onboard({ onComplete }) {
               </div>
 
               <div>
-                <label style={{ fontSize: 12, color: COLORS.muted, fontWeight: 600, marginBottom: 6, display: "block" }}>
-                  {ui.classLabel}
-                </label>
-                <select style={selectStyle} value={standard} onChange={e => setStd(e.target.value)}>
+                <label className="text-xs text-app-muted font-semibold mb-1.5 block">{ui.classLabel}</label>
+                <select className={selectClass} value={standard} onChange={e => setStd(e.target.value)}>
                   {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
 
               <div>
-                <label style={{ fontSize: 12, color: COLORS.muted, fontWeight: 600, marginBottom: 6, display: "block" }}>
-                  {ui.boardLabel}
-                </label>
-                <select style={selectStyle} value={board} onChange={e => setBoard(e.target.value)}>
+                <label className="text-xs text-app-muted font-semibold mb-1.5 block">{ui.boardLabel}</label>
+                <select className={selectClass} value={board} onChange={e => setBoard(e.target.value)}>
                   {boardList.map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
 
               <div>
-                <label style={{ fontSize: 12, color: COLORS.muted, fontWeight: 600, marginBottom: 6, display: "block" }}>
-                  {ui.languageLabel}
-                </label>
-                <select style={selectStyle} value={language} onChange={e => setLang(e.target.value)}>
+                <label className="text-xs text-app-muted font-semibold mb-1.5 block">{ui.languageLabel}</label>
+                <select className={selectClass} value={language} onChange={e => setLang(e.target.value)}>
                   {mediumList.map(l => <option key={l} value={l}>{l}</option>)}
                 </select>
-                <div style={{
-                  marginTop: 8,
-                  padding: "8px 12px",
-                  background: `${COLORS.green}18`,
-                  border: `1px solid ${COLORS.green}30`,
-                  borderRadius: 8,
-                  fontSize: 12,
-                  color: COLORS.green,
-                }}>
+                <div className="mt-2 py-2 px-3 bg-app-green/15 border border-app-green/30 rounded-lg text-xs text-app-green">
                   ✓ {ui.aiInLanguage.replace('{language}', language)}
                 </div>
               </div>
             </div>
 
-            <button onClick={goStep2} style={primaryBtn}>
+            <button onClick={goStep2} className="w-full py-3 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 text-app-bg font-extrabold text-sm cursor-pointer">
               {ui.next}
             </button>
           </div>
@@ -306,56 +255,38 @@ export default function Onboard({ onComplete }) {
 
         {/* ── Step 2: Subject Selection ── */}
         {step === 2 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="flex flex-col gap-4">
             <div>
-              <h2 style={{ fontSize: 22, fontWeight: 800, color: COLORS.text, marginBottom: 4 }}>
+              <h2 className="text-[22px] font-extrabold text-app-text mb-1">
                 {ui.pickSubjects} 📚
               </h2>
-              <p style={{ fontSize: 14, color: COLORS.muted }}>
+              <p className="text-sm text-app-muted">
                 {standard} • {board} • {language}
               </p>
             </div>
 
             <button
               onClick={selectAll}
-              style={{
-                background: "transparent",
-                border: `1px solid ${COLORS.green}`,
-                borderRadius: 10,
-                padding: "8px 14px",
-                color: COLORS.green,
-                fontSize: 13,
-                fontWeight: 700,
-                fontFamily: "Sora, sans-serif",
-                cursor: "pointer",
-                width: "fit-content",
-              }}
+              className="bg-transparent border border-app-green rounded-xl py-2 px-3.5 text-app-green text-sm font-bold cursor-pointer w-fit"
             >
               ✓ {ui.selectAll}
             </button>
 
             {loadingSubs ? (
-              <p style={{ fontSize: 13, color: COLORS.muted }}>{ui.loadingSubjects}</p>
+              <p className="text-sm text-app-muted">{ui.loadingSubjects}</p>
             ) : (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              <div className="flex flex-wrap gap-2.5">
                 {subjectList.map(s => {
                   const selected = subjects.includes(s)
                   return (
                     <button
                       key={s}
                       onClick={() => toggleSub(s)}
-                      style={{
-                        background: selected ? `${COLORS.green}20` : COLORS.card,
-                        border: `1.5px solid ${selected ? COLORS.green : COLORS.border}`,
-                        borderRadius: 10,
-                        padding: "9px 14px",
-                        color: selected ? COLORS.green : COLORS.text,
-                        fontSize: 13,
-                        fontWeight: selected ? 700 : 500,
-                        fontFamily: "Sora, sans-serif",
-                        cursor: "pointer",
-                        transition: "all 0.2s",
-                      }}
+                      className={`rounded-xl py-2 px-3.5 text-sm cursor-pointer transition-all ${
+                        selected 
+                          ? 'bg-app-green/20 border-[1.5px] border-app-green text-app-green font-bold'
+                          : 'bg-app-card border-[1.5px] border-app-border text-app-text font-medium'
+                      }`}
                     >
                       {selected ? "✓ " : ""}{s}
                     </button>
@@ -364,9 +295,11 @@ export default function Onboard({ onComplete }) {
               </div>
             )}
 
-            <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setStep(1)} style={secondaryBtn}>← {ui.back}</button>
-              <button onClick={goStep3} style={{ ...primaryBtn, flex: 1 }}>
+            <div className="flex gap-2.5">
+              <button onClick={() => setStep(1)} className="bg-transparent border border-white/10 rounded-xl py-3 px-4 text-sm font-semibold text-app-text cursor-pointer">
+                ← {ui.back}
+              </button>
+              <button onClick={goStep3} className="flex-1 py-3 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 text-app-bg font-extrabold text-sm cursor-pointer">
                 {ui.next}
               </button>
             </div>
@@ -375,45 +308,35 @@ export default function Onboard({ onComplete }) {
 
         {/* ── Step 3: Confirmation ── */}
         {step === 3 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <div className="flex flex-col gap-5">
             <div>
-              <h2 style={{ fontSize: 22, fontWeight: 800, color: COLORS.text, marginBottom: 4 }}>
+              <h2 className="text-[22px] font-extrabold text-app-text mb-1">
                 {ui.allSet.replace('{name}', name)} 🎉
               </h2>
-              <p style={{ fontSize: 14, color: COLORS.muted }}>
-                {ui.tutorReady}
-              </p>
+              <p className="text-sm text-app-muted">{ui.tutorReady}</p>
             </div>
 
             {/* Profile Summary */}
-            <div style={{
-              background: COLORS.card,
-              border: `1px solid ${COLORS.border}`,
-              borderRadius: 14,
-              padding: 16,
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-            }}>
+            <div className="bg-app-card border border-app-border rounded-xl p-4 flex flex-col gap-2.5">
               {[
                 ["🎓", ui.classLabel, standard],
                 ["📋", ui.boardLabel, board],
                 ["🌐", ui.languageLabel, language],
                 ["📚", ui.subjectsLabel, (subjects.length ? subjects : subjectList).join(", ")],
               ].map(([icon, label, value]) => (
-                <div key={label} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <div key={label} className="flex gap-2.5 items-start">
                   <span>{icon}</span>
                   <div>
-                    <div style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600 }}>{label}</div>
-                    <div style={{ fontSize: 13, color: COLORS.text, fontWeight: 500 }}>{value}</div>
+                    <div className="text-[11px] text-app-muted font-semibold">{label}</div>
+                    <div className="text-sm text-app-text font-medium">{value}</div>
                   </div>
                 </div>
               ))}
             </div>
 
             {/* Features list */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <p style={{ fontSize: 12, color: COLORS.muted, fontWeight: 600 }}>{ui.whatsAvailable}</p>
+            <div className="flex flex-col gap-2">
+              <p className="text-xs text-app-muted font-semibold">{ui.whatsAvailable}</p>
               {[
                 `🏠 ${ui.featureDailyBrief}`,
                 `📖 ${ui.featureAiNotes}`,
@@ -424,17 +347,15 @@ export default function Onboard({ onComplete }) {
                 `✍️ ${ui.featureEssay}`,
                 `🧘 ${ui.featureWellness}`,
               ].map(f => (
-                <div key={f} style={{ fontSize: 13, color: COLORS.text, display: "flex", alignItems: "center", gap: 6 }}>
-                  {f}
-                </div>
+                <div key={f} className="text-sm text-app-text flex items-center gap-1.5">{f}</div>
               ))}
             </div>
 
             {/* Referral code */}
-            <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 16 }}>
-              <div style={{ fontSize: 12, color: COLORS.muted, fontWeight: 700, marginBottom: 8 }}>{ui.gotReferralCode}</div>
+            <div className="bg-app-card border border-app-border rounded-xl p-4">
+              <div className="text-xs text-app-muted font-bold mb-2">{ui.gotReferralCode}</div>
               <input
-                style={inputStyle}
+                className={inputClass}
                 type="text"
                 placeholder={ui.referralPlaceholder}
                 value={refCode}
@@ -442,19 +363,21 @@ export default function Onboard({ onComplete }) {
                 maxLength={10}
               />
               {refMsg && (
-                <div style={{ fontSize: 12, color: refMsg.startsWith('✅') ? COLORS.green : COLORS.red, marginTop: 6 }}>{refMsg}</div>
+                <div className={`text-xs mt-1.5 ${refMsg.startsWith('✅') ? 'text-app-green' : 'text-app-red'}`}>
+                  {refMsg}
+                </div>
               )}
-              <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 6 }}>
-                {ui.referralBonus}
-              </div>
+              <div className="text-[11px] text-app-muted mt-1.5">{ui.referralBonus}</div>
             </div>
 
-            <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setStep(2)} style={secondaryBtn}>← {ui.back}</button>
+            <div className="flex gap-2.5">
+              <button onClick={() => setStep(2)} className="bg-transparent border border-white/10 rounded-xl py-3 px-4 text-sm font-semibold text-app-text cursor-pointer">
+                ← {ui.back}
+              </button>
               <button
                 onClick={finish}
                 disabled={saving}
-                style={{ ...primaryBtn, flex: 1, opacity: saving ? 0.6 : 1 }}
+                className={`flex-1 py-3 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 text-app-bg font-extrabold text-sm cursor-pointer ${saving ? 'opacity-60' : ''}`}
               >
                 {saving ? `${ui.saving}...` : ui.start}
               </button>
@@ -464,29 +387,4 @@ export default function Onboard({ onComplete }) {
       </div>
     </div>
   )
-}
-
-const primaryBtn = {
-  background: "linear-gradient(135deg, #00E5A0, #33cc88)",
-  color: "#04040e",
-  border: "none",
-  borderRadius: 13,
-  padding: "13px 18px",
-  fontSize: 14,
-  fontWeight: 800,
-  cursor: "pointer",
-  width: "100%",
-  fontFamily: "Sora, sans-serif",
-}
-
-const secondaryBtn = {
-  background: "transparent",
-  border: "1px solid #ffffff15",
-  borderRadius: 13,
-  padding: "13px 18px",
-  fontSize: 14,
-  fontWeight: 600,
-  color: "#eeeeff",
-  cursor: "pointer",
-  fontFamily: "Sora, sans-serif",
 }

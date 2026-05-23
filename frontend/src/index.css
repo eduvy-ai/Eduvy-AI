@@ -4,6 +4,70 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════════
+   REUSABLE COMPONENT CLASSES — use these for migration
+   ═══════════════════════════════════════════════════════ */
+@layer components {
+  /* Inputs & Selects */
+  .input-base {
+    @apply w-full bg-app-card2 border border-white/10 rounded-xl py-3 px-3.5 text-app-text text-sm outline-none focus:ring-1 focus:ring-app-green/50;
+  }
+  
+  /* Primary gradient button */
+  .btn-primary {
+    @apply w-full py-3.5 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 text-app-bg font-bold text-[15px] cursor-pointer hover:opacity-90 disabled:opacity-60;
+  }
+  
+  /* Secondary/ghost button */
+  .btn-secondary {
+    @apply bg-transparent border border-white/10 rounded-xl py-3 px-4 text-sm font-semibold text-app-text cursor-pointer hover:bg-white/5;
+  }
+  
+  /* Link-style button */
+  .btn-link {
+    @apply bg-transparent border-none text-app-green font-semibold cursor-pointer p-0;
+  }
+  
+  /* Card */
+  .card {
+    @apply bg-app-card border border-app-border rounded-2xl p-4;
+  }
+  
+  /* Label */
+  .label {
+    @apply block text-[11px] font-bold text-app-muted mb-1.5 tracking-wide;
+  }
+  
+  /* Error message */
+  .error-msg {
+    @apply text-xs text-app-red bg-app-red/15 rounded-lg py-2 px-3;
+  }
+  
+  /* Tag/pill */
+  .tag {
+    @apply py-1.5 px-3 rounded-full text-xs font-medium;
+  }
+  .tag-green {
+    @apply bg-app-green/20 text-app-green border border-app-green/40;
+  }
+  .tag-blue {
+    @apply bg-app-blue/15 text-app-blue border border-app-blue/30;
+  }
+
+  /* HomeTab / Tab-specific buttons */
+  .primary-btn {
+    @apply w-full py-3 px-[18px] rounded-[13px] border-none bg-gradient-to-br from-app-green to-[#33cc88] text-app-bg text-[13px] font-extrabold cursor-pointer font-[Sora,sans-serif];
+  }
+  
+  .ghost-btn {
+    @apply w-full py-2 px-3.5 rounded-[10px] bg-transparent border border-app-border text-app-muted text-xs font-semibold cursor-pointer font-[Sora,sans-serif];
+  }
+  
+  .ai-card {
+    @apply bg-app-card2 border border-app-border rounded-[14px] p-4;
+  }
+}
+
 @layer base {
   *, *::before, *::after {
     box-sizing: border-box;
