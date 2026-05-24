@@ -107,3 +107,37 @@ textarea:focus {
     @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500;
   }
 }
+
+/* Select dropdown styling */
+select {
+  background-image: none !important;
+}
+
+select option {
+  background-color: #101022;
+  color: #eeeeff;
+  padding: 8px 12px;
+}
+
+select option:hover,
+select option:checked {
+  background-color: #00E5A0;
+  color: #04040e;
+}
+
+/* Improve focus visibility */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 229, 160, 0.3);
+}
+
+/* Smooth transitions for all interactive elements */
+button,
+input,
+select,
+textarea,
+a {
+  transition: all 0.15s ease;
+}

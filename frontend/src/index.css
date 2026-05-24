@@ -80,6 +80,14 @@
   .tutor-input {
     @apply w-full bg-app-card2 border border-white/10 rounded-xl py-2.5 px-3.5 text-app-text text-[13px] font-[Sora,sans-serif] outline-none;
   }
+  
+  /* Auth layout - force scrolling */
+  .auth-layout {
+    min-height: 100dvh;
+    overflow-y: scroll !important;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 @layer base {
@@ -94,18 +102,18 @@ html, body {
   background: #04040e;
   color: #eeeeff;
   font-family: 'Sora', sans-serif;
-  min-height: 100%;
-  overscroll-behavior: none;
+  height: auto;
+  min-height: 100vh;
 }
 
 /* Allow scrolling on root by default (for landing/auth pages) */
 html {
-  overflow-y: auto;
+  overflow-y: scroll;
   overflow-x: hidden;
   scroll-behavior: smooth;
 }
 body {
-  overflow-y: auto;
+  overflow-y: visible;
   overflow-x: hidden;
 }
 
@@ -153,9 +161,7 @@ input, textarea, select { outline: none; border: none; }
    ═══════════════════════════════════════════════════════ */
 
 #root {
-  display: flex;
-  justify-content: center;
-  min-height: 100%;
+  min-height: 100vh;
   background: #04040e;
 }
 
@@ -201,9 +207,8 @@ input, textarea, select { outline: none; border: none; }
 
 @media (min-width: 768px) {
   #root {
-    align-items: stretch;
     background: #020209;
-    min-height: 100%;
+    min-height: 100vh;
   }
 
   .app-shell {

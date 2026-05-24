@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { COLORS, callAI, LANG_RULES } from '../../App.jsx'
+import { COLORS, callAI, LANG_RULES } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import {
   apiCreateBhoolCard, apiGetMyBhoolCards, apiUpdateBhoolCard, apiDeleteBhoolCard,

@@ -47,29 +47,32 @@ app = FastAPI(
     openapi_url=None if os.getenv("ENV", "development") == "production" else "/openapi.json",
 )
 
+# ── CORS (must be added FIRST before any other middleware) ────
+_raw_origins = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:4173,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:5175"
+)
+_cors_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # ── DB init on startup ────────────────────────────────────────
 @app.on_event("startup")
 def on_startup():
     init_db()
 
-# ── CORS ──────────────────────────────────────────────────────
-_raw_origins = os.getenv(
-    "CORS_ORIGINS",
-    "http://localhost:5173,http://localhost:4173"
-)
-origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["Content-Type", "Authorization"],  # Authorization required for JWT
-)
-
 # ── Security headers middleware ───────────────────────────────
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
+    # Skip security headers for OPTIONS (let CORS handle it)
+    if request.method == "OPTIONS":
+        return await call_next(request)
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"

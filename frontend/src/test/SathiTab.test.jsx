@@ -32,7 +32,7 @@ vi.mock('../api.js', () => ({
   apiLeaveSquad:        vi.fn(),
 }))
 
-vi.mock('../App.jsx', () => ({
+vi.mock('../shared.js', () => ({
   COLORS: {
     bg: '#04040e', card: '#0b0b1c', card2: '#101022', border: '#ffffff08',
     green: '#00E5A0', yellow: '#FFD166', red: '#FF6B6B',
@@ -52,7 +52,7 @@ import {
   apiGetSquadMembers, apiGetSquadChallenge,
   apiCreateChallenge, apiSubmitChallenge, apiLeaveSquad,
 } from '../api.js'
-import { callAI } from '../App.jsx'
+import { callAI } from '../shared.js'
 import SathiTab from '../components/tabs/SathiTab.jsx'
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────

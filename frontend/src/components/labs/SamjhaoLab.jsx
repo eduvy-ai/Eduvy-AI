@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { COLORS, callAI, buildSystemPrompt, parseAIObject, updateBhool } from '../../App.jsx'
+import { COLORS, callAI, buildSystemPrompt, parseAIObject, updateBhool } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 
 // ── Feynman Score ring ────────────────────────────────────────

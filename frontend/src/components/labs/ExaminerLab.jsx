@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { COLORS, callAI, buildSystemPrompt, parseAIObject } from '../../App.jsx'
+import { COLORS, callAI, buildSystemPrompt, parseAIObject } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 
 // ── Mark options ──────────────────────────────────────────────

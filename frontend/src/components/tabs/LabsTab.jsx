@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { COLORS, PLANS, planHasLab } from '../../App.jsx'
+import { COLORS, PLANS, planHasLab } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import PodcastLab from '../labs/PodcastLab.jsx'
 import QuizLab from '../labs/QuizLab.jsx'

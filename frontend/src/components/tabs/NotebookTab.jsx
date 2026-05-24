@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { COLORS, callAI, buildSystemPrompt, parseAIArray, parseAIObject, SUBS, checkStudentQuery } from '../../App.jsx'
+import { COLORS, callAI, buildSystemPrompt, parseAIArray, parseAIObject, SUBS, checkStudentQuery } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import {
   apiGetSources, apiSaveSource, apiDeleteSource,
