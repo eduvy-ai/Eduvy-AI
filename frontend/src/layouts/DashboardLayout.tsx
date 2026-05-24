@@ -1,26 +1,27 @@
 // ─── Dashboard Layout ─────────────────────────────────────────
 // Main app shell with navigation sidebar and bottom nav
 
-import React, { useState, lazy, Suspense } from 'react'
+import React, { useState, lazy, Suspense, useMemo } from 'react'
 import { useNavigate, useParams, Outlet } from 'react-router-dom'
 import { useAuth, useUser, usePlan, useXp, useStreak } from '../modules/auth/hooks'
 import { PLANS, planHasTab, type TabKey } from '../shared/constants/plans'
 import { apiUpdateProfile } from '../api.js'
+import { li, getDisplayLang } from '../shared.js'
 
 // Lazy load SettingsModal (legacy JSX component)
 const SettingsModal = lazy(() => import('../components/SettingsModal.jsx'))
 
-// Navigation items with i18n label keys
-const ALL_NAV_ITEMS: { key: TabKey; icon: string; label: string }[] = [
-  { key: 'home', icon: '🏠', label: 'Home' },
-  { key: 'notebook', icon: '📓', label: 'Notebook' },
-  { key: 'tutor', icon: '🤖', label: 'Tutor' },
-  { key: 'videos', icon: '🎬', label: 'Videos' },
-  { key: 'learntv', icon: '📺', label: 'LearnTV' },
-  { key: 'sathi', icon: '🤝', label: 'Sathi' },
-  { key: 'bhool', icon: '📛', label: 'Bhool' },
-  { key: 'muqabla', icon: '⚔️', label: 'Muqabla' },
-  { key: 'labs', icon: '🧪', label: 'Labs' },
+// Navigation items with i18n label keys (not actual labels)
+const ALL_NAV_ITEMS: { key: TabKey; labelKey: string }[] = [
+  { key: 'home', labelKey: 'homeTab' },
+  { key: 'notebook', labelKey: 'notebookTab' },
+  { key: 'tutor', labelKey: 'tutorTab' },
+  { key: 'videos', labelKey: 'videosTab' },
+  { key: 'learntv', labelKey: 'learntvTab' },
+  { key: 'sathi', labelKey: 'sathiTab' },
+  { key: 'bhool', labelKey: 'bhoolTab' },
+  { key: 'muqabla', labelKey: 'muqablaTab' },
+  { key: 'labs', labelKey: 'labsTab' },
 ]
 
 const DashboardLayout: React.FC = () => {
@@ -34,10 +35,28 @@ const DashboardLayout: React.FC = () => {
   
   // Settings modal state
   const [showSettings, setShowSettings] = useState(false)
+  
+  // Get UI translations based on display language preference
+  const ui = useMemo(() => li(getDisplayLang(user)), [user])
 
   // Filter nav items based on user's plan
   const navItems = ALL_NAV_ITEMS.filter(n => planHasTab(plan, n.key))
   const planInfo = PLANS[plan] || PLANS.free
+  
+  // Helper to get translated label (removes emoji for sidebar, keeps for mobile)
+  const getLabel = (labelKey: string, withIcon = false) => {
+    const translated = ui[labelKey] || labelKey
+    if (withIcon) return translated
+    // Remove leading emoji for desktop sidebar (first 2-3 chars if emoji)
+    return translated.replace(/^[\u{1F300}-\u{1F9FF}]\s*/u, '')
+  }
+  
+  // Helper to get icon from translated string
+  const getIcon = (labelKey: string) => {
+    const translated = ui[labelKey] || ''
+    const match = translated.match(/^([\u{1F300}-\u{1F9FF}])/u)
+    return match ? match[1] : '📱'
+  }
 
   const setTab = (key: TabKey) => {
     navigate(`/app/${key}`)
@@ -79,9 +98,9 @@ const DashboardLayout: React.FC = () => {
                   : 'bg-transparent border-transparent'
               }`}
             >
-              <span className="text-xl w-6 text-center">{n.icon}</span>
+              <span className="text-xl w-6 text-center">{getIcon(n.labelKey)}</span>
               <span className={`text-sm ${tab === n.key ? 'font-bold text-app-green' : 'font-medium text-app-text'}`}>
-                {n.label}
+                {getLabel(n.labelKey)}
               </span>
             </button>
           ))}
@@ -116,7 +135,7 @@ const DashboardLayout: React.FC = () => {
             className="rounded-[10px] py-2.5 px-3 flex items-center gap-2 cursor-pointer font-[Sora,sans-serif] w-full border bg-app-card2 border-app-border hover:border-app-green/30 transition-colors"
           >
             <span className="text-base">⚙️</span>
-            <span className="text-sm font-medium text-app-text">Settings</span>
+            <span className="text-sm font-medium text-app-text">{ui.settings || 'Settings'}</span>
           </button>
           
           {/* Logout button */}
@@ -125,7 +144,7 @@ const DashboardLayout: React.FC = () => {
             className="rounded-[10px] py-2.5 px-3 flex items-center gap-2 cursor-pointer font-[Sora,sans-serif] w-full border bg-app-red/10 border-app-red/30 hover:bg-app-red/20 transition-colors"
           >
             <span className="text-base">🚪</span>
-            <span className="text-sm font-medium text-app-red">Logout</span>
+            <span className="text-sm font-medium text-app-red">{ui.logout || 'Logout'}</span>
           </button>
         </div>
       </nav>
@@ -140,8 +159,8 @@ const DashboardLayout: React.FC = () => {
               tab === n.key ? 'text-app-green' : 'text-app-muted'
             }`}
           >
-            <span className="text-lg">{n.icon}</span>
-            <span className="text-[10px] font-medium">{n.label}</span>
+            <span className="text-lg">{getIcon(n.labelKey)}</span>
+            <span className="text-[10px] font-medium">{getLabel(n.labelKey)}</span>
           </button>
         ))}
         {/* Settings/More button on mobile */}
@@ -150,7 +169,7 @@ const DashboardLayout: React.FC = () => {
           className="flex-1 flex flex-col items-center gap-0.5 py-2 bg-transparent border-none cursor-pointer text-app-muted"
         >
           <span className="text-lg">⚙️</span>
-          <span className="text-[10px] font-medium">More</span>
+          <span className="text-[10px] font-medium">{ui.more || 'More'}</span>
         </button>
       </nav>
 

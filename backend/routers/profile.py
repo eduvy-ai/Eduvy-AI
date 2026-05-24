@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 import json
 from database import get_db, row_to_dict
@@ -34,9 +34,12 @@ class ProfileUpdate(BaseModel):
     standard: Optional[str] = None
     board: Optional[str] = None
     language: Optional[str] = None
-    display_language: Optional[str] = None  # "english" or "medium"
+    display_language: Optional[str] = Field(default=None, alias="displayLanguage")  # "english" or "medium"
     subjects: Optional[List[str]] = None
     school: Optional[str] = None
+
+    class Config:
+        populate_by_name = True  # Accept both display_language and displayLanguage
 
 
 class XpRequest(BaseModel):

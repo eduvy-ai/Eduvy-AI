@@ -700,4 +700,7 @@ def row_to_dict(row) -> dict | None:
         d["ai_keys"] = json.loads(d.get("ai_keys") or "{}")
     except Exception:
         d["ai_keys"] = {}
+    # Convert display_language to camelCase for frontend compatibility
+    if "display_language" in d:
+        d["displayLanguage"] = d.pop("display_language")
     return d

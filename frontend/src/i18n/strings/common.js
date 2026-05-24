@@ -118,6 +118,20 @@ export const COMMON = {
     Urdu:     "بند کریں",
   },
 
+  more: {
+    English:  "More",
+    Hindi:    "और",
+    Gujarati: "વધુ",
+    Marathi:  "अधिक",
+    Tamil:    "மேலும்",
+    Telugu:   "మరిన్ని",
+    Kannada:  "ಇನ್ನಷ್ಟು",
+    Bengali:  "আরও",
+    Punjabi:  "ਹੋਰ",
+    Odia:     "ଅଧିକ",
+    Urdu:     "مزید",
+  },
+
   submit: {
     English:  "Submit",
     Hindi:    "जमा करें",
