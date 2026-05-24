@@ -2,7 +2,7 @@
 // Main app shell with navigation sidebar and bottom nav
 
 import React, { useState, lazy, Suspense, useMemo } from 'react'
-import { useNavigate, useParams, Outlet } from 'react-router-dom'
+import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { useAuth, useUser, usePlan, useXp, useStreak } from '../modules/auth/hooks'
 import { PLANS, planHasTab, type TabKey } from '../shared/constants/plans'
 import { apiUpdateProfile } from '../api.js'
@@ -25,7 +25,9 @@ const ALL_NAV_ITEMS: { key: TabKey; labelKey: string }[] = [
 ]
 
 const DashboardLayout: React.FC = () => {
-  const { tab = 'home' } = useParams<{ tab: string }>()
+  const location = useLocation()
+  // Extract tab from pathname: /app/home -> home
+  const tab = location.pathname.split('/')[2] || 'home'
   const navigate = useNavigate()
   const { logout, refresh } = useAuth()
   const user = useUser()

@@ -1,0 +1,29 @@
+"""
+AI Router - API endpoints for AI chat proxy.
+"""
+from fastapi import APIRouter, Depends
+
+from app.core.dependencies import get_current_user
+from app.modules.ai.schemas import ChatRequest
+from app.modules.ai.service import AIService
+
+router = APIRouter(prefix="/ai", tags=["AI"])
+
+
+@router.post("/chat")
+async def chat(data: ChatRequest, current_user: str = Depends(get_current_user)):
+    """Process AI chat request with quota enforcement."""
+    history = [{"role": m.role, "content": m.content} for m in data.history]
+    return await AIService.chat(
+        current_user,
+        data.prompt,
+        data.system_prompt,
+        history,
+        data.max_tokens
+    )
+
+
+@router.get("/usage")
+async def get_usage(current_user: str = Depends(get_current_user)):
+    """Get AI usage stats for current user."""
+    return AIService.get_usage(current_user)
