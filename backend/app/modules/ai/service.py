@@ -147,7 +147,7 @@ class AIService:
         provider = user["ai_provider"]
         model = user["ai_model"]
         if not user["ai_admin_override"]:
-            provider, model = resolve_provider_model(plan)
+            provider, model = resolve_provider_model(plan, provider, model)
         
         # Call AI
         try:
