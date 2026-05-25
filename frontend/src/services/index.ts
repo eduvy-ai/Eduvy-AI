@@ -8,7 +8,6 @@ export { default as axiosInstance } from './axios'
 export {
   callAI,
   askAI,
-  buildSystemPrompt,
   checkStudentQuery,
   parseAIObject,
   parseAIArray,

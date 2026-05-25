@@ -206,7 +206,6 @@ Return ONLY a JSON object:
 export default {
   callAI,
   askAI,
-  buildSystemPrompt,
   checkStudentQuery,
   parseAIObject,
   parseAIArray,
