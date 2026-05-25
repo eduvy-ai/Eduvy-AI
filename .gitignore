@@ -7,9 +7,14 @@ backend/*.pyc
 # Build output
 dist/
 
+# Python virtual environment
+.venv/
+backend/venv/
+
 # Env files — never commit real keys
 .env
 backend/.env
+frontend/.env
 *.env
 
 # Vite cache
