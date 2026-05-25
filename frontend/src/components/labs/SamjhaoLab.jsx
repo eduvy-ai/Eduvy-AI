@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { COLORS, callAI, buildSystemPrompt, parseAIObject, updateBhool } from '../../shared.js'
+import { COLORS, callAI, parseAIObject, updateBhool } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 
 // ── Feynman Score ring ────────────────────────────────────────
@@ -39,38 +39,9 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
     }
     setErr("")
     setLoading(true)
-    const sys = buildSystemPrompt(profile, `You are a learning scientist applying the Feynman Technique.
-A Class ${profile.standard} student tried to explain "${concept}" in their own words.
-Their explanation: "${explanation}"
-
-Score their understanding across 3 dimensions (0-100 each):
-- Accuracy: Are the facts they stated correct?
-- Completeness: Did they cover the key points of this concept?
-- Simplicity: Did they explain it simply, without unnecessary jargon?
-
-Also identify:
-- What they got RIGHT (up to 3 specific points)
-- What is MISSING from their explanation (up to 3 key points)
-- What they got WRONG or confused (up to 2 points)
-- A short gap-lesson: explain ONLY the missing/wrong parts in 3-4 simple sentences
-
-Respond ONLY with this JSON (no markdown):
-{
-  "accuracy": <0-100>,
-  "completeness": <0-100>,
-  "simplicity": <0-100>,
-  "overall": <0-100>,
-  "correct": ["point 1", "point 2"],
-  "missing": ["point 1", "point 2"],
-  "wrong": ["point 1"],
-  "gapLesson": "targeted 3-4 sentence mini-lesson covering only the gaps. Write in ${profile.language}.",
-  "concept": "${concept}"
-}
-ALL feedback text MUST be in ${profile.language} only.`)
-
     const res = await callAI(
-      `Evaluate my explanation of "${concept}" using the Feynman Technique.`,
-      sys, [], 2, 600
+      `Evaluate my explanation of "${concept}" for Class ${profile.standard} ${profile.board}.\n\nMy explanation: "${explanation}"`,
+      "", [], 2, 600, "samjhao"
     )
     const parsed = parseAIObject(res)
     if (parsed?.accuracy !== undefined) {

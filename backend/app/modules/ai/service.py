@@ -7,7 +7,7 @@ from fastapi import HTTPException
 
 from app.db.connection import get_db
 from services.ai_service import call_ai, resolve_provider_model
-from app.modules.ai.prompts import build_system_prompt, VALID_TUTOR_MODES
+from app.modules.ai.prompts import build_system_prompt, VALID_MODES
 
 # Daily call quota per plan
 PLANS_QUOTA = {
@@ -125,7 +125,7 @@ class AIService:
         # When a valid tutor mode is supplied, build the full system prompt
         # server-side from the user's stored profile — the frontend's system_prompt
         # is intentionally ignored so prompt instructions cannot be tampered with.
-        if mode in VALID_TUTOR_MODES:
+        if mode in VALID_MODES:
             profile = {
                 "name": user["name"],
                 "standard": user["standard"],

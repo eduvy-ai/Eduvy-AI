@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
-import { COLORS, callAI, buildSystemPrompt, parseAIObject, checkStudentQuery } from '../../shared.js'
+import { COLORS, callAI, parseAIObject, checkStudentQuery } from '../../shared.js'
 import { getStarters, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import { apiGetDraft, apiSaveDraft } from '../../api.js'
@@ -1912,11 +1912,10 @@ export default function VideosTab({ profile, userId, addXp }) {
   const reExplain = useCallback(async (idx, scene) => {
     if (altExps[idx]) { setShowAlt(true); return }
     setReExplaining(true); stopSpeech()
-    const sys = buildSystemPrompt(profile,
-      `The student did not understand: "${scene.content}"
-Write a COMPLETELY DIFFERENT explanation in ${profile.language} using a brand new analogy.
-3-4 sentences max. Return ONLY the explanation text � no JSON, no labels, no intro.`)
-    const alt = await callAI(`Re-explain: ${scene.title}`, sys, [], 2, 500)
+    const alt = await callAI(
+      `Re-explain: ${scene.title}. The original explanation was: "${scene.content}"`,
+      "", [], 2, 500, "video_reexplain"
+    )
     setAltExps(p => ({ ...p, [idx]: alt }))
     setShowAlt(true); setReExplaining(false)
   }, [altExps, profile, stopSpeech])
@@ -1970,25 +1969,10 @@ Write a COMPLETELY DIFFERENT explanation in ${profile.language} using a brand ne
     try {
       // -- STAGE 1: Content Intelligence ------------------
       setPipelineStage(1)
-      const intellSys = buildSystemPrompt(profile,
-        `You are an expert curriculum designer. Analyse this topic for a ${profile.standard} ${profile.board} student at ${lc.label} level.
-Topic: "${topic}"
-
-Visual types to choose from:
-- avatar (teacher character � use for scene 1 only)
-- concept (mind-map circles), steps (numbered steps), cycle (circular process), comparison (side-by-side T-chart)
-- timeline, graph, tree (hierarchy), venn (overlapping sets), buildup (equation build), funnel, formula (formula display)
-- bar (bar chart), pulse (rhythm/wave), wave, ball (physics motion), spotlight (key idea)
-- flowchart (decision/process flow � only if topic has branching decisions)
-- mathsteps (step-by-step calculation � only for math/physics formulas)
-- dataplot (data scatter � only if topic involves plotted data)
-- freeform (AI draws custom shapes � use sparingly, max 2 scenes)
-
-Pick the BEST visual type per scene. Use VARIETY � no more than 2 scenes with same type. Prefer template types (concept/steps/cycle/comparison/tree/graph) over freeform.
-
-Plan a 10-scene lesson. Return ONLY raw JSON:
-{"subject":"...","hook":"surprising question","key_concept":"1 sentence","prerequisite":"...","misconception":"...","sub_concepts":["concept A","concept B","concept C"],"visual_plan":[{"scene":1,"best_visual":"avatar"},{"scene":2,"best_visual":"concept"},{"scene":3,"best_visual":"cycle"},{"scene":4,"best_visual":"steps"},{"scene":5,"best_visual":"comparison"},{"scene":6,"best_visual":"graph"},{"scene":7,"best_visual":"tree"},{"scene":8,"best_visual":"mathsteps"},{"scene":9,"best_visual":"flowchart"},{"scene":10,"best_visual":"steps"}],"key_formula":"...","indian_example":"real Indian scenario","second_example":"different Indian scenario for deeper practice"}`)
-      const intellRaw = await callAI(`Analyse topic: ${topic}`, intellSys, [], 2, 1000)
+      const intellRaw = await callAI(
+        `Analyse topic: "${topic}" for Class ${profile.standard} ${profile.board} at ${lc.label} level.`,
+        "", [], 2, 1000, "video_intel"
+      )
       if (intellRaw?.startsWith('⚠️')) { setError(intellRaw); setPipelineStage(0); setLoading(false); return }
       const intel = parseAIObject(intellRaw) || {}
 
@@ -2035,100 +2019,48 @@ Plan a 10-scene lesson. Return ONLY raw JSON:
 
       // -- STAGE 3: Full Lesson from Storyboard -----------
       setPipelineStage(3)
-      const sys = buildSystemPrompt(profile, `You are creating a 10-scene whiteboard explainer lesson. ${lc.depth}
-
+      // Build user prompt with all dynamic context (backend video_lesson mode handles behavior)
+      const lessonUserPrompt = `Create a 10-scene whiteboard lesson.
 STUDENT: Class ${profile.standard}, ${profile.board} board, language ${profile.language}
 TOPIC: ${topic}
 DIFFICULTY: ${lc.label}
 
+LEVEL INSTRUCTIONS:
+${lc.depth}
+
+EXAMPLE APPROACH: ${lc.exampleDepth}
+WORKED EXAMPLE STYLE: ${lc.workedExample}
+TAKEAWAY STYLE: ${lc.takeaway}
+
 === PRE-DECIDED STORYBOARD (DO NOT CHANGE visual types) ===
-${sceneVisuals.map((v,i) => `Scene ${i+1}: ${v}`).join('\\n')}
+${sceneVisuals.map((v,i) => `Scene ${i+1}: ${v}`).join('\n')}
 
 === DRAW GUIDE ===
 ${drawGuide}
 
 === INTEL ===
 Hook: ${intel.hook||''} | Concept: ${intel.key_concept||''} | Misconception: ${intel.misconception||''}
-Indian example 1: ${intel.indian_example||''} | Example 2: ${intel.second_example||''} | Formula: ${intel.key_formula||''}
+Indian example: ${intel.indian_example||''} | Example 2: ${intel.second_example||''} | Formula: ${intel.key_formula||''}
 Sub-concepts: ${(intel.sub_concepts||[]).join(', ')}
 
-=== 10-SCENE SCRIPT STRUCTURE (write like a teacher speaking on camera) ===
-1-HOOK: Ask a surprising question or state a mind-blowing fact. Make the student NEED to know the answer. Do NOT define the topic yet. 3 punchy sentences.
-2-FOUNDATION: Connect to what student already knows. "You already know X... but what if Y?" Bridge the gap between known and unknown. 3-4 sentences.
-3-CORE CONCEPT: NOW explain the key idea clearly. Define the term. ${lc.depth} Directly address the misconception: "${intel.misconception||'common wrong idea'}". 4 sentences.
-4-HOW IT WORKS: Walk through the mechanism step-by-step using "${intel.indian_example||'a real scenario'}". Make the student SEE it happening. 4 sentences.
-5-CONTRAST: "What is the difference between X and Y?" or "What happens if we change Z?". Show boundaries of the concept. 3-4 sentences.
-6-REAL-WORLD: ${lc.exampleDepth} Use Indian context � ISRO, Mumbai locals, cricket, Tata, monsoon, etc. Connect concept to real life. 4 sentences.
-7-DEEPER: Explore "${(intel.sub_concepts||[])[1]||'a deeper sub-concept'}". Add a layer of understanding. 3-4 sentences.
-8-WORKED EXAMPLE: ${lc.workedExample} Show EVERY step with actual numbers. Write like you are solving on the board. 4 sentences.
-9-COMMON MISTAKES: "Most students get this wrong..." Show the wrong answer, explain WHY it is wrong, then show the right way. 3-4 sentences.
-10-EXAM TIPS: ${lc.takeaway} Which question type appears in board exams? What to write first? What NOT to write? 3 sentences.
+=== SCENE CONTENT REQUIREMENTS ===
+Scene 1: Surprising hook question or mind-blowing fact. Do NOT define topic yet.
+Scene 2: Bridge known to unknown: ${intel.key_concept||topic}.
+Scene 3: Define core concept. Fix misconception: ${intel.misconception||'common wrong idea'}.
+Scene 4: Walk through HOW it works using ${intel.indian_example||'a real Indian scenario'}.
+Scene 5: Contrast — differences, boundaries of the concept.
+Scene 6: Real-world — ISRO, cricket, monsoon, Mumbai locals, Tata.
+Scene 7: Deeper dive into ${(intel.sub_concepts||[])[1]||'a deeper sub-concept'}.
+Scene 8: Fully worked example with specific numbers. Show EVERY step.
+Scene 9: Common mistakes — wrong answer, why wrong, correct approach.
+Scene 10: ${lc.takeaway} Board exam tips — question types, what to write first.
 
-=== QUALITY ===
-- Write like a TEACHER speaking to a student, not a textbook
-- Every sentence adds new info. No "Let us understand", "In this lesson", "Remember that"
-- Use specific numbers: "5 kg", "3 m/s", "Rs 500" � NOT "some", "many", "various"
-- Each scene content = 3-4 sentences of real teaching, not summaries
-
-=== DIAGRAM RULES ===
-draw_elements: REQUIRED for ALL diagram types. Must be an array of 3-4 SHORT text labels (max 8 chars each).
-These labels appear INSIDE the SVG shapes. Use topic-specific words, NOT shape commands.
-CORRECT: ["⚡","🔬🧪💡","🌊🌀","F=ma"]
-WRONG: ["arrow{400,100,500,100,'⚡'}"] � NEVER put shape commands in draw_elements!
-
-FREEFORM type ONLY: Also add diagram_spec.shapes as array of JSON objects. Canvas 300x162.
-Each shape is a JSON object with "type" key. Examples:
-{"type":"circle","x":80,"y":60,"r":25,"label":"Label"}
-{"type":"rect","x":50,"y":40,"w":80,"h":35,"label":"Label"}
-{"type":"arrow","x1":100,"y1":80,"x2":200,"y2":80,"label":"Label"}
-{"type":"text","x":150,"y":20,"text":"F=ma","fs":12,"bold":true}
-{"type":"line","x1":50,"y1":140,"x2":250,"y2":140}
-{"type":"ellipse","x":150,"y":81,"rx":40,"ry":20,"label":"Label"}
-stroke/fill: "accent" or hex. Use 6-9 shapes. Draw the ACTUAL topic diagram.
-
-MATHSTEPS: Also add diagram_spec={"steps":[{"expr":"...","label":"..."}]}
-DATAPLOT: Also add diagram_spec={"points":[[x,y]],"xLabel":"...","yLabel":"...","annot":[]}
-FLOWCHART: Also add diagram_spec={"nodes":[{"id":"n1","type":"rect","label":"..."}],"edges":[{"from":"n1","to":"n2","label":"..."}]}
-Template types (concept/steps/cycle/comparison/tree/graph/etc): draw_elements only, NO diagram_spec needed.
-
-=== JSON RULES ===
-1. ONLY raw JSON with double-quoted keys and values 2. All content in ${profile.language} 3. Escape any double-quote inside string values as \\"
-4. visual_type = storyboard above 5. diagram_spec ONLY for freeform/mathsteps/dataplot/flowchart
-6. narration_chunks: 3 short sentences 7. timing: {"diagram_start":0.5,"text_start":2.5,"total_sec":12}
-
-CRITICAL — EVERY scene MUST have COMPLETELY DIFFERENT content. No sentence should repeat across scenes.
-Each scene below has a MANDATORY content focus — follow it strictly:
-
-Scene 1 MUST be: A surprising hook question or mind-blowing fact about "${topic}". Do NOT define the topic yet. Make student NEED to know.
-Scene 2 MUST be: Connect to something student already knows. Bridge the gap to "${intel.key_concept||topic}".
-Scene 3 MUST be: Define and clearly explain the core concept. Address misconception: "${intel.misconception||'common wrong idea'}".
-Scene 4 MUST be: Walk through HOW it works step-by-step using "${intel.indian_example||'a real Indian scenario'}".
-Scene 5 MUST be: Contrast — what is the difference or what happens when you change something? Show the concept boundaries.
-Scene 6 MUST be: Real-world connection — ISRO, cricket, monsoon, Mumbai locals, Tata, Indian farmers etc. 
-Scene 7 MUST be: Deeper dive into "${(intel.sub_concepts||[])[1]||'a deeper sub-concept'}".
-Scene 8 MUST be: Fully worked numerical/practical example with specific numbers. Show EVERY calculation step.
-Scene 9 MUST be: Common student mistakes — show wrong answer, explain WHY wrong, then show correct.
-Scene 10 MUST be: ${lc.takeaway} Board exam tips — what question types appear, what to write first.
-
-Return 10 scenes:
-{"title":"TITLE","subject":"${intel.subject||''}","level":"${lc.label}","hook":"${intel.hook||''}","key_formula":"${intel.key_formula||''}","scenes":[${sceneVisuals.map((v,i) => {
-  const contentFocus = [
-    'HOOK: surprising fact/question — do NOT define topic yet',
-    `BRIDGE: connect to known → unknown for ${intel.key_concept||topic}`,
-    `DEFINE: explain core concept, fix misconception: ${intel.misconception||'common error'}`,
-    `MECHANISM: step-by-step how it works — use ${intel.indian_example||'Indian example'}`,
-    'CONTRAST: difference or boundary of the concept',
-    'REAL-WORLD: Indian context connection (ISRO/cricket/monsoon/etc)',
-    `DEEPER: explore sub-concept ${(intel.sub_concepts||[])[1]||'deeper layer'}`,
-    'WORKED EXAMPLE: specific numbers, every calculation step shown',
-    'MISTAKES: wrong answer → why wrong → correct approach',
-    `EXAM TIPS: ${lc.takeaway}`
-  ][i]
-  const hasFreeform = ['freeform','mathsteps','dataplot','flowchart'].includes(v)
-  return `{"title":"scene ${i+1} title","visual":"emojis","visual_type":"${v}","draw_elements":["e1","e2","e3"]${hasFreeform?',"diagram_spec":{}':''},"content":"[${contentFocus}] Write 3-4 sentences HERE","narration_chunks":["s1","s2","s3"],"timing":{"diagram_start":0.5,"text_start":2.5,"total_sec":12}}`
-}).join(',')}],"keyPoints":["p1","p2","p3","p4","p5"],"formula":"${intel.key_formula||''}","oneLineTakeaway":"...","practiceQ":{"q":"MCQ","options":["A)","B)","C)","D)"],"answer":"A","explanation":"why"}}`)
-
-      const res    = await callAI(`Create 10-scene whiteboard lesson: ${topic}`, sys, [], 3, 8192)
+=== OUTPUT FORMAT ===
+Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc.label}","hook":"${intel.hook||''}","key_formula":"${intel.key_formula||''}","scenes":[${sceneVisuals.map((v,i) => {
+  const hasFreeform = ["freeform","mathsteps","dataplot","flowchart"].includes(v)
+  return `{"title":"scene ${i+1} title","visual":"emojis","visual_type":"${v}","draw_elements":["e1","e2","e3"]${hasFreeform?',"diagram_spec":{}':""},"content":"3-4 sentences","narration_chunks":["s1","s2","s3"],"timing":{"diagram_start":0.5,"text_start":2.5,"total_sec":12}}`
+}).join(",")}],"keyPoints":["p1","p2","p3","p4","p5"],"formula":"${intel.key_formula||''}","oneLineTakeaway":"...","practiceQ":{"q":"MCQ","options":["A)","B)","C)","D)"],"answer":"A","explanation":"why"}}`
+      const res    = await callAI(lessonUserPrompt, "", [], 3, 8192, "video_lesson")
       const parsed = parseAIObject(res)
       if (parsed?.scenes?.length) {
         // Inject intel fields if AI missed them

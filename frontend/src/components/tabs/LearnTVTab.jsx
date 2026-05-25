@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { COLORS, callAI, buildSystemPrompt, parseAIObject, parseAIArray, checkStudentQuery } from '../../shared.js'
+import { COLORS, callAI, parseAIObject, parseAIArray, checkStudentQuery } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 
 // ── Backend YouTube API (uses yt-dlp on server) ──────────────
@@ -200,19 +200,8 @@ export default function LearnTVTab({ profile }) {
   const generateConceptSummary = async (topic) => {
     setConceptLoading(true)
     try {
-      const sys = buildSystemPrompt(profile) + `\nYou explain academic concepts clearly to Indian school students.`
       const std = profile.standard || 'Class 10'
-      const prompt = `Explain the concept "${topic}" to a ${std} Indian student in simple, engaging language.
-
-Return a JSON object:
-{
-  "headline": "One punchy sentence that defines the concept simply",
-  "explanation": "3-4 sentence clear explanation a student can actually understand",
-  "realLife": ["Real-life example 1", "Real-life example 2"],
-  "keyIdeas": ["Key idea or fact 1", "Key idea or fact 2", "Key idea or fact 3"],
-  "examTip": "One important tip for exams about this topic"
-}`
-      const res = await callAI(prompt, sys, [], 3, 1500)
+      const res = await callAI(`Explain the concept "${topic}" to a Class ${std} Indian student.`, "", [], 3, 1500, "learntv_concept")
       const parsed = parseAIObject(res)
       if (parsed) setConceptSummary(parsed)
     } catch { /* best-effort */ }
@@ -222,24 +211,7 @@ Return a JSON object:
   // ── AI Brief for videos ────────────────────────────────────
   const generateBriefs = async (vids) => {
     const titles = vids.map((v, i) => `${i + 1}. "${v.title}" by ${v.channel} (${fmtDuration(v.duration)})`).join('\n')
-    const sys = buildSystemPrompt(profile) + `\nYou help students quickly understand what educational videos cover.`
-    const prompt = `Here are ${vids.length} educational videos from YouTube search results:
-
-${titles}
-
-For EACH video, provide a brief student-friendly analysis. Return a JSON array:
-[
-  {
-    "brief": "1-2 sentence summary of what this video teaches",
-    "keyPoints": ["key concept 1", "key concept 2", "key concept 3"],
-    "difficulty": "Beginner/Intermediate/Advanced",
-    "bestFor": "Who this video is best for (e.g. quick revision, deep understanding, exam prep)"
-  }
-]
-
-Return exactly ${vids.length} objects in the array, one per video in order.`
-
-    const res = await callAI(prompt, sys, [], 3, 2000)
+    const res = await callAI(`Here are ${vids.length} educational videos:\n${titles}\n\nGenerate a student-friendly brief for each video.`, "", [], 3, 2000, "learntv_brief")
     const parsed = parseAIArray(res)
     if (parsed?.length) {
       const newBriefs = { ...videoBriefs }
@@ -254,21 +226,7 @@ Return exactly ${vids.length} objects in the array, one per video in order.`
   const getBrief = async (video) => {
     if (videoBriefs[video.id]) { setExpandedId(video.id); return }
     setBriefLoading(video.id)
-    const sys = buildSystemPrompt(profile) + `\nYou help students understand what educational videos cover.`
-    const prompt = `Analyze this YouTube educational video for a student:
-Title: "${video.title}"
-Channel: ${video.channel}
-Duration: ${fmtDuration(video.duration)}
-
-Return a JSON object:
-{
-  "brief": "2-3 sentence summary of what this video likely teaches",
-  "keyPoints": ["key concept 1", "key concept 2", "key concept 3", "key concept 4"],
-  "difficulty": "Beginner/Intermediate/Advanced",
-  "bestFor": "Who this is best for",
-  "prerequisites": "What the student should know before watching"
-}`
-    const res = await callAI(prompt, sys, [], 3, 1200)
+    const res = await callAI(`Analyze this educational video:\nTitle: "${video.title}"\nChannel: ${video.channel}\nDuration: ${fmtDuration(video.duration)}`, "", [], 3, 1200, "learntv_brief")
     const parsed = parseAIObject(res)
     if (parsed) {
       setVideoBriefs(prev => ({ ...prev, [video.id]: parsed }))
@@ -285,20 +243,7 @@ Return a JSON object:
       const titles = vids.map((v, i) =>
         `${i + 1}. "${v.title}" — ${v.channel} (${fmtDuration(v.duration)})`
       ).join('\n')
-      const sys = buildSystemPrompt(profile) + `\nYou analyze short educational videos and write smart summaries so students know what they'll learn before watching.`
-      const prompt = `A student searched for "${topic}". Here are ${vids.length} short educational videos (Reels/Shorts):
-
-${titles}
-
-For EACH video write:
-1. A smart 2-sentence summary of what the student will learn
-2. 3-4 educational keywords/topics covered
-3. Difficulty: Easy / Medium / Hard
-
-Return a JSON array with exactly ${vids.length} objects:
-[{ "summary": "...", "keywords": ["k1","k2","k3"], "difficulty": "Easy" }]`
-
-      const res = await callAI(prompt, sys, [], 3, 1800)
+      const res = await callAI(prompt, "", [], 3, 1800, "learntv_reel_brief")
       const parsed = parseAIArray(res)
       if (parsed?.length) {
         setReelBriefs(prev => {
@@ -313,22 +258,7 @@ Return a JSON array with exactly ${vids.length} objects:
   // ── Background: AI Content Tips for Reels ────────────────
   const generateAiReelContent = async (query, std) => {
     try {
-      const sys = buildSystemPrompt(profile) + `\nYou help Indian students find the best short-form educational video content (Reels & Shorts).`
-      const prompt = `A ${std || 'Class 10'} student wants to learn "${query}" through short videos (Reels & Shorts).
-
-Return a JSON object:
-{
-  "contentTips": [
-    { "title": "Short actionable tip title", "detail": "1-2 sentence learning tip for short videos" }
-  ],
-  "keyConceptsToFind": ["concept 1 to search for", "concept 2", "concept 3"],
-  "watchOrder": "Suggested order to watch videos on this topic for best understanding"
-}
-
-Give 3-4 practical content tips.
-Give 4-6 key concepts the student should find videos about.`
-
-      const res = await callAI(prompt, sys, [], 3, 1200)
+      const res = await callAI(prompt, "", [], 3, 1200, "learntv_reel_tips")
       const parsed = parseAIObject(res)
       if (parsed) setAiReelContent(parsed)
     } catch { /* best-effort */ }
@@ -394,22 +324,7 @@ Give 4-6 key concepts the student should find videos about.`
 
       if (info) setAnalyzeVideo({ id: vid, ...info })
 
-      const sys = buildSystemPrompt(profile) + `\nYou are analyzing a YouTube educational video for a student.`
-      const prompt = `Analyze this video and create educational content:
-
-${context}
-
-Return a JSON object with:
-{
-  "summary": "2-3 paragraph summary of what the video teaches",
-  "keyPoints": ["point 1", "point 2", "point 3", "point 4", "point 5"],
-  "quiz": { "question": "...", "options": ["A", "B", "C", "D"], "answer": 0 },
-  "takeaway": "One-line key takeaway",
-  "difficulty": "Beginner/Intermediate/Advanced",
-  "relatedTopics": ["topic 1", "topic 2", "topic 3"]
-}`
-
-      const res = await callAI(prompt, sys, [], 3, 2000)
+      const res = await callAI(prompt, "", [], 3, 2000, "learntv_analyze")
       const parsed = parseAIObject(res)
       if (parsed) {
         setAnalysis(parsed)
@@ -433,24 +348,8 @@ Return a JSON object with:
     const std = profile.standard || 'Class 10'
     const lang = profile.language || 'English'
 
-    const sys = buildSystemPrompt(profile) + `\nYou create rich educational content for Indian students.`
-    const prompt = `Create a comprehensive educational lesson on "${topic}" for a ${std} student.
-
-Return a JSON object:
-{
-  "title": "Lesson title",
-  "introduction": "Engaging 2-line intro",
-  "sections": [
-    { "heading": "Section title", "content": "Detailed explanation (3-4 sentences)", "emoji": "📐" }
-  ],
-  "keyFormulas": ["formula 1 if applicable"],
-  "funFact": "An interesting fact related to the topic",
-  "summary": "3-line summary",
-  "searchTerms": ["youtube search term 1", "youtube search term 2", "youtube search term 3"]
-}`
-
     const [res, vids] = await Promise.all([
-      callAI(prompt, sys, [], 3, 2500),
+      callAI(`Create a comprehensive educational lesson on "${topic}" for a Class ${std} student.`, "", [], 3, 2500, "learntv_create"),
       searchYouTube(`${topic} ${std} ${lang} education India`),
     ])
 

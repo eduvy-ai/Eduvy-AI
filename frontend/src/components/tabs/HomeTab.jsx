@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { COLORS, callAI, buildSystemPrompt, SUBS, getBhoolStats, parseAIObject, getDisplayLang } from '../../shared.js'
+import { COLORS, callAI, SUBS, getBhoolStats, parseAIObject, getDisplayLang } from '../../shared.js'
 import { apiGetMastery } from '../../api.js'
 import { li } from '../../i18n/index.js'
 
@@ -114,9 +114,10 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
       : 'Normal paced study plan.'
     setBriefLoading(true)
     setBrief("")
-    const sys = buildSystemPrompt(profile, `Generate a personalized 90-second morning study plan for today. ${moodNote}
-Include: focus topic for today, a board-specific exam tip for ${profile.board}, a motivational message, and one concept to master tonight. Keep it warm, energetic, and in ${profile.language}.`)
-    const res = await callAI(`Create my daily brain brief for today. I study ${subjects.slice(0,3).join(", ")}.`, sys)
+    const res = await callAI(
+      `Create my daily brain brief for today. I study ${subjects.slice(0,3).join(", ")}. ${moodNote}`,
+      "", [], 3, 1200, "home_brief"
+    )
     setBrief(res)
     addXp(5)
     setBriefLoading(false)
@@ -142,11 +143,10 @@ Include: focus topic for today, a board-specific exam tip for ${profile.board}, 
     }
     const examples = localExamples[profile.language] || localExamples.English
     const subject = subjects[Math.floor(Math.random() * Math.min(subjects.length, 4))] || subjects[0] || 'Mathematics'
-    const sys = buildSystemPrompt(profile, `Generate ONE application problem for ${profile.standard} ${profile.board} ${subject}.
-Use a real, hyper-local Indian example from: ${examples}. The numbers must be realistic and grounded.
-Respond ONLY in ${profile.language} with this JSON (no markdown):
-{"q":"the full problem","a":"step-by-step solution","concept":"concept being tested","subject":"${subject}"}`)
-    const res = await callAI(`Generate a daily challenge problem for ${subject} using local Indian examples.`, sys, [], 2, 600)
+    const res = await callAI(
+      `Generate a daily challenge problem for ${subject} (Class ${profile.standard} ${profile.board}) using Indian examples from: ${examples}.`,
+      "", [], 2, 600, "home_challenge"
+    )
     const parsed = parseAIObject(res)
     if (parsed?.q) {
       setDailyQ(parsed)
@@ -170,8 +170,10 @@ Respond ONLY in ${profile.language} with this JSON (no markdown):
     // Use stored mastery if available, else 0 as neutral starting point.
     // Never write a random fabricated value — mastery is only updated by quiz results.
     const pct = masteries[sub] ?? 0
-    const sys = buildSystemPrompt(profile, `Create a personalized study plan for ${sub}. The student's current mastery is ${pct}%. Give specific topics to study today, key formulas, and an exam tip. Keep it concise and actionable. Write in ${profile.language}.`)
-    const res = await callAI(`Give me a study plan for ${sub}. My mastery is ${pct}%.`, sys)
+    const res = await callAI(
+      `Give me a study plan for ${sub}. My mastery is ${pct}%. Class ${profile.standard} ${profile.board}.`,
+      "", [], 3, 1200, "home_study_plan"
+    )
     setSubPlan(res || "No plan generated. Please try again.")
     addXp(3)
     setSubLoading(false)
@@ -183,8 +185,10 @@ Respond ONLY in ${profile.language} with this JSON (no markdown):
     setOracleTopics([])
     setOracleSel(null)
     setOracleDeep("")
-    const sys = buildSystemPrompt(profile, `You are an exam oracle. Based on ${profile.board} ${profile.standard} patterns, list exactly 5 most likely exam topics this year. For each topic give a probability percentage. Format as a simple numbered list: 1. Topic Name — XX%. Write topic names in ${profile.language}.`)
-    const res = await callAI(`List the 5 most likely exam topics for ${profile.board} ${profile.standard} this year.`, sys)
+    const res = await callAI(
+      `List the 5 most likely exam topics for ${profile.board} ${profile.standard} this year.`,
+      "", [], 3, 1200, "home_oracle"
+    )
     const lines = res.split('\n').filter(l => /^\d+\./.test(l.trim()))
     const parsed = lines.slice(0, 5).map(l => {
       const match = l.match(/^\d+\.\s*(.+?)[\s—-]+(\d+)%/)
@@ -199,13 +203,10 @@ Respond ONLY in ${profile.language} with this JSON (no markdown):
     setOracleSel(topic)
     setDeepLoading(true)
     setOracleDeep("")
-    const sys = buildSystemPrompt(profile, `For the exam topic "${topic.topic}", provide:
-- Likely question types that may appear
-- Key formulas or facts to remember
-- A memory trick
-- Common mistakes students make
-Write entirely in ${profile.language}.`)
-    const res = await callAI(`Give me deep dive on: ${topic.topic}`, sys)
+    const res = await callAI(
+      `Give me a deep dive on: ${topic.topic} for ${profile.board} ${profile.standard}.`,
+      "", [], 3, 1200, "home_deep_dive"
+    )
     setOracleDeep(res)
     addXp(3)
     setDeepLoading(false)

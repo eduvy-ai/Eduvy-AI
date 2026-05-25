@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { COLORS, callAI, buildSystemPrompt, parseAIObject, checkStudentQuery } from '../../shared.js'
+import { COLORS, callAI, parseAIObject, checkStudentQuery } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import { getDeviceId, apiGetDraft, apiSaveDraft } from '../../api.js'
 
@@ -101,12 +101,10 @@ export default function PodcastLab({ profile, addXp, docCtx, docName, onBack }) 
     setError("")
 
     const docPart = docCtx ? `\nDocument context: ${docCtx.slice(0, 2000)}` : ""
-    const sys = buildSystemPrompt(profile, `You are writing an educational podcast script in ${profile.language}.
-Hosts: Priya (enthusiastic, uses Indian examples, storytelling) and Aryan (analytical, asks deep questions).
-ALL dialogue MUST be in ${profile.language} only — zero English unless language IS English.${docPart}
-Return ONLY valid JSON (no markdown): {"title":"...","exchanges":[{"h":"Priya","t":"dialogue"},{"h":"Aryan","t":"dialogue"},{"h":"Priya","t":"..."},{"h":"Aryan","t":"..."},{"h":"Priya","t":"..."},{"h":"Aryan","t":"..."}],"pts":["key point 1","key point 2","key point 3"],"tip":"exam tip in ${profile.language}"}`)
-
-    const res = await callAI(`Create an educational podcast episode on: "${topic}" for ${profile.standard} ${profile.board}.`, sys)
+    const res = await callAI(
+      `Create an educational podcast episode on: "${topic}" for ${profile.standard} ${profile.board}.${docPart}`,
+      "", [], 3, 1200, "podcast_gen"
+    )
     const parsed = parseAIObject(res)
     if (parsed?.exchanges?.length) {
       setEpisode(parsed)

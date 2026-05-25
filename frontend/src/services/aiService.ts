@@ -3,7 +3,6 @@
 // Provides structured API calls to the backend AI endpoints
 
 import axiosInstance from './axios'
-import { TEACHER_PERSONAS, LANG_RULES } from '../shared/constants'
 
 // ─── Types ───────────────────────────────────────────────────
 export interface AICallOptions {
@@ -50,40 +49,6 @@ export function getDisplayLang(profile: UserProfile | null): string {
 }
 
 /**
- * Build system prompt for AI interactions
- * Includes teacher persona, language rules, and student context
- */
-export function buildSystemPrompt(profile: UserProfile | null, mode: string = 'tutor'): string {
-  const lang = profile?.language || 'English'
-  const persona = TEACHER_PERSONAS[lang] || TEACHER_PERSONAS.English
-  const langRule = LANG_RULES[lang] || LANG_RULES.English
-
-  const basePrompt = `You are ${persona.name}, ${persona.desc}.
-
-LANGUAGE RULE (CRITICAL - FOLLOW EXACTLY):
-${langRule}
-
-Student Context:
-- Name: ${profile?.name || 'Student'}
-- Class: ${profile?.standard || 'Unknown'}
-- Board: ${profile?.board || 'CBSE'}
-- Medium: ${lang}
-- Subjects: ${profile?.subjects?.join(', ') || 'General'}
-
-Your role: Be a supportive, encouraging teacher who explains concepts clearly at the student's level.`
-
-  // Add mode-specific instructions
-  const modeInstructions: Record<string, string> = {
-    tutor: '\n\nMode: ADAPTIVE TUTOR\nAdapt your explanations to the student\'s understanding. Start simple, add depth as needed.',
-    socratic: '\n\nMode: SOCRATIC\nGuide through questions. Never give direct answers. Help student discover concepts themselves.',
-    homework: '\n\nMode: HOMEWORK HELPER\nHelp solve problems step-by-step. Show working. Verify answers.',
-    explain: '\n\nMode: EXPLAINER\nProvide clear, concise explanations with examples from Indian context.',
-  }
-
-  return basePrompt + (modeInstructions[mode] || modeInstructions.tutor)
-}
-
-/**
  * Check if a student query is appropriate (content moderation)
  */
 export function checkStudentQuery(query: string): { safe: boolean; reason?: string } {
@@ -125,23 +90,21 @@ export async function callAI(options: AICallOptions): Promise<AIResponse> {
 }
 
 /**
- * Simple AI call with just a prompt (builds system message automatically)
+ * Simple AI call with just a prompt — mode routing handled server-side
  */
 export async function askAI(
   prompt: string,
   profile: UserProfile | null,
   mode: string = 'tutor'
 ): Promise<string> {
-  const systemPrompt = buildSystemPrompt(profile, mode)
-
-  const response = await callAI({
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: prompt },
-    ],
+  const response = await axiosInstance.post('/ai/chat', {
+    prompt,
+    system_prompt: '',
+    mode,
+    history: [],
+    max_tokens: 1024,
   })
-
-  return response.content
+  return response.data.response || response.data.content || ''
 }
 
 /**

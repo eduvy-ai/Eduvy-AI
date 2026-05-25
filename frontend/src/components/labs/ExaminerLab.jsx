@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { COLORS, callAI, buildSystemPrompt, parseAIObject } from '../../shared.js'
+import { COLORS, callAI, parseAIObject } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 
 // ── Mark options ──────────────────────────────────────────────
@@ -50,25 +50,9 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
   const generateQuestion = async () => {
     setErr("")
     setLoading(true)
-    const sys = buildSystemPrompt(profile, `You are a ${profile.board} board paper-setter for Class ${profile.standard}.
-Generate ONE ${selMarks}-mark question EXACTLY as it would appear in a real ${profile.board} board exam paper.
-${topicInput ? `Topic: ${topicInput}` : "Pick any topic from their syllabus."}
-
-Respond ONLY with this JSON (no markdown, no explanation):
-{
-  "question": "the full question text",
-  "subject": "subject name",
-  "chapter": "chapter or topic name",
-  "marks": ${selMarks},
-  "keywords": ["keyword1", "keyword2"],
-  "hint": "one line hint if student is stuck",
-  "modelAnswer": "the ideal complete board answer"
-}
-
-Keywords must be the exact terms the board examiner checks for when awarding marks (3-8 keywords).`)
     const res = await callAI(
       `Generate a ${selMarks}-mark board exam question${topicInput ? ` on ${topicInput}` : ""} for Class ${profile.standard} ${profile.board}.`,
-      sys, [], 2, 700
+      "", [], 2, 700, "examiner_set"
     )
     const parsed = parseAIObject(res)
     if (parsed?.question) {
@@ -88,27 +72,10 @@ Keywords must be the exact terms the board examiner checks for when awarding mar
     }
     setErr("")
     setLoading(true)
-    const sys = buildSystemPrompt(profile, `You are a strict but fair ${profile.board} board examiner grading a Class ${profile.standard} student's answer.
-
-Question: ${qData.question}
-Total Marks: ${qData.marks}
-Expected Keywords: ${(qData.keywords || []).join(", ")}
-Student's Answer: ${answer}
-
-Grade EXACTLY like a real board examiner. Be strict on keywords and completeness.
-Respond ONLY with this JSON (no markdown):
-{
-  "awarded": <number>,
-  "total": ${qData.marks},
-  "breakdown": [
-    {"keyword": "term", "found": true/false, "note": "one-line examiner comment"}
-  ],
-  "missingKeywords": ["keyword1"],
-  "strengthNote": "what the student wrote well (1-2 sentences)",
-  "presentationNote": "comment on answer structure and length",
-  "modelAnswer": "${(qData.modelAnswer || "").replace(/"/g, "'")}"
-}`)
-    const res = await callAI(`Grade my board exam answer as a strict examiner.`, sys, [], 2, 700)
+    const res = await callAI(
+      `Grade this board exam answer:\n\nQuestion: ${qData.question}\nTotal Marks: ${qData.marks}\nExpected Keywords: ${(qData.keywords || []).join(", ")}\nStudent's Answer: ${answer}`,
+      "", [], 2, 700, "examiner_grade"
+    )
     const parsed = parseAIObject(res)
     if (parsed?.awarded !== undefined) {
       setResult(parsed)

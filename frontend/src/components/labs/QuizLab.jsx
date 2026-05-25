@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { COLORS, callAI, buildSystemPrompt, parseAIObject, SUBS } from '../../shared.js'
+import { COLORS, callAI, parseAIObject, SUBS } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import { getDeviceId, apiSaveQuizResult, apiGetQuizStats } from '../../api.js'
 
@@ -70,12 +70,10 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
     setGaltiDiag(null)
     setError("")
 
-    const isEnglishSubject = selSub === 'English' && profile.language !== 'English'
-    const langNote = isEnglishSubject
-      ? `Write the question and options IN ENGLISH (it is an English language subject). Write the explanation in ${profile.language}.`
-      : `Write question, options, and explanation fully in ${profile.language} only.`
-    const sys = buildSystemPrompt(profile, `Generate ONE ${difficulty} MCQ for ${profile.standard} ${profile.board} on ${selSub}. ${langNote} Return ONLY valid JSON (no markdown, no extra text): {"q":"...","o":["A) ...","B) ...","C) ...","D) ..."],"c":"A","e":"...","concept":"..."}`)
-    const res = await callAI(`Generate a ${difficulty} MCQ on ${selSub} for ${profile.standard} ${profile.board}.`, sys)
+    const res = await callAI(
+      `Generate a ${difficulty} MCQ on ${selSub} for Class ${profile.standard} ${profile.board}.`,
+      "", [], 3, 800, "quiz_generate"
+    )
     const parsed = parseAIObject(res)
     if (parsed?.q && parsed?.o?.length === 4) {
       setQuestion(parsed)
@@ -110,12 +108,9 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
     const opts = ["A","B","C","D"]
     const correctOpt = question.o[opts.indexOf(question.c)] || ""
     const wrongOpt   = question.o[opts.indexOf(selected)]   || ""
-    const sys = buildSystemPrompt(profile, `You are Galti Doctor — a specialist who diagnoses the ROOT CAUSE of a student's wrong answer.
-Analyze the error and respond ONLY in ${profile.language} with this exact JSON (no markdown):
-{"type":"CONCEPT_GAP|CALCULATION_ERROR|MISSING_PREREQUISITE|MISREAD_QUESTION|CARELESS","diagnosis":"one sentence: exactly what went wrong in the student's thinking","fix":"one specific actionable thing to do right now to prevent this mistake again","similar":"one short practice question to try next"}`)
     const res = await callAI(
       `Question: "${question.q}"\nCorrect answer: ${question.c}) ${correctOpt}\nStudent chose: ${selected}) ${wrongOpt}\nDiagnose my error.`,
-      sys, [], 2, 500
+      "", [], 2, 500, "quiz_diagnose"
     )
     const parsed = parseAIObject(res)
     setGaltiDiag(parsed?.type ? parsed : { type: "CONCEPT_GAP", diagnosis: res, fix: "", similar: "" })

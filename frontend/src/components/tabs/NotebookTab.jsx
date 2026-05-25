@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { COLORS, callAI, buildSystemPrompt, parseAIArray, parseAIObject, SUBS, checkStudentQuery } from '../../shared.js'
+import { COLORS, callAI, parseAIArray, parseAIObject, SUBS, checkStudentQuery } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import {
   apiGetSources, apiSaveSource, apiDeleteSource,
@@ -281,17 +281,10 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
     setMessages(newMsgs); setChatInput(""); setChatLoading(true)
     apiSaveChatMessage(userId, "user", userMsg.content).catch(() => {})
     const ctx = getContext()
-    const sys = buildSystemPrompt(profile, `You are a research assistant helping the student understand their uploaded sources.
-
-SOURCES:
-${ctx.slice(0, 6000)}
-
-INSTRUCTIONS:
-- Answer ONLY from the sources above
-- Cite sources by saying [Source 1], [Source 2] etc. when referencing specific content
-- If the answer is not in the sources, say so clearly
-- Write in ${profile.language}`)
-    const res = await callAI(chatInput.trim(), sys, newMsgs, 3, 1500)
+    const res = await callAI(
+      `${chatInput.trim()}\n\nSources:\n${ctx.slice(0, 6000)}`,
+      "", newMsgs, 3, 1500, "notebook_chat"
+    )
     setMessages(m => [...m, { role: "assistant", content: res }])
     apiSaveChatMessage(userId, "assistant", res).catch(() => {})
     addXp(2); setChatLoading(false)
@@ -310,41 +303,28 @@ INSTRUCTIONS:
     let _savedJson = null
 
     if (type === "podcast") {
-      const sys = buildSystemPrompt(profile, `Create an educational podcast episode in ${profile.language} from the given sources.
-Hosts: Priya (enthusiastic, uses Indian examples) & Aryan (analytical, deep questions).
-ALL dialogue in ${profile.language} only.
-Return ONLY valid JSON: {"title":"...","exchanges":[{"h":"Priya","t":"..."},{"h":"Aryan","t":"..."},{"h":"Priya","t":"..."},{"h":"Aryan","t":"..."},{"h":"Priya","t":"..."},{"h":"Aryan","t":"..."},{"h":"Priya","t":"..."},{"h":"Aryan","t":"..."}],"pts":["...","...","..."],"tip":"..."}`)
-      const res = await callAI(`Create a podcast episode about the content in these sources:\n${ctx}`, sys, [], 3, 2000)
+      const res = await callAI(`Create a podcast episode about:\n${ctx}`, "", [], 3, 2000, "notebook_podcast")
       const parsed = parseAIObject(res)
       if (parsed?.exchanges?.length) { setEpisode(parsed); _savedJson = JSON.stringify(parsed) } else { setStudioOutput(res); _savedJson = res }
 
     } else if (type === "mindmap") {
-      const sys = buildSystemPrompt(profile, `Create a mind map in ${profile.language} only from the sources. Return ONLY valid JSON: {"center":"main topic","branches":[{"label":"Branch","emoji":"🔬","color":"#00E5A0","nodes":["point 1","point 2","point 3"]},{"label":"Branch","emoji":"📊","color":"#FFD166","nodes":["point 1","point 2"]},{"label":"Branch","emoji":"⚡","color":"#7B9CFF","nodes":["point 1","point 2","point 3"]},{"label":"Branch","emoji":"🎯","color":"#FF6B6B","nodes":["point 1","point 2"]}]}`)
-      const res = await callAI(`Create a mind map from:\n${ctx}`, sys, [], 3, 1500)
+      const res = await callAI(`Create a mind map from:\n${ctx}`, "", [], 3, 1500, "notebook_mindmap")
       const parsed = parseAIObject(res)
       setMindMap(parsed); _savedJson = JSON.stringify(parsed)
 
     } else if (type === "flashcards") {
-      const sys = buildSystemPrompt(profile, `Create 8 flashcards from the sources. Write ALL in ${profile.language}. Return ONLY valid JSON array: [{"q":"question","a":"answer","hint":"memory trick","d":"easy|medium|hard"}]`)
-      const res = await callAI(`Create 8 flashcards from:\n${ctx}`, sys, [], 3, 1500)
+      const res = await callAI(`Create 8 flashcards from:\n${ctx}`, "", [], 3, 1500, "notebook_flashcard")
       const parsed = parseAIArray(res)
       if (parsed?.length) { setCards(parsed); _savedJson = JSON.stringify(parsed) } else { setStudioOutput(res); _savedJson = res }
 
     } else if (type === "quiz") {
-      const sys = buildSystemPrompt(profile, `Create ONE MCQ from the sources. Write in ${profile.language}. Return ONLY valid JSON: {"q":"...","o":["A) ...","B) ...","C) ...","D) ..."],"c":"A","e":"...","concept":"..."}`)
-      const res = await callAI(`Create an MCQ from:\n${ctx}`, sys, [], 3, 800)
+      const res = await callAI(`Create an MCQ from:\n${ctx}`, "", [], 3, 800, "notebook_quiz")
       const parsed = parseAIObject(res)
       if (parsed?.q) { setQuizQ(parsed); setQuizSel(null); _savedJson = JSON.stringify(parsed) } else { setStudioOutput(res); _savedJson = res }
 
     } else {
-      const prompts = {
-        guide:    `Create a comprehensive Study Guide in ${profile.language} with: 📌 Overview, 🔑 Key Concepts (numbered), 💡 Definitions, 🔢 Formulas/Data, 🌍 Examples, ⚠️ Common Mistakes, 🎯 3 Practice Questions, ⚡ Revision Checklist`,
-        brief:    `Create a concise Briefing Document in ${profile.language} covering the main ideas, key facts, and most important takeaways from all sources. Use clear sections.`,
-        faq:      `Extract 8 frequently asked questions from the sources and provide clear answers. Write entirely in ${profile.language}. Format: Q: ... \nA: ...`,
-        timeline: `Extract all dates, events, and chronological information from the sources. Present as a numbered timeline in ${profile.language}. If no dates found, create a logical sequence of the key concepts.`,
-      }
-      const sys = buildSystemPrompt(profile, prompts[type] || "Summarize the sources.")
-      const res = await callAI(`Sources:\n${ctx}`, sys, [], 3, 2000)
+      const modeMap = { guide: "notebook_guide", brief: "notebook_brief", faq: "notebook_faq", timeline: "notebook_timeline" }
+      const res = await callAI(`Sources:\n${ctx}`, "", [], 3, 2000, modeMap[type] || "notebook_guide")
       setStudioOutput(res); _savedJson = res
     }
     addXp(10); setStudioLoading(false)

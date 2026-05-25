@@ -1,28 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
-import { COLORS, callAI, buildSystemPrompt, checkStudentQuery } from '../../shared.js'
+import { COLORS, callAI, checkStudentQuery } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import { getStarters, getDisplayLang } from '../../shared.js'
 import { getDeviceId, apiGetSession, apiSaveToSession } from '../../api.js'
 
-const WELLNESS_SYSTEM = (profile) => buildSystemPrompt(profile, `You are a warm, empathetic mental wellness coach for Indian students. You specialize in:
-- Exam anxiety and stress management
-- Study motivation and procrastination
-- Parent pressure and expectations
-- Burnout recovery
-- Self-doubt and comparison stress
-- Sleep and focus issues
-
-YOUR APPROACH:
-- Be warm, non-judgmental, and patient
-- Use CBT (Cognitive Behavioral Therapy) reframing techniques naturally
-- Suggest: breathing exercises, Pomodoro technique, positive affirmations
-- Reference Indian cultural context naturally (family values, festival breaks, chai breaks)
-- For serious concerns → gently suggest speaking to a school counselor or trusted adult
-- NEVER diagnose anything medical
-- NEVER be dismissive — every concern is valid
-- Keep responses conversational, warm, and not too long
-
-IMPORTANT: Write ENTIRELY in ${profile.language}. Never mix languages.`)
 
 const _MENTAL_GREET = {
   English:  n => `Hi ${n || 'there'} 🌟 I'm here for you. How are you feeling about your studies today? You can share anything — this is a safe space.`,
@@ -75,7 +56,7 @@ export default function MentalLab({ profile, addXp, onBack }) {
     setLoading(true)
     apiSaveToSession(deviceId, "mental", "user", text).catch(() => {})
     try {
-      const res = await callAI(text, WELLNESS_SYSTEM(profile), newMsgs)
+      const res = await callAI(text, "", newMsgs, 3, 1200, "mental_wellness")
       setMessages(m => [...m, { role: "assistant", content: res }])
       apiSaveToSession(deviceId, "mental", "assistant", res).catch(() => {})
       addXp(2)

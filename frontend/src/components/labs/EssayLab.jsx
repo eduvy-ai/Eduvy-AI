@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { COLORS, callAI, buildSystemPrompt, checkStudentQuery } from '../../shared.js'
+import { COLORS, callAI, checkStudentQuery } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import { getDeviceId, apiGetDraft, apiSaveDraft } from '../../api.js'
 
@@ -35,18 +35,10 @@ export default function EssayLab({ profile, addXp, onBack }) {
     if (safety.blocked) { setFeedback(safety.message); return }
     setLoading(true)
     setFeedback("")
-    const sys = buildSystemPrompt(profile, `You are a strict but fair ${profile.board} board examiner grading a student's ${type}. Write ALL feedback in ${profile.language} only.
-
-Provide this EXACT structure (headings in ${profile.language}):
-🎓 Grade (A+/A/B+/B/C) + Marks out of 10
-✅ Strengths (3 specific points)
-❌ Improvements Needed (3 specific points)
-📝 Language & Grammar Feedback
-💬 Better Phrases (show: original phrase → improved phrase, at least 2 examples)
-🎯 Board Examiner's Comment
-📈 Predicted Exam Score`)
-
-    const res = await callAI(`Grade this ${type} for a ${profile.standard} ${profile.board} student:\n\n${writing}`, sys)
+    const res = await callAI(
+      `Grade this ${type} for a ${profile.standard} ${profile.board} student:\n\n${writing}`,
+      "", [], 3, 1200, "essay_grade"
+    )
     setFeedback(res)
     apiSaveDraft(deviceId, "essay_draft", writing, res).catch(() => {})
     addXp(8)
