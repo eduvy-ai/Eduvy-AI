@@ -73,11 +73,15 @@ def _get_pool() -> psycopg2.pool.ThreadedConnectionPool:
         if _pool is None or _pool.closed:
             min_conn = int(os.getenv("DB_POOL_MIN", "2"))
             max_conn = int(os.getenv("DB_POOL_MAX", "20"))
+            conn_params = _get_conn_params()
+            # Fail fast on stale/dropped connections instead of hanging forever
+            conn_params.setdefault("connect_timeout", 10)
+            conn_params.setdefault("options", "-c statement_timeout=30000")
             _pool = psycopg2.pool.ThreadedConnectionPool(
                 min_conn,
                 max_conn,
                 cursor_factory=psycopg2.extras.RealDictCursor,
-                **_get_conn_params(),
+                **conn_params,
             )
     return _pool
 

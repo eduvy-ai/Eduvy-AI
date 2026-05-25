@@ -7,6 +7,7 @@ from fastapi import HTTPException
 
 from app.db.connection import get_db
 from services.ai_service import call_ai, resolve_provider_model
+from app.modules.ai.prompts import build_system_prompt, VALID_TUTOR_MODES
 
 # Daily call quota per plan
 PLANS_QUOTA = {
@@ -30,29 +31,46 @@ class AIService:
     
     @staticmethod
     def get_user_info(user_id: str) -> Dict:
-        """Get user AI-related info."""
+        """Get user AI-related info including profile fields for prompt building."""
         conn = get_db()
         try:
             cur = conn.cursor()
             cur.execute(
-                "SELECT id, plan, plan_expires_at, ai_provider, ai_model, ai_admin_override FROM users WHERE id = %s",
+                "SELECT id, plan, plan_expires_at, ai_provider, ai_model, ai_admin_override,"
+                " name, standard, board, language, subjects"
+                " FROM users WHERE id = %s",
                 (user_id,)
             )
             row = cur.fetchone()
             if not row:
                 raise HTTPException(status_code=401, detail="User not found")
-            
+
             plan = row["plan"] or "free"
             expiry = row["plan_expires_at"] or ""
             if expiry and str(expiry) < _today():
                 plan = "free"
-            
+
+            # subjects may be stored as a JSON array string or a list
+            subjects = row["subjects"] or []
+            if isinstance(subjects, str):
+                import json
+                try:
+                    subjects = json.loads(subjects)
+                except Exception:
+                    subjects = []
+
             return {
                 "id": user_id,
                 "plan": plan,
                 "ai_provider": row["ai_provider"] or "gemini",
                 "ai_model": row["ai_model"] or "gemini-2.0-flash",
                 "ai_admin_override": bool(row["ai_admin_override"]),
+                # profile fields for server-side prompt building
+                "name": row["name"] or "",
+                "standard": row["standard"] or "Class 10",
+                "board": row["board"] or "CBSE",
+                "language": row["language"] or "English",
+                "subjects": subjects,
             }
         finally:
             conn.close()
@@ -99,11 +117,24 @@ class AIService:
             conn.close()
     
     @staticmethod
-    async def chat(user_id: str, prompt: str, system_prompt: str, history: list, max_tokens: int) -> Dict:
+    async def chat(user_id: str, prompt: str, system_prompt: str, history: list, max_tokens: int, mode: str = "") -> Dict:
         """Process AI chat request."""
         user = AIService.get_user_info(user_id)
         plan = user["plan"]
-        
+
+        # When a valid tutor mode is supplied, build the full system prompt
+        # server-side from the user's stored profile — the frontend's system_prompt
+        # is intentionally ignored so prompt instructions cannot be tampered with.
+        if mode in VALID_TUTOR_MODES:
+            profile = {
+                "name": user["name"],
+                "standard": user["standard"],
+                "board": user["board"],
+                "language": user["language"],
+                "subjects": user["subjects"],
+            }
+            system_prompt = build_system_prompt(profile, mode)
+
         # Check quota
         current, limit = AIService.check_quota(user_id, plan)
         if current >= limit:

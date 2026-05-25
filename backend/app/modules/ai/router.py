@@ -1,6 +1,7 @@
 """
 AI Router - API endpoints for AI chat proxy.
 """
+import asyncio
 from fastapi import APIRouter, Depends
 
 from app.core.dependencies import get_current_user
@@ -19,11 +20,12 @@ async def chat(data: ChatRequest, current_user: str = Depends(get_current_user))
         data.prompt,
         data.system_prompt,
         history,
-        data.max_tokens
+        data.max_tokens,
+        data.mode,
     )
 
 
 @router.get("/usage")
 async def get_usage(current_user: str = Depends(get_current_user)):
     """Get AI usage stats for current user."""
-    return AIService.get_usage(current_user)
+    return await asyncio.to_thread(AIService.get_usage, current_user)

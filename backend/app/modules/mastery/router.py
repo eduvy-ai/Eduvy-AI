@@ -1,6 +1,7 @@
 """
 Mastery Router - API endpoints for subject mastery.
 """
+import asyncio
 from fastapi import APIRouter, Depends
 
 from app.core.dependencies import get_current_user
@@ -13,7 +14,7 @@ router = APIRouter(prefix="/mastery", tags=["Mastery"])
 @router.get("/{user_id}")
 async def get_mastery(user_id: str, current_user: str = Depends(get_current_user)):
     """Get mastery scores for all subjects."""
-    return MasteryService.get_mastery(user_id, current_user)
+    return await asyncio.to_thread(MasteryService.get_mastery, user_id, current_user)
 
 
 @router.put("/{user_id}")
@@ -23,4 +24,6 @@ async def set_mastery(
     current_user: str = Depends(get_current_user)
 ):
     """Set mastery score for a subject."""
-    return MasteryService.set_mastery(user_id, current_user, data.subject, data.score)
+    return await asyncio.to_thread(
+        MasteryService.set_mastery, user_id, current_user, data.subject, data.score
+    )

@@ -1,6 +1,7 @@
 """
 Payments Router - API endpoints for Razorpay integration.
 """
+import asyncio
 from fastapi import APIRouter, Depends
 
 from app.core.dependencies import get_current_user
@@ -13,7 +14,7 @@ router = APIRouter(prefix="/payments", tags=["Payments"])
 @router.get("/plans")
 async def get_plan_prices():
     """Get plan prices (public)."""
-    return PaymentsService.get_plan_prices()
+    return await asyncio.to_thread(PaymentsService.get_plan_prices)
 
 
 @router.post("/create-order")
@@ -31,9 +32,10 @@ async def verify_payment(
     current_user: str = Depends(get_current_user)
 ):
     """Verify payment and upgrade plan."""
-    return PaymentsService.verify_payment(
+    return await asyncio.to_thread(
+        PaymentsService.verify_payment,
         current_user,
         data.razorpay_order_id,
         data.razorpay_payment_id,
-        data.razorpay_signature
+        data.razorpay_signature,
     )

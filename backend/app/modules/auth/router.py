@@ -2,6 +2,7 @@
 Auth Router - API endpoints only.
 NO business logic, NO database code.
 """
+import asyncio
 from fastapi import APIRouter, Depends
 
 from app.core.dependencies import get_current_user
@@ -14,7 +15,8 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 @router.post("/register", status_code=201)
 async def register(data: RegisterRequest):
     """Register a new user account."""
-    return AuthService.register(
+    return await asyncio.to_thread(
+        AuthService.register,
         email=data.email,
         password=data.password,
         name=data.name,
@@ -23,20 +25,21 @@ async def register(data: RegisterRequest):
         language=data.language,
         subjects=data.subjects,
         mobile=data.mobile,
-        parent_mobile=data.parent_mobile
+        parent_mobile=data.parent_mobile,
     )
 
 
 @router.post("/login")
 async def login(data: LoginRequest):
     """Login with email and password."""
-    return AuthService.login(
+    return await asyncio.to_thread(
+        AuthService.login,
         email=data.email,
-        password=data.password
+        password=data.password,
     )
 
 
 @router.get("/me")
 async def me(user_id: str = Depends(get_current_user)):
     """Get current user profile."""
-    return AuthService.get_profile(user_id)
+    return await asyncio.to_thread(AuthService.get_profile, user_id)

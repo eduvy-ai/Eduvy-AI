@@ -1,6 +1,7 @@
 """
 Admin Router - API endpoints for admin panel.
 """
+import asyncio
 import os
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -38,96 +39,108 @@ def get_admin_user(creds: HTTPAuthorizationCredentials = Depends(_bearer)) -> in
 # ── Auth endpoints ────────────────────────────────────────────
 
 @router.post("/setup", status_code=201)
-def admin_setup(data: AdminSetupRequest):
+async def admin_setup(data: AdminSetupRequest):
     """Create first superadmin."""
-    return AdminService.setup(data.email, data.password, data.name)
+    return await asyncio.to_thread(AdminService.setup, data.email, data.password, data.name)
 
 
 @router.post("/login")
-def admin_login(data: AdminLoginRequest):
+async def admin_login(data: AdminLoginRequest):
     """Admin login."""
-    return AdminService.login(data.email, data.password)
+    return await asyncio.to_thread(AdminService.login, data.email, data.password)
 
 
 @router.get("/me")
-def admin_me(admin_id: int = Depends(get_admin_user)):
+async def admin_me(admin_id: int = Depends(get_admin_user)):
     """Get admin profile."""
-    return AdminService.get_me(admin_id)
+    return await asyncio.to_thread(AdminService.get_me, admin_id)
 
 
 # ── Boards ────────────────────────────────────────────────────
 
 @router.get("/boards")
-def list_boards(admin_id: int = Depends(get_admin_user)):
+async def list_boards(admin_id: int = Depends(get_admin_user)):
     """List all boards."""
-    return AdminService.list_boards()
+    return await asyncio.to_thread(AdminService.list_boards)
 
 
 @router.post("/boards", status_code=201)
-def create_board(data: BoardUpsert, admin_id: int = Depends(get_admin_user)):
+async def create_board(data: BoardUpsert, admin_id: int = Depends(get_admin_user)):
     """Create or update board."""
-    return AdminService.upsert_board(data.id, data.name, data.sort_order, data.is_active)
+    return await asyncio.to_thread(
+        AdminService.upsert_board, data.id, data.name, data.sort_order, data.is_active
+    )
 
 
 @router.put("/boards/{board_id}")
-def update_board(board_id: str, data: BoardUpsert, admin_id: int = Depends(get_admin_user)):
+async def update_board(board_id: str, data: BoardUpsert, admin_id: int = Depends(get_admin_user)):
     """Update board."""
-    return AdminService.upsert_board(board_id, data.name, data.sort_order, data.is_active)
+    return await asyncio.to_thread(
+        AdminService.upsert_board, board_id, data.name, data.sort_order, data.is_active
+    )
 
 
 @router.delete("/boards/{board_id}")
-def delete_board(board_id: str, admin_id: int = Depends(get_admin_user)):
+async def delete_board(board_id: str, admin_id: int = Depends(get_admin_user)):
     """Soft-delete board."""
-    return AdminService.delete_board(board_id)
+    return await asyncio.to_thread(AdminService.delete_board, board_id)
 
 
 # ── Standards ─────────────────────────────────────────────────
 
 @router.get("/standards")
-def list_standards(admin_id: int = Depends(get_admin_user)):
+async def list_standards(admin_id: int = Depends(get_admin_user)):
     """List all standards."""
-    return AdminService.list_standards()
+    return await asyncio.to_thread(AdminService.list_standards)
 
 
 @router.post("/standards", status_code=201)
-def create_standard(data: StandardUpsert, admin_id: int = Depends(get_admin_user)):
+async def create_standard(data: StandardUpsert, admin_id: int = Depends(get_admin_user)):
     """Create or update standard."""
-    return AdminService.upsert_standard(data.id, data.name, data.grade_num, data.sort_order, data.is_active)
+    return await asyncio.to_thread(
+        AdminService.upsert_standard, data.id, data.name, data.grade_num, data.sort_order, data.is_active
+    )
 
 
 @router.put("/standards/{std_id}")
-def update_standard(std_id: str, data: StandardUpsert, admin_id: int = Depends(get_admin_user)):
+async def update_standard(std_id: str, data: StandardUpsert, admin_id: int = Depends(get_admin_user)):
     """Update standard."""
-    return AdminService.upsert_standard(std_id, data.name, data.grade_num, data.sort_order, data.is_active)
+    return await asyncio.to_thread(
+        AdminService.upsert_standard, std_id, data.name, data.grade_num, data.sort_order, data.is_active
+    )
 
 
 @router.delete("/standards/{std_id}")
-def delete_standard(std_id: str, admin_id: int = Depends(get_admin_user)):
+async def delete_standard(std_id: str, admin_id: int = Depends(get_admin_user)):
     """Soft-delete standard."""
-    return AdminService.delete_standard(std_id)
+    return await asyncio.to_thread(AdminService.delete_standard, std_id)
 
 
 # ── Mediums ───────────────────────────────────────────────────
 
 @router.get("/mediums")
-def list_mediums(admin_id: int = Depends(get_admin_user)):
+async def list_mediums(admin_id: int = Depends(get_admin_user)):
     """List all mediums."""
-    return AdminService.list_mediums()
+    return await asyncio.to_thread(AdminService.list_mediums)
 
 
 @router.post("/mediums", status_code=201)
-def create_medium(data: MediumUpsert, admin_id: int = Depends(get_admin_user)):
+async def create_medium(data: MediumUpsert, admin_id: int = Depends(get_admin_user)):
     """Create or update medium."""
-    return AdminService.upsert_medium(data.id, data.name, data.sort_order, data.is_active)
+    return await asyncio.to_thread(
+        AdminService.upsert_medium, data.id, data.name, data.sort_order, data.is_active
+    )
 
 
 @router.put("/mediums/{med_id}")
-def update_medium(med_id: str, data: MediumUpsert, admin_id: int = Depends(get_admin_user)):
+async def update_medium(med_id: str, data: MediumUpsert, admin_id: int = Depends(get_admin_user)):
     """Update medium."""
-    return AdminService.upsert_medium(med_id, data.name, data.sort_order, data.is_active)
+    return await asyncio.to_thread(
+        AdminService.upsert_medium, med_id, data.name, data.sort_order, data.is_active
+    )
 
 
 @router.delete("/mediums/{med_id}")
-def delete_medium(med_id: str, admin_id: int = Depends(get_admin_user)):
+async def delete_medium(med_id: str, admin_id: int = Depends(get_admin_user)):
     """Soft-delete medium."""
-    return AdminService.delete_medium(med_id)
+    return await asyncio.to_thread(AdminService.delete_medium, med_id)

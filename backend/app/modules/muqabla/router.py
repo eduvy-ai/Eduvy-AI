@@ -1,6 +1,7 @@
 """
 Muqabla Router - API endpoints for battles.
 """
+import asyncio
 from fastapi import APIRouter, Depends, Query
 
 from app.core.dependencies import get_current_user
@@ -29,7 +30,7 @@ async def join_battle(
     current_user: str = Depends(get_current_user)
 ):
     """Join an open battle."""
-    return MuqablaService.join_battle(battle_id, current_user)
+    return await asyncio.to_thread(MuqablaService.join_battle, battle_id, current_user)
 
 
 @router.delete("/battles/{battle_id}/decline")
@@ -38,7 +39,7 @@ async def decline_battle(
     current_user: str = Depends(get_current_user)
 ):
     """Decline an open battle."""
-    return MuqablaService.decline_battle(battle_id)
+    return await asyncio.to_thread(MuqablaService.decline_battle, battle_id)
 
 
 @router.post("/battles/{battle_id}/answer")
@@ -48,11 +49,9 @@ async def submit_answers(
     current_user: str = Depends(get_current_user)
 ):
     """Submit answers for a battle."""
-    return MuqablaService.submit_answers(
-        battle_id,
-        current_user,
-        data.answers,
-        data.time_seconds
+    return await asyncio.to_thread(
+        MuqablaService.submit_answers,
+        battle_id, current_user, data.answers, data.time_seconds,
     )
 
 
@@ -62,7 +61,7 @@ async def get_battle(
     current_user: str = Depends(get_current_user)
 ):
     """Get battle details."""
-    return MuqablaService.get_battle(battle_id, current_user)
+    return await asyncio.to_thread(MuqablaService.get_battle, battle_id, current_user)
 
 
 @router.get("/open")
@@ -71,7 +70,7 @@ async def get_open_battles(
     current_user: str = Depends(get_current_user)
 ):
     """Get open battles to join."""
-    battles = MuqablaService.get_open_battles(current_user, limit)
+    battles = await asyncio.to_thread(MuqablaService.get_open_battles, current_user, limit)
     return {"battles": battles}
 
 
@@ -81,12 +80,12 @@ async def get_history(
     current_user: str = Depends(get_current_user)
 ):
     """Get my battle history."""
-    battles = MuqablaService.get_my_history(current_user, limit)
+    battles = await asyncio.to_thread(MuqablaService.get_my_history, current_user, limit)
     return {"battles": battles}
 
 
 @router.get("/leaderboard")
 async def get_leaderboard(limit: int = Query(50, le=100)):
     """Get weekly leaderboard."""
-    leaders = MuqablaService.get_leaderboard(limit)
+    leaders = await asyncio.to_thread(MuqablaService.get_leaderboard, limit)
     return {"leaders": leaders}

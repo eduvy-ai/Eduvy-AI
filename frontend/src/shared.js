@@ -471,7 +471,7 @@ function _sanitiseResponse(text, language) {
 // All calls go through the backend proxy — API keys are NEVER sent
 // to or from the browser.  The backend enforces plan-based rate limits
 // and routes to the cheapest model for free/basic plans automatically.
-export async function callAI(prompt, systemPrompt, history = [], retries = 3, maxTokens = 1200) {
+export async function callAI(prompt, systemPrompt, history = [], retries = 3, maxTokens = 1200, mode = "") {
   const { provider, model } = _aiConfig
   const token = _getAuthToken()
 
@@ -492,10 +492,11 @@ export async function callAI(prompt, systemPrompt, history = [], retries = 3, ma
         },
         body: JSON.stringify({
           provider, model,
-          prompt:       activePrompt,
-          systemPrompt: String(systemPrompt),
-          history:      messages,
-          maxTokens,
+          prompt:        activePrompt,
+          system_prompt: String(systemPrompt),
+          mode,
+          history:       messages,
+          max_tokens:    maxTokens,
         }),
         signal: AbortSignal.timeout(90000),
       })
@@ -522,7 +523,7 @@ export async function callAI(prompt, systemPrompt, history = [], retries = 3, ma
       }
 
       const data = await res.json()
-      const text = _sanitiseResponse(data.text, _currentLanguage) || "No response. Please try again."
+      const text = _sanitiseResponse(data.response || data.text, _currentLanguage) || "No response. Please try again."
 
       // ── Marathi/Hindi mismatch detector — auto-retry ──────
       if (_currentLanguage === 'Marathi' && _isHindiResponse(text) && attempt < retries - 1) {

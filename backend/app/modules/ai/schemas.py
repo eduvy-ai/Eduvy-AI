@@ -13,6 +13,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     prompt: str = Field(..., min_length=1)
     system_prompt: str = ""
+    mode: str = ""
     history: List[ChatMessage] = []
     max_tokens: int = 1024
 
