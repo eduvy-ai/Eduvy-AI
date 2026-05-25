@@ -130,3 +130,38 @@ class NotebookService:
             return {"deleted": True}
         finally:
             conn.close()
+
+    @staticmethod
+    def get_studio_outputs(user_id: str, current_user: str) -> List[Dict]:
+        """Get studio outputs for user."""
+        _require_own(user_id, current_user)
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT id, type, output_json, created_at::text AS created_at
+                FROM notebook_studio
+                WHERE user_id = %s
+                ORDER BY id DESC LIMIT 50
+            """, (user_id,))
+            return [dict(r) for r in cur.fetchall()]
+        finally:
+            conn.close()
+
+    @staticmethod
+    def save_studio_output(user_id: str, current_user: str,
+                           output_type: str, output_json: str) -> Dict:
+        """Save a studio output."""
+        _require_own(user_id, current_user)
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO notebook_studio (user_id, type, output_json)
+                VALUES (%s, %s, %s)
+                RETURNING id, type, output_json, created_at::text AS created_at
+            """, (user_id, output_type, output_json))
+            conn.commit()
+            return dict(cur.fetchone())
+        finally:
+            conn.close()

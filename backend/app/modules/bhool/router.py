@@ -93,3 +93,25 @@ async def get_collections(current_user: str = Depends(get_current_user)):
     """Get my collected cards."""
     cards = await asyncio.to_thread(BhoolService.get_collected_cards, current_user)
     return {"cards": cards}
+
+
+@router.get("/marketplace/top")
+async def get_top_cards(
+    subject: str = Query(None),
+    limit: int = Query(20, le=50),
+    current_user: str = Depends(get_current_user),
+):
+    """Get top-collected cards."""
+    cards = await asyncio.to_thread(BhoolService.get_top_cards, subject, limit)
+    return {"cards": cards}
+
+
+@router.post("/cards/{card_id}/react")
+async def react_to_card(
+    card_id: str,
+    data: ReactRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """React to a bhool card."""
+    return await asyncio.to_thread(BhoolService.react_to_card, current_user, card_id, data.emoji)
+

@@ -185,3 +185,56 @@ class BhoolService:
     def get_collected_cards(user_id: str) -> List[Dict]:
         """Get cards collected by user."""
         return db.bhool.get_collected_cards(user_id)
+
+    @staticmethod
+    def get_top_cards(subject: Optional[str] = None, limit: int = 20) -> List[Dict]:
+        """Get top-collected cards."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            query = """
+                SELECT c.id, c.user_id, c.subject, c.standard, c.question,
+                       c.wrong_answer, c.correct_answer, c.why_wrong,
+                       c.bhool_coins, c.created_at::text AS created_at,
+                       COUNT(bc.card_id) AS collect_count
+                FROM bhool_cards c
+                LEFT JOIN bhool_collections bc ON bc.card_id = c.id
+                WHERE c.is_published = TRUE
+            """
+            params: list = []
+            if subject:
+                query += " AND c.subject = %s"
+                params.append(subject)
+            query += " GROUP BY c.id ORDER BY collect_count DESC, c.created_at DESC LIMIT %s"
+            params.append(limit)
+            cur.execute(query, params)
+            return [dict(r) for r in cur.fetchall()]
+        finally:
+            conn.close()
+
+    @staticmethod
+    def react_to_card(user_id: str, card_id: str, emoji: str) -> Dict:
+        """Add or update a reaction on a bhool card."""
+        if emoji not in VALID_REACTIONS:
+            raise HTTPException(status_code=400, detail=f"Invalid emoji. Must be one of: {', '.join(VALID_REACTIONS)}")
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO bhool_reactions (card_id, user_id, emoji)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (card_id, user_id)
+                DO UPDATE SET emoji = EXCLUDED.emoji
+            """, (card_id, user_id, emoji))
+            conn.commit()
+            # Return reaction counts for card
+            cur.execute("""
+                SELECT emoji, COUNT(*) AS count
+                FROM bhool_reactions WHERE card_id = %s
+                GROUP BY emoji
+            """, (card_id,))
+            reactions = {r["emoji"]: r["count"] for r in cur.fetchall()}
+            return {"reacted": True, "emoji": emoji, "reactions": reactions}
+        finally:
+            conn.close()
+

@@ -351,3 +351,62 @@ class MuqablaService:
             return [dict(r) for r in cur.fetchall()]
         finally:
             conn.close()
+
+    @staticmethod
+    def get_pending_battles(user_id: str) -> List[Dict]:
+        """Get battles where I am challenged but haven't joined yet."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT id, challenger_id, challenger_name, challenger_school,
+                       subject, standard, difficulty, status,
+                       created_at::text AS created_at, expires_at::text AS expires_at
+                FROM muqabla_battles
+                WHERE opponent_id = %s AND status = 'open'
+                ORDER BY created_at DESC LIMIT 20
+            """, (user_id,))
+            return [dict(r) for r in cur.fetchall()]
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_active_battles(user_id: str) -> List[Dict]:
+        """Get battles that are in progress (joined, not yet completed)."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT id, challenger_id, challenger_name, opponent_id, opponent_name,
+                       subject, difficulty, status,
+                       created_at::text AS created_at
+                FROM muqabla_battles
+                WHERE (challenger_id = %s OR opponent_id = %s)
+                  AND status = 'active'
+                ORDER BY created_at DESC LIMIT 20
+            """, (user_id, user_id))
+            return [dict(r) for r in cur.fetchall()]
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_school_leaderboard(limit: int = 50) -> List[Dict]:
+        """Get leaderboard grouped by school."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT school,
+                       COUNT(*) AS students,
+                       SUM(xp) AS total_xp,
+                       AVG(xp)::int AS avg_xp
+                FROM users
+                WHERE school IS NOT NULL AND school <> ''
+                GROUP BY school
+                ORDER BY total_xp DESC
+                LIMIT %s
+            """, (limit,))
+            return [dict(r) for r in cur.fetchall()]
+        finally:
+            conn.close()
+

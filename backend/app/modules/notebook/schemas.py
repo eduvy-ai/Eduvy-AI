@@ -16,3 +16,8 @@ class Source(BaseModel):
 class ChatMessage(BaseModel):
     role: str
     content: str
+
+
+class StudioOutput(BaseModel):
+    type: str
+    output_json: str = "{}"

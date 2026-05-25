@@ -207,6 +207,135 @@ def create_all_tables():
         )
     """)
     
+    # ── Squad Challenges ──────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS squad_challenges (
+            id          SERIAL PRIMARY KEY,
+            squad_id    INT NOT NULL REFERENCES squads(id) ON DELETE CASCADE,
+            subject     TEXT NOT NULL DEFAULT 'General',
+            concept     TEXT NOT NULL DEFAULT 'Key Concept',
+            status      TEXT NOT NULL DEFAULT 'open',
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS squad_challenge_submissions (
+            id           SERIAL PRIMARY KEY,
+            challenge_id INT NOT NULL REFERENCES squad_challenges(id) ON DELETE CASCADE,
+            user_id      TEXT NOT NULL,
+            explanation  TEXT NOT NULL,
+            xp_awarded   INT DEFAULT 0,
+            ai_verdict   TEXT DEFAULT '',
+            ai_note      TEXT DEFAULT '',
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (challenge_id, user_id)
+        )
+    """)
+
+    # ── Squad Doubts ──────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS squad_doubts (
+            id          SERIAL PRIMARY KEY,
+            squad_id    INT NOT NULL REFERENCES squads(id) ON DELETE CASCADE,
+            user_id     TEXT NOT NULL,
+            display_name TEXT NOT NULL DEFAULT 'Student',
+            subject     TEXT DEFAULT '',
+            question    TEXT NOT NULL,
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS squad_doubt_answers (
+            id           SERIAL PRIMARY KEY,
+            doubt_id     INT NOT NULL REFERENCES squad_doubts(id) ON DELETE CASCADE,
+            user_id      TEXT NOT NULL,
+            display_name TEXT NOT NULL DEFAULT 'Student',
+            content      TEXT NOT NULL,
+            upvotes      INT DEFAULT 0,
+            ai_verdict   TEXT DEFAULT '',
+            ai_note      TEXT DEFAULT '',
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS squad_doubt_upvotes (
+            answer_id INT NOT NULL,
+            user_id   TEXT NOT NULL,
+            PRIMARY KEY (answer_id, user_id)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS squad_doubt_daily_counts (
+            user_id    TEXT NOT NULL,
+            day        TEXT NOT NULL,
+            count      INT DEFAULT 0,
+            PRIMARY KEY (user_id, day)
+        )
+    """)
+
+    # ── Squad Daily Concept ────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS squad_daily_concepts (
+            id          SERIAL PRIMARY KEY,
+            squad_id    INT NOT NULL REFERENCES squads(id) ON DELETE CASCADE,
+            subject     TEXT NOT NULL DEFAULT 'General',
+            concept     TEXT NOT NULL,
+            day         TEXT NOT NULL,
+            UNIQUE (squad_id, day)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS squad_daily_submissions (
+            id           SERIAL PRIMARY KEY,
+            squad_id     INT NOT NULL,
+            day          TEXT NOT NULL,
+            user_id      TEXT NOT NULL,
+            explanation  TEXT NOT NULL,
+            xp_awarded   INT DEFAULT 0,
+            ai_verdict   TEXT DEFAULT '',
+            ai_note      TEXT DEFAULT '',
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (squad_id, day, user_id)
+        )
+    """)
+
+    # ── Squad Streaks ──────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS squad_streaks (
+            squad_id       INT NOT NULL REFERENCES squads(id) ON DELETE CASCADE,
+            user_id        TEXT NOT NULL,
+            current_streak INT DEFAULT 0,
+            last_active    TEXT DEFAULT '',
+            PRIMARY KEY (squad_id, user_id)
+        )
+    """)
+
+    # ── Notebook Studio ────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS notebook_studio (
+            id          SERIAL PRIMARY KEY,
+            user_id     TEXT NOT NULL,
+            type        TEXT NOT NULL,
+            output_json TEXT NOT NULL DEFAULT '{}',
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # ── Bhool Reactions ────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS bhool_reactions (
+            card_id  TEXT NOT NULL,
+            user_id  TEXT NOT NULL,
+            emoji    TEXT NOT NULL DEFAULT '👍',
+            PRIMARY KEY (card_id, user_id)
+        )
+    """)
+
     # ── Admin Users ───────────────────────────────────────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS admin_users (

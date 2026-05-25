@@ -89,3 +89,25 @@ async def get_leaderboard(limit: int = Query(50, le=100)):
     """Get weekly leaderboard."""
     leaders = await asyncio.to_thread(MuqablaService.get_leaderboard, limit)
     return {"leaders": leaders}
+
+
+@router.get("/pending")
+async def get_pending(current_user: str = Depends(get_current_user)):
+    """Get battles waiting for me to join."""
+    battles = await asyncio.to_thread(MuqablaService.get_pending_battles, current_user)
+    return {"battles": battles}
+
+
+@router.get("/active")
+async def get_active(current_user: str = Depends(get_current_user)):
+    """Get my active (in-progress) battles."""
+    battles = await asyncio.to_thread(MuqablaService.get_active_battles, current_user)
+    return {"battles": battles}
+
+
+@router.get("/school-leaderboard")
+async def get_school_leaderboard(limit: int = Query(50, le=100)):
+    """Get school-level leaderboard."""
+    leaders = await asyncio.to_thread(MuqablaService.get_school_leaderboard, limit)
+    return {"leaders": leaders}
+

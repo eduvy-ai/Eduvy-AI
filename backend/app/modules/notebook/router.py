@@ -5,7 +5,7 @@ import asyncio
 from fastapi import APIRouter, Depends
 
 from app.core.dependencies import get_current_user
-from app.modules.notebook.schemas import Source, ChatMessage
+from app.modules.notebook.schemas import Source, ChatMessage, StudioOutput
 from app.modules.notebook.service import NotebookService
 
 router = APIRouter(prefix="/notebook", tags=["Notebook"])
@@ -73,3 +73,26 @@ async def add_chat_message(
 async def clear_chat(user_id: str, current_user: str = Depends(get_current_user)):
     """Clear chat history."""
     return await asyncio.to_thread(NotebookService.clear_chat, user_id, current_user)
+
+
+# --- Studio --------------------------------------------------
+
+@router.get("/{user_id}/studio")
+async def get_studio(user_id: str, current_user: str = Depends(get_current_user)):
+    """Get studio outputs."""
+    outputs = await asyncio.to_thread(NotebookService.get_studio_outputs, user_id, current_user)
+    return outputs
+
+
+@router.post("/{user_id}/studio", status_code=201)
+async def save_studio(
+    user_id: str,
+    data: StudioOutput,
+    current_user: str = Depends(get_current_user),
+):
+    """Save a studio output."""
+    return await asyncio.to_thread(
+        NotebookService.save_studio_output,
+        user_id, current_user, data.type, data.output_json,
+    )
+
