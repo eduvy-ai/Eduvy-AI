@@ -94,7 +94,7 @@ export async function callAI(options: AICallOptions): Promise<AIResponse> {
  */
 export async function askAI(
   prompt: string,
-  profile: UserProfile | null,
+  _profile: UserProfile | null,
   mode: string = 'tutor'
 ): Promise<string> {
   const response = await axiosInstance.post('/ai/chat', {
