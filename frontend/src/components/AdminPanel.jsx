@@ -312,7 +312,7 @@ function BoardsTab({ toast }) {
   const [importResult, setImportResult] = useState(null)
 
   const load = useCallback(() =>
-    API('/admin/boards').then(r => r.json()).then(setBoards).catch(() => {}), [])
+    API('/admin/boards').then(r => r.json()).then(d => setBoards(Array.isArray(d) ? d : [])).catch(() => {}), [])
 
   useEffect(() => { load() }, [load])
 
@@ -473,7 +473,7 @@ function StandardsTab({ toast }) {
   const [importResult, setImportResult] = useState(null)
 
   const load = useCallback(() =>
-    API('/admin/standards').then(r => r.json()).then(setStds).catch(() => {}), [])
+    API('/admin/standards').then(r => r.json()).then(d => setStds(Array.isArray(d) ? d : [])).catch(() => {}), [])
 
   useEffect(() => { load() }, [load])
 
@@ -639,7 +639,7 @@ function MediumsTab({ toast }) {
   const [importResult, setImportResult] = useState(null)
 
   const load = useCallback(() =>
-    API('/admin/mediums').then(r => r.json()).then(setMeds).catch(() => {}), [])
+    API('/admin/mediums').then(r => r.json()).then(d => setMeds(Array.isArray(d) ? d : [])).catch(() => {}), [])
 
   useEffect(() => { load() }, [load])
 
@@ -802,13 +802,13 @@ function CurriculumTab({ toast }) {
   const [importResult, setImportResult] = useState(null)
 
   const load = useCallback(() =>
-    API('/admin/curriculum').then(r => r.json()).then(setRows).catch(() => {}), [])
+    API('/admin/curriculum').then(r => r.json()).then(d => setRows(Array.isArray(d) ? d : [])).catch(() => {}), [])
 
   useEffect(() => {
     load()
-    API('/admin/boards').then(r => r.json()).then(setBoards).catch(() => {})
-    API('/admin/standards').then(r => r.json()).then(setStds).catch(() => {})
-    API('/admin/mediums').then(r => r.json()).then(setMeds).catch(() => {})
+    API('/admin/boards').then(r => r.json()).then(d => setBoards(Array.isArray(d) ? d : [])).catch(() => {})
+    API('/admin/standards').then(r => r.json()).then(d => setStds(Array.isArray(d) ? d : [])).catch(() => {})
+    API('/admin/mediums').then(r => r.json()).then(d => setMeds(Array.isArray(d) ? d : [])).catch(() => {})
   }, [load])
 
   const filtered = rows.filter(r =>

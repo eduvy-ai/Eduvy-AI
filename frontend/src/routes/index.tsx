@@ -67,6 +67,7 @@ const AppRoutes: React.FC = () => {
 
         {/* Admin panel */}
         <Route path="/admin" element={<AdminPanel />} />
+        <Route path="/admin/:section" element={<AdminPanel />} />
         
         {/* Helper portal */}
         <Route path="/helper" element={<HelperPortal />} />
