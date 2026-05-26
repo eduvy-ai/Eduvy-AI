@@ -1,7 +1,7 @@
 # VidyAI Ultimate — Complete Project Specification
 > **For AI Coding Assistants:** Read this entire document before writing a single line of code. This is your single source of truth.
 
----
+--- 
 
 ## 1. Project Identity
 
