@@ -3,7 +3,7 @@ Admin Router - API endpoints for admin panel.
 """
 import asyncio
 import os
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 
@@ -87,7 +87,7 @@ async def delete_board(board_id: str, admin_id: int = Depends(get_admin_user)):
 
 
 @router.post("/boards/import")
-async def import_boards(rows: list, admin_id: int = Depends(get_admin_user)):
+async def import_boards(rows: list = Body(...), admin_id: int = Depends(get_admin_user)):
     return await asyncio.to_thread(AdminService.import_boards, rows)
 
 
@@ -118,7 +118,7 @@ async def delete_standard(std_id: str, admin_id: int = Depends(get_admin_user)):
 
 
 @router.post("/standards/import")
-async def import_standards(rows: list, admin_id: int = Depends(get_admin_user)):
+async def import_standards(rows: list = Body(...), admin_id: int = Depends(get_admin_user)):
     return await asyncio.to_thread(AdminService.import_standards, rows)
 
 
@@ -149,7 +149,7 @@ async def delete_medium(med_id: str, admin_id: int = Depends(get_admin_user)):
 
 
 @router.post("/mediums/import")
-async def import_mediums(rows: list, admin_id: int = Depends(get_admin_user)):
+async def import_mediums(rows: list = Body(...), admin_id: int = Depends(get_admin_user)):
     return await asyncio.to_thread(AdminService.import_mediums, rows)
 
 
