@@ -1,7 +1,7 @@
 // ─── Application Configuration ───────────────────────────────
 // Environment variables and app-wide settings
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL as string
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://eduvyai-api.onrender.com'
 
 export const APP_CONFIG = {
   appName: 'Eduvy-AI',
