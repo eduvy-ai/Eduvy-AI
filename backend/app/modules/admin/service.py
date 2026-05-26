@@ -605,15 +605,24 @@ class AdminService:
             providers = ["gemini", "groq", "anthropic", "openai"]
             key_status = {}
             key_slots = {}
+            def mask_key(k: str) -> str:
+                """Return masked hint like 'sk-••••abc' for UI display"""
+                if not k or len(k) < 8:
+                    return "••••••••"
+                return k[:4] + "••••" + k[-4:]
+
             for prov in providers:
                 has_key = False
                 db_slots = {}
+                db_hints = {}
                 for slot in range(1, 6):
                     dk = f"api_key_{prov}" if slot == 1 else f"api_key_{prov}_{slot}"
                     cur.execute("SELECT value FROM app_settings WHERE key=%s AND value != ''", (dk,))
                     row = cur.fetchone()
-                    db_slots[slot] = bool(row and row["value"])
-                    if row and row["value"]:
+                    key_val = row["value"] if row else ""
+                    db_slots[slot] = bool(key_val)
+                    db_hints[slot] = mask_key(key_val) if key_val else ""
+                    if key_val:
                         has_key = True
                 # Also check env vars
                 env_base = {"gemini": "GEMINI_API_KEY", "groq": "GROQ_API_KEY",
@@ -625,7 +634,8 @@ class AdminService:
                     has_key = True
                 key_status[prov] = has_key
                 key_slots[prov] = {
-                    "db_slots": sum(1 for v in db_slots.values() if v),
+                    "db_slots": db_slots,  # {1: bool, 2: bool, ...}
+                    "db_hints": db_hints,  # {1: "sk-••••abc", 2: "", ...}
                     "env_count": env_count,
                     "pool_size": sum(1 for v in db_slots.values() if v) + env_count,
                 }
