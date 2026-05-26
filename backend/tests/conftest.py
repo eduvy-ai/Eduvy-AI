@@ -31,7 +31,14 @@ from jose import jwt
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))  # backend/
 sys.path.insert(0, os.path.dirname(__file__))                   # tests/
 
-# ── Auth constants (match app defaults so real decode_token works) ────────────
+# Load .env so the JWT_SECRET in our tokens matches what the app uses
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
+except Exception:
+    pass
+
+# ── Auth constants (match app .env so real decode_token works) ────────────────
 JWT_SECRET = os.getenv("JWT_SECRET", "eduvyai-change-me")
 JWT_ALGO   = "HS256"
 
