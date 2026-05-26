@@ -1,0 +1,87 @@
+# ─── Database Migration Workflow ───────────────────────────────
+# Automatically applies database migrations when changes are pushed
+# to main branch or when manually triggered.
+
+name: Database Migrations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/migrations/**'
+      - 'backend/app/db/schema.py'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Migration action'
+        required: true
+        default: 'migrate'
+        type: choice
+        options:
+          - migrate
+          - status
+          - rollback
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  migrate:
+    name: Run Migrations
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          pip install --upgrade pip
+          pip install psycopg2-binary python-dotenv
+      
+      - name: Run migrations
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            python -m migrations.runner ${{ inputs.action }}
+          else
+            python -m migrations.runner migrate
+          fi
+      
+      - name: Show migration status
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: python -m migrations.runner status
+
+
+  notify:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: migrate
+    if: failure()
+    
+    steps:
+      - name: Send failure notification
+        run: |
+          echo "::error::Database migration failed! Check the logs above."
+          echo "Migration failed at $(date)" >> $GITHUB_STEP_SUMMARY

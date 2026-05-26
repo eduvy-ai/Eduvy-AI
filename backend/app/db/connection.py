@@ -124,9 +124,23 @@ def get_db() -> _PooledConn:
 
 
 def init_db():
-    """Create all tables if they don't exist (idempotent)."""
+    """Initialize database: create tables and run pending migrations."""
     from app.db.schema import create_all_tables
     create_all_tables()
+    
+    # Run any pending migrations
+    try:
+        from migrations.runner import ensure_migrations_table, get_applied_versions, get_migration_files, apply_migration
+        ensure_migrations_table()
+        applied = get_applied_versions()
+        files = get_migration_files()
+        pending = [f for f in files if f.name.split('_')[0] not in applied]
+        for filepath in pending:
+            apply_migration(filepath)
+    except ImportError:
+        pass  # Migrations module not available (e.g., in tests)
+    except Exception as e:
+        print(f"Warning: Migration check failed: {e}")
 
 
 def row_to_dict(row) -> dict | None:
