@@ -3,6 +3,19 @@
 // Auth token stored in localStorage under 'eduvyai_token'.
 // Device ID kept as fallback for anonymous users.
 import { API_BASE_URL } from './config'
+
+// Safe JSON parsing - handles empty responses
+async function safeJson(res) {
+  const text = await res.text()
+  if (!text || text.trim() === '') return null
+  try {
+    return JSON.parse(text)
+  } catch {
+    console.warn('Failed to parse JSON:', text.slice(0, 100))
+    return null
+  }
+}
+
 export function getDeviceId() {
   let id = localStorage.getItem('eduvyai_device_id')
   if (!id) {
@@ -39,8 +52,8 @@ export async function apiRegister({ email, password, name, standard, board, lang
     body: JSON.stringify({ email, password, name, standard, board, language, subjects, mobile: mobile || '', parent_mobile: parent_mobile || '' }),
     signal: AbortSignal.timeout(15000),
   })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)
+  const data = await safeJson(res)
+  if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
   return data // { token, profile }
 }
 
@@ -51,8 +64,8 @@ export async function apiLogin({ email, password }) {
     body: JSON.stringify({ email, password }),
     signal: AbortSignal.timeout(10000),
   })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)
+  const data = await safeJson(res)
+  if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
   return data // { token, profile }
 }
 
@@ -63,7 +76,7 @@ export async function apiGetMe() {
   })
   if (res.status === 401 || res.status === 404) return null
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 
@@ -78,7 +91,7 @@ export async function apiCreateProfile(data) {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiUpdateProfile(userId, data) {
@@ -89,7 +102,7 @@ export async function apiUpdateProfile(userId, data) {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 // ── XP ────────────────────────────────────────────────────────
@@ -102,7 +115,7 @@ export async function apiAddXp(userId, points) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()   // { xp: number }
+  return safeJson(res)   // { xp: number }
 }
 
 // ── Streak ────────────────────────────────────────────────────
@@ -115,7 +128,7 @@ export async function apiUpdateStreak(deviceId, streak) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()   // { streak: number }
+  return safeJson(res)   // { streak: number }
 }
 
 // NOTE: apiSaveAIConfig and apiGetAIKeys removed.
@@ -140,7 +153,7 @@ export async function apiGetMySquad() {
     signal: AbortSignal.timeout(6000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()   // { squad: { id, name, focus_subject, members, message_count } | null }
+  return safeJson(res)   // { squad: { id, name, focus_subject, members, message_count } | null }
 }
 
 export async function apiMatchSquad() {
@@ -150,7 +163,7 @@ export async function apiMatchSquad() {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()   // { squad_id, status: 'joined'|'created'|'already_matched' }
+  return safeJson(res)   // { squad_id, status: 'joined'|'created'|'already_matched' }
 }
 
 export async function apiGetSquadMessages(squadId, sinceId = 0) {
@@ -159,7 +172,7 @@ export async function apiGetSquadMessages(squadId, sinceId = 0) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()   // { messages: [{ id, user_id, display_name, content, msg_type, created_at }] }
+  return safeJson(res)   // { messages: [{ id, user_id, display_name, content, msg_type, created_at }] }
 }
 
 export async function apiSendSquadMessage(squadId, content, displayName, msgType = 'chat') {
@@ -170,7 +183,7 @@ export async function apiSendSquadMessage(squadId, content, displayName, msgType
     signal: AbortSignal.timeout(6000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiGetSquadMembers(squadId) {
@@ -179,7 +192,7 @@ export async function apiGetSquadMembers(squadId) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()   // { members: [{ user_id, name, role, online, last_seen_at, standard }] }
+  return safeJson(res)   // { members: [{ user_id, name, role, online, last_seen_at, standard }] }
 }
 
 export async function apiGetSquadChallenge(squadId) {
@@ -188,7 +201,7 @@ export async function apiGetSquadChallenge(squadId) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()   // { challenge: { id, subject, concept, status } | null }
+  return safeJson(res)   // { challenge: { id, subject, concept, status } | null }
 }
 
 export async function apiCreateChallenge(squadId) {
@@ -198,7 +211,7 @@ export async function apiCreateChallenge(squadId) {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()   // { challenge_id, subject, concept }
+  return safeJson(res)   // { challenge_id, subject, concept }
 }
 
 export async function apiSubmitChallenge(squadId, challengeId, explanation) {
@@ -209,7 +222,7 @@ export async function apiSubmitChallenge(squadId, challengeId, explanation) {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()   // { completed, xp_awarded }
+  return safeJson(res)   // { completed, xp_awarded }
 }
 
 export async function apiLeaveSquad(squadId) {
@@ -219,32 +232,32 @@ export async function apiLeaveSquad(squadId) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 // ── Sathi — Doubts Board ──────────────────────────────────────
 export async function apiGetSquadDoubts(squadId) {
   const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/doubts`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 export async function apiGetDoubtQuota(squadId) {
   const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/doubts/quota`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 export async function apiPostDoubt(squadId, data) {
   const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/doubts`, {
     method: 'POST', headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(data), signal: AbortSignal.timeout(5000),
   })
-  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || `HTTP ${res.status}`) }
-  return res.json()
+  if (!res.ok) { const e = await safeJson(res).catch(() => ({})); throw new Error(e.detail || `HTTP ${res.status}`) }
+  return safeJson(res)
 }
 export async function apiGetDoubtAnswers(squadId, doubtId) {
   const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/doubts/${doubtId}/answers`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 
 }
 export async function apiPostAnswer(squadId, doubtId, data) {
@@ -252,15 +265,15 @@ export async function apiPostAnswer(squadId, doubtId, data) {
     method: 'POST', headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(data), signal: AbortSignal.timeout(5000),
   })
-  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || `HTTP ${res.status}`) }
-  return res.json()
+  if (!res.ok) { const e = await safeJson(res).catch(() => ({})); throw new Error(e.detail || `HTTP ${res.status}`) }
+  return safeJson(res)
 }
 export async function apiUpvoteAnswer(squadId, doubtId, answerId) {
   const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/doubts/${doubtId}/answers/${answerId}/upvote`, {
     method: 'POST', headers: _authHeaders(), signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiPatchVerdict(squadId, doubtId, answerId, aiVerdict, aiNote) {
@@ -271,19 +284,19 @@ export async function apiPatchVerdict(squadId, doubtId, answerId, aiVerdict, aiN
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 // ── Sathi — Streak + Daily + Session ─────────────────────────
 export async function apiGetSquadStreak(squadId) {
   const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/streak`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 export async function apiGetDailyConcept(squadId) {
   const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/daily`, { headers: _authHeaders(), signal: AbortSignal.timeout(5000) })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 export async function apiSubmitDailyExplain(squadId, explanation, xpOverride, aiVerdict, aiNote) {
   const body = { explanation }
@@ -294,8 +307,8 @@ export async function apiSubmitDailyExplain(squadId, explanation, xpOverride, ai
     method: 'POST', headers: { ..._authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(body), signal: AbortSignal.timeout(8000),
   })
-  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || `HTTP ${res.status}`) }
-  return res.json()
+  if (!res.ok) { const e = await safeJson(res).catch(() => ({})); throw new Error(e.detail || `HTTP ${res.status}`) }
+  return safeJson(res)
 }
 export async function apiStartSession(squadId, displayName, minutes = 25) {
   const res = await fetch(`${API_BASE_URL}/api/squads/${squadId}/session/start`, {
@@ -303,7 +316,7 @@ export async function apiStartSession(squadId, displayName, minutes = 25) {
     body: JSON.stringify({ display_name: displayName, minutes }), signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 // ── Bhool Bazaar ──────────────────────────────────────────────
@@ -316,7 +329,7 @@ export async function apiCreateBhoolCard(data) {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiGetMyBhoolCards() {
@@ -325,7 +338,7 @@ export async function apiGetMyBhoolCards() {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiUpdateBhoolCard(cardId, data) {
@@ -336,7 +349,7 @@ export async function apiUpdateBhoolCard(cardId, data) {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiDeleteBhoolCard(cardId) {
@@ -346,7 +359,7 @@ export async function apiDeleteBhoolCard(cardId) {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiGetBhoolMarketplace({ subject, standard, sort, offset, limit } = {}) {
@@ -361,7 +374,7 @@ export async function apiGetBhoolMarketplace({ subject, standard, sort, offset, 
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiGetBhoolTop(subject) {
@@ -371,7 +384,7 @@ export async function apiGetBhoolTop(subject) {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiCollectBhoolCard(cardId) {
@@ -381,7 +394,7 @@ export async function apiCollectBhoolCard(cardId) {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiReactBhoolCard(cardId, emoji) {
@@ -392,7 +405,7 @@ export async function apiReactBhoolCard(cardId, emoji) {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiGetMyBhoolCollections() {
@@ -401,7 +414,7 @@ export async function apiGetMyBhoolCollections() {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 // ── Muqabla Battles ──────────────────────────────────────────
@@ -414,7 +427,7 @@ export async function apiCreateMuqablaChallenge(data) {
     signal: AbortSignal.timeout(30000), // AI generates questions
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiJoinMuqabalaBattle(battleId) {
@@ -424,7 +437,7 @@ export async function apiJoinMuqabalaBattle(battleId) {
     signal: AbortSignal.timeout(10000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiDeclineMuqabalaBattle(battleId) {
@@ -434,7 +447,7 @@ export async function apiDeclineMuqabalaBattle(battleId) {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiSubmitMuqablaAnswers(battleId, data) {
@@ -445,7 +458,7 @@ export async function apiSubmitMuqablaAnswers(battleId, data) {
     signal: AbortSignal.timeout(10000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiGetMuqabalaBattle(battleId) {
@@ -454,7 +467,7 @@ export async function apiGetMuqabalaBattle(battleId) {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiGetOpenMuqabalaBattles() {
@@ -463,7 +476,7 @@ export async function apiGetOpenMuqabalaBattles() {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiGetPendingMuqabalaBattles() {
@@ -472,7 +485,7 @@ export async function apiGetPendingMuqabalaBattles() {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiGetActiveMuqabalaBattles() {
@@ -481,7 +494,7 @@ export async function apiGetActiveMuqabalaBattles() {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiGetMuqabalaHistory() {
@@ -490,7 +503,7 @@ export async function apiGetMuqabalaHistory() {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiGetMuqabalaLeaderboard() {
@@ -499,7 +512,7 @@ export async function apiGetMuqabalaLeaderboard() {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiGetMuqabalaSchoolLeaderboard() {
@@ -508,7 +521,7 @@ export async function apiGetMuqabalaSchoolLeaderboard() {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 // ── Parent Dashboard ─────────────────────────────────────────
@@ -519,7 +532,7 @@ export async function apiGetParentPin() {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiCreateParentPin() {
@@ -529,7 +542,7 @@ export async function apiCreateParentPin() {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiRevokeParentPin() {
@@ -539,7 +552,7 @@ export async function apiRevokeParentPin() {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 // Public — no auth header needed
@@ -548,7 +561,7 @@ export async function apiGetParentView(pin) {
     signal: AbortSignal.timeout(10000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 // ── Mastery ───────────────────────────────────────────────────
@@ -559,7 +572,7 @@ export async function apiGetMastery(userId) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()   // { subject: score, ... }
+  return safeJson(res)   // { subject: score, ... }
 }
 
 export async function apiSetMastery(userId, subject, score) {
@@ -570,7 +583,7 @@ export async function apiSetMastery(userId, subject, score) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 // ── Quiz Stats ────────────────────────────────────────────────
@@ -583,7 +596,7 @@ export async function apiSaveQuizResult(userId, { subject, difficulty, correct, 
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiGetQuizStats(userId) {
@@ -592,7 +605,7 @@ export async function apiGetQuizStats(userId) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()   // { subject: { total, correct, accuracy }, ... }
+  return safeJson(res)   // { subject: { total, correct, accuracy }, ... }
 }
 
 // ─── Notebook ────────────────────────────────────────────────
@@ -603,7 +616,7 @@ export async function apiGetSources(userId) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()   // [{ id, name, type, content, icon, added_at }, ...]
+  return safeJson(res)   // [{ id, name, type, content, icon, added_at }, ...]
 }
 
 export async function apiSaveSource(userId, source) {
@@ -621,7 +634,7 @@ export async function apiSaveSource(userId, source) {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiDeleteSource(userId, sourceId) {
@@ -631,7 +644,7 @@ export async function apiDeleteSource(userId, sourceId) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiGetNotebookChat(userId) {
@@ -640,7 +653,7 @@ export async function apiGetNotebookChat(userId) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()   // [{ role, content }, ...]
+  return safeJson(res)   // [{ role, content }, ...]
 }
 
 export async function apiSaveChatMessage(userId, role, content) {
@@ -651,7 +664,7 @@ export async function apiSaveChatMessage(userId, role, content) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiClearNotebookChat(userId) {
@@ -661,7 +674,7 @@ export async function apiClearNotebookChat(userId) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiGetStudioOutputs(userId) {
@@ -670,7 +683,7 @@ export async function apiGetStudioOutputs(userId) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()   // [{ id, type, output_json, created_at }, ...]
+  return safeJson(res)   // [{ id, type, output_json, created_at }, ...]
 }
 
 export async function apiSaveStudioOutput(userId, type, outputJson) {
@@ -681,7 +694,7 @@ export async function apiSaveStudioOutput(userId, type, outputJson) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 // ─── Chat Sessions (TutorTab, MentalLab) ─────────────────────
@@ -692,7 +705,7 @@ export async function apiGetSession(userId, session) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()   // [{ role, content }, ...]
+  return safeJson(res)   // [{ role, content }, ...]
 }
 
 export async function apiSaveToSession(userId, session, role, content) {
@@ -703,7 +716,7 @@ export async function apiSaveToSession(userId, session, role, content) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 export async function apiClearSession(userId, session) {
@@ -713,7 +726,7 @@ export async function apiClearSession(userId, session) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 // ─── User Drafts (EssayLab, VideosTab, PodcastLab) ───────────
@@ -725,7 +738,7 @@ export async function apiGetDraft(userId, key) {
   })
   if (res.status === 404 || (res.status === 200 && res.headers.get('content-length') === '4')) return null
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()   // { content, extra } or null
+  return safeJson(res)   // { content, extra } or null
 }
 
 export async function apiSaveDraft(userId, key, content, extra = '') {
@@ -736,7 +749,7 @@ export async function apiSaveDraft(userId, key, content, extra = '') {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return safeJson(res)
 }
 
 // ── Referrals ─────────────────────────────────────────────────
@@ -747,7 +760,7 @@ export async function apiGetMyReferralCode() {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()  // { code, referred_count, referrer_xp_per_referral, referred_xp_bonus }
+  return safeJson(res)  // { code, referred_count, referrer_xp_per_referral, referred_xp_bonus }
 }
 
 export async function apiApplyReferralCode(code) {
@@ -757,7 +770,7 @@ export async function apiApplyReferralCode(code) {
     body: JSON.stringify({ code }),
     signal: AbortSignal.timeout(8000),
   })
-  const data = await res.json().catch(() => ({}))
+  const data = await safeJson(res).catch(() => ({}))
   if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)
   return data  // { success, xp_awarded, message }
 }
@@ -769,7 +782,7 @@ export async function apiGetPlanPrices() {
     signal: AbortSignal.timeout(8000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()  // { basic: { amount_paise, amount_rupees, label, duration_days }, ... }
+  return safeJson(res)  // { basic: { amount_paise, amount_rupees, label, duration_days }, ... }
 }
 
 export async function apiCreatePaymentOrder(plan) {
@@ -779,7 +792,7 @@ export async function apiCreatePaymentOrder(plan) {
     body: JSON.stringify({ plan }),
     signal: AbortSignal.timeout(15000),
   })
-  const data = await res.json().catch(() => ({}))
+  const data = await safeJson(res).catch(() => ({}))
   if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)
   return data  // { order_id, amount, currency, key_id, plan, plan_label, user_name, user_email }
 }
@@ -791,7 +804,7 @@ export async function apiVerifyPayment({ order_id, payment_id, signature, plan }
     body: JSON.stringify({ order_id, payment_id, signature, plan }),
     signal: AbortSignal.timeout(15000),
   })
-  const data = await res.json().catch(() => ({}))
+  const data = await safeJson(res).catch(() => ({}))
   if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)
   return data  // { success, plan, expires_at, message }
 }

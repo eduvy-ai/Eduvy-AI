@@ -28,7 +28,7 @@ export default defineConfig({
     proxy: {
       // Dev: forward /api/* → FastAPI backend on :8000
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: 'https://eduvyai-api.onrender.com',
         changeOrigin: true,
       },
     },
