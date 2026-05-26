@@ -327,7 +327,13 @@ class AdminService:
         try:
             cur = conn.cursor()
             cur.execute(
-                "SELECT id, board_id, standard_id, medium_id, subjects, is_active FROM curriculum ORDER BY board_id, standard_id, medium_id"
+                """SELECT c.id, c.board_id, c.standard_id, c.medium_id, c.subjects, c.is_active,
+                          b.name AS board_name, s.name AS standard_name, m.name AS medium_name
+                   FROM curriculum c
+                   LEFT JOIN boards b ON c.board_id = b.id
+                   LEFT JOIN standards s ON c.standard_id = s.id
+                   LEFT JOIN mediums m ON c.medium_id = m.id
+                   ORDER BY c.board_id, c.standard_id, c.medium_id"""
             )
             rows = cur.fetchall()
             result = []
