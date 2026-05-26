@@ -140,7 +140,38 @@ class AdminService:
             return {"ok": True}
         finally:
             conn.close()
-    
+
+    @staticmethod
+    def import_boards(rows: List[Dict]) -> Dict:
+        """Bulk upsert boards. Returns {inserted, updated}."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            inserted = 0
+            updated = 0
+            for row in rows:
+                bid = str(row.get("id", "")).strip().lower()
+                if not bid:
+                    continue
+                cur.execute("SELECT id FROM boards WHERE id=%s", (bid,))
+                exists = cur.fetchone()
+                cur.execute(
+                    """INSERT INTO boards (id, name, sort_order, is_active)
+                       VALUES (%s,%s,%s,%s)
+                       ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name,
+                       sort_order=EXCLUDED.sort_order, is_active=EXCLUDED.is_active""",
+                    (bid, str(row.get("name", "")).strip(),
+                     int(row.get("sort_order", 0)), bool(row.get("is_active", True)))
+                )
+                if exists:
+                    updated += 1
+                else:
+                    inserted += 1
+            conn.commit()
+            return {"inserted": inserted, "updated": updated}
+        finally:
+            conn.close()
+
     # ── Standards ─────────────────────────────────────────────
     
     @staticmethod
@@ -222,6 +253,69 @@ class AdminService:
             cur.execute("UPDATE mediums SET is_active=FALSE WHERE id=%s", (med_id,))
             conn.commit()
             return {"ok": True}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def import_standards(rows: List[Dict]) -> Dict:
+        """Bulk upsert standards. Returns {inserted, updated}."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            inserted = 0
+            updated = 0
+            for row in rows:
+                sid = str(row.get("id", "")).strip().lower()
+                if not sid:
+                    continue
+                cur.execute("SELECT id FROM standards WHERE id=%s", (sid,))
+                exists = cur.fetchone()
+                cur.execute(
+                    """INSERT INTO standards (id, name, grade_num, sort_order, is_active)
+                       VALUES (%s,%s,%s,%s,%s)
+                       ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, grade_num=EXCLUDED.grade_num,
+                       sort_order=EXCLUDED.sort_order, is_active=EXCLUDED.is_active""",
+                    (sid, str(row.get("name", "")).strip(),
+                     int(row.get("grade_num", 0)), int(row.get("sort_order", 0)),
+                     bool(row.get("is_active", True)))
+                )
+                if exists:
+                    updated += 1
+                else:
+                    inserted += 1
+            conn.commit()
+            return {"inserted": inserted, "updated": updated}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def import_mediums(rows: List[Dict]) -> Dict:
+        """Bulk upsert mediums. Returns {inserted, updated}."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            inserted = 0
+            updated = 0
+            for row in rows:
+                mid = str(row.get("id", "")).strip().lower()
+                if not mid:
+                    continue
+                cur.execute("SELECT id FROM mediums WHERE id=%s", (mid,))
+                exists = cur.fetchone()
+                cur.execute(
+                    """INSERT INTO mediums (id, name, sort_order, is_active)
+                       VALUES (%s,%s,%s,%s)
+                       ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name,
+                       sort_order=EXCLUDED.sort_order, is_active=EXCLUDED.is_active""",
+                    (mid, str(row.get("name", "")).strip(),
+                     int(row.get("sort_order", 0)), bool(row.get("is_active", True)))
+                )
+                if exists:
+                    updated += 1
+                else:
+                    inserted += 1
+            conn.commit()
+            return {"inserted": inserted, "updated": updated}
         finally:
             conn.close()
 

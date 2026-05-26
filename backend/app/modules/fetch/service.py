@@ -118,3 +118,88 @@ class FetchService:
         if len(short) >= 4:
             return short[:limit]
         return all_results[:limit]
+
+    @staticmethod
+    async def youtube_edu_reels(query: str, limit: int = 16) -> List[Dict]:
+        """Fetch educational YouTube Shorts (<=90 seconds)."""
+        # Build creator-targeted + concept-targeted queries for Indian educators
+        queries = [
+            f"{query} short PhysicsWallah OR Vedantu OR Unacademy",
+            f"{query} shorts educational",
+            f"{query} quick concept",
+        ]
+
+        all_results: List[Dict] = []
+        seen_ids: set = set()
+
+        loop = asyncio.get_event_loop()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            futures = [executor.submit(_yt_search, q, 10) for q in queries]
+            for future in concurrent.futures.as_completed(futures, timeout=35):
+                try:
+                    for r in future.result():
+                        vid_id = r.get("id", "")
+                        if not vid_id or vid_id in seen_ids:
+                            continue
+                        # Only keep short videos (<=90s)
+                        if 0 < r.get("duration", 0) <= 90:
+                            seen_ids.add(vid_id)
+                            all_results.append(r)
+                except Exception:
+                    pass
+
+        # If not enough shorts, relax to <=120s
+        if len(all_results) < 4:
+            seen_ids_2: set = set(r["id"] for r in all_results)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                futures2 = [executor.submit(_yt_search, f"{query} short", 10)]
+                for future in concurrent.futures.as_completed(futures2, timeout=20):
+                    try:
+                        for r in future.result():
+                            vid_id = r.get("id", "")
+                            if not vid_id or vid_id in seen_ids_2:
+                                continue
+                            if 0 < r.get("duration", 0) <= 120:
+                                seen_ids_2.add(vid_id)
+                                all_results.append(r)
+                    except Exception:
+                        pass
+
+        return all_results[:limit]
+
+    @staticmethod
+    async def youtube_video_info(video_id: str) -> Dict:
+        """Get info for a specific YouTube video by ID."""
+        def _get_info(vid_id: str) -> Dict:
+            try:
+                import yt_dlp
+                ydl_opts = {
+                    'quiet': True,
+                    'skip_download': True,
+                    'no_warnings': True,
+                }
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    r = ydl.extract_info(f'https://www.youtube.com/watch?v={vid_id}', download=False)
+                    if not r:
+                        return {}
+                    return {
+                        'id': r.get('id', vid_id),
+                        'title': r.get('title', ''),
+                        'channel': r.get('channel') or r.get('uploader') or '',
+                        'thumbnail': r.get('thumbnail') or f'https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg',
+                        'duration': int(r.get('duration') or 0),
+                        'views': int(r.get('view_count') or 0),
+                        'description': (r.get('description') or '')[:500],
+                        'uploaded': r.get('upload_date') or '',
+                    }
+            except Exception:
+                return {'id': video_id, 'thumbnail': f'https://i.ytimg.com/vi/{video_id}/hqdefault.jpg'}
+
+        loop = asyncio.get_event_loop()
+        try:
+            return await asyncio.wait_for(
+                loop.run_in_executor(None, _get_info, video_id),
+                timeout=25.0
+            )
+        except asyncio.TimeoutError:
+            return {'id': video_id, 'thumbnail': f'https://i.ytimg.com/vi/{video_id}/hqdefault.jpg'}
