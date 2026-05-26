@@ -1,0 +1,8 @@
+export { default as BoardsTab } from './BoardsTab'
+export { default as StandardsTab } from './StandardsTab'
+export { default as MediumsTab } from './MediumsTab'
+export { default as CurriculumTab } from './CurriculumTab'
+export { default as UsersTab } from './UsersTab'
+export { default as UsageTab } from './UsageTab'
+export { default as AIConfigTab } from './AIConfigTab'
+export { default as DrishtiHelpersTab } from './DrishtiHelpersTab'

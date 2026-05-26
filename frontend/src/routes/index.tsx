@@ -16,7 +16,7 @@ const Register = lazy(() => import('../modules/auth/pages/Register'))
 // Public pages
 const LandingPage = lazy(() => import('../components/LandingPage'))
 const ParentDashboard = lazy(() => import('../components/ParentDashboard'))
-const AdminPanel = lazy(() => import('../components/AdminPanel'))
+const AdminPanel = lazy(() => import('../components/admin'))
 const HelperPortal = lazy(() => import('../components/HelperPortal'))
 
 // Module pages (Redux-connected)
