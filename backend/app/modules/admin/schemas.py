@@ -49,3 +49,54 @@ class CurriculumRow(BaseModel):
 class CurriculumUpdate(BaseModel):
     subjects: Optional[List[str]] = None
     is_active: Optional[bool] = None
+
+
+class CurriculumImport(BaseModel):
+    rows: List[CurriculumRow]
+
+
+class UserPlanUpdate(BaseModel):
+    plan: str
+    plan_expires_at: Optional[str] = None
+
+
+class UserAIConfig(BaseModel):
+    provider: str
+    model: str
+    override: bool = True
+
+
+class CreateDrishtiStudent(BaseModel):
+    name: str
+    email: str
+    password: str
+    standard: str
+    board: str
+    language: str = "English"
+    is_drishti: bool = True
+
+
+class AIRoutingUpdate(BaseModel):
+    plan: str
+    provider: str
+    model: str
+
+
+class AIKeyUpsert(BaseModel):
+    provider: str
+    key: str
+    slot: int = 1
+
+
+class HelperCreate(BaseModel):
+    helper_name: str
+    helper_email: str
+    helper_type: str = "teacher"
+    notes: str = ""
+
+
+class HelperUpdate(BaseModel):
+    helper_name: str
+    helper_email: str
+    helper_type: str = "teacher"
+    notes: str = ""

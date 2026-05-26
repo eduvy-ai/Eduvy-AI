@@ -1172,7 +1172,7 @@ function UsersTab({ toast }) {
       if (planFilter) params.set('plan', planFilter)
       if (drishtiOnly) params.set('drishti', 'true')
       const res = await API(`/admin/users?${params}`)
-      if (res.ok) setUsers(await res.json())
+      if (res.ok) { const d = await res.json(); setUsers(Array.isArray(d) ? d : []) }
     } finally {
       setLoading(false)
     }
@@ -1526,7 +1526,7 @@ function AIConfigTab({ toast }) {
     setUserLoading(true)
     try {
       const res = await API(`/admin/users?search=${encodeURIComponent(userSearch)}`)
-      if (res.ok) setUsers(await res.json())
+      if (res.ok) { const d = await res.json(); setUsers(Array.isArray(d) ? d : []) }
     } finally {
       setUserLoading(false)
     }

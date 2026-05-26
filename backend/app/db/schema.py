@@ -376,7 +376,82 @@ def create_all_tables():
             is_active   BOOLEAN DEFAULT TRUE
         )
     """)
-    
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS curriculum (
+            id          SERIAL PRIMARY KEY,
+            board_id    TEXT NOT NULL,
+            standard_id TEXT NOT NULL,
+            medium_id   TEXT NOT NULL,
+            subjects    TEXT DEFAULT '[]',
+            is_active   BOOLEAN DEFAULT TRUE,
+            UNIQUE (board_id, standard_id, medium_id)
+        )
+    """)
+
+    # ── AI Usage ──────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS ai_usage (
+            user_id           TEXT NOT NULL,
+            date              TEXT NOT NULL,
+            call_count        INTEGER DEFAULT 0,
+            prompt_tokens     INTEGER DEFAULT 0,
+            completion_tokens INTEGER DEFAULT 0,
+            PRIMARY KEY (user_id, date)
+        )
+    """)
+
+    # ── App Settings (AI routing + API keys) ─────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS app_settings (
+            key        TEXT PRIMARY KEY,
+            value      TEXT NOT NULL DEFAULT '',
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # ── Drishti Helpers ───────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS drishti_helpers (
+            id           SERIAL PRIMARY KEY,
+            helper_name  TEXT NOT NULL,
+            helper_email TEXT UNIQUE NOT NULL,
+            helper_type  TEXT NOT NULL DEFAULT 'teacher',
+            helper_token TEXT UNIQUE NOT NULL,
+            notes        TEXT DEFAULT '',
+            is_active    BOOLEAN DEFAULT TRUE,
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS drishti_assignments (
+            id          SERIAL PRIMARY KEY,
+            helper_id   INT NOT NULL REFERENCES drishti_helpers(id) ON DELETE CASCADE,
+            student_id  TEXT NOT NULL,
+            is_active   BOOLEAN DEFAULT TRUE,
+            assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (helper_id, student_id)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS helper_notes (
+            id         SERIAL PRIMARY KEY,
+            helper_id  INT NOT NULL,
+            student_id TEXT NOT NULL,
+            message    TEXT NOT NULL,
+            is_read    BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # ── Idempotent column additions ───────────────────────────
+    # Add ai_admin_override to users if not present
+    cur.execute("""
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_admin_override BOOLEAN DEFAULT FALSE
+    """)
+
     conn.commit()
     cur.close()
     conn.close()

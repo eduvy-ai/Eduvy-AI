@@ -224,3 +224,507 @@ class AdminService:
             return {"ok": True}
         finally:
             conn.close()
+
+    # ── Curriculum ────────────────────────────────────────────
+
+    @staticmethod
+    def list_curriculum() -> List[Dict]:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT id, board_id, standard_id, medium_id, subjects, is_active FROM curriculum ORDER BY board_id, standard_id, medium_id"
+            )
+            rows = cur.fetchall()
+            result = []
+            for r in rows:
+                d = dict(r)
+                import json as _json
+                try:
+                    d["subjects"] = _json.loads(d["subjects"]) if isinstance(d["subjects"], str) else d["subjects"]
+                except Exception:
+                    d["subjects"] = []
+                result.append(d)
+            return result
+        finally:
+            conn.close()
+
+    @staticmethod
+    def create_curriculum(board_id: str, standard_id: str, medium_id: str, subjects: List[str], is_active: bool = True) -> Dict:
+        import json as _json
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """INSERT INTO curriculum (board_id, standard_id, medium_id, subjects, is_active)
+                   VALUES (%s,%s,%s,%s,%s)
+                   ON CONFLICT (board_id, standard_id, medium_id)
+                   DO UPDATE SET subjects=EXCLUDED.subjects, is_active=EXCLUDED.is_active
+                   RETURNING *""",
+                (board_id, standard_id, medium_id, _json.dumps(subjects), is_active)
+            )
+            row = cur.fetchone()
+            conn.commit()
+            d = dict(row)
+            try:
+                d["subjects"] = _json.loads(d["subjects"]) if isinstance(d["subjects"], str) else d["subjects"]
+            except Exception:
+                d["subjects"] = []
+            return d
+        finally:
+            conn.close()
+
+    @staticmethod
+    def update_curriculum(row_id: int, subjects: List[str] = None, is_active: bool = None) -> Dict:
+        import json as _json
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            if subjects is not None and is_active is not None:
+                cur.execute(
+                    "UPDATE curriculum SET subjects=%s, is_active=%s WHERE id=%s RETURNING *",
+                    (_json.dumps(subjects), is_active, row_id)
+                )
+            elif subjects is not None:
+                cur.execute(
+                    "UPDATE curriculum SET subjects=%s WHERE id=%s RETURNING *",
+                    (_json.dumps(subjects), row_id)
+                )
+            elif is_active is not None:
+                cur.execute(
+                    "UPDATE curriculum SET is_active=%s WHERE id=%s RETURNING *",
+                    (is_active, row_id)
+                )
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Curriculum row not found")
+            conn.commit()
+            d = dict(row)
+            try:
+                d["subjects"] = _json.loads(d["subjects"]) if isinstance(d["subjects"], str) else d["subjects"]
+            except Exception:
+                d["subjects"] = []
+            return d
+        finally:
+            conn.close()
+
+    @staticmethod
+    def delete_curriculum(row_id: int) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM curriculum WHERE id=%s", (row_id,))
+            conn.commit()
+            return {"ok": True}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def import_curriculum(rows: List[Dict]) -> Dict:
+        import json as _json
+        conn = get_db()
+        created = 0
+        errors = []
+        try:
+            cur = conn.cursor()
+            for r in rows:
+                try:
+                    cur.execute(
+                        """INSERT INTO curriculum (board_id, standard_id, medium_id, subjects, is_active)
+                           VALUES (%s,%s,%s,%s,TRUE)
+                           ON CONFLICT (board_id, standard_id, medium_id)
+                           DO UPDATE SET subjects=EXCLUDED.subjects, is_active=TRUE""",
+                        (r["board_id"], r["standard_id"], r["medium_id"], _json.dumps(r.get("subjects", [])))
+                    )
+                    created += 1
+                except Exception as e:
+                    errors.append(str(e))
+            conn.commit()
+            return {"created": created, "errors": errors}
+        finally:
+            conn.close()
+
+    # ── Users ─────────────────────────────────────────────────
+
+    @staticmethod
+    def list_users(search: str = "", plan: str = "", drishti_only: bool = False) -> List[Dict]:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            conditions = []
+            params = []
+            if search:
+                conditions.append("(LOWER(name) LIKE %s OR LOWER(email) LIKE %s)")
+                like = f"%{search.lower()}%"
+                params.extend([like, like])
+            if plan:
+                conditions.append("plan = %s")
+                params.append(plan)
+            if drishti_only:
+                conditions.append("is_drishti = TRUE")
+            where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+            cur.execute(
+                f"""SELECT id, name, email, standard, board, language, plan,
+                           plan_expires_at, xp, streak, is_drishti,
+                           ai_provider, ai_model, ai_admin_override, created_at
+                    FROM users {where}
+                    ORDER BY created_at DESC LIMIT 500""",
+                params
+            )
+            return [dict(r) for r in cur.fetchall()]
+        finally:
+            conn.close()
+
+    @staticmethod
+    def update_user_plan(user_id: str, plan: str, plan_expires_at: str = None) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE users SET plan=%s, plan_expires_at=%s WHERE id=%s",
+                (plan, plan_expires_at or "", user_id)
+            )
+            conn.commit()
+            return {"ok": True}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def toggle_drishti(user_id: str, is_drishti: bool) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("UPDATE users SET is_drishti=%s WHERE id=%s", (is_drishti, user_id))
+            conn.commit()
+            return {"ok": True}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def update_user_ai_config(user_id: str, provider: str, model: str, override: bool) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE users SET ai_provider=%s, ai_model=%s, ai_admin_override=%s WHERE id=%s",
+                (provider, model, override, user_id)
+            )
+            conn.commit()
+            return {"ok": True}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def create_drishti_student(name: str, email: str, password: str, standard: str, board: str, language: str) -> Dict:
+        import uuid
+        import bcrypt as _bcrypt
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            email = email.strip().lower()
+            cur.execute("SELECT id FROM users WHERE email=%s", (email,))
+            if cur.fetchone():
+                raise HTTPException(status_code=409, detail="Email already registered")
+            pw_hash = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
+            user_id = str(uuid.uuid4())
+            cur.execute(
+                """INSERT INTO users (id, name, email, password_hash, standard, board, language, is_drishti, plan)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,TRUE,'free')""",
+                (user_id, name.strip(), email, pw_hash, standard, board, language)
+            )
+            conn.commit()
+            return {"id": user_id, "name": name, "email": email}
+        finally:
+            conn.close()
+
+    # ── AI Usage ──────────────────────────────────────────────
+
+    @staticmethod
+    def get_usage_summary(days: int = 7) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            # All-time totals
+            cur.execute("SELECT COALESCE(SUM(call_count),0) AS calls, COALESCE(SUM(prompt_tokens+completion_tokens),0) AS tokens FROM ai_usage")
+            row = cur.fetchone()
+            all_time = {"calls": int(row["calls"]), "tokens": int(row["tokens"])}
+            # Daily breakdown for past N days
+            cur.execute(
+                """SELECT date, SUM(call_count) AS calls, SUM(prompt_tokens+completion_tokens) AS tokens
+                   FROM ai_usage
+                   WHERE date >= CURRENT_DATE - INTERVAL '%s days'
+                   GROUP BY date ORDER BY date DESC""",
+                (days,)
+            )
+            daily = [{"date": r["date"], "calls": int(r["calls"]), "tokens": int(r["tokens"])} for r in cur.fetchall()]
+            return {"all_time": all_time, "daily": daily}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_usage_by_date(date: str) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """SELECT u.user_id, us.name,
+                          u.call_count AS calls,
+                          u.prompt_tokens + u.completion_tokens AS tokens
+                   FROM ai_usage u
+                   LEFT JOIN users us ON us.id = u.user_id
+                   WHERE u.date = %s
+                   ORDER BY u.call_count DESC LIMIT 100""",
+                (date,)
+            )
+            rows = [dict(r) for r in cur.fetchall()]
+            return {"rows": rows}
+        finally:
+            conn.close()
+
+    # ── AI Config ─────────────────────────────────────────────
+
+    @staticmethod
+    def get_ai_config() -> Dict:
+        import json as _json
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            # Routing
+            cur.execute("SELECT key, value FROM app_settings WHERE key LIKE 'ai_routing_%'")
+            routing = {}
+            for r in cur.fetchall():
+                plan = r["key"].replace("ai_routing_", "")
+                try:
+                    routing[plan] = _json.loads(r["value"])
+                except Exception:
+                    pass
+            default_routing = {
+                "free":    {"provider": "groq",   "model": "llama-3.1-8b-instant"},
+                "basic":   {"provider": "groq",   "model": "llama-3.3-70b-versatile"},
+                "pro":     {"provider": "gemini", "model": "gemini-2.0-flash"},
+                "premium": {"provider": "gemini", "model": "gemini-2.0-flash"},
+            }
+            for plan, val in default_routing.items():
+                if plan not in routing:
+                    routing[plan] = val
+            # Key status and slots
+            providers = ["gemini", "groq", "anthropic", "openai"]
+            key_status = {}
+            key_slots = {}
+            for prov in providers:
+                has_key = False
+                db_slots = {}
+                for slot in range(1, 6):
+                    dk = f"api_key_{prov}" if slot == 1 else f"api_key_{prov}_{slot}"
+                    cur.execute("SELECT value FROM app_settings WHERE key=%s AND value != ''", (dk,))
+                    row = cur.fetchone()
+                    db_slots[slot] = bool(row and row["value"])
+                    if row and row["value"]:
+                        has_key = True
+                # Also check env vars
+                env_base = {"gemini": "GEMINI_API_KEY", "groq": "GROQ_API_KEY",
+                            "anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY"}.get(prov, "")
+                import os as _os
+                env_count = sum(1 for i in ([""] + [f"_{j}" for j in range(2, 6)])
+                                if _os.getenv(f"{env_base}{i}", ""))
+                if env_count:
+                    has_key = True
+                key_status[prov] = has_key
+                key_slots[prov] = {
+                    "db_slots": sum(1 for v in db_slots.values() if v),
+                    "env_count": env_count,
+                    "pool_size": sum(1 for v in db_slots.values() if v) + env_count,
+                }
+            return {"routing": routing, "key_status": key_status, "key_slots": key_slots}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def save_ai_routing(plan: str, provider: str, model: str) -> Dict:
+        import json as _json
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """INSERT INTO app_settings (key, value, updated_at)
+                   VALUES (%s, %s, CURRENT_TIMESTAMP)
+                   ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=CURRENT_TIMESTAMP""",
+                (f"ai_routing_{plan}", _json.dumps({"provider": provider, "model": model}))
+            )
+            conn.commit()
+            return {"ok": True}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def save_ai_key(provider: str, key: str, slot: int = 1) -> Dict:
+        import hashlib, base64
+        from cryptography.fernet import Fernet
+        import os as _os
+        secret = _os.getenv("JWT_SECRET", "")
+        fernet = Fernet(base64.urlsafe_b64encode(hashlib.sha256(secret.encode()).digest()))
+        encrypted = fernet.encrypt(key.encode()).decode()
+        db_key = f"api_key_{provider}" if slot == 1 else f"api_key_{provider}_{slot}"
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """INSERT INTO app_settings (key, value, updated_at)
+                   VALUES (%s, %s, CURRENT_TIMESTAMP)
+                   ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=CURRENT_TIMESTAMP""",
+                (db_key, encrypted)
+            )
+            conn.commit()
+            return {"ok": True}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def remove_ai_key(provider: str, slot: int) -> Dict:
+        db_key = f"api_key_{provider}" if slot == 1 else f"api_key_{provider}_{slot}"
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM app_settings WHERE key=%s", (db_key,))
+            conn.commit()
+            return {"ok": True}
+        finally:
+            conn.close()
+
+    # ── Drishti Helpers ───────────────────────────────────────
+
+    @staticmethod
+    def list_helpers() -> List[Dict]:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT h.id, h.helper_name, h.helper_email, h.helper_type,
+                       h.notes, h.is_active, h.created_at,
+                       LEFT(h.helper_token, 8) AS token_preview,
+                       COUNT(da.id) FILTER (WHERE da.is_active = TRUE) AS student_count
+                FROM drishti_helpers h
+                LEFT JOIN drishti_assignments da ON da.helper_id = h.id
+                GROUP BY h.id
+                ORDER BY h.created_at DESC
+            """)
+            return [dict(r) for r in cur.fetchall()]
+        finally:
+            conn.close()
+
+    @staticmethod
+    def create_helper(helper_name: str, helper_email: str, helper_type: str, notes: str) -> Dict:
+        import secrets
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            email = helper_email.strip().lower()
+            token = secrets.token_urlsafe(32)
+            cur.execute(
+                """INSERT INTO drishti_helpers (helper_name, helper_email, helper_type, helper_token, notes)
+                   VALUES (%s,%s,%s,%s,%s) RETURNING id, helper_name, helper_email, helper_type, notes, is_active, created_at""",
+                (helper_name.strip(), email, helper_type.strip(), token, notes.strip())
+            )
+            row = cur.fetchone()
+            conn.commit()
+            d = dict(row)
+            d["helper_token"] = token
+            return d
+        finally:
+            conn.close()
+
+    @staticmethod
+    def update_helper(helper_id: int, helper_name: str, helper_email: str, helper_type: str, notes: str) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """UPDATE drishti_helpers
+                   SET helper_name=%s, helper_email=%s, helper_type=%s, notes=%s
+                   WHERE id=%s RETURNING id, helper_name, helper_email, helper_type, notes, is_active""",
+                (helper_name.strip(), helper_email.strip().lower(), helper_type.strip(), notes.strip(), helper_id)
+            )
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Helper not found")
+            conn.commit()
+            return dict(row)
+        finally:
+            conn.close()
+
+    @staticmethod
+    def deactivate_helper(helper_id: int) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("UPDATE drishti_helpers SET is_active=FALSE WHERE id=%s", (helper_id,))
+            conn.commit()
+            return {"ok": True}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_helper_students(helper_id: int) -> List[Dict]:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT u.id, u.name, u.standard, u.board, u.language, u.plan, u.xp, u.streak
+                FROM users u
+                JOIN drishti_assignments da ON da.student_id = u.id
+                WHERE da.helper_id = %s AND da.is_active = TRUE
+                ORDER BY u.name
+            """, (helper_id,))
+            return [dict(r) for r in cur.fetchall()]
+        finally:
+            conn.close()
+
+    @staticmethod
+    def assign_student(helper_id: int, student_id: str) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """INSERT INTO drishti_assignments (helper_id, student_id, is_active)
+                   VALUES (%s,%s,TRUE)
+                   ON CONFLICT (helper_id, student_id)
+                   DO UPDATE SET is_active=TRUE, assigned_at=CURRENT_TIMESTAMP""",
+                (helper_id, student_id)
+            )
+            conn.commit()
+            return {"ok": True}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def unassign_student(helper_id: int, student_id: str) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE drishti_assignments SET is_active=FALSE WHERE helper_id=%s AND student_id=%s",
+                (helper_id, student_id)
+            )
+            conn.commit()
+            return {"ok": True}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def list_drishti_students() -> List[Dict]:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT u.id, u.name, u.standard, u.board, u.language, u.plan, u.xp, u.streak,
+                       h.helper_name AS assigned_to
+                FROM users u
+                LEFT JOIN drishti_assignments da ON da.student_id = u.id AND da.is_active = TRUE
+                LEFT JOIN drishti_helpers h ON h.id = da.helper_id
+                WHERE u.is_drishti = TRUE
+                ORDER BY u.name
+            """)
+            return [dict(r) for r in cur.fetchall()]
+        finally:
+            conn.close()
+
