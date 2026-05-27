@@ -50,7 +50,7 @@ export async function apiRegister({ email, password, name, standard, board, lang
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, name, standard, board, language, subjects, mobile: mobile || '', parent_mobile: parent_mobile || '' }),
-    signal: AbortSignal.timeout(15000),
+    signal: AbortSignal.timeout(60000),
   })
   const data = await safeJson(res)
   if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
@@ -62,7 +62,7 @@ export async function apiLogin({ email, password }) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
-    signal: AbortSignal.timeout(10000),
+    signal: AbortSignal.timeout(60000),
   })
   const data = await safeJson(res)
   if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
@@ -72,7 +72,7 @@ export async function apiLogin({ email, password }) {
 export async function apiGetMe() {
   const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
     headers: _authHeaders(),
-    signal: AbortSignal.timeout(5000),
+    signal: AbortSignal.timeout(30000),
   })
   if (res.status === 401 || res.status === 404) return null
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
