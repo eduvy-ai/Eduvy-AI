@@ -26,9 +26,11 @@ export const C = {
   muted:  "#6868a0",
 }
 
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://eduvyai-api.onrender.com'
+
 export const API = (path, opts = {}) => {
   const token = localStorage.getItem('eduvyai_admin_token')
-  return fetch(`/api${path}`, {
+  return fetch(`${BASE_URL}/api${path}`, {
     ...opts,
     headers: {
       'Content-Type': 'application/json',
