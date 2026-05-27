@@ -42,6 +42,7 @@ _SERVER_KEYS: dict[str, str] = {
     "groq":      os.getenv("GROQ_API_KEY", ""),
     "anthropic": os.getenv("ANTHROPIC_API_KEY", ""),
     "openai":    os.getenv("OPENAI_API_KEY", ""),
+    "nvidia":    os.getenv("NVIDIA_API_KEY", ""),
 }
 
 # ── Per-provider key pools — round-robin for scale ────────────
@@ -58,6 +59,7 @@ _KEY_POOLS: dict[str, list[str]] = {
     "gemini":    _load_pool("GEMINI_API_KEY"),
     "anthropic": _load_pool("ANTHROPIC_API_KEY"),
     "openai":    _load_pool("OPENAI_API_KEY"),
+    "nvidia":    _load_pool("NVIDIA_API_KEY"),
 }
 
 _rr_indices: dict[str, int] = {p: 0 for p in _KEY_POOLS}
@@ -205,6 +207,7 @@ _ENV_BASE = {
     "gemini": "GEMINI_API_KEY",
     "anthropic": "ANTHROPIC_API_KEY",
     "openai": "OPENAI_API_KEY",
+    "nvidia": "NVIDIA_API_KEY",
 }
 
 
@@ -342,7 +345,8 @@ def _get_key(provider: str, client_key: str | None) -> str:
 
 
 # Preferred fallback order when the resolved provider has no key
-_FALLBACK_ORDER = ["groq", "gemini", "anthropic", "openai"]
+# nvidia sits after groq so it absorbs overflow before burning Gemini quota
+_FALLBACK_ORDER = ["groq", "nvidia", "gemini", "anthropic", "openai"]
 
 # Default first model per provider (used when falling back)
 _PROVIDER_DEFAULT_MODEL = {
@@ -350,6 +354,9 @@ _PROVIDER_DEFAULT_MODEL = {
     "gemini":    "gemini-2.0-flash",
     "anthropic": "claude-3-5-haiku-20241022",
     "openai":    "gpt-4o-mini",
+    # NVIDIA NIM — OpenAI-compatible endpoint, 1000 free calls per model
+    # meta/llama-3.3-70b-instruct is a strong 70B used as the default
+    "nvidia":    "meta/llama-3.3-70b-instruct",
 }
 
 
@@ -429,6 +436,8 @@ async def call_ai(
                     result = await _gemini(client, model, key, system_prompt, messages, max_tokens)
                 elif provider == "groq":
                     result = await _groq(client, model, key, system_prompt, messages, max_tokens)
+                elif provider == "nvidia":
+                    result = await _nvidia(client, model, key, system_prompt, messages, max_tokens)
                 else:
                     return (f"⚠️ Unknown provider: {provider}", 0, 0)
 
@@ -564,6 +573,36 @@ async def _groq(client: httpx.AsyncClient, model: str, key: str,
             "model": model, "max_tokens": max_tokens,
             "messages": [{"role": "system", "content": str(system)}, *messages],
         },
+    )
+    r.raise_for_status()
+    data = r.json()
+    if "error" in data:
+        return ("⚠️ " + data["error"].get("message", "Unknown error"), 0, 0)
+    text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+    usage = data.get("usage", {})
+    return text, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0)
+
+
+# ── NVIDIA NIM — OpenAI-compatible, free tier 1000 calls/model ──
+# Base URL: https://integrate.api.nvidia.com/v1
+# Models (format: "org/model-name"):
+#   meta/llama-3.3-70b-instruct      ← strong 70B, default
+#   meta/llama-3.1-8b-instruct       ← fast/light
+#   nvidia/llama-3.3-nemotron-super-49b-v1  ← NVIDIA fine-tune, very capable
+#   nvidia/llama-3.1-nemotron-ultra-253b-v1 ← most powerful, use for premium
+#   mistralai/mistral-nemotron        ← reasoning/coding
+#   deepseek-ai/deepseek-v4-flash     ← fast reasoning
+async def _nvidia(client: httpx.AsyncClient, model: str, key: str,
+                  system: str, messages: list, max_tokens: int) -> tuple[str, int, int]:
+    r = await client.post(
+        "https://integrate.api.nvidia.com/v1/chat/completions",
+        headers={"Content-Type": "application/json",
+                 "Authorization": f"Bearer {key}"},
+        json={
+            "model": model, "max_tokens": max_tokens,
+            "messages": [{"role": "system", "content": str(system)}, *messages],
+        },
+        timeout=90.0,  # NVIDIA NIM can be slower on first call (cold start)
     )
     r.raise_for_status()
     data = r.json()

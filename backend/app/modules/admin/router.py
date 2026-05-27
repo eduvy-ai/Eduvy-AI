@@ -249,6 +249,16 @@ async def get_ai_config(admin_id: int = Depends(get_admin_user)):
     return await asyncio.to_thread(AdminService.get_ai_config)
 
 
+@router.get("/ai-models/{provider}")
+async def get_provider_models(provider: str, admin_id: int = Depends(get_admin_user)):
+    """Return live model list for a provider using its configured server key."""
+    allowed = {"groq", "gemini", "anthropic", "openai", "nvidia"}
+    if provider not in allowed:
+        raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
+    models = await AdminService.fetch_provider_models(provider)
+    return {"provider": provider, "models": models}
+
+
 @router.put("/ai-config")
 async def save_ai_routing(data: AIRoutingUpdate, admin_id: int = Depends(get_admin_user)):
     return await asyncio.to_thread(
