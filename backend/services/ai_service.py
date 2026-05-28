@@ -67,14 +67,19 @@ _rr_lock = threading.Lock()
 
 
 def _next_key(provider: str) -> str:
-    """Return next key for provider in round-robin order (thread-safe)."""
+    """Return next key for provider in round-robin order (thread-safe).
+
+    Uses .get() with a default of 0 so providers added dynamically after
+    module startup (via save_api_key / load_plan_routing) never cause a
+    KeyError — the counter is created on first access.
+    """
     pool = _KEY_POOLS.get(provider, [])
     if not pool:
         return ""
     with _rr_lock:
-        idx = _rr_indices[provider] % len(pool)
-        _rr_indices[provider] += 1
-    return pool[idx]
+        current = _rr_indices.get(provider, 0)
+        _rr_indices[provider] = (current + 1) % len(pool)  # keep bounded, never overflows
+    return pool[current % len(pool)]
 
 
 # ── AI Response Cache (TTL-based LRU) ─────────────────────────
@@ -339,23 +344,16 @@ def get_plan_routing() -> dict[str, dict]:
     return dict(_PLAN_ROUTING)
 
 
-def _get_key(provider: str, client_key: str | None) -> str:
-    """Return next round-robin key for the provider."""
-    return _next_key(provider)
-
-
-# Preferred fallback order when the resolved provider has no key
-# nvidia sits after groq so it absorbs overflow before burning Gemini quota
+# Preferred fallback order when the primary provider is rate-limited or unavailable.
+# nvidia sits after groq so it absorbs overflow before burning Gemini quota.
 _FALLBACK_ORDER = ["groq", "nvidia", "gemini", "anthropic", "openai"]
 
-# Default first model per provider (used when falling back)
+# Default model per provider used when falling back (not the user's chosen model).
 _PROVIDER_DEFAULT_MODEL = {
     "groq":      "llama-3.1-8b-instant",
     "gemini":    "gemini-2.0-flash",
     "anthropic": "claude-3-5-haiku-20241022",
     "openai":    "gpt-4o-mini",
-    # NVIDIA NIM — OpenAI-compatible endpoint, 1000 free calls per model
-    # meta/llama-3.3-70b-instruct is a strong 70B used as the default
     "nvidia":    "meta/llama-3.3-70b-instruct",
 }
 
@@ -401,97 +399,103 @@ async def call_ai(
     max_tokens: int,
     api_key: str | None = None,   # kept for backward compat but ignored in managed mode
 ) -> tuple[str, int, int]:
-    key = _get_key(provider, api_key)
-    # If still no key after routing, try every available provider as last resort
-    if not key:
+    # Early exit if no keys exist anywhere
+    if not _KEY_POOLS.get(provider):
         fallback = _first_available_provider()
-        if fallback:
-            provider, model = fallback
-            key = _next_key(provider)
-    if not key:
-        return (
-            "⚠️ AI service is temporarily unavailable. Please try again shortly.",
-            0, 0,
-        )
+        if not fallback:
+            return ("⚠️ AI service is temporarily unavailable. Please try again shortly.", 0, 0)
+        provider, model = fallback
+
+    # Build ordered list of (provider, model) to try.
+    # Primary provider first, then fallbacks — no key pre-fetched here;
+    # _next_key() is called per-attempt so the round-robin is used properly.
+    def _provider_order() -> list[tuple[str, str]]:
+        order = [(provider, model)]
+        for prov in _FALLBACK_ORDER:
+            if prov != provider and _KEY_POOLS.get(prov):
+                order.append((prov, _PROVIDER_DEFAULT_MODEL[prov]))
+        return order
 
     messages = list(history[-8:])  # keep last 8 turns
     messages.append({"role": "user", "content": str(prompt)})
 
     # ── Cache lookup — only for stateless calls (no prior history) ─
     cache_key: str | None = None
-    if not history:   # no conversation context — safe to cache
+    if not history:
         cache_key = _TTLCache.make_key(provider, model, system_prompt, str(prompt))
         cached = _ai_cache.get(cache_key)
         if cached is not None:
             return cached
 
     async with httpx.AsyncClient(timeout=60.0) as client:
-        for attempt in range(3):
-            try:
-                if provider == "anthropic":
-                    result = await _anthropic(client, model, key, system_prompt, messages, max_tokens)
-                elif provider == "openai":
-                    result = await _openai(client, model, key, system_prompt, messages, max_tokens)
-                elif provider == "gemini":
-                    result = await _gemini(client, model, key, system_prompt, messages, max_tokens)
-                elif provider == "groq":
-                    result = await _groq(client, model, key, system_prompt, messages, max_tokens)
-                elif provider == "nvidia":
-                    result = await _nvidia(client, model, key, system_prompt, messages, max_tokens)
-                else:
-                    return (f"⚠️ Unknown provider: {provider}", 0, 0)
+        for (cur_provider, cur_model) in _provider_order():
+            pool_size = len(_KEY_POOLS.get(cur_provider, []))
+            # Attempt once per key in the pool (min 1, max 5) so every
+            # round-robin slot is tried before falling back to next provider.
+            n_attempts = max(min(pool_size, 5), 1)
 
-                text, ptok, ctok = result
-                if text:
-                    if cache_key and not text.startswith("⚠️"):
-                        _ai_cache.set(cache_key, (text, ptok, ctok))
-                    return text, ptok, ctok
+            for attempt in range(n_attempts):
+                key = _next_key(cur_provider)
+                if not key:
+                    break
 
-            except httpx.TimeoutException:
-                if attempt == 2:
-                    return ("⚠️ Request timed out. Please try again.", 0, 0)
-                await asyncio.sleep((attempt + 1) * 2)
-            except httpx.HTTPStatusError as exc:
-                status = exc.response.status_code
-                if status == 429:
-                    if attempt < 2:
-                        # Rotate to next key — it may be on a different account
-                        key = _next_key(provider) or key
-                        await asyncio.sleep((attempt + 1) * 3)
-                        continue
-                    return ("⚠️ Rate limit reached on AI provider. Please wait and retry.", 0, 0)
-                if status == 400:
-                    # Model decommissioned / invalid — auto-fix and retry
-                    err_text = exc.response.text.lower()
-                    if "decommissioned" in err_text or "deprecated" in err_text or "no longer supported" in err_text:
-                        fixed = _DECOMMISSIONED_MODELS.get(model)
-                        if fixed and fixed != model:
-                            model = fixed
+                try:
+                    if cur_provider == "anthropic":
+                        result = await _anthropic(client, cur_model, key, system_prompt, messages, max_tokens)
+                    elif cur_provider == "openai":
+                        result = await _openai(client, cur_model, key, system_prompt, messages, max_tokens)
+                    elif cur_provider == "gemini":
+                        result = await _gemini(client, cur_model, key, system_prompt, messages, max_tokens)
+                    elif cur_provider == "groq":
+                        result = await _groq(client, cur_model, key, system_prompt, messages, max_tokens)
+                    elif cur_provider == "nvidia":
+                        result = await _nvidia(client, cur_model, key, system_prompt, messages, max_tokens)
+                    else:
+                        break  # unknown provider → try next
+
+                    text, ptok, ctok = result
+                    if text:
+                        if cache_key and not text.startswith("⚠️"):
+                            _ai_cache.set(cache_key, (text, ptok, ctok))
+                        return text, ptok, ctok
+
+                except httpx.TimeoutException:
+                    if attempt == n_attempts - 1:
+                        break  # all keys timed out → try next provider
+                    await asyncio.sleep((attempt + 1) * 2)
+
+                except httpx.HTTPStatusError as exc:
+                    status = exc.response.status_code
+                    if status == 429:
+                        # Key is rate-limited — next iteration will pull the next
+                        # round-robin key automatically; just wait and continue.
+                        if attempt < n_attempts - 1:
+                            await asyncio.sleep(min((attempt + 1) * 3, 15))
                             continue
-                        # Fallback to Gemini if available
-                        if _KEY_POOLS.get("gemini") and provider != "gemini":
-                            provider, model = "gemini", "gemini-2.0-flash"
-                            key = _next_key("gemini")
+                        break  # all keys rate-limited → try next provider
+                    if status == 400:
+                        err_text = exc.response.text.lower()
+                        if "decommissioned" in err_text or "deprecated" in err_text or "no longer supported" in err_text:
+                            fixed = _DECOMMISSIONED_MODELS.get(cur_model)
+                            if fixed and fixed != cur_model:
+                                cur_model = fixed
+                                continue
+                        break  # unrecoverable 400 → try next provider
+                    if status == 413:
+                        if cur_provider == "groq" and cur_model != "llama-3.3-70b-versatile":
+                            cur_model = "llama-3.3-70b-versatile"
                             continue
-                if status == 413:
-                    # Request too large for this model — try bigger model or next provider
-                    if provider == "groq" and model != "llama-3.3-70b-versatile" and attempt == 0:
-                        model = "llama-3.3-70b-versatile"
-                        continue
-                    if _KEY_POOLS.get("gemini") and provider != "gemini":
-                        provider, model = "gemini", "gemini-2.0-flash"
-                        key = _next_key("gemini")
-                        continue
-                    return ("⚠️ Request too large. Please shorten your message and try again.", 0, 0)
-                if attempt == 2:
-                    return (f"⚠️ HTTP {status}: {exc.response.text[:200]}", 0, 0)
-                await asyncio.sleep(2)
-            except Exception as exc:
-                if attempt == 2:
-                    return (f"⚠️ Error: {str(exc)}", 0, 0)
-                await asyncio.sleep(2)
+                        break  # request too large → try next provider
+                    if attempt == n_attempts - 1:
+                        break
+                    await asyncio.sleep(2)
 
-    return ("⚠️ Failed after 3 attempts.", 0, 0)
+                except Exception:
+                    if attempt == n_attempts - 1:
+                        break  # unexpected error → try next provider
+                    await asyncio.sleep(2)
+
+    return ("⚠️ AI service is temporarily unavailable. Please try again shortly.", 0, 0)
 
 
 # ── Provider implementations — each returns (text, prompt_tokens, completion_tokens) ──
