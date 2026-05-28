@@ -7,5 +7,12 @@ export { PLANS, planHasTab, planHasLab, type PlanType, type TabKey, type LabKey,
 export { BOARDS, LANGUAGES, CLASSES, SUBJECTS, getSubjectsForClass, type BoardType, type LanguageType, type ClassType } from './curriculum'
 export { TEACHER_PERSONAS, LANG_RULES, type TeacherPersona } from './personas'
 
+// Design system tokens
+export {
+  FONT_FAMILY, FONT_SIZE, FONT_WEIGHT, LINE_HEIGHT,
+  SPACING, RADIUS, SHADOW, Z, TRANSITION, BREAKPOINT,
+  TOUCH, LAYOUT, ds,
+} from './design'
+
 // Re-export existing appConstants
 export * from './appConstants'

@@ -105,7 +105,7 @@ export default function MediumsTab({ toast }) {
       {/* Add/Edit Modal */}
       {showModal && (
         <Modal title={editing ? "Edit Medium" : "Add Medium"} onClose={() => setShowModal(false)}>
-          <div className="grid grid-cols-[1fr_2fr] gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr] gap-2.5">
             <input className={inputClass} placeholder="ID (e.g. gujarati)"
               value={form.id} onChange={e => setForm(f => ({ ...f, id: e.target.value }))}
               disabled={!!editing} />
@@ -113,9 +113,9 @@ export default function MediumsTab({ toast }) {
               value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
           </div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <input className={`${inputClass} w-[120px] flex-shrink-0`} type="number" placeholder="Sort order"
+            <input className={`${inputClass} flex-1 min-w-[100px]`} type="number" placeholder="Sort order"
               value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))} />
-            <label className="flex items-center gap-1.5 text-app-muted text-[13px] flex-1">
+            <label className="flex items-center gap-2 text-app-muted text-[13px] cursor-pointer">
               <input type="checkbox" checked={form.is_active}
                 onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
               Active

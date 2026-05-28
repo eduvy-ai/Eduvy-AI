@@ -151,27 +151,27 @@ const DashboardLayout: React.FC = () => {
         </div>
       </nav>
 
-      {/* ── Mobile Bottom Nav ── */}
+      {/* ── Mobile Bottom Nav — horizontally scrollable, shows all tabs ── */}
       <nav className="bottom-nav">
-        {navItems.slice(0, 4).map(n => (
+        {navItems.map(n => (
           <button
             key={n.key}
             onClick={() => setTab(n.key)}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-2 bg-transparent border-none cursor-pointer ${
+            className={`flex-shrink-0 min-w-[60px] flex flex-col items-center justify-center gap-0.5 py-2 px-1 bg-transparent border-none cursor-pointer ${
               tab === n.key ? 'text-app-green' : 'text-app-muted'
             }`}
           >
-            <span className="text-lg">{getIcon(n.labelKey)}</span>
-            <span className="text-[10px] font-medium">{getLabel(n.labelKey)}</span>
+            <span className="text-xl leading-none">{getIcon(n.labelKey)}</span>
+            <span className="text-[10px] font-medium leading-tight mt-0.5 max-w-[56px] text-center truncate">{getLabel(n.labelKey)}</span>
           </button>
         ))}
-        {/* Settings/More button on mobile */}
+        {/* Settings always last */}
         <button
           onClick={() => setShowSettings(true)}
-          className="flex-1 flex flex-col items-center gap-0.5 py-2 bg-transparent border-none cursor-pointer text-app-muted"
+          className="flex-shrink-0 min-w-[60px] flex flex-col items-center justify-center gap-0.5 py-2 px-1 bg-transparent border-none cursor-pointer text-app-muted"
         >
-          <span className="text-lg">⚙️</span>
-          <span className="text-[10px] font-medium">{ui.more || 'More'}</span>
+          <span className="text-xl leading-none">⚙️</span>
+          <span className="text-[10px] font-medium leading-tight mt-0.5">{ui.more || 'More'}</span>
         </button>
       </nav>
 

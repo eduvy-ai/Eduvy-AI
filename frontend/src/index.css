@@ -169,6 +169,7 @@ input, textarea, select { outline: none; border: none; }
 .app-shell {
   width: 100%;
   height: 100vh;
+  height: 100dvh; /* dvh accounts for iOS Safari browser chrome */
   display: flex;
   flex-direction: column;
   background: #04040e;
@@ -185,7 +186,22 @@ input, textarea, select { outline: none; border: none; }
   background: #0b0b1c;
   border-top: 1px solid #ffffff08;
   display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
   z-index: 100;
+  /* height is set to allow safe-area stacking */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.bottom-nav::-webkit-scrollbar { display: none; }
+
+/* Every nav button: min-width so all items fit and scroll */
+.bottom-nav > button {
+  flex-shrink: 0;
+  min-width: 60px;
+  min-height: 44px; /* WCAG 2.5.5 touch target */
 }
 
 /* Sidebar nav — hidden on mobile */
@@ -196,7 +212,8 @@ input, textarea, select { outline: none; border: none; }
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-bottom: 72px;
+  /* 64px nav + safe area inset so content never hides behind nav/notch */
+  padding-bottom: calc(64px + env(safe-area-inset-bottom, 8px));
   min-height: 0;
 }
 
@@ -215,6 +232,7 @@ input, textarea, select { outline: none; border: none; }
     width: 100%;
     flex-direction: row;
     height: 100vh;
+    height: 100dvh;
   }
 
   /* Hide bottom nav, show sidebar */
@@ -356,7 +374,11 @@ input, textarea, select { outline: none; border: none; }
 /* ── Safe area for notch phones ─────────────────────────── */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .bottom-nav {
+    /* already set inline above; this rule kept for older browsers */
     padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tab-content {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
   }
 }
 

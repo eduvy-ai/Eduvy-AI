@@ -108,24 +108,24 @@ export default function StandardsTab({ toast }) {
       {/* Add/Edit Modal */}
       {showModal && (
         <Modal title={editing ? "Edit Standard" : "Add Standard"} onClose={() => setShowModal(false)}>
-          <div className="grid grid-cols-[1fr_2fr] gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr] gap-2.5">
             <input className={inputClass} placeholder="ID (e.g. class-10)"
               value={form.id} onChange={e => setForm(f => ({ ...f, id: e.target.value }))}
               disabled={!!editing} />
             <input className={inputClass} placeholder="Name (e.g. Class 10)"
               value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
           </div>
-          <div className="flex gap-2.5 flex-wrap">
-            <input className={`${inputClass} w-[120px] flex-shrink-0`} type="number" placeholder="Grade #"
+          <div className="grid grid-cols-2 gap-2.5">
+            <input className={inputClass} type="number" placeholder="Grade #"
               value={form.grade_num} onChange={e => setForm(f => ({ ...f, grade_num: e.target.value }))} />
-            <input className={`${inputClass} w-[120px] flex-shrink-0`} type="number" placeholder="Sort order"
+            <input className={inputClass} type="number" placeholder="Sort order"
               value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))} />
-            <label className="flex items-center gap-1.5 text-app-muted text-[13px] flex-1">
-              <input type="checkbox" checked={form.is_active}
-                onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
-              Active
-            </label>
           </div>
+          <label className="flex items-center gap-2 text-app-muted text-[13px] cursor-pointer">
+            <input type="checkbox" checked={form.is_active}
+              onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
+            Active
+          </label>
           <div className="flex gap-2.5">
             <button className={btnClass('green')} onClick={save}>{editing ? "Update Standard" : "Add Standard"}</button>
             <button className={ghostBtnClass} onClick={() => setShowModal(false)}>Cancel</button>
