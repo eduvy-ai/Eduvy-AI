@@ -64,7 +64,7 @@ export default function BoardsTab({ toast }) {
     setLoading(true)
     await API(`/admin/boards/${confirmRow.id}`, { method: 'DELETE' })
     setLoading(false)
-    toast("Board deactivated"); setConfirmRow(null); load()
+    toast("Board deleted"); setConfirmRow(null); load()
   }
 
   const edit = (row) => {

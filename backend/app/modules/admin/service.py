@@ -135,7 +135,9 @@ class AdminService:
         conn = get_db()
         try:
             cur = conn.cursor()
-            cur.execute("UPDATE boards SET is_active=FALSE WHERE id=%s", (board_id,))
+            # Cascade: remove all curriculum rows that reference this board
+            cur.execute("DELETE FROM curriculum WHERE board_id=%s", (board_id,))
+            cur.execute("DELETE FROM boards WHERE id=%s", (board_id,))
             conn.commit()
             return {"ok": True}
         finally:
@@ -208,7 +210,9 @@ class AdminService:
         conn = get_db()
         try:
             cur = conn.cursor()
-            cur.execute("UPDATE standards SET is_active=FALSE WHERE id=%s", (std_id,))
+            # Cascade: remove all curriculum rows that reference this standard
+            cur.execute("DELETE FROM curriculum WHERE standard_id=%s", (std_id,))
+            cur.execute("DELETE FROM standards WHERE id=%s", (std_id,))
             conn.commit()
             return {"ok": True}
         finally:
@@ -250,7 +254,9 @@ class AdminService:
         conn = get_db()
         try:
             cur = conn.cursor()
-            cur.execute("UPDATE mediums SET is_active=FALSE WHERE id=%s", (med_id,))
+            # Cascade: remove all curriculum rows that reference this medium
+            cur.execute("DELETE FROM curriculum WHERE medium_id=%s", (med_id,))
+            cur.execute("DELETE FROM mediums WHERE id=%s", (med_id,))
             conn.commit()
             return {"ok": True}
         finally:

@@ -63,7 +63,7 @@ export default function MediumsTab({ toast }) {
     setLoading(true)
     await API(`/admin/mediums/${confirmRow.id}`, { method: 'DELETE' })
     setLoading(false)
-    toast("Medium deactivated"); setConfirmRow(null); load()
+    toast("Medium deleted"); setConfirmRow(null); load()
   }
 
   const edit = row => {

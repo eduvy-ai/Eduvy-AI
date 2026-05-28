@@ -66,7 +66,7 @@ export default function StandardsTab({ toast }) {
     setLoading(true)
     await API(`/admin/standards/${confirmRow.id}`, { method: 'DELETE' })
     setLoading(false)
-    toast("Standard deactivated"); setConfirmRow(null); load()
+    toast("Standard deleted"); setConfirmRow(null); load()
   }
 
   const edit = row => {
@@ -123,7 +123,7 @@ export default function StandardsTab({ toast }) {
       {/* Confirm Delete */}
       {confirmRow && (
         <ConfirmDialog
-          message={`Deactivate standard "${confirmRow.name}"? It will be hidden from students but not permanently deleted.`}
+          message={`Permanently delete standard "${confirmRow.name}"? This will also delete all curriculum entries linked to this standard.`}
           onConfirm={del}
           onCancel={() => setConfirmRow(null)}
         />
