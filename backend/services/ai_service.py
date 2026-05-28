@@ -454,10 +454,17 @@ async def call_ai(
                         break  # unknown provider → try next
 
                     text, ptok, ctok = result
-                    if text:
-                        if cache_key and not text.startswith("⚠️"):
+                    if text and not text.startswith("\u26a0\ufe0f"):
+                        # Valid response — cache if stateless and return
+                        if cache_key:
                             _ai_cache.set(cache_key, (text, ptok, ctok))
                         return text, ptok, ctok
+                    elif text.startswith("\u26a0\ufe0f"):
+                        # Provider returned 200 OK but with an error body
+                        # (e.g. content filter, model overload). Skip remaining
+                        # keys for this provider and try the next provider.
+                        break
+                    # Empty text → continue to next key
 
                 except httpx.TimeoutException:
                     if attempt == n_attempts - 1:

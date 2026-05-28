@@ -277,11 +277,11 @@ export default function APIMonitorTab({ toast }) {
         <h3 className="text-sm font-semibold mb-3 m-0" style={{ color: C.text }}>Free-Tier Quota Reference</h3>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2 text-[12px]">
           {[
-            { provider: 'Groq',            limit: '14,400 req/day per key',  note: 'llama-3.3-70b — RPD limit (not tokens)', color: PROVIDER_COLORS.groq },
-            { provider: 'Google Gemini',   limit: '1,500 req/day per key',   note: 'gemini-2.0-flash free tier',             color: PROVIDER_COLORS.gemini },
-            { provider: 'NVIDIA NIM',      limit: '40 req/day per key',      note: 'playground tier',                        color: PROVIDER_COLORS.nvidia },
-            { provider: 'Anthropic',       limit: 'Paid only',               note: 'no free tier',                           color: C.muted },
-            { provider: 'OpenAI',          limit: 'Paid only',               note: 'no free tier',                           color: C.muted },
+            { provider: 'Groq (70b models)',  limit: '1,000 req/day per key',   note: 'llama-3.3-70b-versatile RPD limit', color: PROVIDER_COLORS.groq },
+            { provider: 'Groq (8b model)',    limit: '14,400 req/day per key',  note: 'llama-3.1-8b-instant RPD limit',    color: PROVIDER_COLORS.groq },
+            { provider: 'Google Gemini',      limit: '1,500 req/day per key',   note: 'gemini-2.0-flash free tier',        color: PROVIDER_COLORS.gemini },
+            { provider: 'NVIDIA NIM',         limit: '40 req/day per key',      note: 'playground tier',                   color: PROVIDER_COLORS.nvidia },
+            { provider: 'Anthropic / OpenAI', limit: 'Paid only',               note: 'no free tier',                      color: C.muted },
           ].map(r => (
             <div key={r.provider} className="flex items-start gap-2 p-2.5 rounded-lg"
               style={{ background: '#ffffff05' }}>

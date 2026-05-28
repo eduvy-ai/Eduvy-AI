@@ -575,13 +575,21 @@ class AdminService:
                 provider_calls[prov] = provider_calls.get(prov, 0) + usage["calls"]
                 provider_tokens[prov] = provider_tokens.get(prov, 0) + usage["tokens"]
 
-            # Known conservative free-tier daily request limits (0 = paid only / no public free tier)
+            # Known conservative free-tier daily REQUEST limits per key.
+            # llama-3.3-70b-versatile: 1,000 RPD  (most plans use this)
+            # llama-3.1-8b-instant:   14,400 RPD  (free plan fallback)
             FREE_LIMITS = {
-                "groq":      14_400,   # ~30 RPM × 480 min on llama-3.1-8b-instant free tier
-                "gemini":     1_500,   # Gemini 2.0 Flash free tier
-                "anthropic":      0,   # No free tier — paid only
-                "openai":         0,   # No free tier — paid only
-                "nvidia":        40,   # NIM API playground free tier
+                "groq":      1_000,    # conservative default (70b model limit)
+                "gemini":    1_500,    # Gemini 2.0 Flash free tier
+                "anthropic":     0,    # No free tier — paid only
+                "openai":        0,    # No free tier — paid only
+                "nvidia":       40,    # NIM API playground free tier
+            }
+            GROQ_MODEL_LIMITS = {
+                "llama-3.1-8b-instant":    14_400,
+                "llama-3.3-70b-versatile":  1_000,
+                "llama-3.3-70b-specdec":    1_000,
+                "llama-3.1-70b-versatile":  1_000,
             }
             PROVIDER_LABELS = {
                 "groq":      "Groq",
@@ -599,6 +607,13 @@ class AdminService:
                 pool_size      = len(_KEY_POOLS.get(prov, []))
                 calls_today    = provider_calls.get(prov, 0)
                 per_key_limit  = FREE_LIMITS[prov]
+                # For Groq: use the active model’s actual RPD limit
+                if prov == "groq":
+                    active_groq_model = next(
+                        (r["model"] for r in _PLAN_ROUTING.values() if r.get("provider") == "groq"),
+                        "llama-3.3-70b-versatile"
+                    )
+                    per_key_limit = GROQ_MODEL_LIMITS.get(active_groq_model, FREE_LIMITS["groq"])
                 # Total daily capacity = per-key limit × number of keys
                 # Each key has its own independent quota from the provider.
                 total_limit    = per_key_limit * pool_size if pool_size > 0 else per_key_limit
