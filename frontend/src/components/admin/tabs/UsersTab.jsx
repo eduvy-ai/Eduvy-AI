@@ -30,6 +30,8 @@ export default function UsersTab({ toast }) {
   const [showCreate, setShowCreate] = useState(false)
   const [newStudent, setNewStudent] = useState({ name: '', email: '', password: '', standard: '', board: '', language: '' })
   const [creating, setCreating] = useState(false)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [confirmBulk, setConfirmBulk] = useState(false)
 
   // Load curriculum data for dropdowns
   useEffect(() => {
@@ -126,6 +128,17 @@ export default function UsersTab({ toast }) {
     setLoading(false)
   }
 
+  const bulkDel = async () => {
+    if (!selectedIds.size) return
+    setLoading(true)
+    await API('/admin/users/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: [...selectedIds] }) })
+    setLoading(false)
+    toast(`${selectedIds.size} user${selectedIds.size > 1 ? 's' : ''} deleted`)
+    setSelectedIds(new Set())
+    setConfirmBulk(false)
+    load()
+  }
+
   return (
     <div className="flex flex-col gap-5 relative">
       {/* Loading overlay */}
@@ -212,10 +225,27 @@ export default function UsersTab({ toast }) {
           👁️ Drishti Only
         </button>
         <button onClick={() => setShowCreate(true)} className={`${btnClass()} py-2.5 px-3.5`}>+ Add Drishti Student</button>
+        {selectedIds.size > 0 && (
+          <button className={btnClass('red')} onClick={() => setConfirmBulk(true)}>
+            Delete Selected ({selectedIds.size})
+          </button>
+        )}
+        {selectedIds.size > 0 && (
+          <button className={ghostBtnClass} onClick={() => setSelectedIds(new Set())}>Clear Selection</button>
+        )}
         <span className="text-app-muted text-xs whitespace-nowrap">
           {loading ? "Loading…" : `${users.length} users`}
         </span>
       </div>
+
+      {/* Bulk Delete Confirm */}
+      {confirmBulk && (
+        <ConfirmDialog
+          message={`Permanently delete ${selectedIds.size} selected user${selectedIds.size > 1 ? 's' : ''}? All their data will be lost.`}
+          onConfirm={bulkDel}
+          onCancel={() => setConfirmBulk(false)}
+        />
+      )}
 
       {/* Create Drishti Student Modal */}
       {showCreate && (
@@ -295,6 +325,8 @@ export default function UsersTab({ toast }) {
         ]}
         rows={users}
         onEdit={openEdit}
+        selectedIds={selectedIds}
+        onSelectChange={setSelectedIds}
       />
     </div>
   )

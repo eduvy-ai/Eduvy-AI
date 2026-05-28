@@ -14,6 +14,7 @@ from app.modules.admin.schemas import (
     UserPlanUpdate, UserAIConfig, CreateDrishtiStudent,
     AIRoutingUpdate, AIKeyUpsert,
     HelperCreate, HelperUpdate,
+    BulkDeleteStr, BulkDeleteInt,
 )
 from app.modules.admin.service import AdminService
 
@@ -91,6 +92,11 @@ async def import_boards(rows: list = Body(...), admin_id: int = Depends(get_admi
     return await asyncio.to_thread(AdminService.import_boards, rows)
 
 
+@router.post("/boards/bulk-delete")
+async def bulk_delete_boards(data: BulkDeleteStr, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.bulk_delete_boards, data.ids)
+
+
 # ── Standards ─────────────────────────────────────────────────
 
 @router.get("/standards")
@@ -120,6 +126,11 @@ async def delete_standard(std_id: str, admin_id: int = Depends(get_admin_user)):
 @router.post("/standards/import")
 async def import_standards(rows: list = Body(...), admin_id: int = Depends(get_admin_user)):
     return await asyncio.to_thread(AdminService.import_standards, rows)
+
+
+@router.post("/standards/bulk-delete")
+async def bulk_delete_standards(data: BulkDeleteStr, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.bulk_delete_standards, data.ids)
 
 
 # ── Mediums ───────────────────────────────────────────────────
@@ -153,6 +164,11 @@ async def import_mediums(rows: list = Body(...), admin_id: int = Depends(get_adm
     return await asyncio.to_thread(AdminService.import_mediums, rows)
 
 
+@router.post("/mediums/bulk-delete")
+async def bulk_delete_mediums(data: BulkDeleteStr, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.bulk_delete_mediums, data.ids)
+
+
 # ── Curriculum ────────────────────────────────────────────────
 
 @router.get("/curriculum")
@@ -184,6 +200,11 @@ async def delete_curriculum(row_id: int, admin_id: int = Depends(get_admin_user)
 async def import_curriculum(data: CurriculumImport, admin_id: int = Depends(get_admin_user)):
     rows = [r.model_dump() for r in data.rows]
     return await asyncio.to_thread(AdminService.import_curriculum, rows)
+
+
+@router.post("/curriculum/bulk-delete")
+async def bulk_delete_curriculum(data: BulkDeleteInt, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.bulk_delete_curriculum, data.ids)
 
 
 # ── Users ─────────────────────────────────────────────────────
@@ -228,6 +249,11 @@ async def create_drishti_student(data: CreateDrishtiStudent, admin_id: int = Dep
         AdminService.create_drishti_student,
         data.name, data.email, data.password, data.standard, data.board, data.language
     )
+
+
+@router.post("/users/bulk-delete")
+async def bulk_delete_users(data: BulkDeleteStr, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.bulk_delete_users, data.ids)
 
 
 # ── API / Model Dashboard ─────────────────────────────────────

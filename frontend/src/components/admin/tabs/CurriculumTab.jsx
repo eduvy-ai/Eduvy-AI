@@ -15,6 +15,8 @@ export default function CurriculumTab({ toast }) {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [confirmBulk, setConfirmBulk] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -76,6 +78,17 @@ export default function CurriculumTab({ toast }) {
     await API(`/admin/curriculum/${confirmRow.id}`, { method: 'DELETE' })
     setLoading(false)
     toast("Deleted"); setConfirmRow(null); load()
+  }
+
+  const bulkDel = async () => {
+    if (!selectedIds.size) return
+    setLoading(true)
+    await API('/admin/curriculum/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: [...selectedIds] }) })
+    setLoading(false)
+    toast(`${selectedIds.size} curriculum row${selectedIds.size > 1 ? 's' : ''} deleted`)
+    setSelectedIds(new Set())
+    setConfirmBulk(false)
+    load()
   }
 
   const edit = row => {
@@ -149,9 +162,25 @@ export default function CurriculumTab({ toast }) {
         />
       )}
 
+      {confirmBulk && (
+        <ConfirmDialog
+          message={`Permanently delete ${selectedIds.size} selected curriculum row${selectedIds.size > 1 ? 's' : ''}? This cannot be undone.`}
+          onConfirm={bulkDel}
+          onCancel={() => setConfirmBulk(false)}
+        />
+      )}
+
       {/* Top action bar */}
       <div className="flex gap-2.5 items-center flex-wrap">
         <button className={btnClass('green')} onClick={openAdd}>+ Add Row</button>
+        {selectedIds.size > 0 && (
+          <button className={btnClass('red')} onClick={() => setConfirmBulk(true)}>
+            Delete Selected ({selectedIds.size})
+          </button>
+        )}
+        {selectedIds.size > 0 && (
+          <button className={ghostBtnClass} onClick={() => setSelectedIds(new Set())}>Clear Selection</button>
+        )}
       </div>
 
       {/* Bulk Import */}
@@ -210,6 +239,8 @@ export default function CurriculumTab({ toast }) {
         rows={filtered}
         onEdit={row => edit(row)}
         onDelete={row => setConfirmRow(row)}
+        selectedIds={selectedIds}
+        onSelectChange={setSelectedIds}
       />
     </div>
   )

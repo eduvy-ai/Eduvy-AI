@@ -12,6 +12,8 @@ export default function BoardsTab({ toast }) {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [confirmBulk, setConfirmBulk] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -67,6 +69,17 @@ export default function BoardsTab({ toast }) {
     toast("Board deleted"); setConfirmRow(null); load()
   }
 
+  const bulkDel = async () => {
+    if (!selectedIds.size) return
+    setLoading(true)
+    await API('/admin/boards/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: [...selectedIds] }) })
+    setLoading(false)
+    toast(`${selectedIds.size} board${selectedIds.size > 1 ? 's' : ''} deleted`)
+    setSelectedIds(new Set())
+    setConfirmBulk(false)
+    load()
+  }
+
   const edit = (row) => {
     setEditing(row)
     setForm({ id: row.id, name: row.name, sort_order: row.sort_order, is_active: row.is_active })
@@ -119,15 +132,31 @@ export default function BoardsTab({ toast }) {
       {/* Confirm Delete */}
       {confirmRow && (
         <ConfirmDialog
-          message={`Deactivate board "${confirmRow.name}"? It will be hidden from students but not permanently deleted.`}
+          message={`Permanently delete board "${confirmRow.name}"? This will also delete all curriculum entries linked to this board.`}
           onConfirm={del}
           onCancel={() => setConfirmRow(null)}
+        />
+      )}
+
+      {confirmBulk && (
+        <ConfirmDialog
+          message={`Permanently delete ${selectedIds.size} selected board${selectedIds.size > 1 ? 's' : ''}? All linked curriculum entries will also be deleted.`}
+          onConfirm={bulkDel}
+          onCancel={() => setConfirmBulk(false)}
         />
       )}
 
       {/* Top action bar */}
       <div className="flex gap-2.5 items-center flex-wrap">
         <button className={btnClass('green')} onClick={openAdd}>+ Add Board</button>
+        {selectedIds.size > 0 && (
+          <button className={btnClass('red')} onClick={() => setConfirmBulk(true)}>
+            Delete Selected ({selectedIds.size})
+          </button>
+        )}
+        {selectedIds.size > 0 && (
+          <button className={ghostBtnClass} onClick={() => setSelectedIds(new Set())}>Clear Selection</button>
+        )}
       </div>
 
       {/* Bulk Import */}
@@ -170,6 +199,8 @@ export default function BoardsTab({ toast }) {
         rows={filtered}
         onEdit={edit}
         onDelete={row => setConfirmRow(row)}
+        selectedIds={selectedIds}
+        onSelectChange={setSelectedIds}
       />
     </div>
   )

@@ -124,7 +124,7 @@ export function LoadingOverlay({ show, text = "Loading…" }) {
 // ── Table component ───────────────────────────────────────────
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
-export function Table({ cols, rows, onDelete, onEdit, pageSize: defaultPageSize = 10 }) {
+export function Table({ cols, rows, onDelete, onEdit, pageSize: defaultPageSize = 10, selectedIds, onSelectChange }) {
   const [page, setPage]         = useState(1)
   const [pageSize, setPageSize] = useState(defaultPageSize)
 
@@ -137,6 +137,28 @@ export function Table({ cols, rows, onDelete, onEdit, pageSize: defaultPageSize 
   const totalPages = Math.ceil(rows.length / pageSize)
   const start      = (page - 1) * pageSize
   const pageRows   = rows.slice(start, start + pageSize)
+
+  // Checkbox helpers
+  const selectable = !!onSelectChange
+  const pageIds = pageRows.map(r => r.id)
+  const allPageSelected = selectable && pageIds.length > 0 && pageIds.every(id => selectedIds?.has(id))
+  const somePageSelected = selectable && pageIds.some(id => selectedIds?.has(id))
+
+  const toggleRow = (id) => {
+    if (!onSelectChange) return
+    const next = new Set(selectedIds)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    onSelectChange(next)
+  }
+
+  const togglePage = () => {
+    if (!onSelectChange) return
+    const next = new Set(selectedIds)
+    if (allPageSelected) pageIds.forEach(id => next.delete(id))
+    else pageIds.forEach(id => next.add(id))
+    onSelectChange(next)
+  }
 
   const pageNums = []
   const delta = 2
@@ -159,6 +181,17 @@ export function Table({ cols, rows, onDelete, onEdit, pageSize: defaultPageSize 
         <table className="w-full border-collapse text-[13px]">
           <thead>
             <tr>
+              {selectable && (
+                <th className="py-2 px-2.5 border-b border-app-border w-[36px]">
+                  <input
+                    type="checkbox"
+                    checked={allPageSelected}
+                    ref={el => { if (el) el.indeterminate = somePageSelected && !allPageSelected }}
+                    onChange={togglePage}
+                    className="cursor-pointer accent-app-green"
+                  />
+                </th>
+              )}
               {cols.map(c => (
                 <th key={c.key} className="text-left py-2 px-2.5 border-b border-app-border text-app-muted font-semibold text-[11px] whitespace-nowrap">
                   {c.label}
@@ -168,27 +201,40 @@ export function Table({ cols, rows, onDelete, onEdit, pageSize: defaultPageSize 
             </tr>
           </thead>
           <tbody>
-            {pageRows.map((row, i) => (
-              <tr key={row.id ?? i} className="border-b border-app-border">
-                {cols.map(c => (
-                  <td key={c.key} className="py-2.5 px-2.5 text-app-text max-w-[260px]">
-                    {c.render ? c.render(row[c.key], row) : String(row[c.key] ?? "")}
+            {pageRows.map((row, i) => {
+              const isChecked = selectable && selectedIds?.has(row.id)
+              return (
+                <tr key={row.id ?? i} className={`border-b border-app-border ${isChecked ? 'bg-app-blue/10' : ''}`}>
+                  {selectable && (
+                    <td className="py-2.5 px-2.5">
+                      <input
+                        type="checkbox"
+                        checked={!!isChecked}
+                        onChange={() => toggleRow(row.id)}
+                        className="cursor-pointer accent-app-green"
+                      />
+                    </td>
+                  )}
+                  {cols.map(c => (
+                    <td key={c.key} className="py-2.5 px-2.5 text-app-text max-w-[260px]">
+                      {c.render ? c.render(row[c.key], row) : String(row[c.key] ?? "")}
+                    </td>
+                  ))}
+                  <td className="py-2.5 px-2.5">
+                    <div className="flex gap-1.5">
+                      {onEdit && (
+                        <button className={`${ghostBtnClass} py-1 px-2.5 text-xs`}
+                          onClick={() => onEdit(row)}>Edit</button>
+                      )}
+                      {onDelete && (
+                        <button className={`${btnClass('red')} py-1 px-2.5 text-xs`}
+                          onClick={() => onDelete(row)}>✕</button>
+                      )}
+                    </div>
                   </td>
-                ))}
-                <td className="py-2.5 px-2.5">
-                  <div className="flex gap-1.5">
-                    {onEdit && (
-                      <button className={`${ghostBtnClass} py-1 px-2.5 text-xs`}
-                        onClick={() => onEdit(row)}>Edit</button>
-                    )}
-                    {onDelete && (
-                      <button className={`${btnClass('red')} py-1 px-2.5 text-xs`}
-                        onClick={() => onDelete(row)}>✕</button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

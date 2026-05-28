@@ -100,3 +100,11 @@ class HelperUpdate(BaseModel):
     helper_email: str
     helper_type: str = "teacher"
     notes: str = ""
+
+
+class BulkDeleteStr(BaseModel):
+    ids: List[str]
+
+
+class BulkDeleteInt(BaseModel):
+    ids: List[int]

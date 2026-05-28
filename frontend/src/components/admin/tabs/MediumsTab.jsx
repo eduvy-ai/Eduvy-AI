@@ -12,6 +12,8 @@ export default function MediumsTab({ toast }) {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [confirmBulk, setConfirmBulk] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -66,6 +68,17 @@ export default function MediumsTab({ toast }) {
     toast("Medium deleted"); setConfirmRow(null); load()
   }
 
+  const bulkDel = async () => {
+    if (!selectedIds.size) return
+    setLoading(true)
+    await API('/admin/mediums/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: [...selectedIds] }) })
+    setLoading(false)
+    toast(`${selectedIds.size} medium${selectedIds.size > 1 ? 's' : ''} deleted`)
+    setSelectedIds(new Set())
+    setConfirmBulk(false)
+    load()
+  }
+
   const edit = row => {
     setEditing(row)
     setForm({ id: row.id, name: row.name, sort_order: row.sort_order, is_active: row.is_active })
@@ -118,15 +131,31 @@ export default function MediumsTab({ toast }) {
       {/* Confirm Delete */}
       {confirmRow && (
         <ConfirmDialog
-          message={`Deactivate medium "${confirmRow.name}"? It will be hidden from students but not permanently deleted.`}
+          message={`Permanently delete medium "${confirmRow.name}"? This will also delete all curriculum entries linked to this medium.`}
           onConfirm={del}
           onCancel={() => setConfirmRow(null)}
+        />
+      )}
+
+      {confirmBulk && (
+        <ConfirmDialog
+          message={`Permanently delete ${selectedIds.size} selected medium${selectedIds.size > 1 ? 's' : ''}? All linked curriculum entries will also be deleted.`}
+          onConfirm={bulkDel}
+          onCancel={() => setConfirmBulk(false)}
         />
       )}
 
       {/* Top action bar */}
       <div className="flex gap-2.5 items-center flex-wrap">
         <button className={btnClass('green')} onClick={openAdd}>+ Add Medium</button>
+        {selectedIds.size > 0 && (
+          <button className={btnClass('red')} onClick={() => setConfirmBulk(true)}>
+            Delete Selected ({selectedIds.size})
+          </button>
+        )}
+        {selectedIds.size > 0 && (
+          <button className={ghostBtnClass} onClick={() => setSelectedIds(new Set())}>Clear Selection</button>
+        )}
       </div>
 
       {/* Bulk Import */}
@@ -169,6 +198,8 @@ export default function MediumsTab({ toast }) {
         rows={filtered}
         onEdit={edit}
         onDelete={row => setConfirmRow(row)}
+        selectedIds={selectedIds}
+        onSelectChange={setSelectedIds}
       />
     </div>
   )

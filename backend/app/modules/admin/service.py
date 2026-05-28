@@ -426,6 +426,65 @@ class AdminService:
             conn.close()
 
     @staticmethod
+    def bulk_delete_standards(ids: List[str]) -> Dict:
+        if not ids:
+            return {"deleted": 0}
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            placeholders = ",".join(["%s"] * len(ids))
+            cur.execute(f"DELETE FROM curriculum WHERE standard_id IN ({placeholders})", ids)
+            cur.execute(f"DELETE FROM standards WHERE id IN ({placeholders})", ids)
+            conn.commit()
+            return {"deleted": len(ids)}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def bulk_delete_boards(ids: List[str]) -> Dict:
+        if not ids:
+            return {"deleted": 0}
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            placeholders = ",".join(["%s"] * len(ids))
+            cur.execute(f"DELETE FROM curriculum WHERE board_id IN ({placeholders})", ids)
+            cur.execute(f"DELETE FROM boards WHERE id IN ({placeholders})", ids)
+            conn.commit()
+            return {"deleted": len(ids)}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def bulk_delete_mediums(ids: List[str]) -> Dict:
+        if not ids:
+            return {"deleted": 0}
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            placeholders = ",".join(["%s"] * len(ids))
+            cur.execute(f"DELETE FROM curriculum WHERE medium_id IN ({placeholders})", ids)
+            cur.execute(f"DELETE FROM mediums WHERE id IN ({placeholders})", ids)
+            conn.commit()
+            return {"deleted": len(ids)}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def bulk_delete_curriculum(ids: List[int]) -> Dict:
+        if not ids:
+            return {"deleted": 0}
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            placeholders = ",".join(["%s"] * len(ids))
+            cur.execute(f"DELETE FROM curriculum WHERE id IN ({placeholders})", ids)
+            conn.commit()
+            return {"deleted": len(ids)}
+        finally:
+            conn.close()
+
+    @staticmethod
     def import_curriculum(rows: List[Dict]) -> Dict:
         import json as _json
         conn = get_db()
@@ -540,6 +599,20 @@ class AdminService:
             )
             conn.commit()
             return {"id": user_id, "name": name, "email": email}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def bulk_delete_users(ids: List[str]) -> Dict:
+        if not ids:
+            return {"deleted": 0}
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            placeholders = ",".join(["%s"] * len(ids))
+            cur.execute(f"DELETE FROM users WHERE id IN ({placeholders})", ids)
+            conn.commit()
+            return {"deleted": len(ids)}
         finally:
             conn.close()
 

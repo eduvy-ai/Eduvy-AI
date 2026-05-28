@@ -12,6 +12,8 @@ export default function StandardsTab({ toast }) {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [confirmBulk, setConfirmBulk] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -67,6 +69,17 @@ export default function StandardsTab({ toast }) {
     await API(`/admin/standards/${confirmRow.id}`, { method: 'DELETE' })
     setLoading(false)
     toast("Standard deleted"); setConfirmRow(null); load()
+  }
+
+  const bulkDel = async () => {
+    if (!selectedIds.size) return
+    setLoading(true)
+    await API('/admin/standards/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: [...selectedIds] }) })
+    setLoading(false)
+    toast(`${selectedIds.size} standard${selectedIds.size > 1 ? 's' : ''} deleted`)
+    setSelectedIds(new Set())
+    setConfirmBulk(false)
+    load()
   }
 
   const edit = row => {
@@ -129,9 +142,25 @@ export default function StandardsTab({ toast }) {
         />
       )}
 
+      {confirmBulk && (
+        <ConfirmDialog
+          message={`Permanently delete ${selectedIds.size} selected standard${selectedIds.size > 1 ? 's' : ''}? All linked curriculum entries will also be deleted.`}
+          onConfirm={bulkDel}
+          onCancel={() => setConfirmBulk(false)}
+        />
+      )}
+
       {/* Top action bar */}
       <div className="flex gap-2.5 items-center flex-wrap">
         <button className={btnClass('green')} onClick={openAdd}>+ Add Standard</button>
+        {selectedIds.size > 0 && (
+          <button className={btnClass('red')} onClick={() => setConfirmBulk(true)}>
+            Delete Selected ({selectedIds.size})
+          </button>
+        )}
+        {selectedIds.size > 0 && (
+          <button className={ghostBtnClass} onClick={() => setSelectedIds(new Set())}>Clear Selection</button>
+        )}
       </div>
 
       {/* Bulk Import */}
@@ -175,6 +204,8 @@ export default function StandardsTab({ toast }) {
         rows={filtered}
         onEdit={edit}
         onDelete={row => setConfirmRow(row)}
+        selectedIds={selectedIds}
+        onSelectChange={setSelectedIds}
       />
     </div>
   )
