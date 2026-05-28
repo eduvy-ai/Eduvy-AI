@@ -124,6 +124,12 @@ body, input, textarea, select, button {
 button {
   cursor: pointer;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  touch-action: manipulation; /* removes 300ms tap delay on mobile */
+  transition: transform 0.1s ease, opacity 0.1s ease;
+}
+
+a, [role="button"] {
+  touch-action: manipulation;
 }
 
 button:disabled {
@@ -146,6 +152,20 @@ button:disabled {
 @keyframes soundbar {
   from { height: 4px;  opacity: 0.5; }
   to   { height: 14px; opacity: 1;   }
+}
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Tab transition — fires when tab key changes */
+.tab-fade-in {
+  animation: fadeSlideUp 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
 }
 
 input, textarea, select { outline: none; border: none; }
@@ -183,25 +203,49 @@ input, textarea, select { outline: none; border: none; }
   bottom: 0;
   left: 0;
   width: 100%;
-  background: #0b0b1c;
-  border-top: 1px solid #ffffff08;
+  /* Glass morphism — like native iOS/Android nav bars */
+  background: rgba(6, 6, 18, 0.94);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
   display: flex;
+  align-items: flex-start;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   z-index: 100;
-  /* height is set to allow safe-area stacking */
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .bottom-nav::-webkit-scrollbar { display: none; }
 
-/* Every nav button: min-width so all items fit and scroll */
+/* Every nav button: full 56px height, position:relative for indicator */
 .bottom-nav > button {
   flex-shrink: 0;
-  min-width: 60px;
-  min-height: 44px; /* WCAG 2.5.5 touch target */
+  min-width: 64px;
+  height: 56px; /* WCAG + native feel: fixed height */
+  position: relative;
+  transition: transform 0.1s ease;
+}
+
+/* Press feedback — like native apps */
+.bottom-nav > button:active {
+  transform: scale(0.88);
+}
+
+/* Active tab — top pill indicator (WhatsApp / Telegram style) */
+.nav-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 3px;
+  background: #00ff88;
+  border-radius: 0 0 4px 4px;
+  opacity: 1;
 }
 
 /* Sidebar nav — hidden on mobile */
@@ -212,10 +256,16 @@ input, textarea, select { outline: none; border: none; }
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  /* 64px nav + safe area inset so content never hides behind nav/notch */
-  padding-bottom: calc(64px + env(safe-area-inset-bottom, 8px));
+  /* 56px nav + safe area — never hides behind nav/notch */
+  padding-bottom: calc(56px + env(safe-area-inset-bottom, 8px));
   min-height: 0;
+  /* Native-feel scroll */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
 }
+.tab-content::-webkit-scrollbar { display: none; }
 
 /* ═══════════════════════════════════════════════════════════
    TABLET / DESKTOP LAYOUT  (≥ 768 px)
@@ -378,7 +428,7 @@ input, textarea, select { outline: none; border: none; }
     padding-bottom: env(safe-area-inset-bottom);
   }
   .tab-content {
-    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+    padding-bottom: calc(56px + env(safe-area-inset-bottom));
   }
 }
 

@@ -157,27 +157,30 @@ const DashboardLayout: React.FC = () => {
           <button
             key={n.key}
             onClick={() => setTab(n.key)}
-            className={`flex-shrink-0 min-w-[60px] flex flex-col items-center justify-center gap-0.5 py-2 px-1 bg-transparent border-none cursor-pointer ${
-              tab === n.key ? 'text-app-green' : 'text-app-muted'
+            className={`flex-shrink-0 min-w-[64px] h-14 flex flex-col items-center justify-center gap-0.5 py-0 px-1 bg-transparent border-none cursor-pointer ${
+              tab === n.key ? 'text-app-green nav-active' : 'text-app-muted'
             }`}
           >
-            <span className="text-xl leading-none">{getIcon(n.labelKey)}</span>
-            <span className="text-[10px] font-medium leading-tight mt-0.5 max-w-[56px] text-center truncate">{getLabel(n.labelKey)}</span>
+            <span className="text-[22px] leading-none">{getIcon(n.labelKey)}</span>
+            <span className={`text-[10px] leading-tight mt-0.5 max-w-[56px] text-center truncate ${tab === n.key ? 'font-bold' : 'font-medium'}`}>{getLabel(n.labelKey)}</span>
           </button>
         ))}
         {/* Settings always last */}
         <button
           onClick={() => setShowSettings(true)}
-          className="flex-shrink-0 min-w-[60px] flex flex-col items-center justify-center gap-0.5 py-2 px-1 bg-transparent border-none cursor-pointer text-app-muted"
+          className="flex-shrink-0 min-w-[64px] h-14 flex flex-col items-center justify-center gap-0.5 py-0 px-1 bg-transparent border-none cursor-pointer text-app-muted"
         >
-          <span className="text-xl leading-none">⚙️</span>
+          <span className="text-[22px] leading-none">⚙️</span>
           <span className="text-[10px] font-medium leading-tight mt-0.5">{ui.more || 'More'}</span>
         </button>
       </nav>
 
       {/* ── Main Content Area ── */}
       <main className="tab-content">
-        <Outlet />
+        {/* key={tab} re-mounts div on tab change, triggering the CSS fade-slide-up animation */}
+        <div key={tab} className="tab-fade-in" style={{ minHeight: '100%' }}>
+          <Outlet />
+        </div>
       </main>
       
       {/* ── Settings Modal ── */}
@@ -188,6 +191,7 @@ const DashboardLayout: React.FC = () => {
             savedKeys={{}}
             onSave={() => {}}
             onClose={() => setShowSettings(false)}
+            onLogout={handleLogout}
             profile={user}
             onProfileSave={handleProfileSave}
           />
