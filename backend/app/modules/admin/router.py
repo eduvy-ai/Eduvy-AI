@@ -230,6 +230,14 @@ async def create_drishti_student(data: CreateDrishtiStudent, admin_id: int = Dep
     )
 
 
+# ── API / Model Dashboard ─────────────────────────────────────
+
+@router.get("/api-dashboard")
+async def get_api_dashboard(admin_id: int = Depends(get_admin_user)):
+    """Live provider pool status, plan routing, and today's estimated usage per provider."""
+    return await asyncio.to_thread(AdminService.get_api_dashboard)
+
+
 # ── AI Usage ──────────────────────────────────────────────────
 
 @router.get("/usage/summary")

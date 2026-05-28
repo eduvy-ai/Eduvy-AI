@@ -537,6 +537,120 @@ class AdminService:
         finally:
             conn.close()
 
+    # ── API / Model Dashboard ──────────────────────────────────
+
+    @staticmethod
+    def get_api_dashboard() -> Dict:
+        """Return live provider pool status, plan routing, and today's usage estimates."""
+        from services.ai_service import _KEY_POOLS, _PLAN_ROUTING
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+            # Today's calls + tokens grouped by user plan
+            cur.execute(
+                """SELECT u.plan,
+                          COALESCE(SUM(a.call_count), 0)                        AS calls,
+                          COALESCE(SUM(a.prompt_tokens + a.completion_tokens), 0) AS tokens
+                   FROM ai_usage a
+                   JOIN users u ON u.id = a.user_id
+                   WHERE a.date = %s
+                   GROUP BY u.plan""",
+                (today,),
+            )
+            plan_usage: dict = {r["plan"]: {"calls": int(r["calls"]), "tokens": int(r["tokens"])}
+                                for r in cur.fetchall()}
+
+            # Total users per plan
+            cur.execute("SELECT plan, COUNT(*) AS cnt FROM users GROUP BY plan")
+            plan_user_counts: dict = {r["plan"]: int(r["cnt"]) for r in cur.fetchall()}
+
+            # Estimate provider call/token counts from plan routing
+            provider_calls: dict = {}
+            provider_tokens: dict = {}
+            for plan, usage in plan_usage.items():
+                routing = _PLAN_ROUTING.get(plan, {})
+                prov = routing.get("provider", "groq")
+                provider_calls[prov] = provider_calls.get(prov, 0) + usage["calls"]
+                provider_tokens[prov] = provider_tokens.get(prov, 0) + usage["tokens"]
+
+            # Known conservative free-tier daily request limits (0 = paid only / no public free tier)
+            FREE_LIMITS = {
+                "groq":      14_400,   # ~30 RPM × 480 min on llama-3.1-8b-instant free tier
+                "gemini":     1_500,   # Gemini 2.0 Flash free tier
+                "anthropic":      0,   # No free tier — paid only
+                "openai":         0,   # No free tier — paid only
+                "nvidia":        40,   # NIM API playground free tier
+            }
+            PROVIDER_LABELS = {
+                "groq":      "Groq",
+                "gemini":    "Google Gemini",
+                "anthropic": "Anthropic Claude",
+                "openai":    "OpenAI GPT",
+                "nvidia":    "NVIDIA NIM",
+            }
+            PROVIDER_ICONS = {
+                "groq": "⚡", "gemini": "✦", "anthropic": "◈", "openai": "◎", "nvidia": "⬡"
+            }
+
+            providers = []
+            for prov in ["groq", "gemini", "anthropic", "openai", "nvidia"]:
+                pool_size   = len(_KEY_POOLS.get(prov, []))
+                calls_today = provider_calls.get(prov, 0)
+                free_limit  = FREE_LIMITS[prov]
+                used_pct    = round(calls_today / free_limit * 100) if free_limit else 0
+                # Which model is this provider serving (first matching plan)
+                active_model = next(
+                    (r["model"] for r in _PLAN_ROUTING.values() if r.get("provider") == prov),
+                    "—"
+                )
+                providers.append({
+                    "id":           prov,
+                    "label":        PROVIDER_LABELS[prov],
+                    "icon":         PROVIDER_ICONS[prov],
+                    "pool_size":    pool_size,
+                    "has_key":      pool_size > 0,
+                    "active_model": active_model,
+                    "calls_today":  calls_today,
+                    "tokens_today": provider_tokens.get(prov, 0),
+                    "free_limit":   free_limit,
+                    "used_pct":     min(used_pct, 100),
+                })
+
+            # Per-plan routing + usage
+            DEFAULT_ROUTING = {
+                "free":    {"provider": "groq",   "model": "llama-3.1-8b-instant"},
+                "basic":   {"provider": "groq",   "model": "llama-3.3-70b-versatile"},
+                "pro":     {"provider": "gemini", "model": "gemini-2.0-flash"},
+                "premium": {"provider": "gemini", "model": "gemini-2.0-flash"},
+            }
+            plans = []
+            for plan in ["free", "basic", "pro", "premium"]:
+                routing  = _PLAN_ROUTING.get(plan, DEFAULT_ROUTING[plan])
+                usage    = plan_usage.get(plan, {"calls": 0, "tokens": 0})
+                plans.append({
+                    "plan":        plan,
+                    "provider":    routing.get("provider", "groq"),
+                    "model":       routing.get("model", "—"),
+                    "user_count":  plan_user_counts.get(plan, 0),
+                    "calls_today": usage["calls"],
+                    "tokens_today": usage["tokens"],
+                })
+
+            total_calls  = sum(u["calls"]  for u in plan_usage.values())
+            total_tokens = sum(u["tokens"] for u in plan_usage.values())
+
+            return {
+                "providers":          providers,
+                "plans":              plans,
+                "total_calls_today":  total_calls,
+                "total_tokens_today": total_tokens,
+                "as_of":              today,
+            }
+        finally:
+            conn.close()
+
     # ── AI Usage ──────────────────────────────────────────────
 
     @staticmethod
