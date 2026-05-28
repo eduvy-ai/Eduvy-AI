@@ -44,9 +44,10 @@ function UsageBar({ pct, color }) {
 function ProviderCard({ p }) {
   const color   = PROVIDER_COLORS[p.id] || C.muted
   const hasKey  = p.has_key
-  const isPaid  = p.free_limit === 0
-  const remaining = isPaid ? '∞' : p.free_limit
-    ? fmtK(Math.max(p.free_limit - p.calls_today, 0))
+  const isPaid  = p.per_key_limit === 0
+  const totalLimit = p.total_limit || 0
+  const remaining = isPaid ? '∞'
+    : totalLimit ? fmtK(Math.max(totalLimit - p.calls_today, 0))
     : '—'
 
   return (
@@ -78,13 +79,18 @@ function ProviderCard({ p }) {
       </div>
 
       {/* Usage bar (only if has key + free limit) */}
-      {hasKey && !isPaid && p.free_limit > 0 && (
+      {hasKey && !isPaid && totalLimit > 0 && (
         <div className="flex flex-col gap-1">
           <UsageBar pct={p.used_pct} color={color} />
           <div className="flex justify-between text-[10px]" style={{ color: C.muted }}>
-            <span>{fmtK(p.calls_today)} used today</span>
-            <span>{remaining} left</span>
+            <span>{fmtK(p.calls_today)} req used today</span>
+            <span>{remaining} req left of {fmtK(totalLimit)}</span>
           </div>
+          {p.pool_size > 1 && (
+            <div className="text-[10px]" style={{ color: C.muted }}>
+              {p.pool_size} keys × {fmtK(p.per_key_limit)} req/day each
+            </div>
+          )}
         </div>
       )}
 
@@ -271,11 +277,11 @@ export default function APIMonitorTab({ toast }) {
         <h3 className="text-sm font-semibold mb-3 m-0" style={{ color: C.text }}>Free-Tier Quota Reference</h3>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2 text-[12px]">
           {[
-            { provider: 'Groq',            limit: '14,400 req/day',  note: 'llama-3.1-8b-instant', color: PROVIDER_COLORS.groq },
-            { provider: 'Google Gemini',   limit: '1,500 req/day',   note: 'gemini-2.0-flash',      color: PROVIDER_COLORS.gemini },
-            { provider: 'NVIDIA NIM',      limit: '40 req/day',      note: 'playground tier',       color: PROVIDER_COLORS.nvidia },
-            { provider: 'Anthropic',       limit: 'Paid only',       note: 'no free tier',          color: C.muted },
-            { provider: 'OpenAI',          limit: 'Paid only',       note: 'no free tier',          color: C.muted },
+            { provider: 'Groq',            limit: '14,400 req/day per key',  note: 'llama-3.3-70b — RPD limit (not tokens)', color: PROVIDER_COLORS.groq },
+            { provider: 'Google Gemini',   limit: '1,500 req/day per key',   note: 'gemini-2.0-flash free tier',             color: PROVIDER_COLORS.gemini },
+            { provider: 'NVIDIA NIM',      limit: '40 req/day per key',      note: 'playground tier',                        color: PROVIDER_COLORS.nvidia },
+            { provider: 'Anthropic',       limit: 'Paid only',               note: 'no free tier',                           color: C.muted },
+            { provider: 'OpenAI',          limit: 'Paid only',               note: 'no free tier',                           color: C.muted },
           ].map(r => (
             <div key={r.provider} className="flex items-start gap-2 p-2.5 rounded-lg"
               style={{ background: '#ffffff05' }}>

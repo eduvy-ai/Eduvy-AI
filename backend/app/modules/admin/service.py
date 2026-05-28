@@ -596,26 +596,30 @@ class AdminService:
 
             providers = []
             for prov in ["groq", "gemini", "anthropic", "openai", "nvidia"]:
-                pool_size   = len(_KEY_POOLS.get(prov, []))
-                calls_today = provider_calls.get(prov, 0)
-                free_limit  = FREE_LIMITS[prov]
-                used_pct    = round(calls_today / free_limit * 100) if free_limit else 0
+                pool_size      = len(_KEY_POOLS.get(prov, []))
+                calls_today    = provider_calls.get(prov, 0)
+                per_key_limit  = FREE_LIMITS[prov]
+                # Total daily capacity = per-key limit × number of keys
+                # Each key has its own independent quota from the provider.
+                total_limit    = per_key_limit * pool_size if pool_size > 0 else per_key_limit
+                used_pct       = round(calls_today / total_limit * 100) if total_limit else 0
                 # Which model is this provider serving (first matching plan)
                 active_model = next(
                     (r["model"] for r in _PLAN_ROUTING.values() if r.get("provider") == prov),
                     "—"
                 )
                 providers.append({
-                    "id":           prov,
-                    "label":        PROVIDER_LABELS[prov],
-                    "icon":         PROVIDER_ICONS[prov],
-                    "pool_size":    pool_size,
-                    "has_key":      pool_size > 0,
-                    "active_model": active_model,
-                    "calls_today":  calls_today,
-                    "tokens_today": provider_tokens.get(prov, 0),
-                    "free_limit":   free_limit,
-                    "used_pct":     min(used_pct, 100),
+                    "id":            prov,
+                    "label":         PROVIDER_LABELS[prov],
+                    "icon":          PROVIDER_ICONS[prov],
+                    "pool_size":     pool_size,
+                    "has_key":       pool_size > 0,
+                    "active_model":  active_model,
+                    "calls_today":   calls_today,
+                    "tokens_today":  provider_tokens.get(prov, 0),
+                    "per_key_limit": per_key_limit,   # limit for a single key
+                    "total_limit":   total_limit,     # per_key_limit × pool_size
+                    "used_pct":      min(used_pct, 100),
                 })
 
             # Per-plan routing + usage
