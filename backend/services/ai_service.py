@@ -158,7 +158,7 @@ def _fix_model(provider: str, model: str) -> str:
 def load_plan_routing():
     """Load plan routing config AND stored API keys from app_settings into memory."""
     try:
-        from database import get_db   # local import to avoid circular deps at module load
+        from app.db.connection import get_db   # local import to avoid circular deps at module load
         conn = get_db()
         try:
             cur = conn.cursor()
@@ -219,7 +219,7 @@ _ENV_BASE = {
 def save_api_key(provider: str, key: str, slot: int = 1):
     """Persist API key for provider at the given slot (1–5) to app_settings and update the pool."""
     db_key = f"api_key_{provider}" if slot == 1 else f"api_key_{provider}_{slot}"
-    from database import get_db
+    from app.db.connection import get_db
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -242,7 +242,7 @@ def save_api_key(provider: str, key: str, slot: int = 1):
 def remove_api_key_slot(provider: str, slot: int):
     """Delete a DB key slot and rebuild the in-memory pool from env vars + remaining slots."""
     db_key = f"api_key_{provider}" if slot == 1 else f"api_key_{provider}_{slot}"
-    from database import get_db
+    from app.db.connection import get_db
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -268,7 +268,7 @@ def remove_api_key_slot(provider: str, slot: int):
 
 def get_key_slot_status() -> dict:
     """Return per-provider slot info for the admin panel.  Never returns actual key values."""
-    from database import get_db
+    from app.db.connection import get_db
     conn = get_db()
     result = {}
     try:
@@ -322,7 +322,7 @@ def get_key_pool_sizes() -> dict[str, int]:
 
 def save_plan_routing(plan: str, provider: str, model: str):
     """Persist one plan's routing to app_settings and update the in-memory cache."""
-    from database import get_db
+    from app.db.connection import get_db
     conn = get_db()
     try:
         cur = conn.cursor()

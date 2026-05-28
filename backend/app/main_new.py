@@ -76,6 +76,10 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup():
     init_db()
+    # Load API keys + plan routing from DB into the in-memory pool.
+    # Must run AFTER init_db() so the app_settings table exists.
+    from services.ai_service import load_plan_routing
+    load_plan_routing()
 
 # ── Security Headers Middleware ───────────────────────────────
 @app.middleware("http")

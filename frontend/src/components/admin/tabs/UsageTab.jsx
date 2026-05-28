@@ -131,8 +131,8 @@ export default function UsageTab({ toast }) {
               { key: "name",          label: "Name" },
               { key: "email",         label: "Email" },
               { key: "plan",          label: "Plan", render: v => <span style={{ color: PLAN_COLORS[v] || C.muted }} className="font-bold">{v}</span> },
-              { key: "call_count",    label: "Calls" },
-              { key: "total_tokens",  label: "Tokens" },
+              { key: "call_count",   label: "Calls" },
+              { key: "total_tokens", label: "Tokens" },
             ]}
             rows={topUsers}
           />

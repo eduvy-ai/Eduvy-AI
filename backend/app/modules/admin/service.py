@@ -552,7 +552,7 @@ class AdminService:
             cur.execute(
                 """SELECT date, SUM(call_count) AS calls, SUM(prompt_tokens+completion_tokens) AS tokens
                    FROM ai_usage
-                   WHERE date >= CURRENT_DATE - INTERVAL '%s days'
+                   WHERE date::date >= CURRENT_DATE - (%s || ' days')::interval
                    GROUP BY date ORDER BY date DESC""",
                 (days,)
             )
@@ -567,9 +567,9 @@ class AdminService:
         try:
             cur = conn.cursor()
             cur.execute(
-                """SELECT u.user_id, us.name,
-                          u.call_count AS calls,
-                          u.prompt_tokens + u.completion_tokens AS tokens
+                """SELECT u.user_id, us.name, us.email, us.plan,
+                          u.call_count,
+                          u.prompt_tokens + u.completion_tokens AS total_tokens
                    FROM ai_usage u
                    LEFT JOIN users us ON us.id = u.user_id
                    WHERE u.date = %s
