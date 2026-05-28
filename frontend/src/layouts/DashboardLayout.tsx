@@ -84,20 +84,36 @@ const DashboardLayout: React.FC = () => {
     <div className="app-shell">
       {/* ── Desktop Sidebar Nav ── */}
       <nav className="side-nav">
-        <div className="flex items-center gap-2.5 mb-8 px-2">
+        {/* Logo */}
+        <div className="flex items-center gap-2.5 mb-4 px-2">
           <span className="text-[26px]">🎓</span>
           <span className="font-black text-lg text-app-green tracking-tight">Eduvy-AI</span>
         </div>
 
-        <div className="flex flex-col gap-1 flex-1">
+        {/* User identity card */}
+        {user && (
+          <div className="mb-4 px-1 pb-4 border-b border-white/[0.06]">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-app-green/15 border border-app-green/25 flex items-center justify-center text-[14px] font-black text-app-green shrink-0">
+                {(user.name || 'S').charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <div className="text-[12px] font-bold text-app-text truncate">{user.name || 'Student'}</div>
+                <div className="text-[10px] text-app-muted truncate">{(user as any).standard} · {(user as any).board}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-0.5 flex-1">
           {navItems.map(n => (
             <button
               key={n.key}
               onClick={() => setTab(n.key)}
-              className={`rounded-xl py-2.5 px-3.5 flex items-center gap-3 cursor-pointer font-[Sora,sans-serif] text-left transition-all duration-150 border-[1.5px] ${
+              className={`rounded-xl py-2.5 px-3.5 flex items-center gap-3 cursor-pointer font-[Sora,sans-serif] text-left transition-all duration-150 border-[1.5px] active:scale-[0.97] relative ${
                 tab === n.key
-                  ? 'bg-app-green/10 border-app-green/30'
-                  : 'bg-transparent border-transparent'
+                  ? 'bg-app-green/10 border-app-green/30 side-active'
+                  : 'bg-transparent border-transparent hover:bg-white/[0.04] hover:border-white/[0.05]'
               }`}
             >
               <span className="text-xl w-6 text-center">{getIcon(n.labelKey)}</span>
@@ -134,7 +150,7 @@ const DashboardLayout: React.FC = () => {
           {/* Settings button */}
           <button
             onClick={() => setShowSettings(true)}
-            className="rounded-[10px] py-2.5 px-3 flex items-center gap-2 cursor-pointer font-[Sora,sans-serif] w-full border bg-app-card2 border-app-border hover:border-app-green/30 transition-colors"
+            className="rounded-xl py-2.5 px-3 flex items-center gap-2 cursor-pointer font-[Sora,sans-serif] w-full border bg-app-card2 border-app-border hover:border-app-green/30 active:scale-[0.97] transition-all duration-150"
           >
             <span className="text-base">⚙️</span>
             <span className="text-sm font-medium text-app-text">{ui.settings || 'Settings'}</span>
@@ -143,7 +159,7 @@ const DashboardLayout: React.FC = () => {
           {/* Logout button */}
           <button
             onClick={handleLogout}
-            className="rounded-[10px] py-2.5 px-3 flex items-center gap-2 cursor-pointer font-[Sora,sans-serif] w-full border bg-app-red/10 border-app-red/30 hover:bg-app-red/20 transition-colors"
+            className="rounded-xl py-2.5 px-3 flex items-center gap-2 cursor-pointer font-[Sora,sans-serif] w-full border bg-app-red/10 border-app-red/30 hover:bg-app-red/20 active:scale-[0.97] transition-all duration-150"
           >
             <span className="text-base">🚪</span>
             <span className="text-sm font-medium text-app-red">{ui.logout || 'Logout'}</span>
