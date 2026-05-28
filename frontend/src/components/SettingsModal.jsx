@@ -13,7 +13,7 @@ const labelClass = "block text-[11px] font-bold text-app-muted mb-1.5 tracking-w
 // Maps plan → model label shown to student (read-only info)
 const PLAN_MODEL_LABEL = {
   free:    'Llama 3 8B (Groq)',
-  basic:   'Llama 3.3 70B (Groq)',
+  basic:   'Llama 3.3 70B (Groq / NVIDIA NIM)',
   pro:     'Your chosen model',
   premium: 'Your chosen model',
 }

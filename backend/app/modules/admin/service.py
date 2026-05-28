@@ -608,7 +608,7 @@ class AdminService:
                 if plan not in routing:
                     routing[plan] = val
             # Key status and slots
-            providers = ["gemini", "groq", "anthropic", "openai"]
+            providers = ["gemini", "groq", "anthropic", "openai", "nvidia"]
             key_status = {}
             key_slots = {}
             def mask_key(k: str) -> str:
@@ -632,7 +632,8 @@ class AdminService:
                         has_key = True
                 # Also check env vars
                 env_base = {"gemini": "GEMINI_API_KEY", "groq": "GROQ_API_KEY",
-                            "anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY"}.get(prov, "")
+                            "anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY",
+                            "nvidia": "NVIDIA_API_KEY"}.get(prov, "")
                 import os as _os
                 env_count = sum(1 for i in ([""] + [f"_{j}" for j in range(2, 6)])
                                 if _os.getenv(f"{env_base}{i}", ""))
@@ -700,6 +701,103 @@ class AdminService:
             return {"ok": True}
         finally:
             conn.close()
+
+    @staticmethod
+    async def fetch_provider_models(provider: str) -> List[str]:
+        """
+        Fetch the live model list from the provider's API using the configured key.
+        Falls back to a safe static list if the call fails or no key is set.
+        Returns a list of model id strings.
+        """
+        import httpx as _httpx
+        from services.ai_service import _next_key
+
+        # Static fallback per provider (used when key missing or API down)
+        _FALLBACK: Dict[str, List[str]] = {
+            "groq":      ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"],
+            "gemini":    ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"],
+            "anthropic": ["claude-sonnet-4-20250514", "claude-3-5-haiku-20241022"],
+            "openai":    ["gpt-4o-mini", "gpt-4o"],
+            "nvidia":    [
+                "meta/llama-3.3-70b-instruct",
+                "meta/llama-3.1-8b-instruct",
+                "nvidia/llama-3.3-nemotron-super-49b-v1",
+                "nvidia/llama-3.1-nemotron-ultra-253b-v1",
+                "mistralai/mistral-nemotron",
+                "deepseek-ai/deepseek-v4-flash",
+            ],
+        }
+
+        key = _next_key(provider)
+        if not key:
+            return _FALLBACK.get(provider, [])
+
+        try:
+            async with _httpx.AsyncClient(timeout=10.0) as client:
+                if provider == "groq":
+                    r = await client.get(
+                        "https://api.groq.com/openai/v1/models",
+                        headers={"Authorization": f"Bearer {key}"},
+                    )
+                    r.raise_for_status()
+                    data = r.json()
+                    ids = [m["id"] for m in data.get("data", []) if m.get("id")]
+                    # Only keep chat-capable models (filter out whisper, tts, etc.)
+                    ids = [m for m in ids if "whisper" not in m and "tts" not in m
+                           and "guard" not in m and "embed" not in m]
+                    return sorted(ids) or _FALLBACK.get(provider, [])
+
+                elif provider == "openai":
+                    r = await client.get(
+                        "https://api.openai.com/v1/models",
+                        headers={"Authorization": f"Bearer {key}"},
+                    )
+                    r.raise_for_status()
+                    data = r.json()
+                    # Keep only GPT / o-series chat models
+                    ids = [m["id"] for m in data.get("data", [])
+                           if m.get("id") and (
+                               m["id"].startswith("gpt-") or m["id"].startswith("o1") or m["id"].startswith("o3")
+                           )]
+                    return sorted(ids) or _FALLBACK.get(provider, [])
+
+                elif provider == "gemini":
+                    r = await client.get(
+                        f"https://generativelanguage.googleapis.com/v1beta/models?key={key}",
+                    )
+                    r.raise_for_status()
+                    data = r.json()
+                    ids = []
+                    for m in data.get("models", []):
+                        name = m.get("name", "")          # "models/gemini-2.0-flash"
+                        methods = m.get("supportedGenerationMethods", [])
+                        if "generateContent" in methods:
+                            ids.append(name.replace("models/", ""))
+                    return sorted(ids) or _FALLBACK.get(provider, [])
+
+                elif provider == "nvidia":
+                    r = await client.get(
+                        "https://integrate.api.nvidia.com/v1/models",
+                        headers={"Authorization": f"Bearer {key}"},
+                    )
+                    r.raise_for_status()
+                    data = r.json()
+                    ids = [m["id"] for m in data.get("data", []) if m.get("id")]
+                    # Filter to chat-capable models only (skip embedding/rerank/image)
+                    ids = [m for m in ids if not any(
+                        kw in m for kw in ["embed", "rerank", "vision", "vlm", "clip",
+                                           "safety", "guard", "pii", "translate"]
+                    )]
+                    return sorted(ids) or _FALLBACK.get(provider, [])
+
+                elif provider == "anthropic":
+                    # Anthropic has no public /models listing — return curated list
+                    return _FALLBACK.get(provider, [])
+
+        except Exception:
+            pass  # network error / bad key — return fallback silently
+
+        return _FALLBACK.get(provider, [])
 
     # ── Drishti Helpers ───────────────────────────────────────
 
