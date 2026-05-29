@@ -1,12 +1,5 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-
-// Define COLORS locally to avoid circular dep (ParentDashboard pattern)
-const C = {
-  bg: "#04040e", card: "#0b0b1c", card2: "#101022", border: "#ffffff18",
-  green: "#00E5A0", yellow: "#FFD166", red: "#FF6B6B",
-  blue: "#7B9CFF", orange: "#FF6B35", text: "#eeeeff", muted: "#6868a0",
-}
 
 export default function HelperPortal() {
   const { token } = useParams()
@@ -27,7 +20,6 @@ export default function HelperPortal() {
         if (!me.ok) { setError('Invalid or expired helper token.'); setLoading(false); return }
         const meData = await me.json()
         setHelperInfo(meData)
-
         const st = await fetch('/api/helper/students', { headers })
         const stData = await st.json()
         setStudents(Array.isArray(stData) ? stData : [])
@@ -61,87 +53,80 @@ export default function HelperPortal() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: C.muted, fontFamily: 'Sora, sans-serif', fontSize: 16 }}>Loading…</div>
+      <div className="min-h-screen bg-app-bg flex items-center justify-center">
+        <div className="text-app-muted text-base">Loading�</div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <div style={{ textAlign: 'center', fontFamily: 'Sora, sans-serif' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
-          <h2 style={{ color: C.red, fontSize: 18, marginBottom: 8 }}>Access Denied</h2>
-          <p style={{ color: C.muted, fontSize: 14 }}>{error}</p>
+      <div className="min-h-screen bg-app-bg flex items-center justify-center p-6">
+        <div className="text-center">
+          <div className="text-5xl mb-4">??</div>
+          <h2 className="text-app-red text-lg font-extrabold mb-2">Access Denied</h2>
+          <p className="text-app-muted text-sm">{error}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, fontFamily: 'Sora, sans-serif' }}>
+    <div className="min-h-screen bg-app-bg">
       {/* Header */}
-      <div style={{ background: C.card, borderBottom: `1px solid ${C.border}`, padding: '16px 24px' }}>
-        <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: `${C.blue}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>👁️</div>
+      <div className="bg-app-card border-b border-app-border px-6 py-4">
+        <div className="max-w-[800px] mx-auto flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-app-blue/[0.13] flex items-center justify-center text-[22px] shrink-0">???</div>
           <div>
-            <h1 style={{ color: C.text, fontSize: 18, fontWeight: 800, margin: 0 }}>Drishti Helper Portal</h1>
-            <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>
-              {helperInfo?.helper_name} · {helperInfo?.helper_type}
+            <h1 className="text-app-text text-lg font-extrabold m-0">Drishti Helper Portal</h1>
+            <p className="text-app-muted text-[13px] m-0">
+              {helperInfo?.helper_name} � {helperInfo?.helper_type}
             </p>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div style={{ maxWidth: 800, margin: '0 auto', padding: '24px 16px' }}>
-        <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>
-          You are supporting <strong style={{ color: C.text }}>{students.length}</strong> student{students.length !== 1 ? 's' : ''}. Send them encouraging notes to keep them motivated.
+      <div className="max-w-[800px] mx-auto px-4 py-6">
+        <p className="text-app-muted text-[13px] mb-5">
+          You are supporting <strong className="text-app-text font-bold">{students.length}</strong> student{students.length !== 1 ? 's' : ''}. Send them encouraging notes to keep them motivated.
         </p>
 
         {students.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 48, background: C.card, borderRadius: 16, border: `1px solid ${C.border}` }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
-            <p style={{ color: C.muted, fontSize: 14, margin: 0 }}>No students assigned yet.</p>
-            <p style={{ color: C.muted, fontSize: 12, marginTop: 8 }}>Contact your admin to get students assigned to you.</p>
+          <div className="text-center p-12 bg-app-card rounded-2xl border border-app-border">
+            <div className="text-[40px] mb-3">??</div>
+            <p className="text-app-muted text-sm m-0">No students assigned yet.</p>
+            <p className="text-app-muted text-xs mt-2">Contact your admin to get students assigned to you.</p>
           </div>
         )}
 
         {students.map(s => (
-          <div key={s.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: '18px 20px', marginBottom: 14 }}>
+          <div key={s.id} className="bg-app-card border border-app-border rounded-2xl px-5 py-[18px] mb-3.5">
             {/* Student info */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+            <div className="flex items-start justify-between mb-3.5 flex-wrap gap-2">
               <div>
-                <h3 style={{ color: C.text, fontSize: 16, fontWeight: 700, margin: '0 0 4px' }}>
-                  {s.name}
-                </h3>
-                <p style={{ color: C.muted, fontSize: 12, margin: 0 }}>
-                  Class {s.standard} · {s.board} · {s.language}
-                </p>
+                <h3 className="text-app-text text-base font-bold m-0 mb-1">{s.name}</h3>
+                <p className="text-app-muted text-xs m-0">Class {s.standard} � {s.board} � {s.language}</p>
               </div>
-              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                <div style={{ textAlign: 'center', background: `${C.yellow}15`, padding: '6px 12px', borderRadius: 10 }}>
-                  <p style={{ color: C.yellow, fontWeight: 800, fontSize: 16, margin: 0 }}>{s.xp || 0}</p>
-                  <p style={{ color: C.muted, fontSize: 10, margin: 0 }}>XP</p>
+              <div className="flex gap-4 flex-wrap">
+                <div className="text-center bg-app-yellow/[0.08] px-3 py-1.5 rounded-[10px]">
+                  <p className="text-app-yellow font-extrabold text-base m-0">{s.xp || 0}</p>
+                  <p className="text-app-muted text-[10px] m-0">XP</p>
                 </div>
-                <div style={{ textAlign: 'center', background: `${C.orange}15`, padding: '6px 12px', borderRadius: 10 }}>
-                  <p style={{ color: C.orange, fontWeight: 800, fontSize: 16, margin: 0 }}>{s.streak || 0}</p>
-                  <p style={{ color: C.muted, fontSize: 10, margin: 0 }}>Streak</p>
+                <div className="text-center bg-app-orange/[0.08] px-3 py-1.5 rounded-[10px]">
+                  <p className="text-app-orange font-extrabold text-base m-0">{s.streak || 0}</p>
+                  <p className="text-app-muted text-[10px] m-0">Streak</p>
                 </div>
               </div>
             </div>
 
             {/* Recent topics */}
             {s.recent_topics?.length > 0 && (
-              <div style={{ marginBottom: 14 }}>
-                <p style={{ color: C.muted, fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', marginBottom: 6 }}>RECENT TOPICS</p>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <div className="mb-3.5">
+                <p className="text-app-muted text-[11px] font-bold tracking-[0.05em] mb-1.5">RECENT TOPICS</p>
+                <div className="flex gap-1.5 flex-wrap">
                   {s.recent_topics.slice(0, 5).map((t, i) => (
-                    <span key={i} style={{
-                      background: `${C.blue}18`, border: `1px solid ${C.blue}30`,
-                      color: C.blue, fontSize: 11, borderRadius: 8, padding: '3px 10px',
-                    }}>{t}</span>
+                    <span key={i} className="bg-app-blue/[0.09] border border-app-blue/30 text-app-blue text-[11px] rounded-lg px-2.5 py-0.5">{t}</span>
                   ))}
                 </div>
               </div>
@@ -149,42 +134,34 @@ export default function HelperPortal() {
 
             {/* Send note */}
             <div>
-              <p style={{ color: C.muted, fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', marginBottom: 6 }}>SEND ENCOURAGEMENT NOTE</p>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <p className="text-app-muted text-[11px] font-bold tracking-[0.05em] mb-1.5">SEND ENCOURAGEMENT NOTE</p>
+              <div className="flex gap-2 items-start">
                 <textarea
                   value={noteText[s.id] || ''}
                   onChange={e => setNoteText(n => ({ ...n, [s.id]: e.target.value }))}
-                  placeholder={`Write an encouraging message for ${s.name}…`}
+                  placeholder={`Write an encouraging message for ${s.name}�`}
                   maxLength={500}
                   rows={2}
-                  style={{
-                    flex: 1, background: C.card2, border: `1px solid ${C.border}`,
-                    borderRadius: 10, padding: '10px 14px', color: C.text,
-                    fontFamily: 'Sora, sans-serif', fontSize: 13, resize: 'vertical',
-                    outline: 'none',
-                  }}
+                  className="flex-1 bg-app-card2 border border-app-border rounded-[10px] py-2.5 px-3.5 text-app-text text-[13px] resize-y outline-none focus:ring-1 focus:ring-app-green/30 transition-all"
                 />
                 <button
                   onClick={() => sendNote(s.id)}
                   disabled={sending[s.id] || !noteText[s.id]?.trim()}
-                  style={{
-                    background: sending[s.id] || !noteText[s.id]?.trim() ? C.card2 : `linear-gradient(135deg, ${C.green}, #33cc88)`,
-                    color: sending[s.id] || !noteText[s.id]?.trim() ? C.muted : '#04040e',
-                    border: 'none', borderRadius: 10,
-                    padding: '10px 18px', fontWeight: 800, fontFamily: 'Sora, sans-serif',
-                    cursor: sending[s.id] || !noteText[s.id]?.trim() ? 'not-allowed' : 'pointer',
-                    fontSize: 13, flexShrink: 0,
-                  }}
+                  className={`shrink-0 rounded-[10px] px-[18px] py-2.5 text-[13px] font-extrabold border-none cursor-pointer transition-all duration-150 ${
+                    sending[s.id] || !noteText[s.id]?.trim()
+                      ? 'bg-app-card2 text-app-muted cursor-not-allowed'
+                      : 'bg-gradient-to-br from-app-green to-emerald-400 text-app-bg hover:opacity-90 active:scale-95'
+                  }`}
                 >
-                  {sending[s.id] ? '…' : sent[s.id] ? '✓ Sent!' : 'Send'}
+                  {sending[s.id] ? '�' : sent[s.id] ? '? Sent!' : 'Send'}
                 </button>
               </div>
             </div>
           </div>
         ))}
 
-        <p style={{ textAlign: 'center', color: C.muted, fontSize: 11, marginTop: 32, opacity: 0.6 }}>
-          Eduvy-AI Drishti Portal · Read-only helper access
+        <p className="text-center text-app-muted text-[11px] mt-8 opacity-60">
+          Eduvy-AI Drishti Portal � Read-only helper access
         </p>
       </div>
     </div>

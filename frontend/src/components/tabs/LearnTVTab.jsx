@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-import { COLORS, callAI, parseAIObject, parseAIArray, checkStudentQuery } from '../../shared.js'
+﻿import { useState, useRef, useEffect } from 'react'
+import { callAI, parseAIObject, parseAIArray, checkStudentQuery } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 
 // ── Backend YouTube API (uses yt-dlp on server) ──────────────
@@ -377,37 +377,29 @@ export default function LearnTVTab({ profile }) {
   // RENDER
   // ═══════════════════════════════════════════════════════════
   return (
-    <div style={{ padding: '0 2px', maxWidth: 800, margin: '0 auto' }}>
+    <div className="px-0.5 max-w-[800px] mx-auto">
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-        <span style={{ fontSize: 22 }}>📺</span>
-        <h2 style={{ fontSize: 18, fontWeight: 800, color: COLORS.text, margin: 0 }}>Learn TV</h2>
+      <div className="flex items-center gap-2.5 mb-3.5">
+        <span className="text-[22px]">📺</span>
+        <h2 className="text-[18px] font-extrabold text-app-text m-0">Learn TV</h2>
       </div>
 
       {/* Mode Tabs */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 18, background: COLORS.card, borderRadius: 14, padding: 4, border: `1px solid ${COLORS.border}` }}>
+      <div className="flex gap-1.5 mb-4 bg-app-card rounded-2xl p-1 border border-app-border">
         {[
           { key: 'discover', icon: '🔍', label: 'Discover' },
           { key: 'reels',    icon: '📸', label: 'Reels' },
           { key: 'analyze',  icon: '🔬', label: 'Analyze' },
           { key: 'create',   icon: '✨', label: 'AI Content' },
         ].map(m => (
-          <button
-            key={m.key}
-            onClick={() => setMode(m.key)}
-            style={{
-              flex: 1,
-              background: mode === m.key ? `linear-gradient(135deg, ${COLORS.green}, #33cc88)` : 'transparent',
-              border: 'none',
-              borderRadius: 10,
-              padding: '10px 6px',
-              fontSize: 12,
-              fontWeight: mode === m.key ? 800 : 500,
-              color: mode === m.key ? '#04040e' : COLORS.muted,
-              cursor: 'pointer',
-              fontFamily: 'Sora, sans-serif',
-            }}
-          >{m.icon} {m.label}</button>
+          <button key={m.key} onClick={() => setMode(m.key)}
+            className={`flex-1 border-none rounded-xl py-2.5 px-1.5 text-[12px] cursor-pointer transition-all ${
+              mode === m.key
+                ? 'bg-gradient-to-br from-app-green to-[#33cc88] text-app-bg font-extrabold'
+                : 'bg-transparent text-app-muted font-medium hover:text-app-text'
+            }`}>
+            {m.icon} {m.label}
+          </button>
         ))}
       </div>
 
@@ -415,10 +407,10 @@ export default function LearnTVTab({ profile }) {
       {mode === 'discover' && (
         <div>
           {/* Search bar */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <div className="flex gap-2 mb-4">
             <input
               ref={searchRef}
-              style={inputStyle}
+              className={inputCls}
               placeholder="Search educational videos…"
               value={searchQ}
               onChange={e => setSearchQ(e.target.value)}
@@ -427,23 +419,17 @@ export default function LearnTVTab({ profile }) {
             <button
               onClick={() => doSearch()}
               disabled={searching || !searchQ.trim()}
-              style={{ ...pBtn, padding: '10px 18px', width: 'auto', minWidth: 60 }}
+              className={pBtnCls + ' !w-auto !min-w-[60px] !px-4 !py-2.5'}
             >{searching ? '⏳' : '🔍'}</button>
           </div>
 
           {/* Suggested topics */}
           {!videos.length && !searching && (
             <div>
-              <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 10, fontWeight: 600 }}>
-                📚 Suggested for you
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+              <div className="text-[12px] text-app-muted mb-2.5 font-semibold">📚 Suggested for you</div>
+              <div className="flex flex-wrap gap-2 mb-4">
                 {suggested.map((t, i) => (
-                  <button
-                    key={i}
-                    onClick={() => { setSearchQ(t); doSearch(t) }}
-                    style={chipBtn}
-                  >{t}</button>
+                  <button key={i} onClick={() => { setSearchQ(t); doSearch(t) }} className={chipBtnCls}>{t}</button>
                 ))}
               </div>
             </div>
@@ -451,55 +437,46 @@ export default function LearnTVTab({ profile }) {
 
           {/* Loading */}
           {searching && (
-            <div style={{ textAlign: 'center', padding: 40, color: COLORS.muted }}>
-              <div style={{ fontSize: 28, marginBottom: 10 }}>🔍</div>
+            <div className="text-center py-10 text-app-muted">
+              <div className="text-[28px] mb-2.5">🔍</div>
               Searching YouTube…
             </div>
           )}
 
           {/* ── AI Concept Overview card ── */}
           {(conceptLoading || conceptSummary) && (
-            <div style={{
-              background: `linear-gradient(135deg, ${COLORS.green}12, ${COLORS.blue}10)`,
-              border: `1px solid ${COLORS.green}30`,
-              borderRadius: 14,
-              padding: '14px 16px',
-              marginBottom: 14,
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                <span style={{ fontSize: 16 }}>🧠</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.green }}>Concept Overview</span>
-                {conceptLoading && <span style={{ fontSize: 11, color: COLORS.muted, marginLeft: 4 }}>AI is thinking…</span>}
+            <div className="border border-app-green/20 rounded-2xl px-4 py-3.5 mb-3.5" style={{ background: 'linear-gradient(135deg,#00E5A012,#7B9CFF10)' }}>
+              <div className="flex items-center gap-2 mb-2.5">
+                <span className="text-base">🧠</span>
+                <span className="text-[13px] font-bold text-app-green">Concept Overview</span>
+                {conceptLoading && <span className="text-[11px] text-app-muted ml-1">AI is thinking…</span>}
               </div>
 
               {conceptLoading && !conceptSummary && (
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div className="flex gap-1.5">
                   {[1,2,3].map(i => (
-                    <div key={i} style={{ height: 10, borderRadius: 6, background: `${COLORS.green}20`, flex: i === 2 ? 2 : 1, animation: 'pulse 1.5s ease-in-out infinite' }} />
+                    <div key={i} className={`h-2.5 rounded-full bg-app-green/15 animate-pulse ${i === 2 ? 'flex-[2]' : 'flex-1'}`} />
                   ))}
                 </div>
               )}
 
               {conceptSummary && (
                 <div>
-                  {/* Headline */}
-                  <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text, marginBottom: 8, lineHeight: 1.4 }}>
-                    {conceptSummary.headline}
-                  </div>
+                  <div className="text-sm font-bold text-app-text mb-2 leading-snug">{conceptSummary.headline}</div>
 
                   {/* Explanation */}
-                  <div style={{ fontSize: 12, color: COLORS.text, opacity: 0.85, lineHeight: 1.7, marginBottom: 10 }}>
+                  <div className="text-[12px] text-app-text/85 leading-[1.7] mb-2.5">
                     {conceptSummary.explanation}
                   </div>
 
                   {/* Key Ideas */}
                   {conceptSummary.keyIdeas?.length > 0 && (
-                    <div style={{ marginBottom: 10 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.blue, marginBottom: 6 }}>💡 Key Ideas</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div className="mb-2.5">
+                      <div className="text-[11px] font-bold text-app-blue mb-1.5">💡 Key Ideas</div>
+                      <div className="flex flex-col gap-1">
                         {conceptSummary.keyIdeas.map((idea, i) => (
-                          <div key={i} style={{ fontSize: 12, color: COLORS.text, lineHeight: 1.5, display: 'flex', gap: 8 }}>
-                            <span style={{ color: COLORS.blue, fontWeight: 700 }}>•</span>
+                          <div key={i} className="text-[12px] text-app-text leading-[1.5] flex gap-2">
+                            <span className="text-app-blue font-bold">•</span>
                             <span>{idea}</span>
                           </div>
                         ))}
@@ -509,14 +486,11 @@ export default function LearnTVTab({ profile }) {
 
                   {/* Real Life Examples */}
                   {conceptSummary.realLife?.length > 0 && (
-                    <div style={{ marginBottom: 10 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.yellow, marginBottom: 6 }}>🌍 Real-Life Examples</div>
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <div className="mb-2.5">
+                      <div className="text-[11px] font-bold text-app-yellow mb-1.5">🌍 Real-Life Examples</div>
+                      <div className="flex gap-2 flex-wrap">
                         {conceptSummary.realLife.map((ex, i) => (
-                          <span key={i} style={{
-                            fontSize: 11, color: COLORS.text, padding: '3px 10px', borderRadius: 10,
-                            background: `${COLORS.yellow}15`, border: `1px solid ${COLORS.yellow}30`,
-                          }}>{ex}</span>
+                          <span key={i} className="text-[11px] text-app-text px-2.5 py-0.5 rounded-[10px] bg-app-yellow/10 border border-app-yellow/20">{ex}</span>
                         ))}
                       </div>
                     </div>
@@ -524,12 +498,8 @@ export default function LearnTVTab({ profile }) {
 
                   {/* Exam Tip */}
                   {conceptSummary.examTip && (
-                    <div style={{
-                      background: `${COLORS.orange}15`, border: `1px solid ${COLORS.orange}30`,
-                      borderRadius: 8, padding: '8px 12px', fontSize: 12,
-                      color: COLORS.text, lineHeight: 1.5,
-                    }}>
-                      <span style={{ fontWeight: 700, color: COLORS.orange }}>📝 Exam Tip: </span>
+                    <div className="bg-[#FF6B3515] border border-[#FF6B3530] rounded-lg px-3 py-2 text-[12px] text-app-text leading-[1.5]">
+                      <span className="font-bold text-app-orange">📝 Exam Tip: </span>
                       {conceptSummary.examTip}
                     </div>
                   )}
@@ -540,20 +510,20 @@ export default function LearnTVTab({ profile }) {
 
           {/* Video grid */}
           {videos.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="flex flex-col gap-3">
               {videos.map(v => {
                 const brief = videoBriefs[v.id]
                 const isExpanded = expandedId === v.id
                 return (
-                  <div key={v.id} style={cardStyle}>
-                    <div style={{ display: 'flex', gap: 12 }}>
+                  <div key={v.id} className={cardCls}>
+                    <div className="flex gap-3">
                       {/* Thumbnail / Player */}
-                      <div style={{ width: 160, minWidth: 160, flexShrink: 0 }}>
+                      <div className="w-40 min-w-[160px] flex-shrink-0">
                         {playingId === v.id ? (
-                          <div style={{ position: 'relative', paddingTop: '56.25%', borderRadius: 8, overflow: 'hidden' }}>
+                          <div className="relative pt-[56.25%] rounded-lg overflow-hidden">
                             <iframe
                               src={`https://www.youtube.com/embed/${v.id}?autoplay=1`}
-                              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                              className="absolute inset-0 w-full h-full border-none"
                               allow="autoplay; encrypted-media"
                               allowFullScreen
                               title={v.title}
@@ -562,66 +532,53 @@ export default function LearnTVTab({ profile }) {
                         ) : (
                           <div
                             onClick={() => setPlayingId(v.id)}
-                            style={{ position: 'relative', cursor: 'pointer', borderRadius: 8, overflow: 'hidden' }}
+                            className="relative cursor-pointer rounded-lg overflow-hidden"
                           >
                             <img
                               src={v.thumbnail}
                               alt={v.title}
-                              style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }}
+                              className="w-full aspect-video object-cover block"
                               loading="lazy"
                             />
-                            <div style={{
-                              position: 'absolute', inset: 0, display: 'flex',
-                              alignItems: 'center', justifyContent: 'center',
-                              background: 'rgba(0,0,0,0.3)',
-                            }}>
-                              <div style={{
-                                width: 32, height: 32, borderRadius: '50%',
-                                background: 'rgba(0,0,0,0.7)', display: 'flex',
-                                alignItems: 'center', justifyContent: 'center',
-                                fontSize: 13,
-                              }}>▶</div>
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                              <div className="w-8 h-8 rounded-full bg-black/70 flex items-center justify-center text-[13px]">▶</div>
                             </div>
                             {v.duration > 0 && (
-                              <div style={{
-                                position: 'absolute', bottom: 4, right: 4,
-                                background: 'rgba(0,0,0,0.8)', borderRadius: 4,
-                                padding: '1px 5px', fontSize: 10, color: '#fff', fontWeight: 600,
-                              }}>{fmtDuration(v.duration)}</div>
+                              <div className="absolute bottom-1 right-1 bg-black/80 rounded px-1.5 text-[10px] text-white font-bold">{fmtDuration(v.duration)}</div>
                             )}
                           </div>
                         )}
                       </div>
 
                       {/* Info */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, lineHeight: 1.4, marginBottom: 4 }}>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-semibold text-app-text leading-[1.4] mb-1">
                           {v.title?.slice(0, 80)}
                         </div>
-                        <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 6 }}>
+                        <div className="text-[11px] text-app-muted mb-1.5">
                           {v.channel} {v.views ? `· ${fmtViews(v.views)}` : ''} {v.uploaded ? `· ${v.uploaded}` : ''}
                         </div>
 
                         {/* AI Brief summary */}
                         {brief && (
-                          <div style={{ fontSize: 12, color: COLORS.text, lineHeight: 1.5, marginBottom: 6, opacity: 0.85 }}>
+                          <div className="text-[12px] text-app-text/85 leading-[1.5] mb-1.5">
                             {brief.brief}
                           </div>
                         )}
 
                         {/* Difficulty + bestFor chips */}
                         {brief && (
-                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+                          <div className="flex gap-1.5 flex-wrap mb-1">
                             {brief.difficulty && (
                               <span style={{
                                 fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
-                                background: brief.difficulty === 'Beginner' ? `${COLORS.green}20` : brief.difficulty === 'Advanced' ? `${COLORS.red}20` : `${COLORS.yellow}20`,
-                                color: brief.difficulty === 'Beginner' ? COLORS.green : brief.difficulty === 'Advanced' ? COLORS.red : COLORS.yellow,
-                                border: `1px solid ${brief.difficulty === 'Beginner' ? COLORS.green : brief.difficulty === 'Advanced' ? COLORS.red : COLORS.yellow}40`,
+                                background: brief.difficulty === 'Beginner' ? `#00E5A020` : brief.difficulty === 'Advanced' ? `#FF6B6B20` : `#FFD16620`,
+                                color: brief.difficulty === 'Beginner' ? '#00E5A0' : brief.difficulty === 'Advanced' ? '#FF6B6B' : '#FFD166',
+                                border: `1px solid ${brief.difficulty === 'Beginner' ? '#00E5A040' : brief.difficulty === 'Advanced' ? '#FF6B6B40' : '#FFD16640'}`,
                               }}>{brief.difficulty}</span>
                             )}
                             {brief.bestFor && (
-                              <span style={{ fontSize: 10, color: COLORS.muted, padding: '2px 8px', borderRadius: 10, background: `${COLORS.blue}10`, border: `1px solid ${COLORS.blue}20` }}>
+                              <span className="text-[10px] text-app-muted px-2 py-0.5 rounded-[10px] bg-app-blue/[0.06] border border-app-blue/20">
                                 {brief.bestFor}
                               </span>
                             )}
@@ -633,19 +590,19 @@ export default function LearnTVTab({ profile }) {
                           <button
                             onClick={() => getBrief(v)}
                             disabled={briefLoading === v.id}
-                            style={{ fontSize: 11, color: COLORS.green, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'Sora, sans-serif', padding: 0, fontWeight: 600 }}
+                            className="text-[11px] text-app-green bg-transparent border-none cursor-pointer p-0 font-semibold"
                           >{briefLoading === v.id ? '⏳ Analyzing…' : '🤖 AI Brief'}</button>
                         )}
                         {brief && !isExpanded && (
                           <button
                             onClick={() => setExpandedId(v.id)}
-                            style={{ fontSize: 11, color: COLORS.blue, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'Sora, sans-serif', padding: 0, fontWeight: 600, marginTop: 2 }}
+                            className="text-[11px] text-app-blue bg-transparent border-none cursor-pointer p-0 font-semibold mt-0.5"
                           >▼ Show key points</button>
                         )}
                         {brief && isExpanded && (
                           <button
                             onClick={() => setExpandedId(null)}
-                            style={{ fontSize: 11, color: COLORS.blue, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'Sora, sans-serif', padding: 0, fontWeight: 600, marginTop: 2 }}
+                            className="text-[11px] text-app-blue bg-transparent border-none cursor-pointer p-0 font-semibold mt-0.5"
                           >▲ Hide details</button>
                         )}
                       </div>
@@ -653,19 +610,19 @@ export default function LearnTVTab({ profile }) {
 
                     {/* Expanded key points */}
                     {brief && isExpanded && (
-                      <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${COLORS.border}` }}>
+                      <div className="mt-2.5 pt-2.5 border-t border-app-border">
                         {brief.keyPoints?.length > 0 && (
-                          <div style={{ marginBottom: 8 }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.green, marginBottom: 6 }}>🎯 Key Points</div>
+                          <div className="mb-2">
+                            <div className="text-[11px] font-bold text-app-green mb-1.5">🎯 Key Points</div>
                             {brief.keyPoints.map((pt, i) => (
-                              <div key={i} style={{ fontSize: 12, color: COLORS.text, lineHeight: 1.6, paddingLeft: 12 }}>
+                              <div key={i} className="text-[12px] text-app-text leading-[1.6] pl-3">
                                 • {pt}
                               </div>
                             ))}
                           </div>
                         )}
                         {brief.prerequisites && (
-                          <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 6 }}>
+                          <div className="text-[11px] text-app-muted mt-1.5">
                             📋 Prerequisites: {brief.prerequisites}
                           </div>
                         )}
@@ -679,7 +636,7 @@ export default function LearnTVTab({ profile }) {
 
           {/* No results */}
           {!searching && videos.length === 0 && searchQ && (
-            <div style={{ textAlign: 'center', padding: 30, color: COLORS.muted }}>
+            <div className="text-center p-7 text-app-muted">
               No videos found. Try a different search.
             </div>
           )}
@@ -690,21 +647,21 @@ export default function LearnTVTab({ profile }) {
       {mode === 'reels' && (
         <div>
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-            <span style={{ fontSize: 20 }}>📱</span>
-            <span style={{ fontSize: 15, fontWeight: 700, color: COLORS.text }}>Edu Reels</span>
-            <span style={{ fontSize: 10, color: COLORS.muted, background: `${COLORS.green}15`, border: `1px solid ${COLORS.green}30`, borderRadius: 6, padding: '2px 8px', fontWeight: 600 }}>
+          <div className="flex items-center gap-2.5 mb-1">
+            <span className="text-[20px]">📱</span>
+            <span className="text-[15px] font-bold text-app-text">Edu Reels</span>
+            <span className="text-[10px] text-app-muted bg-app-green/[0.08] border border-app-green/20 rounded-md px-2 py-0.5 font-semibold">
               PhysicsWallah · Vedantu · Unacademy · more
             </span>
           </div>
-          <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 14 }}>
+          <div className="text-[11px] text-app-muted mb-3.5">
             Short videos (≤ 90s) from India's top educators — play right here, no redirects.
           </div>
 
           {/* ── Search Bar ── */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+          <div className="flex gap-2 mb-2.5">
             <input
-              style={inputStyle}
+              className={inputCls}
               placeholder="Search topic… e.g. Newton's Laws, Photosynthesis, Python loops"
               value={reelsQ}
               onChange={e => setReelsQ(e.target.value)}
@@ -713,17 +670,17 @@ export default function LearnTVTab({ profile }) {
             <button
               onClick={() => searchReels()}
               disabled={reelsLoading || !reelsQ.trim()}
-              style={{ ...pBtn, padding: '10px 16px', width: 'auto', minWidth: 80 }}
+              className={pBtnCls + ' !w-auto !min-w-[80px] !px-4 !py-2.5'}
             >{reelsLoading ? '⏳ Searching…' : '🔍 Search'}</button>
           </div>
 
           {/* Quick topic chips */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }}>
+          <div className="flex flex-wrap gap-1.5 mb-4">
             {['Physics', 'Chemistry', 'AI', 'Mathematics', 'Biology', 'English', 'History', 'Python'].map(sub => (
               <button
                 key={sub}
                 onClick={() => { setReelsQ(sub); searchReels(sub) }}
-                style={{ ...chipBtn, fontSize: 11, padding: '5px 11px' }}
+                className={chipBtnCls + ' !text-[11px] !px-3 !py-1'}
               >{sub}</button>
             ))}
           </div>
@@ -731,16 +688,16 @@ export default function LearnTVTab({ profile }) {
           {/* ── Loading Skeleton (portrait cards) ── */}
           {reelsLoading && (
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.green, marginBottom: 10 }}>
+              <div className="text-[12px] font-bold text-app-green mb-2.5">
                 📱 Fetching Edu Reels…
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
                 {[1,2,3,4,5,6].map(i => (
-                  <div key={i} style={{ background: COLORS.card, borderRadius: 12, overflow: 'hidden', border: `1px solid ${COLORS.border}` }}>
-                    <div style={{ aspectRatio: '9/16', background: `${COLORS.green}08`, animation: 'pulse 1.5s ease-in-out infinite' }} />
-                    <div style={{ padding: '8px 10px' }}>
-                      <div style={{ height: 9, borderRadius: 6, background: `${COLORS.muted}20`, marginBottom: 5, animation: 'pulse 1.5s ease-in-out infinite' }} />
-                      <div style={{ height: 8, borderRadius: 6, background: `${COLORS.muted}14`, width: '60%', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                  <div key={i} className="bg-app-card rounded-xl overflow-hidden border border-app-border">
+                    <div className="aspect-[9/16] bg-app-green/[0.03] animate-pulse" />
+                    <div className="px-2.5 py-2">
+                      <div className="h-[9px] rounded-md bg-app-muted/[0.13] mb-1.5 animate-pulse" />
+                      <div className="h-2 rounded-md bg-app-muted/[0.08] w-[60%] animate-pulse" />
                     </div>
                   </div>
                 ))}
@@ -750,30 +707,25 @@ export default function LearnTVTab({ profile }) {
 
           {/* ── Edu Reels Feed (portrait grid) ── */}
           {reelsFeed.length > 0 && (
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.green }}>
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[12px] font-bold text-app-green">
                   📱 {reelsFeed.length} Edu Reels found
                 </span>
-                <span style={{ fontSize: 10, color: COLORS.muted }}>Tap any card to play</span>
+                <span className="text-[10px] text-app-muted">Tap any card to play</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14 }}>
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3.5">
                 {reelsFeed.map(v => {
                   const brief = reelBriefs[v.id]
                   const isPlaying = reelPlayId === v.id
                   return (
-                    <div key={v.id} style={{
-                      background: COLORS.card, borderRadius: 14, overflow: 'hidden',
-                      border: `1px solid ${isPlaying ? COLORS.green : COLORS.border}`,
-                      boxShadow: isPlaying ? `0 0 0 2px ${COLORS.green}40` : 'none',
-                      transition: 'box-shadow 0.2s',
-                    }}>
+                    <div key={v.id} className={`bg-app-card rounded-[14px] overflow-hidden transition-shadow duration-200 ${isPlaying ? 'border border-app-green shadow-[0_0_0_2px_#00E5A040]' : 'border border-app-border'}`}>
                       {/* Portrait player / thumbnail */}
                       {isPlaying ? (
-                        <div style={{ position: 'relative', paddingTop: '177.78%' }}>
+                        <div className="relative pt-[177.78%]">
                           <iframe
                             src={`https://www.youtube.com/embed/${v.id}?autoplay=1&rel=0`}
-                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                            className="absolute inset-0 w-full h-full border-none"
                             allow="autoplay; encrypted-media"
                             allowFullScreen
                             title={v.title}
@@ -781,87 +733,57 @@ export default function LearnTVTab({ profile }) {
                           {/* Close button */}
                           <button
                             onClick={() => setReelPlayId(null)}
-                            style={{
-                              position: 'absolute', top: 6, right: 6, zIndex: 10,
-                              width: 26, height: 26, borderRadius: '50%',
-                              background: 'rgba(0,0,0,0.7)', border: 'none', color: '#fff',
-                              fontSize: 13, cursor: 'pointer', display: 'flex',
-                              alignItems: 'center', justifyContent: 'center', fontFamily: 'Sora, sans-serif',
-                            }}
+                            className="absolute top-1.5 right-1.5 z-10 w-[26px] h-[26px] rounded-full bg-black/70 border-none text-white text-[13px] cursor-pointer flex items-center justify-center"
                           >✕</button>
                         </div>
                       ) : (
                         <div
                           onClick={() => setReelPlayId(v.id)}
-                          style={{ position: 'relative', cursor: 'pointer', paddingTop: '177.78%', background: '#000' }}
+                          className="relative cursor-pointer pt-[177.78%] bg-black"
                         >
                           <img
                             src={v.thumbnail}
                             alt={v.title}
-                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                            className="absolute inset-0 w-full h-full object-cover block"
                             loading="lazy"
                           />
                           {/* Gradient + play button */}
-                          <div style={{
-                            position: 'absolute', inset: 0,
-                            background: 'linear-gradient(to top, rgba(0,0,0,0.72) 40%, transparent 70%)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          }}>
-                            <div style={{
-                              width: 44, height: 44, borderRadius: '50%',
-                              background: `linear-gradient(135deg, ${COLORS.green}, #33cc88)`,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontSize: 17, color: '#04040e', boxShadow: '0 2px 16px rgba(0,0,0,0.5)',
-                            }}>▶</div>
+                          <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 40%, transparent 70%)' }}>
+                            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-app-green to-['#33cc88'] flex items-center justify-center text-[17px] text-app-bg shadow-[0_2px_16px_rgba(0,0,0,0.5)]">▶</div>
                           </div>
                           {/* Duration badge */}
                           {v.duration > 0 && (
-                            <div style={{
-                              position: 'absolute', bottom: 8, right: 8,
-                              background: 'rgba(0,0,0,0.72)', borderRadius: 6,
-                              padding: '2px 7px', fontSize: 9, fontWeight: 700, color: '#fff',
-                            }}>{fmtDuration(v.duration)}</div>
+                            <div className="absolute bottom-2 right-2 bg-black/[0.72] rounded-md px-1.5 py-0.5 text-[9px] font-bold text-white">{fmtDuration(v.duration)}</div>
                           )}
                           {/* Channel badge */}
-                          <div style={{
-                            position: 'absolute', bottom: 8, left: 8,
-                            background: `${COLORS.green}cc`, borderRadius: 6,
-                            padding: '2px 7px', fontSize: 8, fontWeight: 700, color: '#04040e',
-                            maxWidth: '65%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                          }}>{v.channel}</div>
+                          <div className="absolute bottom-2 left-2 bg-app-green/[0.8] rounded-md px-1.5 py-0.5 text-[8px] font-bold text-app-bg max-w-[65%] overflow-hidden text-ellipsis whitespace-nowrap">{v.channel}</div>
                         </div>
                       )}
 
                       {/* Info panel */}
-                      <div style={{ padding: '8px 10px 10px' }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: COLORS.text, lineHeight: 1.35, marginBottom: 4 }}>
+                      <div className="px-2.5 pt-2 pb-2.5">
+                        <div className="text-[11px] font-semibold text-app-text leading-[1.35] mb-1">
                           {v.title?.slice(0, 65)}
                         </div>
 
                         {/* AI summary */}
                         {brief?.summary && (
-                          <div style={{
-                            fontSize: 9, color: COLORS.muted, lineHeight: 1.5,
-                            background: COLORS.card2, borderRadius: 6, padding: '5px 7px', marginBottom: 5,
-                          }}>
+                          <div className="text-[9px] text-app-muted leading-[1.5] bg-app-card2 rounded-md px-1.5 py-1 mb-1">
                             🤖 {brief.summary}
                           </div>
                         )}
 
                         {/* Difficulty + keywords */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                        <div className="flex flex-wrap gap-1">
                           {brief?.difficulty && (
                             <span style={{
                               fontSize: 8, padding: '2px 6px', borderRadius: 5, fontWeight: 700,
-                              background: brief.difficulty === 'Easy' ? `${COLORS.green}18` : brief.difficulty === 'Hard' ? `${COLORS.red}18` : `${COLORS.yellow}18`,
-                              color: brief.difficulty === 'Easy' ? COLORS.green : brief.difficulty === 'Hard' ? COLORS.red : COLORS.yellow,
+                              background: brief.difficulty === 'Easy' ? `#00E5A018` : brief.difficulty === 'Hard' ? `#FF6B6B18` : `#FFD16618`,
+                              color: brief.difficulty === 'Easy' ? '#00E5A0' : brief.difficulty === 'Hard' ? '#FF6B6B' : '#FFD166',
                             }}>{brief.difficulty}</span>
                           )}
                           {brief?.keywords?.slice(0, 3).map((kw, i) => (
-                            <span key={i} style={{
-                              fontSize: 8, padding: '2px 5px', borderRadius: 5,
-                              background: `${COLORS.blue}12`, color: COLORS.blue,
-                            }}>{kw}</span>
+                            <span key={i} className="text-[8px] px-1.5 py-0.5 rounded bg-app-blue/[0.07] text-app-blue">{kw}</span>
                           ))}
                         </div>
                       </div>
@@ -874,38 +796,38 @@ export default function LearnTVTab({ profile }) {
 
           {/* ── AI Content Tips ── */}
           {aiReelContent && (
-            <div style={{ marginBottom: 20 }}>
+            <div className="mb-5">
               {aiReelContent.keyConceptsToFind?.length > 0 && (
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.text, marginBottom: 8 }}>
+                <div className="mb-3.5">
+                  <div className="text-[12px] font-bold text-app-text mb-2">
                     🎯 Search these concepts too
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  <div className="flex flex-wrap gap-1.5">
                     {aiReelContent.keyConceptsToFind.map((concept, i) => (
                       <button
                         key={i}
                         onClick={() => { setReelsQ(concept); searchReels(concept) }}
-                        style={{ ...chipBtn, fontSize: 11, padding: '6px 12px', background: `${COLORS.green}12`, border: `1px solid ${COLORS.green}30`, color: COLORS.green }}
+                        className="bg-app-green/5 border border-app-green/20 text-app-green rounded-full px-3 py-1.5 text-[11px] cursor-pointer hover:bg-app-green/10 transition-all active:scale-95"
                       >🔍 {concept}</button>
                     ))}
                   </div>
                 </div>
               )}
               {aiReelContent.contentTips?.length > 0 && (
-                <div style={{ ...cardStyle, background: `${COLORS.green}06`, borderColor: `${COLORS.green}20`, marginBottom: 14 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.green, marginBottom: 6 }}>💡 Study Tips</div>
+                <div className={cardCls + ' !border-app-green/20 mb-3.5'} style={{ background: '#00E5A006' }}>
+                  <div className="text-[12px] font-bold text-app-green mb-1.5">💡 Study Tips</div>
                   {aiReelContent.contentTips.map((tip, i) => (
-                    <div key={i} style={{ marginBottom: 6 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.text }}>{tip.title}</div>
-                      <div style={{ fontSize: 11, color: COLORS.muted, lineHeight: 1.5 }}>{tip.detail}</div>
+                    <div key={i} className="mb-1.5">
+                      <div className="text-[11px] font-bold text-app-text">{tip.title}</div>
+                      <div className="text-[11px] text-app-muted leading-[1.5]">{tip.detail}</div>
                     </div>
                   ))}
                 </div>
               )}
               {aiReelContent.watchOrder && (
-                <div style={{ ...cardStyle, background: `${COLORS.blue}06`, borderColor: `${COLORS.blue}20`, marginBottom: 14 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.blue, marginBottom: 4 }}>📋 Suggested watch order</div>
-                  <div style={{ fontSize: 11, color: COLORS.text, lineHeight: 1.6 }}>{aiReelContent.watchOrder}</div>
+                <div className={cardCls + ' !border-app-blue/20 mb-3.5'} style={{ background: '#7B9CFF06' }}>
+                  <div className="text-[12px] font-bold text-app-blue mb-1">📋 Suggested watch order</div>
+                  <div className="text-[11px] text-app-text leading-[1.6]">{aiReelContent.watchOrder}</div>
                 </div>
               )}
             </div>
@@ -913,13 +835,13 @@ export default function LearnTVTab({ profile }) {
 
           {/* ── Empty state ── */}
           {reelsFeed.length === 0 && !reelsLoading && !aiReelContent && (
-            <div style={{ textAlign: 'center', padding: '36px 20px', color: COLORS.muted }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>📱</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text, marginBottom: 6 }}>Search any topic above</div>
-              <div style={{ fontSize: 12, lineHeight: 1.7 }}>
+            <div className="text-center px-5 py-9 text-app-muted">
+              <div className="text-[40px] mb-3">📱</div>
+              <div className="text-[14px] font-bold text-app-text mb-1.5">Search any topic above</div>
+              <div className="text-[12px] leading-[1.7]">
                 Get short videos (≤ 90s) from<br />
-                <span style={{ color: COLORS.green, fontWeight: 600 }}>PhysicsWallah · Vedantu · Unacademy</span><br />
-                <span style={{ color: COLORS.blue, fontWeight: 600 }}>CodeWithHarry · Apna College · and more</span>
+                <span className="text-app-green font-semibold">PhysicsWallah · Vedantu · Unacademy</span><br />
+                <span className="text-app-blue font-semibold">CodeWithHarry · Apna College · and more</span>
               </div>
             </div>
           )}
@@ -932,11 +854,11 @@ export default function LearnTVTab({ profile }) {
       {mode === 'analyze' && (
         <div>
           {/* URL input */}
-          <div style={{ marginBottom: 16 }}>
-            <label style={labelStyle}>PASTE YOUTUBE VIDEO OR SHORTS URL</label>
-            <div style={{ display: 'flex', gap: 8 }}>
+          <div className="mb-4">
+            <label className={labelCls}>PASTE YOUTUBE VIDEO OR SHORTS URL</label>
+            <div className="flex gap-2">
               <input
-                style={inputStyle}
+                className={inputCls}
                 placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
                 value={pasteUrl}
                 onChange={e => setPasteUrl(e.target.value)}
@@ -945,27 +867,27 @@ export default function LearnTVTab({ profile }) {
               <button
                 onClick={doAnalyze}
                 disabled={analyzing || !pasteUrl.trim()}
-                style={{ ...pBtn, padding: '10px 18px', width: 'auto', minWidth: 80 }}
+                className={pBtnCls + ' !w-auto !min-w-[80px] !px-4 !py-2.5'}
               >{analyzing ? '⏳ Analyzing…' : '🔬 Analyze'}</button>
             </div>
-            <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 6 }}>
+            <div className="text-[11px] text-app-muted mt-1.5">
               Supports: YouTube videos and YouTube Shorts
             </div>
           </div>
 
           {/* Analysis error */}
           {analysis?.error && (
-            <div style={{ ...cardStyle, borderColor: `${COLORS.red}40`, background: `${COLORS.red}10` }}>
-              <div style={{ color: COLORS.red, fontSize: 13 }}>⚠️ {analysis.error}</div>
+            <div className={cardCls + ' !border-app-red/25'} style={{ background: '#FF6B6B10' }}>
+              <div className="text-app-red text-[13px]">⚠️ {analysis.error}</div>
             </div>
           )}
 
           {/* Loading */}
           {analyzing && (
-            <div style={{ textAlign: 'center', padding: 40, color: COLORS.muted }}>
-              <div style={{ fontSize: 28, marginBottom: 10 }}>🔬</div>
-              <div style={{ marginBottom: 6 }}>Analyzing video…</div>
-              <div style={{ fontSize: 11 }}>Fetching captions & generating insights</div>
+            <div className="text-center p-10 text-app-muted">
+              <div className="text-[28px] mb-2.5">🔬</div>
+              <div className="mb-1.5">Analyzing video…</div>
+              <div className="text-[11px]">Fetching captions & generating insights</div>
             </div>
           )}
 
@@ -974,10 +896,10 @@ export default function LearnTVTab({ profile }) {
             <div>
               {/* Embedded player */}
               {analyzeVideo.id && (
-                <div style={{ position: 'relative', paddingTop: '56.25%', borderRadius: 12, overflow: 'hidden', marginBottom: 16, border: `1px solid ${COLORS.border}` }}>
+                <div className="relative pt-[56.25%] rounded-xl overflow-hidden mb-4 border border-app-border">
                   <iframe
                     src={`https://www.youtube.com/embed/${analyzeVideo.id}`}
-                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                    className="absolute inset-0 w-full h-full border-none"
                     allow="encrypted-media"
                     allowFullScreen
                     title={analyzeVideo.title || 'Video'}
@@ -988,12 +910,12 @@ export default function LearnTVTab({ profile }) {
 
               {/* Video title */}
               {analyzeVideo.title && (
-                <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.text, marginBottom: 4 }}>
+                <div className="text-[15px] font-bold text-app-text mb-1">
                   {analyzeVideo.title}
                 </div>
               )}
               {analyzeVideo.channel && (
-                <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 16 }}>
+                <div className="text-[12px] text-app-muted mb-4">
                   {analyzeVideo.channel} {analyzeVideo.views ? `· ${fmtViews(analyzeVideo.views)}` : ''}
                 </div>
               )}
@@ -1002,12 +924,12 @@ export default function LearnTVTab({ profile }) {
 
           {/* Analysis results */}
           {analysis && !analysis.error && !analyzing && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="flex flex-col gap-3">
               {/* Summary */}
               {analysis.summary && (
-                <div style={cardStyle}>
-                  <div style={sectionTitle}>📝 Summary</div>
-                  <div style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                <div className={cardCls}>
+                  <div className={sectionTitleCls}>📝 Summary</div>
+                  <div className="text-[13px] text-app-text leading-[1.7] whitespace-pre-wrap">
                     {analysis.summary}
                   </div>
                 </div>
@@ -1015,18 +937,18 @@ export default function LearnTVTab({ profile }) {
 
               {/* Difficulty */}
               {analysis.difficulty && (
-                <div style={{ display: 'inline-block', ...chipStyle, alignSelf: 'flex-start' }}>
+                <div className={chipCls + ' inline-block self-start'}>
                   📊 {analysis.difficulty}
                 </div>
               )}
 
               {/* Key Points */}
               {analysis.keyPoints?.length > 0 && (
-                <div style={cardStyle}>
-                  <div style={sectionTitle}>🎯 Key Points</div>
+                <div className={cardCls}>
+                  <div className={sectionTitleCls}>🎯 Key Points</div>
                   {analysis.keyPoints.map((p, i) => (
-                    <div key={i} style={{ fontSize: 13, color: COLORS.text, padding: '6px 0', borderBottom: i < analysis.keyPoints.length - 1 ? `1px solid ${COLORS.border}` : 'none', lineHeight: 1.5 }}>
-                      <span style={{ color: COLORS.green, fontWeight: 700, marginRight: 8 }}>{i + 1}.</span>
+                    <div key={i} className={`text-[13px] text-app-text py-1.5 leading-[1.5] ${i < analysis.keyPoints.length - 1 ? 'border-b border-app-border' : ''}`}>
+                      <span className="text-app-green font-bold mr-2">{i + 1}.</span>
                       {p}
                     </div>
                   ))}
@@ -1035,10 +957,10 @@ export default function LearnTVTab({ profile }) {
 
               {/* Study tips (Instagram) */}
               {analysis.studyTips?.length > 0 && (
-                <div style={cardStyle}>
-                  <div style={sectionTitle}>💡 Study Tips</div>
+                <div className={cardCls}>
+                  <div className={sectionTitleCls}>💡 Study Tips</div>
                   {analysis.studyTips.map((t, i) => (
-                    <div key={i} style={{ fontSize: 13, color: COLORS.text, padding: '6px 0', lineHeight: 1.5 }}>
+                    <div key={i} className="text-[13px] text-app-text py-1.5 leading-[1.5]">
                       💡 {t}
                     </div>
                   ))}
@@ -1047,8 +969,8 @@ export default function LearnTVTab({ profile }) {
 
               {/* Takeaway */}
               {analysis.takeaway && (
-                <div style={{ ...cardStyle, background: `${COLORS.green}10`, borderColor: `${COLORS.green}30` }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.green }}>
+                <div className={cardCls + ' !border-app-green/20'} style={{ background: '#00E5A010' }}>
+                  <div className="text-[13px] font-bold text-app-green">
                     💎 {analysis.takeaway}
                   </div>
                 </div>
@@ -1056,9 +978,9 @@ export default function LearnTVTab({ profile }) {
 
               {/* Quiz */}
               {analysis.quiz && (
-                <div style={cardStyle}>
-                  <div style={sectionTitle}>🧪 Quick Quiz</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, marginBottom: 10 }}>
+                <div className={cardCls}>
+                  <div className={sectionTitleCls}>🧪 Quick Quiz</div>
+                  <div className="text-[13px] font-semibold text-app-text mb-2.5">
                     {analysis.quiz.question}
                   </div>
                   {analysis.quiz.options?.map((opt, i) => {
@@ -1077,9 +999,9 @@ export default function LearnTVTab({ profile }) {
                           padding: '10px 14px',
                           marginBottom: 6,
                           borderRadius: 10,
-                          border: `1.5px solid ${showResult ? (isCorrect ? COLORS.green : selected ? COLORS.red : COLORS.border) : COLORS.border}`,
-                          background: showResult ? (isCorrect ? `${COLORS.green}15` : selected ? `${COLORS.red}15` : COLORS.card) : COLORS.card,
-                          color: COLORS.text,
+                          border: `1.5px solid ${showResult ? (isCorrect ? '#00E5A0' : selected ? '#FF6B6B' : 'rgba(255,255,255,0.03)') : 'rgba(255,255,255,0.03)'}`,
+                          background: showResult ? (isCorrect ? `#00E5A015` : selected ? `#FF6B6B15` : '#0b0b1c') : '#0b0b1c',
+                          color: '#eeeeff',
                           fontSize: 13,
                           cursor: quizSel === null ? 'pointer' : 'default',
                           fontFamily: 'Sora, sans-serif',
@@ -1096,14 +1018,14 @@ export default function LearnTVTab({ profile }) {
 
               {/* Related topics */}
               {analysis.relatedTopics?.length > 0 && (
-                <div style={cardStyle}>
-                  <div style={sectionTitle}>🔗 Explore More</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <div className={cardCls}>
+                  <div className={sectionTitleCls}>🔗 Explore More</div>
+                  <div className="flex flex-wrap gap-2">
                     {analysis.relatedTopics.map((t, i) => (
                       <button
                         key={i}
                         onClick={() => { setMode('discover'); setSearchQ(t); doSearch(t) }}
-                        style={chipBtn}
+                        className={chipBtnCls}
                       >{t}</button>
                     ))}
                   </div>
@@ -1114,10 +1036,10 @@ export default function LearnTVTab({ profile }) {
 
           {/* Empty state */}
           {!analyzing && !analysis && !analyzeVideo && (
-            <div style={{ textAlign: 'center', padding: '40px 20px', color: COLORS.muted }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>🎬</div>
-              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6, color: COLORS.text }}>Analyze any video</div>
-              <div style={{ fontSize: 12, lineHeight: 1.6 }}>
+            <div className="text-center px-5 py-10 text-app-muted">
+              <div className="text-[40px] mb-3">🎬</div>
+              <div className="text-[14px] font-semibold mb-1.5 text-app-text">Analyze any video</div>
+              <div className="text-[12px] leading-[1.6]">
                 Paste a YouTube video or Shorts URL above.<br />
                 AI will generate a summary, key points, and a quiz!
               </div>
@@ -1130,11 +1052,11 @@ export default function LearnTVTab({ profile }) {
       {mode === 'create' && (
         <div>
           {/* Topic input */}
-          <div style={{ marginBottom: 16 }}>
-            <label style={labelStyle}>ENTER A TOPIC</label>
-            <div style={{ display: 'flex', gap: 8 }}>
+          <div className="mb-4">
+            <label className={labelCls}>ENTER A TOPIC</label>
+            <div className="flex gap-2">
               <input
-                style={inputStyle}
+                className={inputCls}
                 placeholder="e.g. Photosynthesis, Quadratic Equations, French Revolution…"
                 value={createTopic}
                 onChange={e => setCreateTopic(e.target.value)}
@@ -1143,40 +1065,40 @@ export default function LearnTVTab({ profile }) {
               <button
                 onClick={doCreate}
                 disabled={creating || !createTopic.trim()}
-                style={{ ...pBtn, padding: '10px 18px', width: 'auto', minWidth: 80 }}
+                className={pBtnCls + ' !w-auto !min-w-[80px] !px-4 !py-2.5'}
               >{creating ? '⏳' : '✨ Create'}</button>
             </div>
           </div>
 
           {/* Loading */}
           {creating && (
-            <div style={{ textAlign: 'center', padding: 40, color: COLORS.muted }}>
-              <div style={{ fontSize: 28, marginBottom: 10 }}>✨</div>
-              <div style={{ marginBottom: 6 }}>Creating AI lesson + finding videos…</div>
-              <div style={{ fontSize: 11 }}>This may take a few seconds</div>
+            <div className="text-center p-10 text-app-muted">
+              <div className="text-[28px] mb-2.5">✨</div>
+              <div className="mb-1.5">Creating AI lesson + finding videos…</div>
+              <div className="text-[11px]">This may take a few seconds</div>
             </div>
           )}
 
           {/* AI Content */}
           {aiContent && !creating && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="flex flex-col gap-3">
               {/* Title */}
-              <div style={{ fontSize: 17, fontWeight: 800, color: COLORS.text }}>
+              <div className="text-[17px] font-extrabold text-app-text">
                 {aiContent.title}
               </div>
               {aiContent.introduction && (
-                <div style={{ fontSize: 13, color: COLORS.muted, lineHeight: 1.6 }}>
+                <div className="text-[13px] text-app-muted leading-[1.6]">
                   {aiContent.introduction}
                 </div>
               )}
 
               {/* Sections */}
               {aiContent.sections?.map((sec, i) => (
-                <div key={i} style={cardStyle}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text, marginBottom: 6 }}>
+                <div key={i} className={cardCls}>
+                  <div className="text-[14px] font-bold text-app-text mb-1.5">
                     {sec.emoji || '📖'} {sec.heading}
                   </div>
-                  <div style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                  <div className="text-[13px] text-app-text leading-[1.7] whitespace-pre-wrap">
                     {sec.content}
                   </div>
                 </div>
@@ -1184,10 +1106,10 @@ export default function LearnTVTab({ profile }) {
 
               {/* Key Formulas */}
               {aiContent.keyFormulas?.length > 0 && (
-                <div style={{ ...cardStyle, background: `${COLORS.blue}10`, borderColor: `${COLORS.blue}30` }}>
-                  <div style={sectionTitle}>📐 Key Formulas</div>
+                <div className={cardCls + ' !border-app-blue/20'} style={{ background: '#7B9CFF10' }}>
+                  <div className={sectionTitleCls}>📐 Key Formulas</div>
                   {aiContent.keyFormulas.map((f, i) => (
-                    <div key={i} style={{ fontSize: 13, color: COLORS.text, padding: '4px 0', fontFamily: 'monospace' }}>
+                    <div key={i} className="text-[13px] text-app-text py-1 font-mono">
                       {f}
                     </div>
                   ))}
@@ -1196,8 +1118,8 @@ export default function LearnTVTab({ profile }) {
 
               {/* Fun Fact */}
               {aiContent.funFact && (
-                <div style={{ ...cardStyle, background: `${COLORS.yellow}10`, borderColor: `${COLORS.yellow}30` }}>
-                  <div style={{ fontSize: 13, color: COLORS.yellow, fontWeight: 600 }}>
+                <div className={cardCls + ' !border-app-yellow/20'} style={{ background: '#FFD16610' }}>
+                  <div className="text-[13px] text-app-yellow font-semibold">
                     🤩 Fun Fact: {aiContent.funFact}
                   </div>
                 </div>
@@ -1205,9 +1127,9 @@ export default function LearnTVTab({ profile }) {
 
               {/* Summary */}
               {aiContent.summary && (
-                <div style={{ ...cardStyle, background: `${COLORS.green}10`, borderColor: `${COLORS.green}30` }}>
-                  <div style={sectionTitle}>📋 Summary</div>
-                  <div style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                <div className={cardCls + ' !border-app-green/20'} style={{ background: '#00E5A010' }}>
+                  <div className={sectionTitleCls}>📋 Summary</div>
+                  <div className="text-[13px] text-app-text leading-[1.7] whitespace-pre-wrap">
                     {aiContent.summary}
                   </div>
                 </div>
@@ -1216,15 +1138,15 @@ export default function LearnTVTab({ profile }) {
               {/* Related Videos */}
               {relatedVids.length > 0 && (
                 <div>
-                  <div style={{ ...sectionTitle, marginBottom: 10 }}>🎬 Related Videos</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
+                  <div className={sectionTitleCls + ' !mb-2.5'}>🎬 Related Videos</div>
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-2.5">
                     {relatedVids.map(v => (
-                      <div key={v.id} style={cardStyle}>
+                      <div key={v.id} className={cardCls}>
                         {createPlayId === v.id ? (
-                          <div style={{ position: 'relative', paddingTop: '56.25%', borderRadius: 8, overflow: 'hidden', marginBottom: 6 }}>
+                          <div className="relative pt-[56.25%] rounded-lg overflow-hidden mb-1.5">
                             <iframe
                               src={`https://www.youtube.com/embed/${v.id}?autoplay=1`}
-                              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                              className="absolute inset-0 w-full h-full border-none"
                               allow="autoplay; encrypted-media"
                               allowFullScreen
                               title={v.title}
@@ -1233,40 +1155,26 @@ export default function LearnTVTab({ profile }) {
                         ) : (
                           <div
                             onClick={() => setCreatePlayId(v.id)}
-                            style={{ position: 'relative', cursor: 'pointer', borderRadius: 8, overflow: 'hidden', marginBottom: 6 }}
+                            className="relative cursor-pointer rounded-lg overflow-hidden mb-1.5"
                           >
                             <img
                               src={v.thumbnail}
                               alt={v.title}
-                              style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }}
+                              className="w-full aspect-video object-cover block"
                               loading="lazy"
                             />
-                            <div style={{
-                              position: 'absolute', inset: 0, display: 'flex',
-                              alignItems: 'center', justifyContent: 'center',
-                              background: 'rgba(0,0,0,0.3)',
-                            }}>
-                              <div style={{
-                                width: 36, height: 36, borderRadius: '50%',
-                                background: 'rgba(0,0,0,0.7)', display: 'flex',
-                                alignItems: 'center', justifyContent: 'center',
-                                fontSize: 14,
-                              }}>▶</div>
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                              <div className="w-9 h-9 rounded-full bg-black/70 flex items-center justify-center text-sm">▶</div>
                             </div>
                             {v.duration > 0 && (
-                              <div style={{
-                                position: 'absolute', bottom: 4, right: 4,
-                                background: 'rgba(0,0,0,0.8)', borderRadius: 4,
-                                padding: '1px 5px', fontSize: 10, color: '#fff',
-                                fontWeight: 600,
-                              }}>{fmtDuration(v.duration)}</div>
+                              <div className="absolute bottom-1 right-1 bg-black/80 rounded px-1.5 text-[10px] text-white font-bold">{fmtDuration(v.duration)}</div>
                             )}
                           </div>
                         )}
-                        <div style={{ fontSize: 12, fontWeight: 600, color: COLORS.text, lineHeight: 1.3 }}>
+                        <div className="text-[12px] font-semibold text-app-text leading-[1.3]">
                           {v.title?.slice(0, 60)}
                         </div>
-                        <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2 }}>
+                        <div className="text-[10px] text-app-muted mt-0.5">
                           {v.channel}
                         </div>
                       </div>
@@ -1279,10 +1187,10 @@ export default function LearnTVTab({ profile }) {
 
           {/* Empty state */}
           {!creating && !aiContent && (
-            <div style={{ textAlign: 'center', padding: '40px 20px', color: COLORS.muted }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>✨</div>
-              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6, color: COLORS.text }}>AI-Powered Lessons</div>
-              <div style={{ fontSize: 12, lineHeight: 1.6 }}>
+            <div className="text-center px-5 py-10 text-app-muted">
+              <div className="text-[40px] mb-3">✨</div>
+              <div className="text-[14px] font-semibold mb-1.5 text-app-text">AI-Powered Lessons</div>
+              <div className="text-[12px] leading-[1.6]">
                 Enter any topic above. AI will create a<br />
                 complete lesson with related YouTube videos!
               </div>
@@ -1295,70 +1203,10 @@ export default function LearnTVTab({ profile }) {
 }
 
 // ── Styles ──────────────────────────────────────────────────
-const inputStyle = {
-  flex: 1,
-  background: '#101022',
-  border: '1px solid #ffffff15',
-  borderRadius: 12,
-  padding: '11px 14px',
-  color: '#eeeeff',
-  fontSize: 13,
-  fontFamily: 'Sora, sans-serif',
-}
-
-const pBtn = {
-  background: 'linear-gradient(135deg, #00E5A0, #33cc88)',
-  color: '#04040e',
-  border: 'none',
-  borderRadius: 12,
-  padding: '12px 18px',
-  fontSize: 13,
-  fontWeight: 800,
-  cursor: 'pointer',
-  width: '100%',
-  fontFamily: 'Sora, sans-serif',
-}
-
-const cardStyle = {
-  background: COLORS.card,
-  border: `1px solid ${COLORS.border}`,
-  borderRadius: 14,
-  padding: '14px 16px',
-}
-
-const labelStyle = {
-  display: 'block',
-  fontSize: 11,
-  fontWeight: 700,
-  color: COLORS.muted,
-  marginBottom: 6,
-  letterSpacing: '0.05em',
-}
-
-const sectionTitle = {
-  fontSize: 13,
-  fontWeight: 700,
-  color: COLORS.green,
-  marginBottom: 8,
-}
-
-const chipBtn = {
-  background: COLORS.card,
-  border: `1px solid ${COLORS.border}`,
-  borderRadius: 20,
-  padding: '7px 14px',
-  fontSize: 12,
-  color: COLORS.text,
-  cursor: 'pointer',
-  fontFamily: 'Sora, sans-serif',
-}
-
-const chipStyle = {
-  background: `${COLORS.blue}15`,
-  border: `1px solid ${COLORS.blue}30`,
-  borderRadius: 20,
-  padding: '5px 12px',
-  fontSize: 12,
-  fontWeight: 600,
-  color: COLORS.blue,
-}
+const inputCls = "flex-1 bg-app-card2 border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-app-text text-[13px] outline-none focus:border-app-green/40 transition-colors placeholder:text-app-muted"
+const pBtnCls = "w-full bg-gradient-to-br from-app-green to-[#33cc88] text-app-bg border-none rounded-xl px-4 py-3 text-[13px] font-extrabold cursor-pointer disabled:opacity-60 active:scale-[0.99] transition-all"
+const cardCls = "bg-app-card border border-app-border rounded-2xl px-4 py-3.5"
+const labelCls = "block text-[11px] font-bold text-app-muted mb-1.5 tracking-[0.05em]"
+const sectionTitleCls = "text-[13px] font-bold text-app-green mb-2"
+const chipBtnCls = "bg-app-card border border-app-border rounded-full px-3.5 py-1.5 text-[12px] text-app-text cursor-pointer hover:bg-white/[0.04] active:scale-95 transition-all"
+const chipCls = "bg-app-blue/10 border border-app-blue/20 rounded-full px-3 py-1 text-[12px] font-semibold text-app-blue"

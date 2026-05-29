@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { COLORS, callAI, SUBS, getBhoolStats, parseAIObject, getDisplayLang } from '../../shared.js'
+﻿import { useState, useEffect } from 'react'
+import { callAI, SUBS, getBhoolStats, parseAIObject, getDisplayLang } from '../../shared.js'
 import { apiGetMastery } from '../../api.js'
 import { li } from '../../i18n/index.js'
 
@@ -30,9 +30,9 @@ function subIcon(sub) {
 }
 
 function masteryColor(pct) {
-  if (pct >= 75) return COLORS.green
-  if (pct >= 45) return COLORS.yellow
-  return COLORS.red
+  if (pct >= 75) return '#00E5A0'
+  if (pct >= 45) return '#FFD166'
+  return '#FF6B6B'
 }
 
 function masteryLabel(pct, lang) {
@@ -226,10 +226,10 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
           </div>
           <div className="flex gap-2">
             {[
-              { key: "fresh",    icon: "😄", labelKey: "moodFresh",    color: COLORS.green  },
-              { key: "okay",     icon: "😐", labelKey: "moodOkay",     color: COLORS.blue   },
-              { key: "stressed", icon: "😟", labelKey: "moodStressed", color: COLORS.yellow },
-              { key: "tired",    icon: "😴", labelKey: "moodTired",    color: COLORS.muted  },
+              { key: "fresh",    icon: "😄", labelKey: "moodFresh",    color: '#00E5A0'  },
+              { key: "okay",     icon: "😐", labelKey: "moodOkay",     color: '#7B9CFF'   },
+              { key: "stressed", icon: "😟", labelKey: "moodStressed", color: '#FFD166' },
+              { key: "tired",    icon: "😴", labelKey: "moodTired",    color: '#6868a0'  },
             ].map(m => (
               <button 
                 key={m.key} 
@@ -275,8 +275,8 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
 
         {/* Stats row */}
         <div className="flex gap-2">
-          <StatChip icon="⚡" value={`${xp} XP`} color={COLORS.yellow} />
-          <StatChip icon="🔥" value={`${streak} day${streak !== 1 ? "s" : ""}`} color={COLORS.orange} />
+          <StatChip icon="⚡" value={`${xp} XP`} color={'#FFD166'} />
+          <StatChip icon="🔥" value={`${streak} day${streak !== 1 ? "s" : ""}`} color={'#FF6B35'} />
           <StatChip icon="🧠" value={`${avgMastery}% avg`} color={masteryColor(avgMastery)} />
         </div>
       </div>
@@ -415,7 +415,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
         <div className="flex flex-col gap-2">
           {subjects.map(sub => {
             const pct = masteries[sub] ?? 0
-            const color = pct === 0 ? COLORS.muted : masteryColor(pct)
+            const color = pct === 0 ? '#6868a0' : masteryColor(pct)
             const isSelected = selectedSub === sub
             return (
               <button
@@ -423,8 +423,8 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
                 onClick={() => tapSubject(sub)}
                 className="rounded-[14px] py-3 px-3.5 cursor-pointer font-[Sora,sans-serif] text-left transition-all duration-150 border"
                 style={{
-                  background: isSelected ? `${color}12` : COLORS.card2,
-                  borderColor: isSelected ? `${color}50` : COLORS.border,
+                  background: isSelected ? `${color}12` : '#101022',
+                  borderColor: isSelected ? `${color}50` : 'rgba(255,255,255,0.03)',
                 }}
               >
                 {/* Top row */}
@@ -484,15 +484,15 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
           <>
             <div className="flex flex-col gap-2">
               {oracleTopics.map((t, i) => {
-                const topicColor = t.pct >= 80 ? COLORS.red : t.pct >= 60 ? COLORS.yellow : COLORS.green
+                const topicColor = t.pct >= 80 ? '#FF6B6B' : t.pct >= 60 ? '#FFD166' : '#00E5A0'
                 return (
                   <button
                     key={i}
                     onClick={() => deepDive(t)}
                     className="rounded-xl py-3 px-3.5 flex items-center justify-between cursor-pointer font-[Sora,sans-serif] text-left border"
                     style={{
-                      background: oracleSel?.topic === t.topic ? `${topicColor}12` : COLORS.card2,
-                      borderColor: oracleSel?.topic === t.topic ? `${topicColor}50` : COLORS.border,
+                      background: oracleSel?.topic === t.topic ? `${topicColor}12` : '#101022',
+                      borderColor: oracleSel?.topic === t.topic ? `${topicColor}50` : 'rgba(255,255,255,0.03)',
                     }}
                   >
                     <div className="flex items-center gap-2.5">

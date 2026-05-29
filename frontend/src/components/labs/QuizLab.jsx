@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { COLORS, callAI, parseAIObject, SUBS } from '../../shared.js'
-import { li } from '../../i18n/index.js'
+import { callAI, parseAIObject, SUBS } from '../../shared.js'
 import { getDeviceId, apiSaveQuizResult, apiGetQuizStats } from '../../api.js'
+
 
 const DIFFICULTIES = ["Easy", "Medium", "Hard"]
 
@@ -117,176 +117,94 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
     setGaltiLoad(false)
   }
 
-  const optionStyle = (letter) => {
-    const base = {
-      width: "100%",
-      background: COLORS.card,
-      border: `1.5px solid ${COLORS.border}`,
-      borderRadius: 12,
-      padding: "12px 14px",
-      fontSize: 13,
-      fontWeight: 500,
-      color: COLORS.text,
-      cursor: selected ? "default" : "pointer",
-      fontFamily: "Sora, sans-serif",
-      textAlign: "left",
-      transition: "all 0.2s",
-    }
-    if (!selected) return base
-    if (letter === question.c) return { ...base, background: `${COLORS.green}20`, border: `1.5px solid ${COLORS.green}`, color: COLORS.green, fontWeight: 700 }
-    if (letter === selected && letter !== question.c) return { ...base, background: `${COLORS.red}15`, border: `1.5px solid ${COLORS.red}`, color: COLORS.red }
-    return { ...base, opacity: 0.4 }
+  const getOptionClass = (letter) => {
+    const base = "w-full bg-app-card border-[1.5px] border-app-border rounded-xl px-3.5 py-3 text-[13px] font-medium text-app-text text-left transition-all duration-200 active:scale-[0.99]"
+    if (!selected) return `${base} cursor-pointer hover:border-app-green/30`
+    if (letter === question.c) return "w-full rounded-xl px-3.5 py-3 text-[13px] font-bold text-left bg-app-green/15 border-[1.5px] border-app-green text-app-green cursor-default"
+    if (letter === selected && letter !== question.c) return "w-full rounded-xl px-3.5 py-3 text-[13px] font-medium text-left bg-app-red/10 border-[1.5px] border-app-red text-app-red cursor-default"
+    return "w-full rounded-xl px-3.5 py-3 text-[13px] font-medium text-left bg-app-card border-[1.5px] border-app-border text-app-text opacity-40 cursor-default"
   }
 
   const accuracy = score.total ? Math.round((score.correct / score.total) * 100) : 0
+  const accuracyColor = accuracy >= 70 ? "#00E5A0" : accuracy >= 40 ? "#FFD166" : "#FF6B6B"
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 130px)" }}>
+    <div className="flex flex-col min-h-[calc(100vh-130px)]">
       {/* Header */}
-      <div style={{
-        background: COLORS.card,
-        borderBottom: `1px solid ${COLORS.border}`,
-        padding: "12px 16px",
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        flexShrink: 0,
-      }}>
-        <button onClick={onBack} style={backBtn}>← Back</button>
-        <span style={{ fontSize: 15, fontWeight: 800, color: COLORS.text }}>🎯 Quiz Arena</span>
-        <div style={{ marginLeft: "auto", fontSize: 12, color: COLORS.muted }}>
-          {score.correct}/{score.total} · {accuracy}%
-        </div>
+      <div className="bg-app-card border-b border-app-border px-4 py-3 flex items-center gap-2.5 shrink-0">
+        <button onClick={onBack} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Back</button>
+        <span className="text-[15px] font-extrabold text-app-text">⚡ Quiz Arena</span>
+        <div className="ml-auto text-xs text-app-muted">{score.correct}/{score.total} · {accuracy}%</div>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+      <div className="flex-1 overflow-y-auto p-4">
         {/* Score bar */}
         {score.total > 0 && (
-          <div style={{
-            background: COLORS.card,
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: 12,
-            padding: "10px 14px",
-            marginBottom: 14,
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-          }}>
-            <span style={{ fontSize: 20 }}>📊</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 4 }}>Accuracy</div>
-              <div style={{ height: 6, background: "#ffffff10", borderRadius: 3, overflow: "hidden" }}>
-                <div style={{
-                  height: "100%",
-                  width: `${accuracy}%`,
-                  background: accuracy >= 70 ? COLORS.green : accuracy >= 40 ? COLORS.yellow : COLORS.red,
-                  borderRadius: 3,
-                  transition: "width 0.3s",
-                }} />
+          <div className="bg-app-card border border-app-border rounded-xl px-3.5 py-2.5 mb-3.5 flex items-center gap-3">
+            <span className="text-xl">📊</span>
+            <div className="flex-1">
+              <div className="text-xs text-app-muted mb-1">Accuracy</div>
+              <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-300" style={{ width: `${accuracy}%`, background: accuracyColor }} />
               </div>
             </div>
-            <span style={{
-              fontSize: 14, fontWeight: 800,
-              color: accuracy >= 70 ? COLORS.green : accuracy >= 40 ? COLORS.yellow : COLORS.red,
-            }}>
-              {accuracy}%
-            </span>
+            <span className="text-sm font-extrabold" style={{ color: accuracyColor }}>{accuracy}%</span>
           </div>
         )}
 
         {/* Filters */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
+        <div className="flex flex-col gap-2.5 mb-3.5">
           {/* Subject chips */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <div className="flex flex-wrap gap-1.5">
             {subjects.slice(0, 6).map(s => (
-              <button
-                key={s}
-                onClick={() => setSelSub(s)}
-                style={{
-                  background: selSub === s ? `${COLORS.green}20` : COLORS.card,
-                  border: `1px solid ${selSub === s ? COLORS.green : COLORS.border}`,
-                  borderRadius: 20,
-                  padding: "6px 12px",
-                  fontSize: 12,
-                  fontWeight: selSub === s ? 700 : 500,
-                  color: selSub === s ? COLORS.green : COLORS.muted,
-                  cursor: "pointer",
-                  fontFamily: "Sora, sans-serif",
-                }}
-              >
+              <button key={s} onClick={() => setSelSub(s)}
+                className={`rounded-2xl px-3 py-1.5 text-xs font-medium cursor-pointer transition-all active:scale-95 ${selSub === s ? 'bg-app-green/15 border border-app-green text-app-green font-bold' : 'bg-app-card border border-app-border text-app-muted hover:text-app-text'}`}>
                 {s}
               </button>
             ))}
           </div>
-
           {/* Difficulty */}
-          <div style={{ display: "flex", gap: 8 }}>
-            {DIFFICULTIES.map(d => (
-              <button
-                key={d}
-                onClick={() => setDiff(d)}
-                style={{
-                  flex: 1,
-                  background: difficulty === d ? (d === "Easy" ? `${COLORS.green}20` : d === "Hard" ? `${COLORS.red}20` : `${COLORS.yellow}20`) : COLORS.card,
-                  border: `1px solid ${difficulty === d ? (d === "Easy" ? COLORS.green : d === "Hard" ? COLORS.red : COLORS.yellow) : COLORS.border}`,
-                  borderRadius: 10,
-                  padding: "8px 0",
-                  fontSize: 12,
-                  fontWeight: difficulty === d ? 700 : 500,
-                  color: difficulty === d ? (d === "Easy" ? COLORS.green : d === "Hard" ? COLORS.red : COLORS.yellow) : COLORS.muted,
-                  cursor: "pointer",
-                  fontFamily: "Sora, sans-serif",
-                }}
-              >
-                {d}
-              </button>
-            ))}
+          <div className="flex gap-2">
+            {DIFFICULTIES.map(d => {
+              const dColor = d === "Easy" ? "#00E5A0" : d === "Hard" ? "#FF6B6B" : "#FFD166"
+              const isActive = difficulty === d
+              return (
+                <button key={d} onClick={() => setDiff(d)} className="flex-1 rounded-xl py-2 text-xs font-medium cursor-pointer transition-all active:scale-95"
+                  style={{ background: isActive ? `${dColor}18` : undefined, border: `1px solid ${isActive ? dColor : 'rgba(255,255,255,0.08)'}`, color: isActive ? dColor : '#6868a0', fontWeight: isActive ? 700 : 500 }}>
+                  {d}
+                </button>
+              )
+            })}
           </div>
         </div>
 
         {/* Generate button */}
-        <button onClick={generateQuestion} disabled={loading} style={primaryBtn}>
+        <button onClick={generateQuestion} disabled={loading}
+          className="w-full bg-gradient-to-r from-app-green to-[#33cc88] text-app-bg text-[13px] font-extrabold rounded-xl py-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] transition-all">
           {loading ? "Generating…" : "⚡ Generate Question"}
         </button>
 
-        {error && <p style={{ color: COLORS.red, fontSize: 13, marginTop: 12 }}>{error}</p>}
+        {error && <p className="text-app-red text-[13px] mt-3">{error}</p>}
 
         {/* Question card */}
         {question && (
-          <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="mt-4 flex flex-col gap-3">
             {/* Concept tag */}
-            <div style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: COLORS.blue,
-              background: `${COLORS.blue}15`,
-              borderRadius: 6,
-              padding: "3px 10px",
-              width: "fit-content",
-            }}>
+            <div className="text-[11px] font-bold text-app-blue bg-app-blue/10 rounded-md px-2.5 py-1 w-fit">
               {question.concept}
             </div>
 
             {/* Question */}
-            <div style={{
-              background: COLORS.card,
-              border: `1px solid ${COLORS.border}`,
-              borderRadius: 14,
-              padding: 16,
-              fontSize: 14,
-              color: COLORS.text,
-              lineHeight: 1.6,
-              fontWeight: 600,
-            }}>
+            <div className="bg-app-card border border-app-border rounded-2xl p-4 text-sm text-app-text leading-relaxed font-semibold">
               {question.q}
             </div>
 
             {/* Options */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="flex flex-col gap-2">
               {question.o?.map((opt, i) => {
                 const letter = ["A", "B", "C", "D"][i]
                 return (
-                  <button key={letter} onClick={() => answerQuestion(letter)} style={optionStyle(letter)}>
+                  <button key={letter} onClick={() => answerQuestion(letter)} className={getOptionClass(letter)}>
                     {opt}
                   </button>
                 )
@@ -296,68 +214,50 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
             {/* Explanation */}
             {selected && (
               <>
-                <div style={{
-                  background: selected === question.c ? `${COLORS.green}10` : `${COLORS.red}10`,
-                  border: `1px solid ${selected === question.c ? COLORS.green : COLORS.red}30`,
-                  borderRadius: 12,
-                  padding: 14,
-                }}>
-                  <div style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: selected === question.c ? COLORS.green : COLORS.red,
-                    marginBottom: 6,
-                  }}>
+                <div className={`rounded-xl p-3.5 border ${selected === question.c ? 'bg-app-green/10 border-app-green/25' : 'bg-app-red/10 border-app-red/25'}`}>
+                  <div className={`text-xs font-bold mb-1.5 ${selected === question.c ? 'text-app-green' : 'text-app-red'}`}>
                     {selected === question.c ? "✅ Correct!" : `❌ Incorrect — Correct answer: ${question.c}`}
                   </div>
-                  <p style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.6 }}>{question.e}</p>
+                  <p className="text-[13px] text-app-text leading-relaxed">{question.e}</p>
                 </div>
 
-                {/* ── Galti Doctor (wrong answers only) ── */}
+                {/* Galti Doctor */}
                 {selected !== question.c && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div className="flex flex-col gap-2">
                     {!galtiDiag && !galtiLoad && (
-                      <button onClick={diagnoseError} style={{
-                        background: `${COLORS.orange}15`,
-                        border: `1px solid ${COLORS.orange}35`,
-                        borderRadius: 12, padding: "11px 14px", width: "100%",
-                        fontSize: 13, fontWeight: 700, color: COLORS.orange,
-                        cursor: "pointer", fontFamily: "Sora, sans-serif",
-                        textAlign: "left", display: "flex", alignItems: "center", gap: 8,
-                      }}>
-                        <span style={{ fontSize: 18 }}>🩺</span>
+                      <button onClick={diagnoseError}
+                        className="bg-app-orange/10 border border-app-orange/25 rounded-xl px-3.5 py-2.5 w-full text-[13px] font-bold text-app-orange cursor-pointer text-left flex items-center gap-2 hover:bg-app-orange/15 active:scale-[0.99] transition-all">
+                        <span className="text-lg">🩺</span>
                         <div>
                           <div>Galti Doctor</div>
-                          <div style={{ fontSize: 11, fontWeight: 500, color: COLORS.muted }}>Why did I get this wrong?</div>
+                          <div className="text-[11px] font-medium text-app-muted">Why did I get this wrong?</div>
                         </div>
                       </button>
                     )}
                     {galtiLoad && (
-                      <div style={{ textAlign: "center", color: COLORS.muted, fontSize: 12, padding: 14 }}>
-                        🩺 Diagnosing your mistake…
-                      </div>
+                      <div className="text-center text-app-muted text-xs py-3.5">🩺 Diagnosing your mistake…</div>
                     )}
                     {galtiDiag && (() => {
-                      const typeInfo = ERROR_TYPE_LABELS[galtiDiag.type] || { label: galtiDiag.type, color: COLORS.muted }
+                      const typeInfo = ERROR_TYPE_LABELS[galtiDiag.type] || { label: galtiDiag.type, color: "#6868a0" }
                       return (
-                        <div style={{ background: `${typeInfo.color}10`, border: `1px solid ${typeInfo.color}30`, borderRadius: 12, padding: 14 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                            <span style={{ fontSize: 18 }}>🩺</span>
-                            <span style={{ fontSize: 13, fontWeight: 800, color: typeInfo.color }}>Galti Doctor</span>
-                            <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: typeInfo.color, borderRadius: 6, padding: "2px 8px" }}>
+                        <div className="rounded-xl p-3.5 border" style={{ background: `${typeInfo.color}10`, borderColor: `${typeInfo.color}30` }}>
+                          <div className="flex items-center gap-2 mb-2.5">
+                            <span className="text-lg">🩺</span>
+                            <span className="text-[13px] font-extrabold" style={{ color: typeInfo.color }}>Galti Doctor</span>
+                            <span className="text-[10px] font-bold text-white rounded-md px-2 py-0.5" style={{ background: typeInfo.color }}>
                               {typeInfo.label}
                             </span>
                           </div>
-                          <p style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.6, margin: "0 0 8px" }}>
+                          <p className="text-[13px] text-app-text leading-relaxed mb-2">
                             <strong>What went wrong:</strong> {galtiDiag.diagnosis}
                           </p>
                           {galtiDiag.fix && (
-                            <p style={{ fontSize: 13, color: COLORS.green, lineHeight: 1.5, margin: "0 0 8px" }}>
+                            <p className="text-[13px] text-app-green leading-relaxed mb-2">
                               ✅ <strong>Fix:</strong> {galtiDiag.fix}
                             </p>
                           )}
                           {galtiDiag.similar && (
-                            <p style={{ fontSize: 12, color: COLORS.muted, lineHeight: 1.5, margin: 0, fontStyle: "italic" }}>
+                            <p className="text-xs text-app-muted leading-relaxed italic">
                               🎯 Try this: {galtiDiag.similar}
                             </p>
                           )}
@@ -367,7 +267,8 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
                   </div>
                 )}
 
-                <button onClick={generateQuestion} disabled={loading} style={primaryBtn}>
+                <button onClick={generateQuestion} disabled={loading}
+                  className="w-full bg-gradient-to-r from-app-green to-[#33cc88] text-app-bg text-[13px] font-extrabold rounded-xl py-3 cursor-pointer disabled:opacity-50 active:scale-[0.99] transition-all">
                   {loading ? "Generating…" : "Next Question →"}
                 </button>
               </>
@@ -377,27 +278,4 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
       </div>
     </div>
   )
-}
-
-const primaryBtn = {
-  background: "linear-gradient(135deg, #00E5A0, #33cc88)",
-  color: "#04040e",
-  border: "none",
-  borderRadius: 12,
-  padding: "12px 16px",
-  fontSize: 13,
-  fontWeight: 800,
-  cursor: "pointer",
-  width: "100%",
-  fontFamily: "Sora, sans-serif",
-}
-
-const backBtn = {
-  background: "transparent",
-  border: "none",
-  color: "#6868a0",
-  fontSize: 13,
-  cursor: "pointer",
-  fontFamily: "Sora, sans-serif",
-  padding: 0,
 }

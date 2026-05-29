@@ -102,8 +102,7 @@ export function Toast({ msg, type, onDone }) {
   }, [onDone])
   return (
     <div 
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 py-2.5 px-5 rounded-[10px] text-[13px] font-bold z-[9999] shadow-xl text-app-bg"
-      style={{ background: type === "error" ? C.red : C.green }}
+      className={`fixed bottom-6 left-1/2 -translate-x-1/2 py-2.5 px-5 rounded-[10px] text-[13px] font-bold z-[9999] shadow-xl text-app-bg ${type === "error" ? "bg-app-red" : "bg-app-green"}`}
     >{msg}</div>
   )
 }

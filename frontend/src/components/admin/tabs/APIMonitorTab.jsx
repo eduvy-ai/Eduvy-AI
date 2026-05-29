@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+﻿import { useState, useEffect, useCallback } from 'react'
 import { API, C, ghostBtnClass } from '../shared'
 
 // ── Provider metadata ─────────────────────────────────────────
@@ -59,7 +59,7 @@ function ProviderCard({ p }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-xl" style={{ color }}>{p.icon}</span>
-          <span className="font-bold text-sm" style={{ color: C.text }}>{p.label}</span>
+          <span className="font-bold text-sm text-app-text">{p.label}</span>
         </div>
         <span
           className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
@@ -82,12 +82,12 @@ function ProviderCard({ p }) {
       {hasKey && !isPaid && totalLimit > 0 && (
         <div className="flex flex-col gap-1">
           <UsageBar pct={p.used_pct} color={color} />
-          <div className="flex justify-between text-[10px]" style={{ color: C.muted }}>
+          <div className="flex justify-between text-[10px] text-app-muted">
             <span>{fmtK(p.calls_today)} req used today</span>
             <span>{remaining} req left of {fmtK(totalLimit)}</span>
           </div>
           {p.pool_size > 1 && (
-            <div className="text-[10px]" style={{ color: C.muted }}>
+            <div className="text-[10px] text-app-muted">
               {p.pool_size} keys × {fmtK(p.per_key_limit)} req/day each
             </div>
           )}
@@ -96,38 +96,38 @@ function ProviderCard({ p }) {
 
       {/* Paid tier note */}
       {hasKey && isPaid && (
-        <div className="text-[11px]" style={{ color: C.muted }}>
+        <div className="text-[11px] text-app-muted">
           Paid tier — no hard daily cap
         </div>
       )}
 
       {/* No key note */}
       {!hasKey && (
-        <div className="text-[11px]" style={{ color: C.muted }}>
+        <div className="text-[11px] text-app-muted">
           Add a key in AI Models tab to enable
         </div>
       )}
 
       {/* Stat row */}
-      <div className="flex gap-4 pt-1 border-t" style={{ borderColor: '#ffffff0a' }}>
+      <div className="flex gap-4 pt-1 border-t border-white/[0.04]">
         <div>
           <div className="text-[18px] font-black" style={{ color: hasKey ? color : C.muted }}>
             {fmtK(p.calls_today)}
           </div>
-          <div className="text-[10px]" style={{ color: C.muted }}>calls today</div>
+          <div className="text-[10px] text-app-muted">calls today</div>
         </div>
         <div>
           <div className="text-[18px] font-black" style={{ color: hasKey ? color : C.muted }}>
             {fmtK(p.tokens_today)}
           </div>
-          <div className="text-[10px]" style={{ color: C.muted }}>tokens today</div>
+          <div className="text-[10px] text-app-muted">tokens today</div>
         </div>
         {!isPaid && p.free_limit > 0 && (
           <div className="ml-auto text-right">
-            <div className="text-[18px] font-black" style={{ color: C.muted }}>
+            <div className="text-[18px] font-black text-app-muted">
               {p.used_pct}%
             </div>
-            <div className="text-[10px]" style={{ color: C.muted }}>quota used</div>
+            <div className="text-[10px] text-app-muted">quota used</div>
           </div>
         )}
       </div>
@@ -162,9 +162,9 @@ export default function APIMonitorTab({ toast }) {
       {/* Top bar */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-base font-bold m-0" style={{ color: C.text }}>API &amp; Model Monitor</h2>
+          <h2 className="text-base font-bold m-0 text-app-text">API &amp; Model Monitor</h2>
           {data?.as_of && (
-            <p className="text-[11px] m-0" style={{ color: C.muted }}>
+            <p className="text-[11px] m-0 text-app-muted">
               Today — {data.as_of} &nbsp;·&nbsp; estimates based on plan routing
             </p>
           )}
@@ -182,24 +182,23 @@ export default function APIMonitorTab({ toast }) {
           { label: 'Active providers',   value: `${activeProviders} / ${totalProviders}`, color: C.yellow },
           { label: 'Plans configured',   value: String(data?.plans?.length ?? '—'), color: C.orange },
         ].map(s => (
-          <div key={s.label} className="rounded-xl p-4 border" style={{ background: '#0b0b1c', borderColor: '#ffffff10' }}>
+          <div key={s.label} className="rounded-xl p-4 border bg-app-card border-white/[0.06]">
             <div className="text-[22px] font-black" style={{ color: s.color }}>{s.value}</div>
-            <div className="text-[11px] mt-1" style={{ color: C.muted }}>{s.label}</div>
+            <div className="text-[11px] mt-1 text-app-muted">{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* Provider cards */}
       <div>
-        <h3 className="text-sm font-semibold mb-3 m-0" style={{ color: C.text }}>Provider Status</h3>
+        <h3 className="text-sm font-semibold mb-3 m-0 text-app-text">Provider Status</h3>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
           {(data?.providers ?? []).map(p => (
             <ProviderCard key={p.id} p={p} />
           ))}
           {!data && loading && (
             Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="rounded-2xl border h-[180px] animate-pulse"
-                style={{ background: '#0b0b1c', borderColor: '#ffffff08' }} />
+              <div key={i} className="rounded-2xl border h-[180px] animate-pulse bg-app-card border-white/[0.03]" />
             ))
           )}
         </div>
@@ -207,13 +206,13 @@ export default function APIMonitorTab({ toast }) {
 
       {/* Plan → Model routing table */}
       <div>
-        <h3 className="text-sm font-semibold mb-3 m-0" style={{ color: C.text }}>
+        <h3 className="text-sm font-semibold mb-3 m-0 text-app-text">
           Plan → Model Routing (active)
         </h3>
-        <div className="rounded-2xl border overflow-hidden" style={{ borderColor: '#ffffff10' }}>
-          <table className="w-full text-[13px]" style={{ borderCollapse: 'collapse' }}>
+        <div className="rounded-2xl border overflow-hidden border-white/[0.06]">
+          <table className="w-full text-[13px] border-collapse">
             <thead>
-              <tr style={{ background: '#ffffff06', color: C.muted }}>
+              <tr className="bg-white/[0.025] text-app-muted">
                 {['Plan', 'Provider', 'Model', 'Users', 'Calls today', 'Tokens today'].map(h => (
                   <th key={h} className="text-left px-4 py-3 font-semibold text-[11px]">{h}</th>
                 ))}
@@ -241,16 +240,16 @@ export default function APIMonitorTab({ toast }) {
                         {row.provider}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-[11px]" style={{ color: C.text }}>
+                    <td className="px-4 py-3 font-mono text-[11px] text-app-text">
                       {row.model}
                     </td>
-                    <td className="px-4 py-3" style={{ color: C.muted }}>
+                    <td className="px-4 py-3 text-app-muted">
                       {row.user_count}
                     </td>
-                    <td className="px-4 py-3 font-semibold" style={{ color: C.text }}>
+                    <td className="px-4 py-3 font-semibold text-app-text">
                       {fmtK(row.calls_today)}
                     </td>
-                    <td className="px-4 py-3" style={{ color: C.muted }}>
+                    <td className="px-4 py-3 text-app-muted">
                       {fmtK(row.tokens_today)}
                     </td>
                   </tr>
@@ -261,7 +260,7 @@ export default function APIMonitorTab({ toast }) {
                   <tr key={i} style={{ borderTop: i > 0 ? '1px solid #ffffff08' : 'none' }}>
                     {Array.from({ length: 6 }).map((_, j) => (
                       <td key={j} className="px-4 py-3">
-                        <div className="h-3 rounded animate-pulse" style={{ background: '#ffffff10', width: '60%' }} />
+                        <div className="h-3 rounded animate-pulse bg-white/[0.06] w-[60%]" />
                       </td>
                     ))}
                   </tr>
@@ -273,8 +272,8 @@ export default function APIMonitorTab({ toast }) {
       </div>
 
       {/* Quota reference */}
-      <div className="rounded-2xl p-5 border" style={{ background: '#0b0b1c', borderColor: '#ffffff10' }}>
-        <h3 className="text-sm font-semibold mb-3 m-0" style={{ color: C.text }}>Free-Tier Quota Reference</h3>
+      <div className="rounded-2xl p-5 border bg-app-card border-white/[0.06]">
+        <h3 className="text-sm font-semibold mb-3 m-0 text-app-text">Free-Tier Quota Reference</h3>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2 text-[12px]">
           {[
             { provider: 'Groq (70b models)',  limit: '1,000 req/day per key',   note: 'llama-3.3-70b-versatile RPD limit', color: PROVIDER_COLORS.groq },
@@ -283,13 +282,12 @@ export default function APIMonitorTab({ toast }) {
             { provider: 'NVIDIA NIM',         limit: '40 req/day per key',      note: 'playground tier',                   color: PROVIDER_COLORS.nvidia },
             { provider: 'Anthropic / OpenAI', limit: 'Paid only',               note: 'no free tier',                      color: C.muted },
           ].map(r => (
-            <div key={r.provider} className="flex items-start gap-2 p-2.5 rounded-lg"
-              style={{ background: '#ffffff05' }}>
+            <div key={r.provider} className="flex items-start gap-2 p-2.5 rounded-lg bg-white/[0.02]">
               <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ background: r.color }} />
               <div>
-                <div className="font-semibold" style={{ color: C.text }}>{r.provider}</div>
+                <div className="font-semibold text-app-text">{r.provider}</div>
                 <div style={{ color: r.color }}>{r.limit}</div>
-                <div className="text-[10px]" style={{ color: C.muted }}>{r.note}</div>
+                <div className="text-[10px] text-app-muted">{r.note}</div>
               </div>
             </div>
           ))}

@@ -1,13 +1,12 @@
 import { useState } from 'react'
-import { COLORS, callAI, parseAIObject, updateBhool } from '../../shared.js'
-import { li } from '../../i18n/index.js'
+import { callAI, parseAIObject, updateBhool } from '../../shared.js'
 
-// ── Feynman Score ring ────────────────────────────────────────
+// ── Feynman Score ring
 function ScoreRing({ label, value, color }) {
   const r = 28, circ = 2 * Math.PI * r
   const dash = circ * (value / 100)
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+    <div className="flex flex-col items-center gap-1">
       <svg width={72} height={72} style={{ transform: "rotate(-90deg)" }}>
         <circle cx={36} cy={36} r={r} fill="none" stroke={`${color}20`} strokeWidth={5} />
         <circle cx={36} cy={36} r={r} fill="none" stroke={color} strokeWidth={5}
@@ -17,21 +16,20 @@ function ScoreRing({ label, value, color }) {
           {value}%
         </text>
       </svg>
-      <div style={{ fontSize: 11, color: COLORS.muted, textAlign: "center", maxWidth: 70 }}>{label}</div>
+      <div className="text-[11px] text-app-muted text-center max-w-[70px]">{label}</div>
     </div>
   )
 }
 
 export default function SamjhaoLab({ profile, addXp, onBack }) {
-  const [phase, setPhase]       = useState("setup")    // setup | explain | result
+  const [phase, setPhase]       = useState("setup")
   const [concept, setConcept]   = useState("")
   const [subject, setSubject]   = useState("")
   const [explanation, setExpl]  = useState("")
-  const [score, setScore]       = useState(null)       // scored JSON
+  const [score, setScore]       = useState(null)
   const [loading, setLoading]   = useState(false)
   const [err, setErr]           = useState("")
 
-  // ── Score the student's explanation ──────────────────────────
   const scoreExplanation = async () => {
     if (explanation.trim().split(/\s+/).length < 10) {
       setErr("Please write at least 10 words — explain it as if teaching someone!")
@@ -47,7 +45,6 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
     if (parsed?.accuracy !== undefined) {
       setScore(parsed)
       setPhase("result")
-      // Update bhool curve: high accuracy = correct understanding
       const correct = (parsed.overall || 0) >= 70
       if (subject) updateBhool(subject, concept, correct)
       addXp(Math.round((parsed.overall || 0) / 10) + 2)
@@ -68,259 +65,179 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
     setPhase("explain")
   }
 
-  // ── Styles ────────────────────────────────────────────────────
-  const card = {
-    background: COLORS.card, border: `1px solid ${COLORS.border}`,
-    borderRadius: 16, padding: 16, marginBottom: 14,
-  }
-  const primaryBtn = {
-    background: `linear-gradient(135deg, ${COLORS.blue}, #5a82ff)`,
-    border: "none", borderRadius: 14, padding: "14px 20px",
-    fontSize: 15, fontWeight: 700, color: "#fff",
-    cursor: "pointer", fontFamily: "Sora, sans-serif", width: "100%",
-  }
-  const ghostBtn = {
-    background: "transparent", border: `1px solid ${COLORS.border}`,
-    borderRadius: 12, padding: "10px 16px", fontSize: 13,
-    color: COLORS.muted, cursor: "pointer", fontFamily: "Sora, sans-serif",
-  }
-
-  // ── Phase: SETUP ─────────────────────────────────────────────
   if (phase === "setup") return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 130px)" }}>
-      <div style={{ background: COLORS.card, borderBottom: `1px solid ${COLORS.border}`, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-        <button onClick={onBack} style={{ ...ghostBtn, padding: "6px 12px" }}>← Back</button>
+    <div className="flex flex-col min-h-[calc(100vh-130px)]">
+      <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
+        <button onClick={onBack} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Back</button>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 16, color: COLORS.text }}>🧪 Samjhao Mode</div>
-          <div style={{ fontSize: 11, color: COLORS.muted }}>Feynman Technique Score</div>
+          <div className="font-extrabold text-base text-app-text">🧪 Samjhao Mode</div>
+          <div className="text-[11px] text-app-muted">Feynman Technique Score</div>
         </div>
       </div>
-
-      <div style={{ padding: 16, flex: 1 }}>
-        {/* Science card */}
-        <div style={{ ...card, background: `${COLORS.blue}08`, border: `1px solid ${COLORS.blue}25`, marginBottom: 20 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.blue, marginBottom: 8 }}>
-            The Feynman Technique
-          </div>
-          <div style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.7 }}>
+      <div className="p-4 flex-1">
+        <div className="bg-app-blue/[0.05] border border-app-blue/20 rounded-2xl p-4 mb-5">
+          <div className="text-sm font-extrabold text-app-blue mb-2">The Feynman Technique</div>
+          <div className="text-[13px] text-app-text leading-[1.7]">
             Nobel Prize physicist Richard Feynman's learning rule:{" "}
-            <strong style={{ color: COLORS.text }}>
-              "If you can't explain it simply, you don't understand it."
-            </strong>
+            <strong>"If you can't explain it simply, you don't understand it."</strong>
             <br /><br />
             Pick any concept. Explain it in your own words as if teaching a friend.
             AI will score your understanding and tell you exactly what's missing.
           </div>
         </div>
-
-        {/* Concept input */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.muted, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-            What concept will you explain?
-          </div>
+        <div className="mb-4">
+          <div className="text-[13px] font-bold text-app-muted mb-2 uppercase tracking-wide">What concept will you explain?</div>
           <input
             value={concept}
             onChange={e => setConcept(e.target.value)}
             placeholder="e.g. Photosynthesis, Newton's 2nd Law, Democracy, Osmosis…"
-            style={{
-              width: "100%", background: COLORS.card2, border: `1px solid ${COLORS.border}`,
-              borderRadius: 12, padding: "12px 14px", fontSize: 14, color: COLORS.text,
-              fontFamily: "Sora, sans-serif", outline: "none", boxSizing: "border-box",
-            }}
+            className="w-full bg-app-card2 border border-app-border rounded-xl px-3.5 py-3 text-sm text-app-text outline-none focus:border-app-blue/40 transition-colors placeholder:text-app-muted box-border"
           />
         </div>
-
-        {/* Subject input (optional) */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.muted, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-            Subject (optional — for memory tracking)
-          </div>
+        <div className="mb-5">
+          <div className="text-[13px] font-bold text-app-muted mb-2 uppercase tracking-wide">Subject (optional — for memory tracking)</div>
           <input
             value={subject}
             onChange={e => setSubject(e.target.value)}
             placeholder="e.g. Science, History, Maths…"
-            style={{
-              width: "100%", background: COLORS.card2, border: `1px solid ${COLORS.border}`,
-              borderRadius: 12, padding: "12px 14px", fontSize: 14, color: COLORS.text,
-              fontFamily: "Sora, sans-serif", outline: "none", boxSizing: "border-box",
-            }}
+            className="w-full bg-app-card2 border border-app-border rounded-xl px-3.5 py-3 text-sm text-app-text outline-none focus:border-app-blue/40 transition-colors placeholder:text-app-muted box-border"
           />
         </div>
-
-        {/* Example concepts */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 8 }}>Try one of these:</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <div className="mb-5">
+          <div className="text-xs text-app-muted mb-2">Try one of these:</div>
+          <div className="flex flex-wrap gap-1.5">
             {["Photosynthesis", "Newton's Laws", "Democracy", "Osmosis", "Compound Interest", "French Revolution"].map(c => (
-              <button key={c} onClick={() => setConcept(c)} style={{
-                background: COLORS.card2, border: `1px solid ${COLORS.border}`, borderRadius: 20,
-                padding: "5px 12px", fontSize: 12, color: COLORS.text,
-                cursor: "pointer", fontFamily: "Sora, sans-serif",
-              }}>{c}</button>
+              <button key={c} onClick={() => setConcept(c)}
+                className="bg-app-card2 border border-app-border rounded-2xl px-3 py-1.5 text-xs text-app-text cursor-pointer hover:border-app-blue/30 active:scale-95 transition-all">
+                {c}
+              </button>
             ))}
           </div>
         </div>
-
-        {err && <div style={{ color: COLORS.red, fontSize: 13, marginBottom: 10 }}>{err}</div>}
-        <button onClick={goExplain} style={primaryBtn}>
+        {err && <div className="text-app-red text-[13px] mb-2.5">{err}</div>}
+        <button onClick={goExplain}
+          className="w-full bg-gradient-to-r from-app-blue to-[#5a82ff] text-white text-[15px] font-bold rounded-2xl py-3.5 cursor-pointer active:scale-[0.99] transition-all">
           🎤 Start Explaining
         </button>
       </div>
     </div>
   )
 
-  // ── Phase: EXPLAIN ────────────────────────────────────────────
   if (phase === "explain") return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 130px)" }}>
-      <div style={{ background: COLORS.card, borderBottom: `1px solid ${COLORS.border}`, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-        <button onClick={reset} style={{ ...ghostBtn, padding: "6px 12px" }}>← Back</button>
+    <div className="flex flex-col min-h-[calc(100vh-130px)]">
+      <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
+        <button onClick={reset} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Back</button>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 16, color: COLORS.text }}>🧪 Samjhao Mode</div>
-          <div style={{ fontSize: 11, color: COLORS.muted }}>{concept}</div>
+          <div className="font-extrabold text-base text-app-text">🧪 Samjhao Mode</div>
+          <div className="text-[11px] text-app-muted">{concept}</div>
         </div>
       </div>
-
-      <div style={{ padding: 16, flex: 1 }}>
-        {/* Prompt card */}
-        <div style={{ ...card, background: `${COLORS.blue}08`, border: `1px solid ${COLORS.blue}30`, marginBottom: 16 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.blue, marginBottom: 6 }}>
-            📢 Explain: <span style={{ color: COLORS.text }}>{concept}</span>
+      <div className="p-4 flex-1">
+        <div className="bg-app-blue/[0.05] border border-app-blue/25 rounded-2xl p-4 mb-4">
+          <div className="text-sm font-bold text-app-blue mb-1.5">
+            📢 Explain: <span className="text-app-text">{concept}</span>
           </div>
-          <div style={{ fontSize: 13, color: COLORS.muted, lineHeight: 1.6 }}>
+          <div className="text-[13px] text-app-muted leading-relaxed">
             Imagine explaining this to a friend who has never heard of it. Use your own words.
             Don't look it up — just write what you know right now.
           </div>
         </div>
-
-        {/* Explanation textarea */}
         <textarea
           value={explanation}
           onChange={e => setExpl(e.target.value)}
           placeholder={`Explain ${concept} in your own words…`}
           rows={10}
           autoFocus
-          style={{
-            width: "100%", background: COLORS.card2, border: `1px solid ${COLORS.border}`,
-            borderRadius: 14, padding: 14, fontSize: 14, color: COLORS.text,
-            fontFamily: "Sora, sans-serif", outline: "none", resize: "vertical",
-            lineHeight: 1.7, boxSizing: "border-box",
-          }}
+          className="w-full bg-app-card2 border border-app-border rounded-2xl p-3.5 text-sm text-app-text outline-none resize-y leading-[1.7] box-border focus:border-app-blue/40 transition-colors placeholder:text-app-muted"
         />
-        <div style={{ fontSize: 11, color: COLORS.muted, textAlign: "right", marginBottom: 14 }}>
+        <div className="text-[11px] text-app-muted text-right mb-3.5">
           {explanation.trim().split(/\s+/).filter(Boolean).length} words
         </div>
-
-        {err && <div style={{ color: COLORS.red, fontSize: 13, marginBottom: 10 }}>{err}</div>}
-
-        <button onClick={scoreExplanation} disabled={loading} style={primaryBtn}>
+        {err && <div className="text-app-red text-[13px] mb-2.5">{err}</div>}
+        <button onClick={scoreExplanation} disabled={loading}
+          className="w-full bg-gradient-to-r from-app-blue to-[#5a82ff] text-white text-[15px] font-bold rounded-2xl py-3.5 cursor-pointer disabled:opacity-50 active:scale-[0.99] transition-all">
           {loading ? "⏳ Scoring your understanding…" : "🔬 Get My Feynman Score"}
         </button>
       </div>
     </div>
   )
 
-  // ── Phase: RESULT ─────────────────────────────────────────────
   if (phase === "result") {
     const overall = score?.overall ?? 0
-    const overallColor = overall >= 75 ? COLORS.green : overall >= 50 ? COLORS.yellow : COLORS.red
-
+    const overallColor = overall >= 75 ? "#00E5A0" : overall >= 50 ? "#FFD166" : "#FF6B6B"
     return (
-      <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 130px)" }}>
-        <div style={{ background: COLORS.card, borderBottom: `1px solid ${COLORS.border}`, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-          <button onClick={reset} style={{ ...ghostBtn, padding: "6px 12px" }}>← Try Again</button>
-          <div style={{ fontWeight: 800, fontSize: 16, color: COLORS.text }}>🔬 Feynman Score</div>
+      <div className="flex flex-col min-h-[calc(100vh-130px)]">
+        <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
+          <button onClick={reset} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Try Again</button>
+          <div className="font-extrabold text-base text-app-text">🔬 Feynman Score</div>
         </div>
-
-        <div style={{ padding: 16, flex: 1, overflowY: "auto" }}>
-          {/* Overall score */}
-          <div style={{ textAlign: "center", padding: "20px 0 16px" }}>
-            <div style={{
-              display: "inline-flex", flexDirection: "column", alignItems: "center",
-              background: `${overallColor}12`, border: `2px solid ${overallColor}50`,
-              borderRadius: 24, padding: "16px 28px",
-            }}>
-              <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                Understanding Score
-              </div>
-              <div style={{ fontSize: 44, fontWeight: 900, color: overallColor, lineHeight: 1 }}>{overall}%</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: overallColor, marginTop: 4 }}>
+        <div className="p-4 flex-1 overflow-y-auto">
+          <div className="text-center py-5">
+            <div className="inline-flex flex-col items-center rounded-3xl px-7 py-4 border-2"
+              style={{ background: `${overallColor}12`, borderColor: `${overallColor}50` }}>
+              <div className="text-[11px] text-app-muted mb-1 uppercase tracking-wide">Understanding Score</div>
+              <div className="text-[44px] font-black leading-none" style={{ color: overallColor }}>{overall}%</div>
+              <div className="text-[13px] font-bold mt-1" style={{ color: overallColor }}>
                 {overall >= 75 ? "✅ You've got it!" : overall >= 50 ? "⚠️ Almost there" : "📚 Keep studying"}
               </div>
             </div>
           </div>
-
-          {/* 3 dimension rings */}
-          <div style={{ ...card }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: COLORS.text, marginBottom: 14 }}>Dimension Scores</div>
-            <div style={{ display: "flex", justifyContent: "space-around" }}>
-              <ScoreRing label="Accuracy" value={score?.accuracy ?? 0} color={COLORS.green} />
-              <ScoreRing label="Completeness" value={score?.completeness ?? 0} color={COLORS.blue} />
-              <ScoreRing label="Simplicity" value={score?.simplicity ?? 0} color={COLORS.yellow} />
+          <div className="bg-app-card border border-app-border rounded-2xl p-4 mb-3.5">
+            <div className="text-[13px] font-extrabold text-app-text mb-3.5">Dimension Scores</div>
+            <div className="flex justify-around">
+              <ScoreRing label="Accuracy"     value={score?.accuracy     ?? 0} color="'#00E5A0'" />
+              <ScoreRing label="Completeness" value={score?.completeness ?? 0} color="'#7B9CFF'" />
+              <ScoreRing label="Simplicity"   value={score?.simplicity   ?? 0} color="'#FFD166'" />
             </div>
           </div>
-
-          {/* What you got right */}
           {(score?.correct || []).length > 0 && (
-            <div style={{ ...card, background: `${COLORS.green}08`, border: `1px solid ${COLORS.green}25` }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: COLORS.green, marginBottom: 8 }}>✅ What you got right</div>
+            <div className="bg-app-green/[0.05] border border-app-green/20 rounded-2xl p-4 mb-3.5">
+              <div className="text-[13px] font-extrabold text-app-green mb-2">✅ What you got right</div>
               {score.correct.map((p, i) => (
-                <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "flex-start" }}>
-                  <span style={{ color: COLORS.green, fontSize: 13, marginTop: 1 }}>•</span>
-                  <span style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.6 }}>{p}</span>
+                <div key={i} className="flex gap-2 mb-1.5 items-start">
+                  <span className="text-app-green text-[13px] mt-0.5">•</span>
+                  <span className="text-[13px] text-app-text leading-relaxed">{p}</span>
                 </div>
               ))}
             </div>
           )}
-
-          {/* What's missing */}
           {(score?.missing || []).length > 0 && (
-            <div style={{ ...card, background: `${COLORS.yellow}08`, border: `1px solid ${COLORS.yellow}25` }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: COLORS.yellow, marginBottom: 8 }}>⚠️ What you missed</div>
+            <div className="bg-app-yellow/[0.05] border border-app-yellow/20 rounded-2xl p-4 mb-3.5">
+              <div className="text-[13px] font-extrabold text-app-yellow mb-2">⚠️ What you missed</div>
               {score.missing.map((p, i) => (
-                <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "flex-start" }}>
-                  <span style={{ color: COLORS.yellow, fontSize: 13, marginTop: 1 }}>•</span>
-                  <span style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.6 }}>{p}</span>
+                <div key={i} className="flex gap-2 mb-1.5 items-start">
+                  <span className="text-app-yellow text-[13px] mt-0.5">•</span>
+                  <span className="text-[13px] text-app-text leading-relaxed">{p}</span>
                 </div>
               ))}
             </div>
           )}
-
-          {/* What you got wrong */}
           {(score?.wrong || []).length > 0 && (
-            <div style={{ ...card, background: `${COLORS.red}08`, border: `1px solid ${COLORS.red}25` }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: COLORS.red, marginBottom: 8 }}>❌ Incorrect points</div>
+            <div className="bg-app-red/[0.05] border border-app-red/20 rounded-2xl p-4 mb-3.5">
+              <div className="text-[13px] font-extrabold text-app-red mb-2">❌ Incorrect points</div>
               {score.wrong.map((p, i) => (
-                <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "flex-start" }}>
-                  <span style={{ color: COLORS.red, fontSize: 13, marginTop: 1 }}>•</span>
-                  <span style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.6 }}>{p}</span>
+                <div key={i} className="flex gap-2 mb-1.5 items-start">
+                  <span className="text-app-red text-[13px] mt-0.5">•</span>
+                  <span className="text-[13px] text-app-text leading-relaxed">{p}</span>
                 </div>
               ))}
             </div>
           )}
-
-          {/* Gap Lesson — only the missing bits */}
           {score?.gapLesson && (
-            <div style={{ ...card, background: `${COLORS.blue}08`, border: `1px solid ${COLORS.blue}30` }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: COLORS.blue, marginBottom: 8 }}>
-                🎯 Gap Lesson — just what you missed
-              </div>
-              <div style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>
-                {score.gapLesson}
-              </div>
+            <div className="bg-app-blue/[0.05] border border-app-blue/25 rounded-2xl p-4 mb-3.5">
+              <div className="text-[13px] font-extrabold text-app-blue mb-2">🎯 Gap Lesson — just what you missed</div>
+              <div className="text-[13px] text-app-text leading-relaxed">{score.gapLesson}</div>
             </div>
           )}
-
-          {/* Try again / explain again */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
-            <button onClick={() => { setExpl(""); setScore(null); setPhase("explain") }} style={primaryBtn}>
-              🔄 Explain Again (Improve Score)
+          <div className="flex gap-3 mt-2">
+            <button onClick={reset}
+              className="flex-1 bg-transparent border border-app-border text-app-text text-[13px] font-semibold rounded-xl py-3 cursor-pointer hover:bg-white/[0.03] active:scale-[0.99] transition-all">
+              🔄 Try Again
             </button>
-            <button onClick={reset} style={ghostBtn}>
-              ↺ Try a Different Concept
+            <button onClick={() => setPhase("explain")}
+              className="flex-1 bg-gradient-to-r from-app-blue to-['#5a82ff'] text-white text-[13px] font-bold rounded-xl py-3 cursor-pointer active:scale-[0.99] transition-all">
+              ✏️ Improve Answer
             </button>
-          </div>
-          <div style={{ textAlign: "center", marginTop: 10, fontSize: 12, color: COLORS.muted }}>
-            +{Math.round((overall) / 10) + 2} XP earned · Bhool curve updated
           </div>
         </div>
       </div>
@@ -329,3 +246,4 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
 
   return null
 }
+
