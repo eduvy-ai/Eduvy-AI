@@ -5,7 +5,7 @@
 🌐 **Live URL:** [https://www.eduvy.co.in/](https://www.eduvy.co.in/)
 
 ---
-
+  
 ## Tech Stack
 
 ### Frontend
