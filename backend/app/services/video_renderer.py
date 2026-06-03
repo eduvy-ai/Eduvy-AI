@@ -164,10 +164,11 @@ def _render_all_sync(
         )
 
     _IS_CLOUD = not os.path.exists("/Users")
-    if _IS_CLOUD:
-        width, height = (854, 480) if orientation == "horizontal" else (480, 854)
-    else:
-        width, height = (1280, 720) if orientation == "horizontal" else (720, 1280)
+    # Always render at the native content size (1280×720 / 720×1280).
+    # The svg_renderer generates HTML at exactly these dimensions — using a
+    # smaller viewport clips content at the edges. OOM is no longer a risk
+    # because we now launch ONE Chromium for the whole video, not one per frame.
+    width, height = (1280, 720) if orientation == "horizontal" else (720, 1280)
 
     results: list[str | None] = []
 
@@ -238,7 +239,7 @@ def _render_all_sync(
                                 "-c:v", "libx264",
                                 "-preset", "fast",
                                 "-crf", "23",
-                                "-vf", "scale=1280:720:flags=lanczos" if _IS_CLOUD else "scale=1280:720",
+                                "-vf", "scale=1280:720",
                                 "-pix_fmt", "yuv420p",
                                 "-movflags", "+faststart",
                                 output_path,
