@@ -139,6 +139,21 @@ class VideoService:
         # Use the most capable model available — script quality is the #1 visual quality driver
         provider, model = resolve_provider_model(plan, "groq", "llama-3.3-70b-versatile")
 
+        # Scale token budget with duration: more scenes = larger JSON output.
+        # 4096 is too small for ≥1 min videos and causes truncated JSON on live.
+        try:
+            timing_float = float(request.timing)
+        except (TypeError, ValueError):
+            timing_float = 1.0
+        if timing_float <= 0.5:
+            max_tokens = 4096
+        elif timing_float <= 1.0:
+            max_tokens = 6144
+        elif timing_float <= 2.0:
+            max_tokens = 10240
+        else:
+            max_tokens = 16384  # 4 min → up to 24 scenes
+
         try:
             response_text, _, _ = await call_ai(
                 provider=provider,
@@ -146,7 +161,7 @@ class VideoService:
                 prompt=user_prompt,
                 system_prompt=system_prompt,
                 history=[],
-                max_tokens=4096,
+                max_tokens=max_tokens,
             )
         except Exception as exc:
             logger.error("AI script generation failed: %s", exc)

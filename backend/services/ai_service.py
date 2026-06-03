@@ -427,7 +427,7 @@ async def call_ai(
         if cached is not None:
             return cached
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=120.0) as client:
         for (cur_provider, cur_model) in _provider_order():
             pool_size = len(_KEY_POOLS.get(cur_provider, []))
             # Attempt once per key in the pool (min 1, max 5) so every

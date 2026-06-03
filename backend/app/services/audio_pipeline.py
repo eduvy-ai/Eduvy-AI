@@ -14,10 +14,14 @@ import tempfile
 
 logger = logging.getLogger(__name__)
 
-# Resolve ffmpeg binary — works even if PATH wasn't updated in the current process
-_FFMPEG = shutil.which("ffmpeg") or (
-    r"C:\Users\pradip.pawar\AppData\Local\Microsoft\WinGet\Packages"
-    r"\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe"
+# Resolve ffmpeg binary — cross-platform (Linux/Render + Windows dev)
+_FFMPEG = (
+    shutil.which("ffmpeg")
+    or shutil.which("ffmpeg.exe")
+    or (
+        r"C:\Users\pradip.pawar\AppData\Local\Microsoft\WinGet\Packages"
+        r"\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe"
+    )
 )
 
 # ── Microsoft Neural Voice map (edge-tts) ─────────────────────────────────────

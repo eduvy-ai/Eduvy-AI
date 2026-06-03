@@ -32,9 +32,13 @@ import tempfile
 
 logger = logging.getLogger(__name__)
 
-_FFMPEG = shutil.which("ffmpeg") or (
-    r"C:\Users\pradip.pawar\AppData\Local\Microsoft\WinGet\Packages"
-    r"\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe"
+_FFMPEG = (
+    shutil.which("ffmpeg")
+    or shutil.which("ffmpeg.exe")
+    or (
+        r"C:\Users\pradip.pawar\AppData\Local\Microsoft\WinGet\Packages"
+        r"\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe"
+    )
 )
 
 _FPS = 10   # 10 fps → each 0.45s drawLine spans ~4-5 frames (visible pencil stroke)
