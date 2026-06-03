@@ -6,8 +6,8 @@ echo "==> Installing Python dependencies..."
 pip install -r requirements.txt
 
 echo "==> Installing system packages (ffmpeg)..."
-sudo apt-get update -qq
-sudo apt-get install -y --no-install-recommends ffmpeg
+apt-get update -qq
+apt-get install -y --no-install-recommends ffmpeg
 
 echo "==> Installing Playwright Chromium browser (with deps)..."
 python -m playwright install --with-deps chromium
