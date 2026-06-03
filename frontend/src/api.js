@@ -808,3 +808,70 @@ export async function apiVerifyPayment({ order_id, payment_id, signature, plan }
   if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)
   return data  // { success, plan, expires_at, message }
 }
+
+// ── Video Creator ─────────────────────────────────────────────
+
+export async function apiVideoGenerate(data) {
+  const res = await fetch(`${API_BASE_URL}/api/video/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify(data),
+    signal: AbortSignal.timeout(60000),
+  })
+  const json = await safeJson(res)
+  if (!res.ok) throw new Error(json?.detail || `HTTP ${res.status}`)
+  return json
+}
+
+export async function apiVideoStatus(videoId) {
+  const res = await fetch(`${API_BASE_URL}/api/video/${encodeURIComponent(videoId)}/status`, {
+    headers: { ..._authHeaders() },
+    signal: AbortSignal.timeout(10000),
+  })
+  const json = await safeJson(res)
+  if (!res.ok) throw new Error(json?.detail || `HTTP ${res.status}`)
+  return json
+}
+
+export async function apiVideoLibrary({ limit = 20, offset = 0 } = {}) {
+  const res = await fetch(`${API_BASE_URL}/api/video/library?limit=${limit}&offset=${offset}`, {
+    headers: { ..._authHeaders() },
+    signal: AbortSignal.timeout(10000),
+  })
+  const json = await safeJson(res)
+  if (!res.ok) throw new Error(json?.detail || `HTTP ${res.status}`)
+  return json
+}
+
+export async function apiVideoDelete(videoId) {
+  const res = await fetch(`${API_BASE_URL}/api/video/${encodeURIComponent(videoId)}`, {
+    method: 'DELETE',
+    headers: { ..._authHeaders() },
+    signal: AbortSignal.timeout(10000),
+  })
+  if (!res.ok) {
+    const json = await safeJson(res)
+    throw new Error(json?.detail || `HTTP ${res.status}`)
+  }
+  return true
+}
+
+export async function apiVideoShare(videoId) {
+  const res = await fetch(`${API_BASE_URL}/api/video/${encodeURIComponent(videoId)}/share`, {
+    method: 'POST',
+    headers: { ..._authHeaders() },
+    signal: AbortSignal.timeout(10000),
+  })
+  const json = await safeJson(res)
+  if (!res.ok) throw new Error(json?.detail || `HTTP ${res.status}`)
+  return json  // { share_token, share_url }
+}
+
+export async function apiVideoPublic(shareToken) {
+  const res = await fetch(`${API_BASE_URL}/api/video/shared/${encodeURIComponent(shareToken)}`, {
+    signal: AbortSignal.timeout(10000),
+  })
+  const json = await safeJson(res)
+  if (!res.ok) throw new Error(json?.detail || `HTTP ${res.status}`)
+  return json
+}

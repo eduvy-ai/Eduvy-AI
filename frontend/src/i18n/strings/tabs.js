@@ -90,6 +90,20 @@ export const TABS = {
     Urdu:     "🧪 لیبز",
   },
 
+  videoCreatorTab: {
+    English:  "🎥 Video Creator",
+    Hindi:    "🎥 वीडियो क्रिएटर",
+    Gujarati: "🎥 વિડિઓ ક્રિએટર",
+    Marathi:  "🎥 व्हिडिओ क्रिएटर",
+    Tamil:    "🎥 வீடியோ கிரியேட்டர்",
+    Telugu:   "🎥 వీడియో క్రియేటర్",
+    Kannada:  "🎥 ವೀಡಿಯೊ ಕ್ರಿಯೇಟರ್",
+    Bengali:  "🎥 ভিডিও ক্রিয়েটর",
+    Punjabi:  "🎥 ਵੀਡੀਓ ਕ੍ਰਿਏਟਰ",
+    Odia:     "🎥 ଭିଡ଼ିଓ କ୍ରିଏଟର",
+    Urdu:     "🎥 ویڈیو کریئیٹر",
+  },
+
   discoverTab: {
     English:  "🔍 Discover",
     Hindi:    "🔍 खोजें",

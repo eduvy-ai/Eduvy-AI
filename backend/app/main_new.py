@@ -15,6 +15,7 @@ from collections import defaultdict
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 
 from app.core.config import settings
@@ -39,6 +40,7 @@ from app.modules.payments.router import router as payments_router
 from app.modules.drishti.router import router as drishti_router
 from app.modules.fetch.router import router as fetch_router
 from app.modules.admin.router import router as admin_router
+from app.modules.video.router import router as video_router
 
 load_dotenv()
 
@@ -140,6 +142,14 @@ app.include_router(parent_router, prefix="/api")
 app.include_router(referrals_router, prefix="/api")
 app.include_router(payments_router, prefix="/api")
 app.include_router(drishti_router, prefix="/api")
+app.include_router(video_router, prefix="/api")
+
+# ── Static Files — generated videos ──────────────────────────
+_VIDEOS_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "videos")
+)
+os.makedirs(_VIDEOS_DIR, exist_ok=True)
+app.mount("/videos", StaticFiles(directory=_VIDEOS_DIR), name="videos")
 
 # ── Health Check ──────────────────────────────────────────────
 @app.get("/api/health")

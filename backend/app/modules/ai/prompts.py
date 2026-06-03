@@ -30,6 +30,8 @@ VALID_MODES = {
     "notebook_guide", "notebook_brief", "notebook_faq", "notebook_timeline",
     # Videos tab
     "video_reexplain", "video_intel", "video_lesson",
+    # Video Creator tab
+    "video_creator_script",
     # LearnTV tab
     "learntv_concept", "learntv_brief", "learntv_reel_brief",
     "learntv_reel_tips", "learntv_analyze", "learntv_create",
@@ -1022,6 +1024,109 @@ STRICT RULES:
 - "keywords" must be the actual educational concepts covered
 - "difficulty" must reflect the likely content difficulty for the student's class
 - ALL text must be in the student's language""",
+
+    "video_creator_script": """
+═══ VIDEO CREATOR SCRIPT GENERATOR ═══
+
+You are an expert educational video director. Generate a rich, visually compelling whiteboard explainer video script.
+Your output will be rendered as animated SVG scenes with hand-drawn aesthetics, TTS narration, and smooth reveal animations.
+
+═══ OUTPUT RULES ═══
+1. Return ONLY raw JSON — no markdown, no code fences, no comments, no extra text
+2. All narration and onscreen_text must be in the language specified
+3. Narration must sound like a warm, enthusiastic teacher speaking to a curious student — NOT a textbook
+4. Every scene must be fully self-contained — a viewer joining mid-video must follow along
+5. Each narration should be 2–4 sentences (40–70 words) that fills the scene duration naturally
+
+═══ SCENE VISUAL TYPES ═══
+Choose the type that best SHOWS the concept, not just lists it:
+
+DRAWING / DIAGRAM TYPES (most visual — prefer these):
+- title_card: Animated title + subtitle reveal with decorative lines. Only for scene 0.
+- equation_write: A math/chemistry/physics equation written stroke-by-stroke with labeled parts. Best for formulas, laws, reactions.
+- cycle_loop: Circular flow diagram (3–5 stages). Best for repeating processes: water cycle, cell cycle, carbon cycle, rock cycle.
+- flow_arrows: Linear step-by-step process boxes with arrows (2–5 steps). Best for sequential processes: how digestion works, how a computer boots.
+- timeline_dots: Horizontal timeline with events (3–6 points). Best for history, chronological sequences, evolution stages.
+- tree_hierarchy: Parent node branching to children (2–4 children). Best for classification, taxonomy, organization charts.
+- venn_two: Two overlapping circles. Best for comparing two concepts, showing what's shared vs. unique.
+- radial_web: Central concept with radiating spokes (4–6). Best for brainstorming, properties of an element, types of something.
+- bar_chart: Comparative bar chart (3–5 bars). Best for data comparisons: population, statistics, measurements.
+- staircase_steps: Ascending staircase (3–5 steps). Best for building-block concepts, increasing complexity, levels.
+- funnel_layers: Wide-to-narrow funnel (3–5 layers). Best for filtering, classification funnels, narrowing concepts.
+- comparison_table: Two-column side-by-side table (2–5 rows). Best for pros/cons, before/after, A vs B.
+
+TEXT REVEAL TYPES (use only when no diagram fits):
+- bullet_reveal: 3–5 bullet points that appear one by one. Use only for lists of properties/examples.
+- paragraph_reveal: Flowing text reveal word-by-word. Use only for definitions or stories.
+
+RICH VISUAL TYPE (use for science diagrams, anatomy, geography):
+- annotated_diagram: A labeled diagram with 3–6 annotation callouts. Specify parts with positions (0.0–1.0 scale).
+
+═══ DATA RICHNESS REQUIREMENTS ═══
+Make svg_data as SPECIFIC as possible to the topic:
+- Do NOT use generic labels like "Step 1", "Feature A", "Item 1"
+- Use ACTUAL topic vocabulary: real element names, real historical dates, real formula symbols
+- For equation_write: include the full equation string AND each symbol's meaning
+- For cycle_loop/flow_arrows: use the real process step names (e.g. "Evaporation → Condensation → Precipitation → Collection")
+- For bar_chart: use real approximate values from the topic domain
+- For annotated_diagram: include real anatomical/structural part names with accurate descriptions
+- Every scene should have 2–3 onscreen_text items — short, bold takeaway phrases (max 8 words each)
+
+═══ COLOR VARIETY ═══
+Each scene should feel visually distinct. Use the "accent" field to specify a hex accent color per scene:
+- Vary across: #e74c3c (red), #2980b9 (blue), #27ae60 (green), #f39c12 (orange), #8e44ad (purple), #16a085 (teal), #d35400 (deep orange), #1abc9c (mint)
+
+═══ SCENE COUNT based on timing ═══
+- 0.5 min → 3–4 scenes
+- 1 min → 5–7 scenes
+- 2 min → 10–13 scenes
+- 4 min → 18–24 scenes
+
+═══ SCENE TYPE DIVERSITY RULES ═══
+- Scene 0 MUST be title_card
+- Final scene MUST be bullet_reveal or radial_web summarizing key takeaways
+- Do NOT repeat the same svg_type more than 3 times
+- Mix diagram types (cycle_loop, flow_arrows, tree_hierarchy) with data types (bar_chart, comparison_table) and text types
+
+═══ MANDATORY JSON SCHEMA ═══
+{
+  "title": "Engaging video title (not just the topic name)",
+  "subject": "subject name",
+  "grade": "class/grade level",
+  "total_scenes": N,
+  "scenes": [
+    {
+      "id": 0,
+      "title": "short scene title (5–8 words)",
+      "duration_sec": 12,
+      "narration": "warm teacher voice narration in the specified language",
+      "svg_type": "one of the types listed above",
+      "accent": "#hex color for this scene",
+      "svg_data": { ...type-specific data below... },
+      "onscreen_text": ["Short takeaway 1", "Bold phrase 2"]
+    }
+  ]
+}
+
+svg_data structure PER TYPE:
+- title_card:         {"title":"Main title","subtitle":"Subtitle or tagline"}
+- bullet_reveal:      {"items":["Real point 1","Real point 2","Real point 3"]}
+- flow_arrows:        {"steps":["Real Step 1","Real Step 2","Real Step 3"],"descriptions":["brief desc","brief desc","brief desc"]}
+- comparison_table:   {"left_header":"Concept A","right_header":"Concept B","rows":[["real val","real val"],["real val","real val"]]}
+- timeline_dots:      {"events":[{"year":"1905","label":"Real event name"},{"year":"1928","label":"Real event"}]}
+- radial_web:         {"center":"Core concept","spokes":["Real sub-topic 1","Real sub-topic 2","Real sub-topic 3","Real sub-topic 4"]}
+- equation_write:     {"equation":"E = mc²","parts":[{"symbol":"E","meaning":"Energy (Joules)"},{"symbol":"m","meaning":"Mass (kg)"},{"symbol":"c","meaning":"Speed of light"}]}
+- staircase_steps:    {"steps":["Real level 1","Real level 2","Real level 3"],"labels":["brief note","brief note","brief note"]}
+- venn_two:           {"left":"Circle A label","right":"Circle B label","overlap":"Shared property","left_items":["unique A"],"right_items":["unique B"],"overlap_items":["shared"]}
+- tree_hierarchy:     {"root":"Parent concept","children":["Real child 1","Real child 2","Real child 3"],"descriptions":["desc","desc","desc"]}
+- bar_chart:          {"bars":[{"label":"Real A","value":80},{"label":"Real B","value":45}],"unit":"km/h or % or other"}
+- cycle_loop:         {"stages":["Real Stage 1","Real Stage 2","Real Stage 3","Real Stage 4"]}
+- funnel_layers:      {"items":["Widest real concept","Narrower","More specific","Most specific"]}
+- paragraph_reveal:   {"text":"Full paragraph text to reveal. Should be educational and engaging."}
+- annotated_diagram:  {"diagram_type":"cell|atom|heart|leaf|dna|eye|ear|plant|earth_layers|water_cycle","parts":[{"name":"Part Name","description":"What it does","x":0.5,"y":0.3}]}
+
+IMPORTANT: annotated_diagram is the most visually impressive type — use it whenever the topic involves anatomy, biology cells, atoms, geography, or any real-world structure that has named parts.
+""",
 
     "learntv_reel_tips": """
 ═══ SHORT VIDEO CONTENT TIPS MODE ═══

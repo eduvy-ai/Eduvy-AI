@@ -22,6 +22,7 @@ const ALL_NAV_ITEMS: { key: TabKey; labelKey: string }[] = [
   { key: 'bhool', labelKey: 'bhoolTab' },
   { key: 'muqabla', labelKey: 'muqablaTab' },
   { key: 'labs', labelKey: 'labsTab' },
+  { key: 'videocreator', labelKey: 'videoCreatorTab' },
 ]
 
 const DashboardLayout: React.FC = () => {
