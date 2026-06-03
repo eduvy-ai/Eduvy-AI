@@ -165,7 +165,9 @@ def _render_sync(
         with sync_playwright() as pw:
             browser = pw.chromium.launch(
                 headless=True,
-                channel="chromium-headless-shell",  # ~50 MB vs ~170 MB full Chromium
+                # channel is for system browsers (chrome, msedge) — do NOT set it
+                # for Playwright-managed binaries. headless=True auto-uses the
+                # headless shell installed via: playwright install chromium --only-shell
                 args=[
                     "--no-sandbox",
                     "--disable-dev-shm-usage",      # prevents /dev/shm OOM in containers
