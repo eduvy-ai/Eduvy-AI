@@ -139,7 +139,13 @@ def _render_sync(
             "playwright not installed. Run: pip install playwright && playwright install chromium"
         )
 
-    width, height = (1280, 720) if orientation == "horizontal" else (720, 1280)
+    # 854×480 on cloud (fits in 512 MB RAM). ffmpeg upscales to 1280×720 in the output.
+    # Full 1280×720 screenshots at 10fps are the single biggest memory consumer besides the browser.
+    _IS_CLOUD = not os.path.exists("/Users")  # simple heuristic: no macOS/Windows /Users on Linux
+    if _IS_CLOUD:
+        width, height = (854, 480) if orientation == "horizontal" else (480, 854)
+    else:
+        width, height = (1280, 720) if orientation == "horizontal" else (720, 1280)
     total_frames = max(_FPS, int(duration_sec * _FPS))
 
     # Inject freeze CSS so all CSS animations are paused during page load.
@@ -170,8 +176,9 @@ def _render_sync(
                 # headless shell installed via: playwright install chromium --only-shell
                 args=[
                     "--no-sandbox",
-                    "--disable-dev-shm-usage",      # prevents /dev/shm OOM in containers
+                    "--disable-dev-shm-usage",          # prevents /dev/shm OOM in containers
                     "--disable-gpu",
+                    "--single-process",                 # merge renderer into browser process — saves ~80MB on 512MB instances
                     "--disable-extensions",
                     "--disable-background-networking",
                     "--disable-default-apps",
@@ -180,7 +187,9 @@ def _render_sync(
                     "--mute-audio",
                     "--no-first-run",
                     "--font-render-hinting=none",
-                    "--js-flags=--max-old-space-size=128",
+                    "--js-flags=--max-old-space-size=64",  # reduced from 128 — we do minimal JS
+                    "--disable-features=site-per-process,TranslateUI",
+                    "--renderer-process-limit=1",
                 ],
             )
             page = browser.new_page(viewport={"width": width, "height": height})
@@ -205,7 +214,10 @@ def _render_sync(
                     "-i", "pipe:0",
                     "-c:v", "libx264",
                     "-preset", "fast",
-                    "-crf", "18",
+                    "-crf", "23",
+                    # On cloud (854×480 input) upscale to 1280×720 for consistent output resolution.
+                    # On local dev (1280×720 input) this is a no-op.
+                    "-vf", "scale=1280:720:flags=lanczos" if _IS_CLOUD else "scale=1280:720",
                     "-pix_fmt", "yuv420p",
                     "-movflags", "+faststart",
                     output_path,
