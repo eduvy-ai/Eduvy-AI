@@ -4,7 +4,7 @@ services:
     env: python
     rootDir: backend
     buildCommand: bash build.sh
-    startCommand: python -m playwright install chromium && python -m uvicorn main:app --host 0.0.0.0 --port $PORT
+    startCommand: python -m playwright install chromium-headless-shell && python -m uvicorn main:app --host 0.0.0.0 --port $PORT
     nativePackages:
       - ffmpeg
       - libnss3

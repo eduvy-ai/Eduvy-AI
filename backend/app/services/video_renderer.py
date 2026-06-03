@@ -165,9 +165,21 @@ def _render_sync(
         with sync_playwright() as pw:
             browser = pw.chromium.launch(
                 headless=True,
-                # No --disable-gpu: keep the software rasterizer path active
-                # so direct style writes are composited correctly.
-                args=["--no-sandbox", "--font-render-hinting=none"],
+                channel="chromium-headless-shell",  # ~50 MB vs ~170 MB full Chromium
+                args=[
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",      # prevents /dev/shm OOM in containers
+                    "--disable-gpu",
+                    "--disable-extensions",
+                    "--disable-background-networking",
+                    "--disable-default-apps",
+                    "--disable-sync",
+                    "--metrics-recording-only",
+                    "--mute-audio",
+                    "--no-first-run",
+                    "--font-render-hinting=none",
+                    "--js-flags=--max-old-space-size=128",
+                ],
             )
             page = browser.new_page(viewport={"width": width, "height": height})
             page.goto("file:///" + temp_html.replace("\\", "/"))
