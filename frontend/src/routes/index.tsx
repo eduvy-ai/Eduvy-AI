@@ -29,7 +29,7 @@ const SathiPage = lazy(() => import('../modules/sathi/pages/SathiPage'))
 const BhoolPage = lazy(() => import('../modules/bhool/pages/BhoolPage'))
 const MuqablaPage = lazy(() => import('../modules/muqabla/pages/MuqablaPage'))
 const LabsPage = lazy(() => import('../modules/labs/pages/LabsPage'))
-const VideoCreatorPage = lazy(() => import('../components/tabs/VideoCreatorTab'))
+const VideoCreatorPage = lazy(() => import('../modules/videocreator/pages/VideoCreatorPage'))
 
 // Loading fallback component
 const PageLoader = () => (

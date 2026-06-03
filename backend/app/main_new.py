@@ -77,11 +77,21 @@ app.add_middleware(
 # ── DB Init on Startup ────────────────────────────────────────
 @app.on_event("startup")
 def on_startup():
+    import logging as _logging
+    _startup_log = _logging.getLogger(__name__)
     init_db()
     # Load API keys + plan routing from DB into the in-memory pool.
     # Must run AFTER init_db() so the app_settings table exists.
-    from services.ai_service import load_plan_routing
+    from services.ai_service import load_plan_routing, _KEY_POOLS
     load_plan_routing()
+    active = {p: len(pool) for p, pool in _KEY_POOLS.items() if pool}
+    if active:
+        _startup_log.info("AI key pools loaded: %s", active)
+    else:
+        _startup_log.warning(
+            "AI key pools are EMPTY after startup — no provider keys found in DB or env vars. "
+            "Add keys via the admin panel or set GROQ_API_KEY/GEMINI_API_KEY in environment."
+        )
 
 # ── Security Headers Middleware ───────────────────────────────
 @app.middleware("http")

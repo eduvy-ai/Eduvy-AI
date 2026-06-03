@@ -18,7 +18,7 @@ from app.modules.video.exceptions import VideoNotFoundException, VideoGeneration
 from app.modules.video.schemas import VideoGenerateRequest
 from app.modules.video import query as q
 from app.modules.ai.prompts import MODE_INSTRUCTIONS, LANG_RULES
-from services.ai_service import call_ai, resolve_provider_model
+from services.ai_service import call_ai
 
 logger = logging.getLogger(__name__)
 
@@ -136,8 +136,24 @@ class VideoService:
             f"Duration: {request.timing} minutes"
         )
 
-        # Use the most capable model available — script quality is the #1 visual quality driver
-        provider, model = resolve_provider_model(plan, "groq", "llama-3.3-70b-versatile")
+        # Use the most capable model available for video script generation.
+        # Video scripts need 4k–16k output tokens, so we must NOT let plan routing
+        # silently downgrade us to llama-3.1-8b-instant (max 8192 tokens).
+        # Priority: gemini (high TPM, generous output) > groq-70b > any available.
+        from services.ai_service import _KEY_POOLS, _first_available_provider
+        if _KEY_POOLS.get("gemini"):
+            provider, model = "gemini", "gemini-2.0-flash"
+        elif _KEY_POOLS.get("groq"):
+            provider, model = "groq", "llama-3.3-70b-versatile"
+        else:
+            fallback = _first_available_provider()
+            if fallback:
+                provider, model = fallback
+            else:
+                raise VideoGenerationError(
+                    "No AI provider keys are configured. Add a GROQ_API_KEY or "
+                    "GEMINI_API_KEY via the admin panel."
+                )
 
         # Scale token budget with duration: more scenes = larger JSON output.
         # 4096 is too small for ≥1 min videos and causes truncated JSON on live.
@@ -167,17 +183,12 @@ class VideoService:
             logger.error("AI script generation failed: %s", exc)
             raise VideoGenerationError(f"Script generation failed: {str(exc)}")
 
-        # Detect the "no API keys configured" sentinel before trying to parse JSON
+        # Detect the "AI unavailable" sentinel before trying to parse JSON.
+        # The ⚠️ prefix is set by call_ai() for rate limits, timeouts, or no keys.
         if response_text.startswith("⚠️"):
-            logger.error(
-                "AI unavailable for video script — no API keys found. "
-                "Set GROQ_API_KEY (or GEMINI_API_KEY/OPENAI_API_KEY) as environment variables on Render. "
-                "Raw: %s", response_text
-            )
-            raise VideoGenerationError(
-                "AI service is unavailable. Please add an AI provider API key "
-                "(GROQ_API_KEY, GEMINI_API_KEY, or OPENAI_API_KEY) in the server environment variables."
-            )
+            ai_msg = response_text.replace("⚠️ ", "").strip()
+            logger.error("AI returned error sentinel for video script: %s", ai_msg)
+            raise VideoGenerationError(f"AI service error: {ai_msg}")
 
         logger.info("AI raw response (first 800 chars): %s", response_text[:800])
 

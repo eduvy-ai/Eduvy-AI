@@ -27,12 +27,30 @@ def _encrypt_key(plaintext: str) -> str:
     """Encrypt an API key for storage in DB."""
     return _get_fernet().encrypt(plaintext.encode()).decode()
 
+_decrypt_logger = __import__("logging").getLogger(__name__)
+
 def _decrypt_key(value: str) -> str:
-    """Decrypt a DB-stored API key. Falls back to plaintext for pre-encryption rows."""
+    """Decrypt a DB-stored API key.
+
+    Fallback logic:
+    - If decryption succeeds → return plaintext.
+    - If decryption fails AND the value does NOT start with 'gAAAAA'
+      (i.e. it's an old plaintext row, not a Fernet token) → return as-is.
+    - If decryption fails AND the value looks like a Fernet token → it means
+      JWT_SECRET has changed; log a warning and return "" so the key is not
+      added to the pool with a garbage value.
+    """
     try:
         return _get_fernet().decrypt(value.encode()).decode()
-    except (InvalidToken, Exception):
-        # Migration path: old plaintext value — return as-is and let next save re-encrypt
+    except (InvalidToken, Exception) as exc:
+        # Fernet tokens always start with 'gAAAAA' (URL-safe base64 prefix)
+        if value.startswith("gAAAAA"):
+            _decrypt_logger.error(
+                "_decrypt_key: failed to decrypt a Fernet token — JWT_SECRET may have changed. "
+                "Re-save the API key via the admin panel. Error: %s", exc,
+            )
+            return ""  # do NOT add garbage to the pool
+        # Old plaintext row (before encryption was added) — return as-is
         return value
 
 # ── Server-side keys — NEVER send to clients ──────────────
@@ -155,6 +173,8 @@ def _fix_model(provider: str, model: str) -> str:
 
 
 
+_load_logger = __import__("logging").getLogger(__name__)
+
 def load_plan_routing():
     """Load plan routing config AND stored API keys from app_settings into memory."""
     try:
@@ -166,6 +186,7 @@ def load_plan_routing():
                 "SELECT key, value FROM app_settings WHERE key LIKE 'ai_routing_%' OR key LIKE 'api_key_%'"
             )
             rows = cur.fetchall()
+            keys_loaded: list[str] = []
             for row in rows:
                 k, v = row["key"], row["value"]
                 if k.startswith("ai_routing_"):
@@ -184,15 +205,19 @@ def load_plan_routing():
                                 (k, json.dumps(entry)),
                             )
                         _PLAN_ROUTING[plan] = entry
-                    except Exception:
-                        pass
+                    except Exception as _e:
+                        _load_logger.warning("load_plan_routing: failed to parse routing row %s: %s", k, _e)
                 elif k.startswith("api_key_"):
                     # Handles both "api_key_groq" (slot 1) and "api_key_groq_2" … "api_key_groq_5"
                     import re as _re
                     suffix = k[len("api_key_"):]
                     slot_m = _re.match(r'^([a-z]+)_(\d+)$', suffix)
                     provider = slot_m.group(1) if slot_m else suffix
-                    plain = _decrypt_key(v) if v else ""
+                    try:
+                        plain = _decrypt_key(v) if v else ""
+                    except Exception as _e:
+                        _load_logger.warning("load_plan_routing: failed to decrypt key %s: %s", k, _e)
+                        plain = ""
                     if provider in _SERVER_KEYS and plain:
                         # Slot-1 key also populates _SERVER_KEYS fallback
                         if not slot_m and not _SERVER_KEYS[provider]:
@@ -200,11 +225,28 @@ def load_plan_routing():
                         # Add every slot to the round-robin pool (deduplicated)
                         if plain not in _KEY_POOLS.get(provider, []):
                             _KEY_POOLS.setdefault(provider, []).append(plain)
+                        keys_loaded.append(k)
+                    elif provider not in _SERVER_KEYS:
+                        _load_logger.warning("load_plan_routing: unknown provider '%s' for DB key %s", provider, k)
+                    elif not plain:
+                        _load_logger.warning("load_plan_routing: key %s decrypted to empty string (check JWT_SECRET)", k)
             conn.commit()
+            if keys_loaded:
+                _load_logger.info("load_plan_routing: loaded DB keys for: %s", keys_loaded)
+            else:
+                _load_logger.warning(
+                    "load_plan_routing: no API keys found in DB (app_settings). "
+                    "Pool sizes after load: %s",
+                    {p: len(pool) for p, pool in _KEY_POOLS.items()},
+                )
         finally:
             conn.close()
-    except Exception:
-        pass  # silently fall back to defaults
+    except Exception as exc:
+        _load_logger.error(
+            "load_plan_routing: failed to load from DB — AI will use env-var keys only. Error: %s",
+            exc,
+            exc_info=True,
+        )
 
 
 _ENV_BASE = {
@@ -349,12 +391,28 @@ def get_plan_routing() -> dict[str, dict]:
 _FALLBACK_ORDER = ["groq", "nvidia", "gemini", "anthropic", "openai"]
 
 # Default model per provider used when falling back (not the user's chosen model).
+# Use the most capable model per provider so fallbacks can handle large outputs
+# (e.g. video script generation that needs 8k–16k output tokens).
 _PROVIDER_DEFAULT_MODEL = {
-    "groq":      "llama-3.1-8b-instant",
+    "groq":      "llama-3.3-70b-versatile",   # 32k max output; 8b-instant only has 8k
     "gemini":    "gemini-2.0-flash",
     "anthropic": "claude-3-5-haiku-20241022",
     "openai":    "gpt-4o-mini",
     "nvidia":    "meta/llama-3.3-70b-instruct",
+}
+
+# Hard per-model output token caps — used to clamp max_tokens before sending.
+# Prevents HTTP 400 "max_tokens exceeds model limit" errors.
+_MODEL_MAX_OUTPUT_TOKENS: dict[str, int] = {
+    "llama-3.1-8b-instant":     8192,
+    "llama-3.3-70b-versatile": 32768,
+    "gemini-2.0-flash":         8192,
+    "gemini-1.5-pro":           8192,
+    "gpt-4o-mini":              16384,
+    "gpt-4o":                   16384,
+    "claude-3-5-haiku-20241022": 8192,
+    "claude-3-5-sonnet-20241022": 8192,
+    "meta/llama-3.3-70b-instruct": 32768,
 }
 
 
@@ -487,6 +545,14 @@ async def call_ai(
                             if fixed and fixed != cur_model:
                                 cur_model = fixed
                                 continue
+                        # max_tokens exceeds this model's hard limit — clamp and retry.
+                        # Groq 8b models cap at 8192; 70b at 32768.
+                        if "max_tokens" in err_text and max_tokens > 4096:
+                            model_cap = _MODEL_MAX_OUTPUT_TOKENS.get(cur_model, 8192)
+                            clamped = min(max_tokens, model_cap)
+                            if clamped < max_tokens:
+                                max_tokens = clamped
+                                continue  # retry same key with clamped value
                         break  # unrecoverable 400 → try next provider
                     if status == 413:
                         if cur_provider == "groq" and cur_model != "llama-3.3-70b-versatile":
