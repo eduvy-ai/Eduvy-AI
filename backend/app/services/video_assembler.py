@@ -49,7 +49,7 @@ async def assemble_video(
     from app.db.connection import get_db
     from app.modules.video import query as q
     from app.services.svg_renderer import generate_scene_html
-    from app.services.video_renderer import render_frame_to_mp4
+    from app.services.video_renderer import render_all_frames_to_mp4
     from app.services.audio_pipeline import generate_tts, concat_audio_files, pad_audio_to_duration
 
     conn = get_db()
@@ -61,14 +61,16 @@ async def assemble_video(
     out_dir = os.path.join(VIDEOS_DIR, user_id, video_id)
     os.makedirs(out_dir, exist_ok=True)
 
-    frame_mp4s = []
-    audio_files = []
-    total_duration = 0
-    total_frames = len(frames)
-
-    logger.info("=== VIDEO %s: starting assembly, %d frames ===", video_id[:8], total_frames)
-
     try:
+        audio_files = []
+        total_duration = 0
+        total_frames = len(frames)
+
+        logger.info("=== VIDEO %s: starting assembly, %d frames ===", video_id[:8], total_frames)
+
+        # ── Step 1: TTS for all frames (fast, no Chromium needed) ────────────
+        frame_render_inputs = []
+        frame_ids = []
         for frame in frames:
             fidx = frame["frame_index"]
             frame_id = frame["id"]
@@ -86,7 +88,6 @@ async def assemble_video(
             logger.info("[%d/%d] Frame %d — duration=%.1fs, narration=%d chars",
                         fidx + 1, total_frames, fidx, duration_sec, len(narration))
 
-            # ── Generate TTS audio (ALWAYS — independent of video render) ─
             audio_path = os.path.join(out_dir, f"audio_{fidx:03d}.mp3")
             padded_path = os.path.join(out_dir, f"audio_padded_{fidx:03d}.mp3")
             try:
@@ -108,17 +109,34 @@ async def assemble_video(
                 except Exception:
                     audio_files.append(None)
 
-            # ── Render video frame ────────────────────────────────────────
             html = generate_scene_html(svg_spec, style_variant, orientation)
-            frame_mp4 = os.path.join(out_dir, f"frame_{fidx:03d}.mp4")
-            try:
-                logger.info("  [%d/%d] Rendering frame to MP4...", fidx + 1, total_frames)
-                await render_frame_to_mp4(html, frame_mp4, duration_sec, orientation)
-                frame_mp4s.append(frame_mp4)
-                _update_frame_status(frame_id, "done", frame_mp4)
-                logger.info("  [%d/%d] Frame MP4 done (%d bytes)", fidx + 1, total_frames, os.path.getsize(frame_mp4))
-            except Exception as exc:
-                logger.error("  [%d/%d] Frame render FAILED: %s", fidx + 1, total_frames, exc)
+            frame_render_inputs.append({
+                "html": html,
+                "output_path": os.path.join(out_dir, f"frame_{fidx:03d}.mp4"),
+                "duration_sec": duration_sec,
+            })
+            frame_ids.append((fidx, frame_id))
+
+        # ── Step 2: Render ALL frames with ONE Chromium instance ─────────────
+        # Launching Chromium once for the whole video prevents the OOM pattern
+        # where each per-frame launch adds ~150MB that the OS hasn't yet reclaimed.
+        logger.info("=== VIDEO %s: launching Chromium (once for all %d frames) ===",
+                    video_id[:8], total_frames)
+        try:
+            render_results = await render_all_frames_to_mp4(frame_render_inputs, out_dir, orientation)
+        except Exception as exc:
+            logger.error("render_all_frames_to_mp4 failed: %s", exc)
+            render_results = [None] * total_frames
+
+        frame_mp4s = []
+        for idx, (fidx, frame_id) in enumerate(frame_ids):
+            result = render_results[idx] if idx < len(render_results) else None
+            if result and os.path.exists(result):
+                frame_mp4s.append(result)
+                _update_frame_status(frame_id, "done", result)
+                logger.info("  [%d/%d] Frame MP4 done (%d bytes)", fidx + 1, total_frames, os.path.getsize(result))
+            else:
+                logger.error("  [%d/%d] Frame render FAILED", fidx + 1, total_frames)
                 frame_mp4s.append(None)
                 _update_frame_status(frame_id, "error")
 
@@ -137,7 +155,6 @@ async def assemble_video(
         if valid_audio:
             combined_audio = os.path.join(out_dir, "narration.mp3")
             await concat_audio_files(valid_audio, combined_audio)
-
             muxed_video = os.path.join(out_dir, f"{video_id}_muxed.mp4")
             await _mux_audio_video(final_video, combined_audio, muxed_video)
             os.replace(muxed_video, final_video)
@@ -146,7 +163,7 @@ async def assemble_video(
         thumb_path = os.path.join(out_dir, "thumb.jpg")
         await _extract_thumbnail(final_video, thumb_path)
 
-        # ── Update DB — done (store URL paths, not filesystem paths) ──────
+        # ── Update DB — done ──────────────────────────────────────────────
         file_url = f"{_VIDEOS_URL}/{user_id}/{video_id}/{video_id}.mp4"
         thumb_url = f"{_VIDEOS_URL}/{user_id}/{video_id}/thumb.jpg" if os.path.exists(thumb_path) else ""
         conn = get_db()
@@ -164,7 +181,7 @@ async def assemble_video(
         logger.info("Video %s assembled successfully (%ds)", video_id, total_duration)
 
     except Exception as exc:
-        logger.error("Video assembly failed for %s: %s", video_id, exc)
+        logger.error("Video assembly failed for %s: %s", video_id, exc, exc_info=True)
         conn = get_db()
         try:
             q.update_video_status(conn, video_id, "error", error_msg=str(exc))

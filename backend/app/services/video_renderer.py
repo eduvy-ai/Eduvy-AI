@@ -41,7 +41,9 @@ _FFMPEG = (
     )
 )
 
-_FPS = 10   # 10 fps → each 0.45s drawLine spans ~4-5 frames (visible pencil stroke)
+_FPS = 5    # 5 fps — halves screenshot count vs 10fps; animation still smooth for educational content
+            # At 10fps, each Playwright screenshot on 512MB Render took 0.5-1s → 5 min per video
+            # At 5fps, same video takes ~2.5 min and stays within memory budget
 
 # ─────────────────────────────────────────────────────────────────────────────
 # JavaScript executed ONCE after page load
@@ -120,10 +122,162 @@ async def render_frame_to_mp4(
     duration_sec: float = 10.0,
     orientation: str = "horizontal",
 ) -> str:
-    """Render one animated HTML page to an MP4 file via Playwright + ffmpeg."""
+    """Render one animated HTML page to an MP4 file via Playwright + ffmpeg.
+    NOTE: For multi-frame videos use render_all_frames_to_mp4() to reuse one
+    browser instance across all frames — avoids OOM from repeated Chromium launches.
+    """
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     await asyncio.to_thread(_render_sync, html_content, output_path, duration_sec, orientation)
     return output_path
+
+
+async def render_all_frames_to_mp4(
+    frames: list[dict],
+    out_dir: str,
+    orientation: str,
+) -> list[str | None]:
+    """
+    Render all frames using a SINGLE Chromium instance kept alive for the whole video.
+
+    Each dict in `frames` must have:
+      - html: str          — the animated HTML content
+      - output_path: str   — where to write the .mp4
+      - duration_sec: float
+
+    Returns a list of output paths (or None for failed frames), same order as input.
+    Launching Chromium once instead of once-per-frame cuts peak memory from
+    3×150MB to 1×150MB — critical on 512MB Render instances.
+    """
+    return await asyncio.to_thread(_render_all_sync, frames, out_dir, orientation)
+
+
+def _render_all_sync(
+    frames: list[dict],
+    out_dir: str,
+    orientation: str,
+) -> list[str | None]:
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        raise RuntimeError(
+            "playwright not installed. Run: pip install playwright && playwright install chromium"
+        )
+
+    _IS_CLOUD = not os.path.exists("/Users")
+    if _IS_CLOUD:
+        width, height = (854, 480) if orientation == "horizontal" else (480, 854)
+    else:
+        width, height = (1280, 720) if orientation == "horizontal" else (720, 1280)
+
+    results: list[str | None] = []
+
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(
+            headless=True,
+            args=[
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+                "--disable-extensions",
+                "--disable-background-networking",
+                "--disable-default-apps",
+                "--disable-sync",
+                "--metrics-recording-only",
+                "--mute-audio",
+                "--no-first-run",
+                "--font-render-hinting=none",
+                "--js-flags=--max-old-space-size=64",
+                "--disable-features=site-per-process,TranslateUI,VizDisplayCompositor",
+                "--renderer-process-limit=1",
+                "--disable-renderer-accessibility",
+            ],
+        )
+        try:
+            for frame in frames:
+                html_content = frame["html"]
+                output_path = frame["output_path"]
+                duration_sec = frame.get("duration_sec", 10.0)
+                total_frames = max(_FPS, int(duration_sec * _FPS))
+
+                freeze_css = (
+                    '<style id="__vr_freeze__">'
+                    "*, *::before, *::after { animation-play-state: paused !important; }"
+                    "#pen { display: none !important; }"
+                    "</style>"
+                )
+                patched = html_content.replace("</head>", freeze_css + "\n</head>", 1) \
+                    if "</head>" in html_content else freeze_css + html_content
+
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".html", delete=False, encoding="utf-8"
+                ) as f:
+                    f.write(patched)
+                    temp_html = f.name
+
+                try:
+                    page = browser.new_page(viewport={"width": width, "height": height})
+                    try:
+                        page.goto("file:///" + temp_html.replace("\\", "/"))
+                        try:
+                            page.wait_for_load_state("networkidle", timeout=5000)
+                        except Exception:
+                            page.wait_for_load_state("load")
+                        page.wait_for_timeout(400)
+
+                        anim_count = page.evaluate(_JS_SETUP)
+                        logger.info("Frame %s: %d animations, %d screenshots",
+                                    os.path.basename(output_path), anim_count, total_frames)
+
+                        ffmpeg_proc = subprocess.Popen(
+                            [
+                                _FFMPEG, "-y",
+                                "-f", "image2pipe",
+                                "-vcodec", "png",
+                                "-r", str(_FPS),
+                                "-i", "pipe:0",
+                                "-c:v", "libx264",
+                                "-preset", "fast",
+                                "-crf", "23",
+                                "-vf", "scale=1280:720:flags=lanczos" if _IS_CLOUD else "scale=1280:720",
+                                "-pix_fmt", "yuv420p",
+                                "-movflags", "+faststart",
+                                output_path,
+                            ],
+                            stdin=subprocess.PIPE,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                        )
+                        try:
+                            for i in range(total_frames):
+                                t_ms = (i / _FPS) * 1000.0
+                                page.evaluate(_JS_FRAME, t_ms)
+                                png = page.screenshot(type="png")
+                                ffmpeg_proc.stdin.write(png)  # type: ignore[union-attr]
+                        finally:
+                            ffmpeg_proc.stdin.close()  # type: ignore[union-attr]
+
+                        ffmpeg_proc.wait(timeout=120)
+                        if ffmpeg_proc.returncode != 0:
+                            raise RuntimeError(f"ffmpeg failed (rc={ffmpeg_proc.returncode})")
+
+                        results.append(output_path)
+                        logger.info("Frame %s done (%d bytes)",
+                                    os.path.basename(output_path), os.path.getsize(output_path))
+                    finally:
+                        page.close()  # close page, NOT browser — reuse the process
+                except Exception as exc:
+                    logger.error("Frame %s render failed: %s", os.path.basename(output_path), exc)
+                    results.append(None)
+                finally:
+                    if os.path.exists(temp_html):
+                        try:
+                            os.remove(temp_html)
+                        except OSError:
+                            pass
+        finally:
+            browser.close()
+
+    return results
 
 
 def _render_sync(
@@ -178,7 +332,8 @@ def _render_sync(
                     "--no-sandbox",
                     "--disable-dev-shm-usage",          # prevents /dev/shm OOM in containers
                     "--disable-gpu",
-                    "--single-process",                 # merge renderer into browser process — saves ~80MB on 512MB instances
+                    # NOTE: --single-process was removed — Chromium marks it as explicitly unstable
+                    # and it leaks memory between screenshots, causing each frame to take 2× longer
                     "--disable-extensions",
                     "--disable-background-networking",
                     "--disable-default-apps",
@@ -187,9 +342,10 @@ def _render_sync(
                     "--mute-audio",
                     "--no-first-run",
                     "--font-render-hinting=none",
-                    "--js-flags=--max-old-space-size=64",  # reduced from 128 — we do minimal JS
-                    "--disable-features=site-per-process,TranslateUI",
+                    "--js-flags=--max-old-space-size=64",
+                    "--disable-features=site-per-process,TranslateUI,VizDisplayCompositor",
                     "--renderer-process-limit=1",
+                    "--disable-renderer-accessibility",
                 ],
             )
             page = browser.new_page(viewport={"width": width, "height": height})
