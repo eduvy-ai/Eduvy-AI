@@ -9,6 +9,7 @@ The old main.py still works - use this for new development.
 """
 import os
 import time
+import logging
 import warnings
 from collections import defaultdict
 
@@ -43,6 +44,17 @@ from app.modules.admin.router import router as admin_router
 from app.modules.video.router import router as video_router
 
 load_dotenv()
+
+# ── Logging setup ─────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%H:%M:%S",
+)
+# Suppress noisy third-party loggers
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("multipart").setLevel(logging.WARNING)
 
 # ── Warn if JWT secret is insecure ────────────────────────────
 if settings.JWT_SECRET == "eduvyai-change-me":

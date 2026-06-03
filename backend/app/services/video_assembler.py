@@ -64,6 +64,9 @@ async def assemble_video(
     frame_mp4s = []
     audio_files = []
     total_duration = 0
+    total_frames = len(frames)
+
+    logger.info("=== VIDEO %s: starting assembly, %d frames ===", video_id[:8], total_frames)
 
     try:
         for frame in frames:
@@ -80,22 +83,25 @@ async def assemble_video(
             narration = frame.get("narration", "")
             total_duration += duration_sec
 
+            logger.info("[%d/%d] Frame %d — duration=%.1fs, narration=%d chars",
+                        fidx + 1, total_frames, fidx, duration_sec, len(narration))
+
             # ── Generate TTS audio (ALWAYS — independent of video render) ─
             audio_path = os.path.join(out_dir, f"audio_{fidx:03d}.mp3")
             padded_path = os.path.join(out_dir, f"audio_padded_{fidx:03d}.mp3")
             try:
                 if narration.strip():
-                    logger.info("TTS frame %d: %s chars, lang=%s", fidx, len(narration), narration_language)
+                    logger.info("  [%d/%d] TTS start (lang=%s)", fidx + 1, total_frames, narration_language)
                     await generate_tts(narration, narration_language, audio_path)
                     await pad_audio_to_duration(audio_path, duration_sec, padded_path)
                     audio_files.append(padded_path)
-                    logger.info("TTS frame %d: OK (%d bytes)", fidx, os.path.getsize(padded_path))
+                    logger.info("  [%d/%d] TTS done (%d bytes)", fidx + 1, total_frames, os.path.getsize(padded_path))
                 else:
-                    logger.warning("Frame %d has no narration text — using silence", fidx)
+                    logger.warning("  [%d/%d] No narration — using silence", fidx + 1, total_frames)
                     await _generate_silence(duration_sec, padded_path)
                     audio_files.append(padded_path)
             except Exception as exc:
-                logger.warning("TTS frame %d failed: %s — using silence", fidx, exc)
+                logger.warning("  [%d/%d] TTS failed: %s — using silence", fidx + 1, total_frames, exc)
                 try:
                     await _generate_silence(duration_sec, padded_path)
                     audio_files.append(padded_path)
@@ -106,21 +112,25 @@ async def assemble_video(
             html = generate_scene_html(svg_spec, style_variant, orientation)
             frame_mp4 = os.path.join(out_dir, f"frame_{fidx:03d}.mp4")
             try:
+                logger.info("  [%d/%d] Rendering frame to MP4...", fidx + 1, total_frames)
                 await render_frame_to_mp4(html, frame_mp4, duration_sec, orientation)
                 frame_mp4s.append(frame_mp4)
                 _update_frame_status(frame_id, "done", frame_mp4)
+                logger.info("  [%d/%d] Frame MP4 done (%d bytes)", fidx + 1, total_frames, os.path.getsize(frame_mp4))
             except Exception as exc:
-                logger.error("Frame %d render failed: %s", fidx, exc)
+                logger.error("  [%d/%d] Frame render FAILED: %s", fidx + 1, total_frames, exc)
                 frame_mp4s.append(None)
                 _update_frame_status(frame_id, "error")
 
         # ── Concatenate all frame MP4s ────────────────────────────────────
-        valid_frames = [f for f in frame_mp4s if f and os.path.exists(f)]
-        if not valid_frames:
+        valid_frames_list = [f for f in frame_mp4s if f and os.path.exists(f)]
+        logger.info("=== VIDEO %s: %d/%d frames rendered OK, concatenating... ===",
+                    video_id[:8], len(valid_frames_list), total_frames)
+        if not valid_frames_list:
             raise RuntimeError("No frames rendered successfully")
 
         final_video = os.path.join(out_dir, f"{video_id}.mp4")
-        await _concat_video_files(valid_frames, final_video)
+        await _concat_video_files(valid_frames_list, final_video)
 
         # ── Mix audio onto video ──────────────────────────────────────────
         valid_audio = [a for a in audio_files if a and os.path.exists(a)]

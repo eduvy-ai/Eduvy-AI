@@ -142,10 +142,14 @@ export default function VideoCreatorTab({ profile = null }) {
         const s = status.status
         setGenStatus(s)
 
-        if (s === 'processing') {
-          const done = status.frames_done || 0
+        if (s === 'queued') {
+          setGenProgress(5)
+        }
+
+        if (s === 'rendering' || s === 'processing') {
+          const done = status.processed_frames || 0
           const total = status.frame_count || 1
-          setGenProgress(Math.min(90, Math.round((done / total) * 90)))
+          setGenProgress(Math.max(10, Math.min(90, Math.round((done / total) * 90))))
         }
 
         if (s === 'done') {
