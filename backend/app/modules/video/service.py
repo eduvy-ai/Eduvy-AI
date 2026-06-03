@@ -167,6 +167,18 @@ class VideoService:
             logger.error("AI script generation failed: %s", exc)
             raise VideoGenerationError(f"Script generation failed: {str(exc)}")
 
+        # Detect the "no API keys configured" sentinel before trying to parse JSON
+        if response_text.startswith("⚠️"):
+            logger.error(
+                "AI unavailable for video script — no API keys found. "
+                "Set GROQ_API_KEY (or GEMINI_API_KEY/OPENAI_API_KEY) as environment variables on Render. "
+                "Raw: %s", response_text
+            )
+            raise VideoGenerationError(
+                "AI service is unavailable. Please add an AI provider API key "
+                "(GROQ_API_KEY, GEMINI_API_KEY, or OPENAI_API_KEY) in the server environment variables."
+            )
+
         logger.info("AI raw response (first 800 chars): %s", response_text[:800])
 
         # Strip markdown fences (```json ... ``` or ``` ... ```)
