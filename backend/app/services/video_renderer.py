@@ -139,6 +139,27 @@ def _render_sync(
             "playwright not installed. Run: pip install playwright && playwright install chromium"
         )
 
+    # Self-heal: if the Chromium binary is missing (e.g. path mismatch after a
+    # Render deploy), run `playwright install chromium` automatically once.
+    def _ensure_chromium() -> None:
+        try:
+            with sync_playwright() as _pw:
+                exe = _pw.chromium.executable_path
+            if not os.path.exists(exe):
+                raise FileNotFoundError(exe)
+        except Exception as _e:
+            logger.warning("Chromium binary missing (%s) — auto-installing...", _e)
+            import subprocess
+            result = subprocess.run(
+                ["python", "-m", "playwright", "install", "chromium"],
+                capture_output=True, text=True,
+            )
+            logger.info("playwright install stdout: %s", result.stdout[-500:])
+            if result.returncode != 0:
+                logger.error("playwright install failed: %s", result.stderr[-500:])
+
+    _ensure_chromium()
+
     width, height = (1280, 720) if orientation == "horizontal" else (720, 1280)
     total_frames = max(_FPS, int(duration_sec * _FPS))
 
