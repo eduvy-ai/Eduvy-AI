@@ -563,11 +563,21 @@ async def call_ai(
                         break
                     await asyncio.sleep(2)
 
-                except Exception:
+                except Exception as _exc:
+                    import logging as _lg
+                    _lg.getLogger(__name__).error(
+                        "call_ai [%s/%s] unexpected error (attempt %d): %s",
+                        cur_provider, cur_model, attempt + 1, _exc
+                    )
                     if attempt == n_attempts - 1:
                         break  # unexpected error → try next provider
                     await asyncio.sleep(2)
 
+    import logging as _lg
+    _lg.getLogger(__name__).error(
+        "call_ai: all providers exhausted — no valid response. providers_tried=%s",
+        [p for p, _ in _provider_order()]
+    )
     return ("⚠️ AI service is temporarily unavailable. Please try again shortly.", 0, 0)
 
 

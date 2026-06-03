@@ -176,4 +176,11 @@ app.mount("/videos", StaticFiles(directory=_VIDEOS_DIR), name="videos")
 # ── Health Check ──────────────────────────────────────────────
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "service": "Eduvy-AI Backend", "version": "3.0.0"}
+    from services.ai_service import _KEY_POOLS
+    ai_status = {p: len(pool) for p, pool in _KEY_POOLS.items() if pool}
+    return {
+        "status": "ok",
+        "service": "Eduvy-AI Backend",
+        "version": "3.0.0",
+        "ai_providers": ai_status if ai_status else "NONE — add API keys",
+    }
