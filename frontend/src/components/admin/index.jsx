@@ -13,13 +13,14 @@ import {
   UsageTab,
   AIConfigTab,
   DrishtiHelpersTab,
+  APIMonitorTab,
 } from './tabs'
 
 // ── Main Admin Panel ──────────────────────────────────────────
 export default function AdminPanel() {
   const navigate  = useNavigate()
   const { section = 'curriculum' } = useParams()
-  const activeTab = ['curriculum','boards','standards','mediums','users','usage','aiconfig','drishti'].includes(section)
+  const activeTab = ['curriculum','boards','standards','mediums','users','usage','aiconfig','drishti','apimonitor'].includes(section)
     ? section : 'curriculum'
 
   const [authed, setAuthed]   = useState(!!localStorage.getItem('eduvyai_admin_token'))
@@ -65,6 +66,7 @@ export default function AdminPanel() {
     { id: "usage",      label: "📊 AI Usage",      short: "📊" },
     { id: "aiconfig",   label: "🤖 AI Models",     short: "🤖" },
     { id: "drishti",    label: "👁️ Drishti",       short: "👁️" },
+    { id: "apimonitor", label: "🔌 API Monitor",    short: "🔌" },
   ]
 
   const contentMap = {
@@ -76,6 +78,7 @@ export default function AdminPanel() {
     usage:      <UsageTab      toast={showToast} />,
     aiconfig:   <AIConfigTab   toast={showToast} />,
     drishti:    <DrishtiHelpersTab toast={showToast} />,
+    apimonitor: <APIMonitorTab     toast={showToast} />,
   }
 
   // Shared title bar rendered inside content area for all breakpoints

@@ -22,6 +22,7 @@ const ALL_NAV_ITEMS: { key: TabKey; labelKey: string }[] = [
   { key: 'bhool', labelKey: 'bhoolTab' },
   { key: 'muqabla', labelKey: 'muqablaTab' },
   { key: 'labs', labelKey: 'labsTab' },
+  { key: 'videocreator', labelKey: 'videoCreatorTab' },
 ]
 
 const DashboardLayout: React.FC = () => {
@@ -84,20 +85,36 @@ const DashboardLayout: React.FC = () => {
     <div className="app-shell">
       {/* ── Desktop Sidebar Nav ── */}
       <nav className="side-nav">
-        <div className="flex items-center gap-2.5 mb-8 px-2">
+        {/* Logo */}
+        <div className="flex items-center gap-2.5 mb-4 px-2">
           <span className="text-[26px]">🎓</span>
           <span className="font-black text-lg text-app-green tracking-tight">Eduvy-AI</span>
         </div>
 
-        <div className="flex flex-col gap-1 flex-1">
+        {/* User identity card */}
+        {user && (
+          <div className="mb-4 px-1 pb-4 border-b border-white/[0.06]">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-app-green/15 border border-app-green/25 flex items-center justify-center text-[14px] font-black text-app-green shrink-0">
+                {(user.name || 'S').charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <div className="text-[12px] font-bold text-app-text truncate">{user.name || 'Student'}</div>
+                <div className="text-[10px] text-app-muted truncate">{(user as any).standard} · {(user as any).board}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-0.5 flex-1">
           {navItems.map(n => (
             <button
               key={n.key}
               onClick={() => setTab(n.key)}
-              className={`rounded-xl py-2.5 px-3.5 flex items-center gap-3 cursor-pointer font-[Sora,sans-serif] text-left transition-all duration-150 border-[1.5px] ${
+              className={`rounded-xl py-2.5 px-3.5 flex items-center gap-3 cursor-pointer font-[Sora,sans-serif] text-left transition-all duration-150 border-[1.5px] active:scale-[0.97] relative ${
                 tab === n.key
-                  ? 'bg-app-green/10 border-app-green/30'
-                  : 'bg-transparent border-transparent'
+                  ? 'bg-app-green/10 border-app-green/30 side-active'
+                  : 'bg-transparent border-transparent hover:bg-white/[0.04] hover:border-white/[0.05]'
               }`}
             >
               <span className="text-xl w-6 text-center">{getIcon(n.labelKey)}</span>
@@ -134,7 +151,7 @@ const DashboardLayout: React.FC = () => {
           {/* Settings button */}
           <button
             onClick={() => setShowSettings(true)}
-            className="rounded-[10px] py-2.5 px-3 flex items-center gap-2 cursor-pointer font-[Sora,sans-serif] w-full border bg-app-card2 border-app-border hover:border-app-green/30 transition-colors"
+            className="rounded-xl py-2.5 px-3 flex items-center gap-2 cursor-pointer font-[Sora,sans-serif] w-full border bg-app-card2 border-app-border hover:border-app-green/30 active:scale-[0.97] transition-all duration-150"
           >
             <span className="text-base">⚙️</span>
             <span className="text-sm font-medium text-app-text">{ui.settings || 'Settings'}</span>
@@ -143,7 +160,7 @@ const DashboardLayout: React.FC = () => {
           {/* Logout button */}
           <button
             onClick={handleLogout}
-            className="rounded-[10px] py-2.5 px-3 flex items-center gap-2 cursor-pointer font-[Sora,sans-serif] w-full border bg-app-red/10 border-app-red/30 hover:bg-app-red/20 transition-colors"
+            className="rounded-xl py-2.5 px-3 flex items-center gap-2 cursor-pointer font-[Sora,sans-serif] w-full border bg-app-red/10 border-app-red/30 hover:bg-app-red/20 active:scale-[0.97] transition-all duration-150"
           >
             <span className="text-base">🚪</span>
             <span className="text-sm font-medium text-app-red">{ui.logout || 'Logout'}</span>
@@ -151,33 +168,36 @@ const DashboardLayout: React.FC = () => {
         </div>
       </nav>
 
-      {/* ── Mobile Bottom Nav ── */}
+      {/* ── Mobile Bottom Nav — horizontally scrollable, shows all tabs ── */}
       <nav className="bottom-nav">
-        {navItems.slice(0, 4).map(n => (
+        {navItems.map(n => (
           <button
             key={n.key}
             onClick={() => setTab(n.key)}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-2 bg-transparent border-none cursor-pointer ${
-              tab === n.key ? 'text-app-green' : 'text-app-muted'
+            className={`flex-shrink-0 min-w-[64px] h-14 flex flex-col items-center justify-center gap-0.5 py-0 px-1 bg-transparent border-none cursor-pointer ${
+              tab === n.key ? 'text-app-green nav-active' : 'text-app-muted'
             }`}
           >
-            <span className="text-lg">{getIcon(n.labelKey)}</span>
-            <span className="text-[10px] font-medium">{getLabel(n.labelKey)}</span>
+            <span className="text-[22px] leading-none">{getIcon(n.labelKey)}</span>
+            <span className={`text-[10px] leading-tight mt-0.5 max-w-[56px] text-center truncate ${tab === n.key ? 'font-bold' : 'font-medium'}`}>{getLabel(n.labelKey)}</span>
           </button>
         ))}
-        {/* Settings/More button on mobile */}
+        {/* Settings always last */}
         <button
           onClick={() => setShowSettings(true)}
-          className="flex-1 flex flex-col items-center gap-0.5 py-2 bg-transparent border-none cursor-pointer text-app-muted"
+          className="flex-shrink-0 min-w-[64px] h-14 flex flex-col items-center justify-center gap-0.5 py-0 px-1 bg-transparent border-none cursor-pointer text-app-muted"
         >
-          <span className="text-lg">⚙️</span>
-          <span className="text-[10px] font-medium">{ui.more || 'More'}</span>
+          <span className="text-[22px] leading-none">⚙️</span>
+          <span className="text-[10px] font-medium leading-tight mt-0.5">{ui.more || 'More'}</span>
         </button>
       </nav>
 
       {/* ── Main Content Area ── */}
       <main className="tab-content">
-        <Outlet />
+        {/* key={tab} re-mounts div on tab change, triggering the CSS fade-slide-up animation */}
+        <div key={tab} className="tab-fade-in" style={{ minHeight: '100%' }}>
+          <Outlet />
+        </div>
       </main>
       
       {/* ── Settings Modal ── */}
@@ -188,6 +208,7 @@ const DashboardLayout: React.FC = () => {
             savedKeys={{}}
             onSave={() => {}}
             onClose={() => setShowSettings(false)}
+            onLogout={handleLogout}
             profile={user}
             onProfileSave={handleProfileSave}
           />

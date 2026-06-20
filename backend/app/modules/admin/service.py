@@ -135,7 +135,9 @@ class AdminService:
         conn = get_db()
         try:
             cur = conn.cursor()
-            cur.execute("UPDATE boards SET is_active=FALSE WHERE id=%s", (board_id,))
+            # Cascade: remove all curriculum rows that reference this board
+            cur.execute("DELETE FROM curriculum WHERE board_id=%s", (board_id,))
+            cur.execute("DELETE FROM boards WHERE id=%s", (board_id,))
             conn.commit()
             return {"ok": True}
         finally:
@@ -208,7 +210,9 @@ class AdminService:
         conn = get_db()
         try:
             cur = conn.cursor()
-            cur.execute("UPDATE standards SET is_active=FALSE WHERE id=%s", (std_id,))
+            # Cascade: remove all curriculum rows that reference this standard
+            cur.execute("DELETE FROM curriculum WHERE standard_id=%s", (std_id,))
+            cur.execute("DELETE FROM standards WHERE id=%s", (std_id,))
             conn.commit()
             return {"ok": True}
         finally:
@@ -250,7 +254,9 @@ class AdminService:
         conn = get_db()
         try:
             cur = conn.cursor()
-            cur.execute("UPDATE mediums SET is_active=FALSE WHERE id=%s", (med_id,))
+            # Cascade: remove all curriculum rows that reference this medium
+            cur.execute("DELETE FROM curriculum WHERE medium_id=%s", (med_id,))
+            cur.execute("DELETE FROM mediums WHERE id=%s", (med_id,))
             conn.commit()
             return {"ok": True}
         finally:
@@ -420,6 +426,65 @@ class AdminService:
             conn.close()
 
     @staticmethod
+    def bulk_delete_standards(ids: List[str]) -> Dict:
+        if not ids:
+            return {"deleted": 0}
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            placeholders = ",".join(["%s"] * len(ids))
+            cur.execute(f"DELETE FROM curriculum WHERE standard_id IN ({placeholders})", ids)
+            cur.execute(f"DELETE FROM standards WHERE id IN ({placeholders})", ids)
+            conn.commit()
+            return {"deleted": len(ids)}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def bulk_delete_boards(ids: List[str]) -> Dict:
+        if not ids:
+            return {"deleted": 0}
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            placeholders = ",".join(["%s"] * len(ids))
+            cur.execute(f"DELETE FROM curriculum WHERE board_id IN ({placeholders})", ids)
+            cur.execute(f"DELETE FROM boards WHERE id IN ({placeholders})", ids)
+            conn.commit()
+            return {"deleted": len(ids)}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def bulk_delete_mediums(ids: List[str]) -> Dict:
+        if not ids:
+            return {"deleted": 0}
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            placeholders = ",".join(["%s"] * len(ids))
+            cur.execute(f"DELETE FROM curriculum WHERE medium_id IN ({placeholders})", ids)
+            cur.execute(f"DELETE FROM mediums WHERE id IN ({placeholders})", ids)
+            conn.commit()
+            return {"deleted": len(ids)}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def bulk_delete_curriculum(ids: List[int]) -> Dict:
+        if not ids:
+            return {"deleted": 0}
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            placeholders = ",".join(["%s"] * len(ids))
+            cur.execute(f"DELETE FROM curriculum WHERE id IN ({placeholders})", ids)
+            conn.commit()
+            return {"deleted": len(ids)}
+        finally:
+            conn.close()
+
+    @staticmethod
     def import_curriculum(rows: List[Dict]) -> Dict:
         import json as _json
         conn = get_db()
@@ -537,6 +602,153 @@ class AdminService:
         finally:
             conn.close()
 
+    @staticmethod
+    def bulk_delete_users(ids: List[str]) -> Dict:
+        if not ids:
+            return {"deleted": 0}
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            placeholders = ",".join(["%s"] * len(ids))
+            cur.execute(f"DELETE FROM users WHERE id IN ({placeholders})", ids)
+            conn.commit()
+            return {"deleted": len(ids)}
+        finally:
+            conn.close()
+
+    # ── API / Model Dashboard ──────────────────────────────────
+
+    @staticmethod
+    def get_api_dashboard() -> Dict:
+        """Return live provider pool status, plan routing, and today's usage estimates."""
+        from services.ai_service import _KEY_POOLS, _PLAN_ROUTING
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+            # Today's calls + tokens grouped by user plan
+            cur.execute(
+                """SELECT u.plan,
+                          COALESCE(SUM(a.call_count), 0)                        AS calls,
+                          COALESCE(SUM(a.prompt_tokens + a.completion_tokens), 0) AS tokens
+                   FROM ai_usage a
+                   JOIN users u ON u.id = a.user_id
+                   WHERE a.date = %s
+                   GROUP BY u.plan""",
+                (today,),
+            )
+            plan_usage: dict = {r["plan"]: {"calls": int(r["calls"]), "tokens": int(r["tokens"])}
+                                for r in cur.fetchall()}
+
+            # Total users per plan
+            cur.execute("SELECT plan, COUNT(*) AS cnt FROM users GROUP BY plan")
+            plan_user_counts: dict = {r["plan"]: int(r["cnt"]) for r in cur.fetchall()}
+
+            # Estimate provider call/token counts from plan routing
+            provider_calls: dict = {}
+            provider_tokens: dict = {}
+            for plan, usage in plan_usage.items():
+                routing = _PLAN_ROUTING.get(plan, {})
+                prov = routing.get("provider", "groq")
+                provider_calls[prov] = provider_calls.get(prov, 0) + usage["calls"]
+                provider_tokens[prov] = provider_tokens.get(prov, 0) + usage["tokens"]
+
+            # Known conservative free-tier daily REQUEST limits per key.
+            # llama-3.3-70b-versatile: 1,000 RPD  (most plans use this)
+            # llama-3.1-8b-instant:   14,400 RPD  (free plan fallback)
+            FREE_LIMITS = {
+                "groq":      1_000,    # conservative default (70b model limit)
+                "gemini":    1_500,    # Gemini 2.0 Flash free tier
+                "anthropic":     0,    # No free tier — paid only
+                "openai":        0,    # No free tier — paid only
+                "nvidia":       40,    # NIM API playground free tier
+            }
+            GROQ_MODEL_LIMITS = {
+                "llama-3.1-8b-instant":    14_400,
+                "llama-3.3-70b-versatile":  1_000,
+                "llama-3.3-70b-specdec":    1_000,
+                "llama-3.1-70b-versatile":  1_000,
+            }
+            PROVIDER_LABELS = {
+                "groq":      "Groq",
+                "gemini":    "Google Gemini",
+                "anthropic": "Anthropic Claude",
+                "openai":    "OpenAI GPT",
+                "nvidia":    "NVIDIA NIM",
+            }
+            PROVIDER_ICONS = {
+                "groq": "⚡", "gemini": "✦", "anthropic": "◈", "openai": "◎", "nvidia": "⬡"
+            }
+
+            providers = []
+            for prov in ["groq", "gemini", "anthropic", "openai", "nvidia"]:
+                pool_size      = len(_KEY_POOLS.get(prov, []))
+                calls_today    = provider_calls.get(prov, 0)
+                per_key_limit  = FREE_LIMITS[prov]
+                # For Groq: use the active model’s actual RPD limit
+                if prov == "groq":
+                    active_groq_model = next(
+                        (r["model"] for r in _PLAN_ROUTING.values() if r.get("provider") == "groq"),
+                        "llama-3.3-70b-versatile"
+                    )
+                    per_key_limit = GROQ_MODEL_LIMITS.get(active_groq_model, FREE_LIMITS["groq"])
+                # Total daily capacity = per-key limit × number of keys
+                # Each key has its own independent quota from the provider.
+                total_limit    = per_key_limit * pool_size if pool_size > 0 else per_key_limit
+                used_pct       = round(calls_today / total_limit * 100) if total_limit else 0
+                # Which model is this provider serving (first matching plan)
+                active_model = next(
+                    (r["model"] for r in _PLAN_ROUTING.values() if r.get("provider") == prov),
+                    "—"
+                )
+                providers.append({
+                    "id":            prov,
+                    "label":         PROVIDER_LABELS[prov],
+                    "icon":          PROVIDER_ICONS[prov],
+                    "pool_size":     pool_size,
+                    "has_key":       pool_size > 0,
+                    "active_model":  active_model,
+                    "calls_today":   calls_today,
+                    "tokens_today":  provider_tokens.get(prov, 0),
+                    "per_key_limit": per_key_limit,   # limit for a single key
+                    "total_limit":   total_limit,     # per_key_limit × pool_size
+                    "used_pct":      min(used_pct, 100),
+                })
+
+            # Per-plan routing + usage
+            DEFAULT_ROUTING = {
+                "free":    {"provider": "groq",   "model": "llama-3.1-8b-instant"},
+                "basic":   {"provider": "groq",   "model": "llama-3.3-70b-versatile"},
+                "pro":     {"provider": "gemini", "model": "gemini-2.0-flash"},
+                "premium": {"provider": "gemini", "model": "gemini-2.0-flash"},
+            }
+            plans = []
+            for plan in ["free", "basic", "pro", "premium"]:
+                routing  = _PLAN_ROUTING.get(plan, DEFAULT_ROUTING[plan])
+                usage    = plan_usage.get(plan, {"calls": 0, "tokens": 0})
+                plans.append({
+                    "plan":        plan,
+                    "provider":    routing.get("provider", "groq"),
+                    "model":       routing.get("model", "—"),
+                    "user_count":  plan_user_counts.get(plan, 0),
+                    "calls_today": usage["calls"],
+                    "tokens_today": usage["tokens"],
+                })
+
+            total_calls  = sum(u["calls"]  for u in plan_usage.values())
+            total_tokens = sum(u["tokens"] for u in plan_usage.values())
+
+            return {
+                "providers":          providers,
+                "plans":              plans,
+                "total_calls_today":  total_calls,
+                "total_tokens_today": total_tokens,
+                "as_of":              today,
+            }
+        finally:
+            conn.close()
+
     # ── AI Usage ──────────────────────────────────────────────
 
     @staticmethod
@@ -552,7 +764,7 @@ class AdminService:
             cur.execute(
                 """SELECT date, SUM(call_count) AS calls, SUM(prompt_tokens+completion_tokens) AS tokens
                    FROM ai_usage
-                   WHERE date >= CURRENT_DATE - INTERVAL '%s days'
+                   WHERE date::date >= CURRENT_DATE - (%s || ' days')::interval
                    GROUP BY date ORDER BY date DESC""",
                 (days,)
             )
@@ -567,9 +779,9 @@ class AdminService:
         try:
             cur = conn.cursor()
             cur.execute(
-                """SELECT u.user_id, us.name,
-                          u.call_count AS calls,
-                          u.prompt_tokens + u.completion_tokens AS tokens
+                """SELECT u.user_id, us.name, us.email, us.plan,
+                          u.call_count,
+                          u.prompt_tokens + u.completion_tokens AS total_tokens
                    FROM ai_usage u
                    LEFT JOIN users us ON us.id = u.user_id
                    WHERE u.date = %s
@@ -608,7 +820,7 @@ class AdminService:
                 if plan not in routing:
                     routing[plan] = val
             # Key status and slots
-            providers = ["gemini", "groq", "anthropic", "openai"]
+            providers = ["gemini", "groq", "anthropic", "openai", "nvidia"]
             key_status = {}
             key_slots = {}
             def mask_key(k: str) -> str:
@@ -632,7 +844,8 @@ class AdminService:
                         has_key = True
                 # Also check env vars
                 env_base = {"gemini": "GEMINI_API_KEY", "groq": "GROQ_API_KEY",
-                            "anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY"}.get(prov, "")
+                            "anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY",
+                            "nvidia": "NVIDIA_API_KEY"}.get(prov, "")
                 import os as _os
                 env_count = sum(1 for i in ([""] + [f"_{j}" for j in range(2, 6)])
                                 if _os.getenv(f"{env_base}{i}", ""))
@@ -700,6 +913,103 @@ class AdminService:
             return {"ok": True}
         finally:
             conn.close()
+
+    @staticmethod
+    async def fetch_provider_models(provider: str) -> List[str]:
+        """
+        Fetch the live model list from the provider's API using the configured key.
+        Falls back to a safe static list if the call fails or no key is set.
+        Returns a list of model id strings.
+        """
+        import httpx as _httpx
+        from services.ai_service import _next_key
+
+        # Static fallback per provider (used when key missing or API down)
+        _FALLBACK: Dict[str, List[str]] = {
+            "groq":      ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"],
+            "gemini":    ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"],
+            "anthropic": ["claude-sonnet-4-20250514", "claude-3-5-haiku-20241022"],
+            "openai":    ["gpt-4o-mini", "gpt-4o"],
+            "nvidia":    [
+                "meta/llama-3.3-70b-instruct",
+                "meta/llama-3.1-8b-instruct",
+                "nvidia/llama-3.3-nemotron-super-49b-v1",
+                "nvidia/llama-3.1-nemotron-ultra-253b-v1",
+                "mistralai/mistral-nemotron",
+                "deepseek-ai/deepseek-v4-flash",
+            ],
+        }
+
+        key = _next_key(provider)
+        if not key:
+            return _FALLBACK.get(provider, [])
+
+        try:
+            async with _httpx.AsyncClient(timeout=10.0) as client:
+                if provider == "groq":
+                    r = await client.get(
+                        "https://api.groq.com/openai/v1/models",
+                        headers={"Authorization": f"Bearer {key}"},
+                    )
+                    r.raise_for_status()
+                    data = r.json()
+                    ids = [m["id"] for m in data.get("data", []) if m.get("id")]
+                    # Only keep chat-capable models (filter out whisper, tts, etc.)
+                    ids = [m for m in ids if "whisper" not in m and "tts" not in m
+                           and "guard" not in m and "embed" not in m]
+                    return sorted(ids) or _FALLBACK.get(provider, [])
+
+                elif provider == "openai":
+                    r = await client.get(
+                        "https://api.openai.com/v1/models",
+                        headers={"Authorization": f"Bearer {key}"},
+                    )
+                    r.raise_for_status()
+                    data = r.json()
+                    # Keep only GPT / o-series chat models
+                    ids = [m["id"] for m in data.get("data", [])
+                           if m.get("id") and (
+                               m["id"].startswith("gpt-") or m["id"].startswith("o1") or m["id"].startswith("o3")
+                           )]
+                    return sorted(ids) or _FALLBACK.get(provider, [])
+
+                elif provider == "gemini":
+                    r = await client.get(
+                        f"https://generativelanguage.googleapis.com/v1beta/models?key={key}",
+                    )
+                    r.raise_for_status()
+                    data = r.json()
+                    ids = []
+                    for m in data.get("models", []):
+                        name = m.get("name", "")          # "models/gemini-2.0-flash"
+                        methods = m.get("supportedGenerationMethods", [])
+                        if "generateContent" in methods:
+                            ids.append(name.replace("models/", ""))
+                    return sorted(ids) or _FALLBACK.get(provider, [])
+
+                elif provider == "nvidia":
+                    r = await client.get(
+                        "https://integrate.api.nvidia.com/v1/models",
+                        headers={"Authorization": f"Bearer {key}"},
+                    )
+                    r.raise_for_status()
+                    data = r.json()
+                    ids = [m["id"] for m in data.get("data", []) if m.get("id")]
+                    # Filter to chat-capable models only (skip embedding/rerank/image)
+                    ids = [m for m in ids if not any(
+                        kw in m for kw in ["embed", "rerank", "vision", "vlm", "clip",
+                                           "safety", "guard", "pii", "translate"]
+                    )]
+                    return sorted(ids) or _FALLBACK.get(provider, [])
+
+                elif provider == "anthropic":
+                    # Anthropic has no public /models listing — return curated list
+                    return _FALLBACK.get(provider, [])
+
+        except Exception:
+            pass  # network error / bad key — return fallback silently
+
+        return _FALLBACK.get(provider, [])
 
     # ── Drishti Helpers ───────────────────────────────────────
 

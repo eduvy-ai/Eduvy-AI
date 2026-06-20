@@ -13,3 +13,9 @@ bcrypt>=4.0
 passlib[bcrypt]>=1.7
 python-multipart>=0.0.9
 razorpay>=1.4
+# Video generation
+gtts>=2.5
+edge-tts>=6.1.9
+ffmpeg-python>=0.2.0
+playwright>=1.44.0
+aiofiles>=23.2.1

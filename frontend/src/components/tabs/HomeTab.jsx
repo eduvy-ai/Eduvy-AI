@@ -30,9 +30,9 @@ function subIcon(sub) {
 }
 
 function masteryColor(pct) {
-  if (pct >= 75) return COLORS.green
-  if (pct >= 45) return COLORS.yellow
-  return COLORS.red
+  if (pct >= 75) return '#00E5A0'
+  if (pct >= 45) return '#FFD166'
+  return '#FF6B6B'
 }
 
 function masteryLabel(pct, lang) {
@@ -212,10 +212,10 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
           </div>
           <div className="flex gap-2">
             {[
-              { key: "fresh",    icon: "😄", labelKey: "moodFresh",    color: COLORS.green  },
-              { key: "okay",     icon: "😐", labelKey: "moodOkay",     color: COLORS.blue   },
-              { key: "stressed", icon: "😟", labelKey: "moodStressed", color: COLORS.yellow },
-              { key: "tired",    icon: "😴", labelKey: "moodTired",    color: COLORS.muted  },
+              { key: "fresh",    icon: "😄", labelKey: "moodFresh",    color: '#00E5A0'  },
+              { key: "okay",     icon: "😐", labelKey: "moodOkay",     color: '#7B9CFF'   },
+              { key: "stressed", icon: "😟", labelKey: "moodStressed", color: '#FFD166' },
+              { key: "tired",    icon: "😴", labelKey: "moodTired",    color: '#6868a0'  },
             ].map(m => (
               <button 
                 key={m.key} 
@@ -261,8 +261,8 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
 
         {/* Stats row */}
         <div className="flex gap-2">
-          <StatChip icon="⚡" value={`${xp} XP`} color={COLORS.yellow} />
-          <StatChip icon="🔥" value={`${streak} day${streak !== 1 ? "s" : ""}`} color={COLORS.orange} />
+          <StatChip icon="⚡" value={`${xp} XP`} color={'#FFD166'} />
+          <StatChip icon="🔥" value={`${streak} day${streak !== 1 ? "s" : ""}`} color={'#FF6B35'} />
           <StatChip icon="🧠" value={`${avgMastery}% avg`} color={masteryColor(avgMastery)} />
         </div>
       </div>
@@ -401,7 +401,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
         <div className="flex flex-col gap-2">
           {subjects.map(sub => {
             const pct = masteries[sub] ?? 0
-            const color = pct === 0 ? COLORS.muted : masteryColor(pct)
+            const color = pct === 0 ? '#6868a0' : masteryColor(pct)
             const isSelected = selectedSub === sub
             return (
               <button
@@ -409,8 +409,8 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
                 onClick={() => tapSubject(sub)}
                 className="rounded-[14px] py-3 px-3.5 cursor-pointer font-[Sora,sans-serif] text-left transition-all duration-150 border"
                 style={{
-                  background: isSelected ? `${color}12` : COLORS.card2,
-                  borderColor: isSelected ? `${color}50` : COLORS.border,
+                  background: isSelected ? `${color}12` : '#101022',
+                  borderColor: isSelected ? `${color}50` : 'rgba(255,255,255,0.03)',
                 }}
               >
                 {/* Top row */}
@@ -453,6 +453,73 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
                 </div>
               )
             }
+          </div>
+        )}
+      </Section>
+
+      {/* ── Exam Oracle ───────────────────────────────────── */}
+      <Section title="🔮 Exam Oracle">
+        <p className="text-xs text-app-muted mb-3">
+          AI predicts the most likely topics for your {profile.board} {profile.standard} exam
+        </p>
+        {!oracleTopics.length ? (
+          <button onClick={generateOracle} disabled={oracleLoading} className="primary-btn">
+            {oracleLoading ? "🔮 Predicting…" : "⚡ Predict This Year's Topics"}
+          </button>
+        ) : (
+          <>
+            <div className="flex flex-col gap-2">
+              {oracleTopics.map((t, i) => {
+                const topicColor = t.pct >= 80 ? '#FF6B6B' : t.pct >= 60 ? '#FFD166' : '#00E5A0'
+                return (
+                  <button
+                    key={i}
+                    onClick={() => deepDive(t)}
+                    className="rounded-xl py-3 px-3.5 flex items-center justify-between cursor-pointer font-[Sora,sans-serif] text-left border"
+                    style={{
+                      background: oracleSel?.topic === t.topic ? `${topicColor}12` : '#101022',
+                      borderColor: oracleSel?.topic === t.topic ? `${topicColor}50` : 'rgba(255,255,255,0.03)',
+                    }}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span 
+                        className="text-[11px] font-extrabold rounded-md py-0.5 px-1.5 min-w-[20px] text-center"
+                        style={{ color: topicColor, background: `${topicColor}15` }}
+                      >{i + 1}</span>
+                      <span className="text-[13px] text-app-text font-semibold">{t.topic}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="w-12 h-1 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${t.pct}%`, background: topicColor }} />
+                      </div>
+                      <span className="text-xs font-black min-w-[32px] text-right" style={{ color: topicColor }}>{t.pct}%</span>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+            <button
+              onClick={generateOracle}
+              disabled={oracleLoading}
+              className="ghost-btn mt-2.5"
+            >
+              {oracleLoading ? "Predicting…" : "↺ Re-predict"}
+            </button>
+          </>
+        )}
+
+        {(deepLoading || oracleDeep) && (
+          <div className="mt-3">
+            {deepLoading
+              ? <LoadingDots label={`Deep diving into ${oracleSel?.topic}…`} />
+              : (
+                <div className="ai-card border-app-yellow/30">
+                  <div className="text-xs font-bold text-app-yellow mb-1.5">
+                    🔮 Deep Dive — {oracleSel?.topic}
+                  </div>
+                  <p className="text-[13px] text-app-text leading-[1.8] whitespace-pre-wrap m-0">{oracleDeep}</p>
+                </div>
+              )}
           </div>
         )}
       </Section>

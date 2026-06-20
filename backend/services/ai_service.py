@@ -27,12 +27,30 @@ def _encrypt_key(plaintext: str) -> str:
     """Encrypt an API key for storage in DB."""
     return _get_fernet().encrypt(plaintext.encode()).decode()
 
+_decrypt_logger = __import__("logging").getLogger(__name__)
+
 def _decrypt_key(value: str) -> str:
-    """Decrypt a DB-stored API key. Falls back to plaintext for pre-encryption rows."""
+    """Decrypt a DB-stored API key.
+
+    Fallback logic:
+    - If decryption succeeds → return plaintext.
+    - If decryption fails AND the value does NOT start with 'gAAAAA'
+      (i.e. it's an old plaintext row, not a Fernet token) → return as-is.
+    - If decryption fails AND the value looks like a Fernet token → it means
+      JWT_SECRET has changed; log a warning and return "" so the key is not
+      added to the pool with a garbage value.
+    """
     try:
         return _get_fernet().decrypt(value.encode()).decode()
-    except (InvalidToken, Exception):
-        # Migration path: old plaintext value — return as-is and let next save re-encrypt
+    except (InvalidToken, Exception) as exc:
+        # Fernet tokens always start with 'gAAAAA' (URL-safe base64 prefix)
+        if value.startswith("gAAAAA"):
+            _decrypt_logger.error(
+                "_decrypt_key: failed to decrypt a Fernet token — JWT_SECRET may have changed. "
+                "Re-save the API key via the admin panel. Error: %s", exc,
+            )
+            return ""  # do NOT add garbage to the pool
+        # Old plaintext row (before encryption was added) — return as-is
         return value
 
 # ── Server-side keys — NEVER send to clients ──────────────
@@ -42,6 +60,7 @@ _SERVER_KEYS: dict[str, str] = {
     "groq":      os.getenv("GROQ_API_KEY", ""),
     "anthropic": os.getenv("ANTHROPIC_API_KEY", ""),
     "openai":    os.getenv("OPENAI_API_KEY", ""),
+    "nvidia":    os.getenv("NVIDIA_API_KEY", ""),
 }
 
 # ── Per-provider key pools — round-robin for scale ────────────
@@ -58,6 +77,7 @@ _KEY_POOLS: dict[str, list[str]] = {
     "gemini":    _load_pool("GEMINI_API_KEY"),
     "anthropic": _load_pool("ANTHROPIC_API_KEY"),
     "openai":    _load_pool("OPENAI_API_KEY"),
+    "nvidia":    _load_pool("NVIDIA_API_KEY"),
 }
 
 _rr_indices: dict[str, int] = {p: 0 for p in _KEY_POOLS}
@@ -65,14 +85,19 @@ _rr_lock = threading.Lock()
 
 
 def _next_key(provider: str) -> str:
-    """Return next key for provider in round-robin order (thread-safe)."""
+    """Return next key for provider in round-robin order (thread-safe).
+
+    Uses .get() with a default of 0 so providers added dynamically after
+    module startup (via save_api_key / load_plan_routing) never cause a
+    KeyError — the counter is created on first access.
+    """
     pool = _KEY_POOLS.get(provider, [])
     if not pool:
         return ""
     with _rr_lock:
-        idx = _rr_indices[provider] % len(pool)
-        _rr_indices[provider] += 1
-    return pool[idx]
+        current = _rr_indices.get(provider, 0)
+        _rr_indices[provider] = (current + 1) % len(pool)  # keep bounded, never overflows
+    return pool[current % len(pool)]
 
 
 # ── AI Response Cache (TTL-based LRU) ─────────────────────────
@@ -148,6 +173,8 @@ def _fix_model(provider: str, model: str) -> str:
 
 
 
+_load_logger = __import__("logging").getLogger(__name__)
+
 def load_plan_routing():
     """Load plan routing config AND stored API keys from app_settings into memory."""
     try:
@@ -159,6 +186,7 @@ def load_plan_routing():
                 "SELECT key, value FROM app_settings WHERE key LIKE 'ai_routing_%' OR key LIKE 'api_key_%'"
             )
             rows = cur.fetchall()
+            keys_loaded: list[str] = []
             for row in rows:
                 k, v = row["key"], row["value"]
                 if k.startswith("ai_routing_"):
@@ -177,15 +205,19 @@ def load_plan_routing():
                                 (k, json.dumps(entry)),
                             )
                         _PLAN_ROUTING[plan] = entry
-                    except Exception:
-                        pass
+                    except Exception as _e:
+                        _load_logger.warning("load_plan_routing: failed to parse routing row %s: %s", k, _e)
                 elif k.startswith("api_key_"):
                     # Handles both "api_key_groq" (slot 1) and "api_key_groq_2" … "api_key_groq_5"
                     import re as _re
                     suffix = k[len("api_key_"):]
                     slot_m = _re.match(r'^([a-z]+)_(\d+)$', suffix)
                     provider = slot_m.group(1) if slot_m else suffix
-                    plain = _decrypt_key(v) if v else ""
+                    try:
+                        plain = _decrypt_key(v) if v else ""
+                    except Exception as _e:
+                        _load_logger.warning("load_plan_routing: failed to decrypt key %s: %s", k, _e)
+                        plain = ""
                     if provider in _SERVER_KEYS and plain:
                         # Slot-1 key also populates _SERVER_KEYS fallback
                         if not slot_m and not _SERVER_KEYS[provider]:
@@ -193,11 +225,28 @@ def load_plan_routing():
                         # Add every slot to the round-robin pool (deduplicated)
                         if plain not in _KEY_POOLS.get(provider, []):
                             _KEY_POOLS.setdefault(provider, []).append(plain)
+                        keys_loaded.append(k)
+                    elif provider not in _SERVER_KEYS:
+                        _load_logger.warning("load_plan_routing: unknown provider '%s' for DB key %s", provider, k)
+                    elif not plain:
+                        _load_logger.warning("load_plan_routing: key %s decrypted to empty string (check JWT_SECRET)", k)
             conn.commit()
+            if keys_loaded:
+                _load_logger.info("load_plan_routing: loaded DB keys for: %s", keys_loaded)
+            else:
+                _load_logger.warning(
+                    "load_plan_routing: no API keys found in DB (app_settings). "
+                    "Pool sizes after load: %s",
+                    {p: len(pool) for p, pool in _KEY_POOLS.items()},
+                )
         finally:
             conn.close()
-    except Exception:
-        pass  # silently fall back to defaults
+    except Exception as exc:
+        _load_logger.error(
+            "load_plan_routing: failed to load from DB — AI will use env-var keys only. Error: %s",
+            exc,
+            exc_info=True,
+        )
 
 
 _ENV_BASE = {
@@ -205,6 +254,7 @@ _ENV_BASE = {
     "gemini": "GEMINI_API_KEY",
     "anthropic": "ANTHROPIC_API_KEY",
     "openai": "OPENAI_API_KEY",
+    "nvidia": "NVIDIA_API_KEY",
 }
 
 
@@ -336,20 +386,33 @@ def get_plan_routing() -> dict[str, dict]:
     return dict(_PLAN_ROUTING)
 
 
-def _get_key(provider: str, client_key: str | None) -> str:
-    """Return next round-robin key for the provider."""
-    return _next_key(provider)
+# Preferred fallback order when the primary provider is rate-limited or unavailable.
+# nvidia sits after groq so it absorbs overflow before burning Gemini quota.
+_FALLBACK_ORDER = ["groq", "nvidia", "gemini", "anthropic", "openai"]
 
-
-# Preferred fallback order when the resolved provider has no key
-_FALLBACK_ORDER = ["groq", "gemini", "anthropic", "openai"]
-
-# Default first model per provider (used when falling back)
+# Default model per provider used when falling back (not the user's chosen model).
+# Use the most capable model per provider so fallbacks can handle large outputs
+# (e.g. video script generation that needs 8k–16k output tokens).
 _PROVIDER_DEFAULT_MODEL = {
-    "groq":      "llama-3.1-8b-instant",
+    "groq":      "llama-3.3-70b-versatile",   # 32k max output; 8b-instant only has 8k
     "gemini":    "gemini-2.0-flash",
     "anthropic": "claude-3-5-haiku-20241022",
     "openai":    "gpt-4o-mini",
+    "nvidia":    "meta/llama-3.3-70b-instruct",
+}
+
+# Hard per-model output token caps — used to clamp max_tokens before sending.
+# Prevents HTTP 400 "max_tokens exceeds model limit" errors.
+_MODEL_MAX_OUTPUT_TOKENS: dict[str, int] = {
+    "llama-3.1-8b-instant":     8192,
+    "llama-3.3-70b-versatile": 32768,
+    "gemini-2.0-flash":         8192,
+    "gemini-1.5-pro":           8192,
+    "gpt-4o-mini":              16384,
+    "gpt-4o":                   16384,
+    "claude-3-5-haiku-20241022": 8192,
+    "claude-3-5-sonnet-20241022": 8192,
+    "meta/llama-3.3-70b-instruct": 32768,
 }
 
 
@@ -394,95 +457,128 @@ async def call_ai(
     max_tokens: int,
     api_key: str | None = None,   # kept for backward compat but ignored in managed mode
 ) -> tuple[str, int, int]:
-    key = _get_key(provider, api_key)
-    # If still no key after routing, try every available provider as last resort
-    if not key:
+    # Early exit if no keys exist anywhere
+    if not _KEY_POOLS.get(provider):
         fallback = _first_available_provider()
-        if fallback:
-            provider, model = fallback
-            key = _next_key(provider)
-    if not key:
-        return (
-            "⚠️ AI service is temporarily unavailable. Please try again shortly.",
-            0, 0,
-        )
+        if not fallback:
+            return ("⚠️ AI service is temporarily unavailable. Please try again shortly.", 0, 0)
+        provider, model = fallback
+
+    # Build ordered list of (provider, model) to try.
+    # Primary provider first, then fallbacks — no key pre-fetched here;
+    # _next_key() is called per-attempt so the round-robin is used properly.
+    def _provider_order() -> list[tuple[str, str]]:
+        order = [(provider, model)]
+        for prov in _FALLBACK_ORDER:
+            if prov != provider and _KEY_POOLS.get(prov):
+                order.append((prov, _PROVIDER_DEFAULT_MODEL[prov]))
+        return order
 
     messages = list(history[-8:])  # keep last 8 turns
     messages.append({"role": "user", "content": str(prompt)})
 
     # ── Cache lookup — only for stateless calls (no prior history) ─
     cache_key: str | None = None
-    if not history:   # no conversation context — safe to cache
+    if not history:
         cache_key = _TTLCache.make_key(provider, model, system_prompt, str(prompt))
         cached = _ai_cache.get(cache_key)
         if cached is not None:
             return cached
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        for attempt in range(3):
-            try:
-                if provider == "anthropic":
-                    result = await _anthropic(client, model, key, system_prompt, messages, max_tokens)
-                elif provider == "openai":
-                    result = await _openai(client, model, key, system_prompt, messages, max_tokens)
-                elif provider == "gemini":
-                    result = await _gemini(client, model, key, system_prompt, messages, max_tokens)
-                elif provider == "groq":
-                    result = await _groq(client, model, key, system_prompt, messages, max_tokens)
-                else:
-                    return (f"⚠️ Unknown provider: {provider}", 0, 0)
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        for (cur_provider, cur_model) in _provider_order():
+            pool_size = len(_KEY_POOLS.get(cur_provider, []))
+            # Attempt once per key in the pool (min 1, max 5) so every
+            # round-robin slot is tried before falling back to next provider.
+            n_attempts = max(min(pool_size, 5), 1)
 
-                text, ptok, ctok = result
-                if text:
-                    if cache_key and not text.startswith("⚠️"):
-                        _ai_cache.set(cache_key, (text, ptok, ctok))
-                    return text, ptok, ctok
+            for attempt in range(n_attempts):
+                key = _next_key(cur_provider)
+                if not key:
+                    break
 
-            except httpx.TimeoutException:
-                if attempt == 2:
-                    return ("⚠️ Request timed out. Please try again.", 0, 0)
-                await asyncio.sleep((attempt + 1) * 2)
-            except httpx.HTTPStatusError as exc:
-                status = exc.response.status_code
-                if status == 429:
-                    if attempt < 2:
-                        # Rotate to next key — it may be on a different account
-                        key = _next_key(provider) or key
-                        await asyncio.sleep((attempt + 1) * 3)
-                        continue
-                    return ("⚠️ Rate limit reached on AI provider. Please wait and retry.", 0, 0)
-                if status == 400:
-                    # Model decommissioned / invalid — auto-fix and retry
-                    err_text = exc.response.text.lower()
-                    if "decommissioned" in err_text or "deprecated" in err_text or "no longer supported" in err_text:
-                        fixed = _DECOMMISSIONED_MODELS.get(model)
-                        if fixed and fixed != model:
-                            model = fixed
+                try:
+                    if cur_provider == "anthropic":
+                        result = await _anthropic(client, cur_model, key, system_prompt, messages, max_tokens)
+                    elif cur_provider == "openai":
+                        result = await _openai(client, cur_model, key, system_prompt, messages, max_tokens)
+                    elif cur_provider == "gemini":
+                        result = await _gemini(client, cur_model, key, system_prompt, messages, max_tokens)
+                    elif cur_provider == "groq":
+                        result = await _groq(client, cur_model, key, system_prompt, messages, max_tokens)
+                    elif cur_provider == "nvidia":
+                        result = await _nvidia(client, cur_model, key, system_prompt, messages, max_tokens)
+                    else:
+                        break  # unknown provider → try next
+
+                    text, ptok, ctok = result
+                    if text and not text.startswith("\u26a0\ufe0f"):
+                        # Valid response — cache if stateless and return
+                        if cache_key:
+                            _ai_cache.set(cache_key, (text, ptok, ctok))
+                        return text, ptok, ctok
+                    elif text.startswith("\u26a0\ufe0f"):
+                        # Provider returned 200 OK but with an error body
+                        # (e.g. content filter, model overload). Skip remaining
+                        # keys for this provider and try the next provider.
+                        break
+                    # Empty text → continue to next key
+
+                except httpx.TimeoutException:
+                    if attempt == n_attempts - 1:
+                        break  # all keys timed out → try next provider
+                    await asyncio.sleep((attempt + 1) * 2)
+
+                except httpx.HTTPStatusError as exc:
+                    status = exc.response.status_code
+                    if status == 429:
+                        # Key is rate-limited — next iteration will pull the next
+                        # round-robin key automatically; just wait and continue.
+                        if attempt < n_attempts - 1:
+                            await asyncio.sleep(min((attempt + 1) * 3, 15))
                             continue
-                        # Fallback to Gemini if available
-                        if _KEY_POOLS.get("gemini") and provider != "gemini":
-                            provider, model = "gemini", "gemini-2.0-flash"
-                            key = _next_key("gemini")
+                        break  # all keys rate-limited → try next provider
+                    if status == 400:
+                        err_text = exc.response.text.lower()
+                        if "decommissioned" in err_text or "deprecated" in err_text or "no longer supported" in err_text:
+                            fixed = _DECOMMISSIONED_MODELS.get(cur_model)
+                            if fixed and fixed != cur_model:
+                                cur_model = fixed
+                                continue
+                        # max_tokens exceeds this model's hard limit — clamp and retry.
+                        # Groq 8b models cap at 8192; 70b at 32768.
+                        if "max_tokens" in err_text and max_tokens > 4096:
+                            model_cap = _MODEL_MAX_OUTPUT_TOKENS.get(cur_model, 8192)
+                            clamped = min(max_tokens, model_cap)
+                            if clamped < max_tokens:
+                                max_tokens = clamped
+                                continue  # retry same key with clamped value
+                        break  # unrecoverable 400 → try next provider
+                    if status == 413:
+                        if cur_provider == "groq" and cur_model != "llama-3.3-70b-versatile":
+                            cur_model = "llama-3.3-70b-versatile"
                             continue
-                if status == 413:
-                    # Request too large for this model — try bigger model or next provider
-                    if provider == "groq" and model != "llama-3.3-70b-versatile" and attempt == 0:
-                        model = "llama-3.3-70b-versatile"
-                        continue
-                    if _KEY_POOLS.get("gemini") and provider != "gemini":
-                        provider, model = "gemini", "gemini-2.0-flash"
-                        key = _next_key("gemini")
-                        continue
-                    return ("⚠️ Request too large. Please shorten your message and try again.", 0, 0)
-                if attempt == 2:
-                    return (f"⚠️ HTTP {status}: {exc.response.text[:200]}", 0, 0)
-                await asyncio.sleep(2)
-            except Exception as exc:
-                if attempt == 2:
-                    return (f"⚠️ Error: {str(exc)}", 0, 0)
-                await asyncio.sleep(2)
+                        break  # request too large → try next provider
+                    if attempt == n_attempts - 1:
+                        break
+                    await asyncio.sleep(2)
 
-    return ("⚠️ Failed after 3 attempts.", 0, 0)
+                except Exception as _exc:
+                    import logging as _lg
+                    _lg.getLogger(__name__).error(
+                        "call_ai [%s/%s] unexpected error (attempt %d): %s",
+                        cur_provider, cur_model, attempt + 1, _exc
+                    )
+                    if attempt == n_attempts - 1:
+                        break  # unexpected error → try next provider
+                    await asyncio.sleep(2)
+
+    import logging as _lg
+    _lg.getLogger(__name__).error(
+        "call_ai: all providers exhausted — no valid response. providers_tried=%s",
+        [p for p, _ in _provider_order()]
+    )
+    return ("⚠️ AI service is temporarily unavailable. Please try again shortly.", 0, 0)
 
 
 # ── Provider implementations — each returns (text, prompt_tokens, completion_tokens) ──
@@ -618,6 +714,36 @@ async def _groq(client: httpx.AsyncClient, model: str, key: str,
             "model": model, "max_tokens": max_tokens,
             "messages": [{"role": "system", "content": str(system)}, *messages],
         },
+    )
+    r.raise_for_status()
+    data = r.json()
+    if "error" in data:
+        return ("⚠️ " + data["error"].get("message", "Unknown error"), 0, 0)
+    text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+    usage = data.get("usage", {})
+    return text, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0)
+
+
+# ── NVIDIA NIM — OpenAI-compatible, free tier 1000 calls/model ──
+# Base URL: https://integrate.api.nvidia.com/v1
+# Models (format: "org/model-name"):
+#   meta/llama-3.3-70b-instruct      ← strong 70B, default
+#   meta/llama-3.1-8b-instruct       ← fast/light
+#   nvidia/llama-3.3-nemotron-super-49b-v1  ← NVIDIA fine-tune, very capable
+#   nvidia/llama-3.1-nemotron-ultra-253b-v1 ← most powerful, use for premium
+#   mistralai/mistral-nemotron        ← reasoning/coding
+#   deepseek-ai/deepseek-v4-flash     ← fast reasoning
+async def _nvidia(client: httpx.AsyncClient, model: str, key: str,
+                  system: str, messages: list, max_tokens: int) -> tuple[str, int, int]:
+    r = await client.post(
+        "https://integrate.api.nvidia.com/v1/chat/completions",
+        headers={"Content-Type": "application/json",
+                 "Authorization": f"Bearer {key}"},
+        json={
+            "model": model, "max_tokens": max_tokens,
+            "messages": [{"role": "system", "content": str(system)}, *messages],
+        },
+        timeout=90.0,  # NVIDIA NIM can be slower on first call (cold start)
     )
     r.raise_for_status()
     data = r.json()

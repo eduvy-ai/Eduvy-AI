@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { COLORS, callAI, checkStudentQuery } from '../../shared.js'
+﻿import { useState, useEffect } from 'react'
+import { callAI, checkStudentQuery } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import { getDeviceId, apiGetDraft, apiSaveDraft } from '../../api.js'
 
@@ -7,12 +7,11 @@ const TYPES = ["Essay", "Letter", "Paragraph", "Answer"]
 
 export default function EssayLab({ profile, addXp, onBack }) {
   const deviceId = getDeviceId()
-  const [type, setType]       = useState("Essay")
-  const [writing, setWriting] = useState("")
+  const [type, setType]         = useState("Essay")
+  const [writing, setWriting]   = useState("")
   const [feedback, setFeedback] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading]   = useState(false)
 
-  // Load last draft on mount
   useEffect(() => {
     apiGetDraft(deviceId, "essay_draft")
       .then(d => {
@@ -30,7 +29,6 @@ export default function EssayLab({ profile, addXp, onBack }) {
       alert("Please write at least 30 characters before grading.")
       return
     }
-    // Safety guard on the essay content
     const safety = checkStudentQuery(writing, profile)
     if (safety.blocked) { setFeedback(safety.message); return }
     setLoading(true)
@@ -46,49 +44,25 @@ export default function EssayLab({ profile, addXp, onBack }) {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 130px)" }}>
+    <div className="flex flex-col min-h-[calc(100vh-130px)]">
       {/* Header */}
-      <div style={{
-        background: COLORS.card,
-        borderBottom: `1px solid ${COLORS.border}`,
-        padding: "12px 16px",
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        flexShrink: 0,
-      }}>
-        <button onClick={onBack} style={backBtn}>← Back</button>
-        <span style={{ fontSize: 15, fontWeight: 800, color: COLORS.text }}>✍️ Essay Grader</span>
+      <div className="bg-app-card border-b border-app-border px-4 py-3 flex items-center gap-2.5 shrink-0">
+        <button onClick={onBack} className="bg-transparent border-none text-app-muted text-[13px] cursor-pointer p-0">← Back</button>
+        <span className="text-[15px] font-extrabold text-app-text">✍️ Essay Grader</span>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+      <div className="flex-1 overflow-y-auto p-4">
         {/* Writing type tabs */}
-        <div style={{
-          display: "flex",
-          background: COLORS.card,
-          borderRadius: 12,
-          padding: 4,
-          marginBottom: 16,
-          border: `1px solid ${COLORS.border}`,
-          gap: 2,
-        }}>
+        <div className="flex bg-app-card rounded-xl p-1 mb-4 border border-app-border gap-0.5">
           {TYPES.map(t => (
             <button
               key={t}
               onClick={() => setType(t)}
-              style={{
-                flex: 1,
-                background: type === t ? `linear-gradient(135deg, ${COLORS.blue}, #5577dd)` : "transparent",
-                border: "none",
-                borderRadius: 9,
-                padding: "8px 4px",
-                fontSize: 12,
-                fontWeight: type === t ? 800 : 500,
-                color: type === t ? "#fff" : COLORS.muted,
-                cursor: "pointer",
-                fontFamily: "Sora, sans-serif",
-                transition: "all 0.2s",
-              }}
+              className={`flex-1 border-none rounded-[9px] py-2 px-1 text-xs cursor-pointer font-[Sora,sans-serif] transition-all ${
+                type === t
+                  ? 'bg-gradient-to-br from-app-blue to-[#5577dd] font-extrabold text-white'
+                  : 'bg-transparent font-medium text-app-muted'
+              }`}
             >
               {t}
             </button>
@@ -96,52 +70,39 @@ export default function EssayLab({ profile, addXp, onBack }) {
         </div>
 
         {/* Textarea */}
-        <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 12, color: COLORS.muted, fontWeight: 600, display: "block", marginBottom: 8 }}>
+        <div className="mb-3.5">
+          <label className="block text-xs text-app-muted font-semibold mb-2">
             WRITE YOUR {type.toUpperCase()} BELOW
           </label>
           <textarea
-            style={{
-              ...inputStyle,
-              height: 200,
-              resize: "vertical",
-              lineHeight: 1.7,
-            }}
+            className="w-full bg-app-card2 border border-white/[0.08] rounded-xl py-3 px-3.5 text-app-text text-[13px] outline-none resize-y leading-relaxed"
+            style={{ height: 200 }}
             placeholder={`Start writing your ${type.toLowerCase()} here…`}
             value={writing}
             onChange={e => setWriting(e.target.value)}
           />
-          <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 4, textAlign: "right" }}>
-            {writing.length} characters
-          </div>
+          <div className="text-[11px] text-app-muted mt-1 text-right">{writing.length} characters</div>
         </div>
 
-        <button onClick={grade} disabled={loading || writing.trim().length < 30} style={primaryBtn}>
+        <button
+          onClick={grade}
+          disabled={loading || writing.trim().length < 30}
+          className="w-full py-3 px-4 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 text-app-bg text-[13px] font-extrabold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+        >
           {loading ? "Grading…" : "🎓 Grade My Writing"}
         </button>
 
-        {/* Feedback */}
         {feedback && (
-          <div style={{
-            marginTop: 16,
-            background: COLORS.card,
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: 14,
-            padding: 16,
-          }}>
-            <div style={{ fontSize: 12, color: COLORS.blue, fontWeight: 700, marginBottom: 10 }}>
-              📋 Examiner's Feedback
-            </div>
-            <p style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>
-              {feedback}
-            </p>
+          <div className="mt-4 bg-app-card border border-app-border rounded-[14px] p-4">
+            <div className="text-xs text-app-blue font-bold mb-2.5">📋 Examiner's Feedback</div>
+            <p className="text-[13px] text-app-text leading-[1.8] whitespace-pre-wrap m-0">{feedback}</p>
           </div>
         )}
 
         {feedback && (
           <button
             onClick={() => { setWriting(""); setFeedback("") }}
-            style={{ ...secondaryBtn, marginTop: 12 }}
+            className="w-full mt-3 py-3 px-4 rounded-xl bg-transparent border border-white/[0.08] text-app-text text-[13px] font-semibold cursor-pointer hover:bg-white/[0.03] transition-all"
           >
             ✍️ Write New
           </button>
@@ -149,51 +110,4 @@ export default function EssayLab({ profile, addXp, onBack }) {
       </div>
     </div>
   )
-}
-
-const inputStyle = {
-  width: "100%",
-  background: "#101022",
-  border: "1px solid #ffffff15",
-  borderRadius: 12,
-  padding: "12px 14px",
-  color: "#eeeeff",
-  fontSize: 13,
-  fontFamily: "Sora, sans-serif",
-}
-
-const primaryBtn = {
-  background: "linear-gradient(135deg, #00E5A0, #33cc88)",
-  color: "#04040e",
-  border: "none",
-  borderRadius: 12,
-  padding: "12px 16px",
-  fontSize: 13,
-  fontWeight: 800,
-  cursor: "pointer",
-  width: "100%",
-  fontFamily: "Sora, sans-serif",
-}
-
-const secondaryBtn = {
-  background: "transparent",
-  border: "1px solid #ffffff15",
-  borderRadius: 12,
-  padding: "12px 16px",
-  fontSize: 13,
-  fontWeight: 600,
-  color: "#eeeeff",
-  cursor: "pointer",
-  width: "100%",
-  fontFamily: "Sora, sans-serif",
-}
-
-const backBtn = {
-  background: "transparent",
-  border: "none",
-  color: "#6868a0",
-  fontSize: 13,
-  cursor: "pointer",
-  fontFamily: "Sora, sans-serif",
-  padding: 0,
 }

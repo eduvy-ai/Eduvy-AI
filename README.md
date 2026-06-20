@@ -2,8 +2,10 @@
 
 > Full-stack modular application with React + Redux + TypeScript + Tailwind CSS frontend and FastAPI + PostgreSQL backend.
 
----
+🌐 **Live URL:** [https://www.eduvy.co.in/](https://www.eduvy.co.in/)
 
+---
+  
 ## Tech Stack
 
 ### Frontend

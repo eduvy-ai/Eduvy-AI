@@ -16,12 +16,10 @@ export default function DrishtiHelpersTab({ toast }) {
   const [allDrishtiStudents, setAllDrishtiStudents] = useState([])
   const [assignLoading, setAssignLoading] = useState(false)
 
-  const token = () => localStorage.getItem('eduvyai_admin_token')
-
   const load = async () => {
     setLoading(true)
     try {
-      const r = await fetch('/api/admin/drishti-helpers', { headers: { Authorization: `Bearer ${token()}` } })
+      const r = await API('/admin/drishti-helpers')
       const d = await r.json()
       setHelpers(Array.isArray(d) ? d : [])
     } catch { toast('Failed to load helpers', 'error') }
@@ -47,9 +45,9 @@ export default function DrishtiHelpersTab({ toast }) {
   const save = async () => {
     try {
       const method = editing ? 'PUT' : 'POST'
-      const url = editing ? `/api/admin/drishti-helpers/${editing.id}` : '/api/admin/drishti-helpers'
-      const r = await fetch(url, {
-        method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+      const path = editing ? `/admin/drishti-helpers/${editing.id}` : '/admin/drishti-helpers'
+      const r = await API(path, {
+        method,
         body: JSON.stringify(form),
       })
       if (!r.ok) { const e = await r.json(); throw new Error(e.detail || 'Save failed') }
@@ -63,7 +61,7 @@ export default function DrishtiHelpersTab({ toast }) {
   const deactivate = async (id) => {
     if (!confirm('Deactivate this helper?')) return
     try {
-      const r = await fetch(`/api/admin/drishti-helpers/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token()}` } })
+      const r = await API(`/admin/drishti-helpers/${id}`, { method: 'DELETE' })
       if (!r.ok) throw new Error('Failed')
       toast('Helper deactivated')
       load()
@@ -81,8 +79,8 @@ export default function DrishtiHelpersTab({ toast }) {
     setAssignLoading(true)
     try {
       const [assignedRes, allRes] = await Promise.all([
-        fetch(`/api/admin/drishti-helpers/${helper.id}/students`, { headers: { Authorization: `Bearer ${token()}` } }),
-        fetch('/api/admin/drishti-students', { headers: { Authorization: `Bearer ${token()}` } }),
+        API(`/admin/drishti-helpers/${helper.id}/students`),
+        API('/admin/drishti-students'),
       ])
       const assigned = await assignedRes.json()
       const all = await allRes.json()
@@ -94,9 +92,7 @@ export default function DrishtiHelpersTab({ toast }) {
 
   const assignStudent = async (studentId) => {
     try {
-      const r = await fetch(`/api/admin/drishti-helpers/${assignModal.id}/assign/${studentId}`, {
-        method: 'POST', headers: { Authorization: `Bearer ${token()}` },
-      })
+      const r = await API(`/admin/drishti-helpers/${assignModal.id}/assign/${studentId}`, { method: 'POST' })
       if (!r.ok) throw new Error('Failed to assign')
       toast('Student assigned')
       openAssignModal(assignModal) // refresh
@@ -106,9 +102,7 @@ export default function DrishtiHelpersTab({ toast }) {
 
   const unassignStudent = async (studentId) => {
     try {
-      const r = await fetch(`/api/admin/drishti-helpers/${assignModal.id}/assign/${studentId}`, {
-        method: 'DELETE', headers: { Authorization: `Bearer ${token()}` },
-      })
+      const r = await API(`/admin/drishti-helpers/${assignModal.id}/assign/${studentId}`, { method: 'DELETE' })
       if (!r.ok) throw new Error('Failed to unassign')
       toast('Student removed')
       openAssignModal(assignModal) // refresh

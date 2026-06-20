@@ -12,6 +12,8 @@ export default function StandardsTab({ toast }) {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [confirmBulk, setConfirmBulk] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -66,7 +68,18 @@ export default function StandardsTab({ toast }) {
     setLoading(true)
     await API(`/admin/standards/${confirmRow.id}`, { method: 'DELETE' })
     setLoading(false)
-    toast("Standard deactivated"); setConfirmRow(null); load()
+    toast("Standard deleted"); setConfirmRow(null); load()
+  }
+
+  const bulkDel = async () => {
+    if (!selectedIds.size) return
+    setLoading(true)
+    await API('/admin/standards/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: [...selectedIds] }) })
+    setLoading(false)
+    toast(`${selectedIds.size} standard${selectedIds.size > 1 ? 's' : ''} deleted`)
+    setSelectedIds(new Set())
+    setConfirmBulk(false)
+    load()
   }
 
   const edit = row => {
@@ -95,24 +108,24 @@ export default function StandardsTab({ toast }) {
       {/* Add/Edit Modal */}
       {showModal && (
         <Modal title={editing ? "Edit Standard" : "Add Standard"} onClose={() => setShowModal(false)}>
-          <div className="grid grid-cols-[1fr_2fr] gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr] gap-2.5">
             <input className={inputClass} placeholder="ID (e.g. class-10)"
               value={form.id} onChange={e => setForm(f => ({ ...f, id: e.target.value }))}
               disabled={!!editing} />
             <input className={inputClass} placeholder="Name (e.g. Class 10)"
               value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
           </div>
-          <div className="flex gap-2.5 flex-wrap">
-            <input className={`${inputClass} w-[120px] flex-shrink-0`} type="number" placeholder="Grade #"
+          <div className="grid grid-cols-2 gap-2.5">
+            <input className={inputClass} type="number" placeholder="Grade #"
               value={form.grade_num} onChange={e => setForm(f => ({ ...f, grade_num: e.target.value }))} />
-            <input className={`${inputClass} w-[120px] flex-shrink-0`} type="number" placeholder="Sort order"
+            <input className={inputClass} type="number" placeholder="Sort order"
               value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))} />
-            <label className="flex items-center gap-1.5 text-app-muted text-[13px] flex-1">
-              <input type="checkbox" checked={form.is_active}
-                onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
-              Active
-            </label>
           </div>
+          <label className="flex items-center gap-2 text-app-muted text-[13px] cursor-pointer">
+            <input type="checkbox" checked={form.is_active}
+              onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
+            Active
+          </label>
           <div className="flex gap-2.5">
             <button className={btnClass('green')} onClick={save}>{editing ? "Update Standard" : "Add Standard"}</button>
             <button className={ghostBtnClass} onClick={() => setShowModal(false)}>Cancel</button>
@@ -123,15 +136,31 @@ export default function StandardsTab({ toast }) {
       {/* Confirm Delete */}
       {confirmRow && (
         <ConfirmDialog
-          message={`Deactivate standard "${confirmRow.name}"? It will be hidden from students but not permanently deleted.`}
+          message={`Permanently delete standard "${confirmRow.name}"? This will also delete all curriculum entries linked to this standard.`}
           onConfirm={del}
           onCancel={() => setConfirmRow(null)}
+        />
+      )}
+
+      {confirmBulk && (
+        <ConfirmDialog
+          message={`Permanently delete ${selectedIds.size} selected standard${selectedIds.size > 1 ? 's' : ''}? All linked curriculum entries will also be deleted.`}
+          onConfirm={bulkDel}
+          onCancel={() => setConfirmBulk(false)}
         />
       )}
 
       {/* Top action bar */}
       <div className="flex gap-2.5 items-center flex-wrap">
         <button className={btnClass('green')} onClick={openAdd}>+ Add Standard</button>
+        {selectedIds.size > 0 && (
+          <button className={btnClass('red')} onClick={() => setConfirmBulk(true)}>
+            Delete Selected ({selectedIds.size})
+          </button>
+        )}
+        {selectedIds.size > 0 && (
+          <button className={ghostBtnClass} onClick={() => setSelectedIds(new Set())}>Clear Selection</button>
+        )}
       </div>
 
       {/* Bulk Import */}
@@ -175,6 +204,8 @@ export default function StandardsTab({ toast }) {
         rows={filtered}
         onEdit={edit}
         onDelete={row => setConfirmRow(row)}
+        selectedIds={selectedIds}
+        onSelectChange={setSelectedIds}
       />
     </div>
   )

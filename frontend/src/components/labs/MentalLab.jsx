@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { COLORS, callAI, checkStudentQuery } from '../../shared.js'
+import { callAI, checkStudentQuery } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import { getStarters, getDisplayLang } from '../../shared.js'
 import { getDeviceId, apiGetSession, apiSaveToSession } from '../../api.js'
@@ -66,49 +66,27 @@ export default function MentalLab({ profile, addXp, onBack }) {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 130px)" }}>
+    <div className="flex flex-col h-[calc(100vh-130px)]">
       {/* Header */}
-      <div style={{
-        background: COLORS.card,
-        borderBottom: `1px solid ${COLORS.border}`,
-        padding: "12px 16px",
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        flexShrink: 0,
-      }}>
-        <button onClick={onBack} style={backBtn}>← Back</button>
+      <div className="bg-app-card border-b border-app-border px-4 py-3 flex items-center gap-2.5 shrink-0">
+        <button onClick={onBack} className="bg-transparent border-none text-app-muted text-[13px] cursor-pointer p-0">← Back</button>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.text }}>🧘 Mental Wellness Coach</div>
-          <div style={{ fontSize: 11, color: COLORS.muted }}>Safe space · Non-judgmental · Confidential</div>
+          <div className="text-[15px] font-extrabold text-app-text">🧘 Mental Wellness Coach</div>
+          <div className="text-[11px] text-app-muted">Safe space · Non-judgmental · Confidential</div>
         </div>
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
-        {/* Starter chips — only when only the welcome message exists */}
+      <div className="flex-1 overflow-y-auto p-3.5">
         {messages.length === 1 && (
-          <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 8 }}>
-              Or share what's on your mind:
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div className="mb-3.5">
+            <div className="text-xs text-app-muted mb-2">Or share what's on your mind:</div>
+            <div className="flex flex-col gap-1.5">
               {getStarters(getDisplayLang(profile), 'mental').map(s => (
                 <button
                   key={s}
                   onClick={() => sendMessage(s)}
-                  style={{
-                    background: COLORS.card,
-                    border: `1px solid ${COLORS.border}`,
-                    borderRadius: 10,
-                    padding: "10px 14px",
-                    color: COLORS.text,
-                    fontSize: 13,
-                    cursor: "pointer",
-                    textAlign: "left",
-                    fontFamily: "Sora, sans-serif",
-                    lineHeight: 1.4,
-                  }}
+                  className="bg-app-card border border-app-border rounded-[10px] py-2.5 px-3.5 text-app-text text-[13px] cursor-pointer text-left leading-relaxed hover:bg-app-card2 transition-colors"
                 >
                   {s}
                 </button>
@@ -117,45 +95,28 @@ export default function MentalLab({ profile, addXp, onBack }) {
           </div>
         )}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div className="flex flex-col gap-2.5">
           {messages.map((m, i) => (
-            <div key={i} style={m.role === "user" ? userBubble : aiBubble}>
+            <div key={i} className={m.role === "user" ? "user-bubble" : "ai-bubble"}>
               {m.content}
             </div>
           ))}
           {loading && (
-            <div style={{ ...aiBubble, color: COLORS.muted }}>
-              💭 Thinking…
-            </div>
+            <div className="ai-bubble text-app-muted">💭 Thinking…</div>
           )}
           <div ref={chatEndRef} />
         </div>
       </div>
 
       {/* Disclaimer */}
-      <div style={{
-        padding: "6px 14px",
-        background: `${COLORS.orange}08`,
-        borderTop: `1px solid ${COLORS.orange}20`,
-        fontSize: 10,
-        color: COLORS.orange,
-        textAlign: "center",
-        flexShrink: 0,
-      }}>
+      <div className="px-3.5 py-1.5 bg-app-orange/[0.05] border-t border-app-orange/20 text-[10px] text-app-orange text-center shrink-0">
         🔒 This is an AI wellness tool, not a substitute for professional mental health care
       </div>
 
       {/* Input */}
-      <div style={{
-        padding: "10px 14px",
-        background: COLORS.card,
-        borderTop: `1px solid ${COLORS.border}`,
-        display: "flex",
-        gap: 8,
-        flexShrink: 0,
-      }}>
+      <div className="px-3.5 py-2.5 bg-app-card border-t border-app-border flex gap-2 shrink-0">
         <input
-          style={{ ...inputStyle, flex: 1, padding: "10px 14px" }}
+          className="flex-1 bg-app-card2 border border-white/[0.08] rounded-xl py-2.5 px-3.5 text-app-text text-[13px] outline-none"
           type="text"
           placeholder="Share what's on your mind…"
           value={input}
@@ -165,15 +126,7 @@ export default function MentalLab({ profile, addXp, onBack }) {
         <button
           onClick={() => sendMessage()}
           disabled={loading || !input.trim()}
-          style={{
-            ...primaryBtn,
-            width: 44,
-            height: 44,
-            padding: 0,
-            borderRadius: 12,
-            fontSize: 18,
-            flexShrink: 0,
-          }}
+          className="w-11 h-11 shrink-0 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 text-app-bg text-lg font-extrabold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           ↑
         </button>
@@ -182,64 +135,3 @@ export default function MentalLab({ profile, addXp, onBack }) {
   )
 }
 
-const inputStyle = {
-  width: "100%",
-  background: "#101022",
-  border: "1px solid #ffffff15",
-  borderRadius: 12,
-  padding: "11px 14px",
-  color: "#eeeeff",
-  fontSize: 13,
-  fontFamily: "Sora, sans-serif",
-}
-
-const primaryBtn = {
-  background: "linear-gradient(135deg, #00E5A0, #33cc88)",
-  color: "#04040e",
-  border: "none",
-  borderRadius: 12,
-  padding: "12px 16px",
-  fontSize: 13,
-  fontWeight: 800,
-  cursor: "pointer",
-  width: "100%",
-  fontFamily: "Sora, sans-serif",
-}
-
-const userBubble = {
-  alignSelf: "flex-end",
-  background: "linear-gradient(135deg, #00E5A0, #33cc88)",
-  color: "#04040e",
-  fontWeight: 600,
-  borderRadius: 14,
-  borderBottomRightRadius: 3,
-  padding: "10px 12px",
-  maxWidth: "88%",
-  fontSize: 13,
-  lineHeight: 1.5,
-  wordBreak: "break-word",
-}
-
-const aiBubble = {
-  alignSelf: "flex-start",
-  background: "#101022",
-  border: "1px solid #ffffff08",
-  color: "#eeeeff",
-  borderRadius: 14,
-  borderBottomLeftRadius: 3,
-  padding: "10px 12px",
-  maxWidth: "88%",
-  fontSize: 13,
-  lineHeight: 1.6,
-  whiteSpace: "pre-wrap",
-}
-
-const backBtn = {
-  background: "transparent",
-  border: "none",
-  color: "#6868a0",
-  fontSize: 13,
-  cursor: "pointer",
-  fontFamily: "Sora, sans-serif",
-  padding: 0,
-}

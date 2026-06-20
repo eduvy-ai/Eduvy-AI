@@ -26,9 +26,11 @@ export const C = {
   muted:  "#6868a0",
 }
 
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://eduvyai-api.onrender.com'
+
 export const API = (path, opts = {}) => {
   const token = localStorage.getItem('eduvyai_admin_token')
-  return fetch(`/api${path}`, {
+  return fetch(`${BASE_URL}/api${path}`, {
     ...opts,
     headers: {
       'Content-Type': 'application/json',
@@ -40,31 +42,31 @@ export const API = (path, opts = {}) => {
 }
 
 // ─── Reusable Tailwind classes ────────────────────────────────
-export const inputClass = "w-full bg-app-card2 border border-white/10 rounded-[9px] py-2.5 px-3 text-app-text text-[13px] font-[Sora,sans-serif] outline-none"
+export const inputClass = "w-full bg-app-card2 border border-white/10 rounded-xl py-2.5 px-3.5 text-app-text text-[13px] font-[Sora,sans-serif] outline-none focus:ring-1 focus:ring-app-green/40 transition-all duration-150"
 
-export const btnClass = (color = 'green') => `border-none rounded-[9px] py-2 px-4 text-[13px] font-bold font-[Sora,sans-serif] cursor-pointer ${
-  color === 'green' ? 'bg-app-green text-app-bg' :
-  color === 'red' ? 'bg-app-red text-white' :
-  color === 'blue' ? 'bg-app-blue text-app-bg' :
+export const btnClass = (color = 'green') => `border-none rounded-xl py-2 px-4 text-[13px] font-bold font-[Sora,sans-serif] cursor-pointer transition-all duration-150 active:scale-95 hover:opacity-90 ${
+  color === 'green'  ? 'bg-app-green text-app-bg' :
+  color === 'red'    ? 'bg-app-red text-white' :
+  color === 'blue'   ? 'bg-app-blue text-app-bg' :
   color === 'yellow' ? 'bg-app-yellow text-app-bg' : 'bg-app-green text-app-bg'
 }`
 
-export const ghostBtnClass = "bg-transparent border border-app-border rounded-[9px] py-2 px-4 text-app-text text-[13px] font-semibold font-[Sora,sans-serif] cursor-pointer"
+export const ghostBtnClass = "bg-transparent border border-app-border rounded-xl py-2 px-4 text-app-text text-[13px] font-semibold font-[Sora,sans-serif] cursor-pointer hover:bg-white/5 active:scale-95 transition-all duration-150"
 
 // ── Modal ─────────────────────────────────────────────────────
 export function Modal({ title, onClose, children }) {
   return (
     <div 
-      className="fixed inset-0 bg-black/70 z-[1000] flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/70 z-[1000] flex items-end sm:items-center justify-center p-0 sm:p-4"
       onClick={onClose}
     >
       <div 
-        className="bg-app-card border border-app-border rounded-[18px] p-7 w-full max-w-[480px] flex flex-col gap-4 shadow-2xl"
+        className="bg-app-card border border-app-border rounded-t-[22px] sm:rounded-[18px] p-5 sm:p-7 w-full sm:max-w-[480px] flex flex-col gap-4 shadow-2xl max-h-[92dvh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
           <h3 className="text-app-text m-0 text-[17px] font-extrabold">{title}</h3>
-          <button onClick={onClose} className="bg-transparent border-none text-app-muted text-xl cursor-pointer leading-none px-1">
+          <button onClick={onClose} className="bg-transparent border-none text-app-muted text-xl cursor-pointer leading-none px-1 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg hover:bg-white/5">
             ✕
           </button>
         </div>
@@ -77,8 +79,8 @@ export function Modal({ title, onClose, children }) {
 // ── Confirm Dialog ────────────────────────────────────────────
 export function ConfirmDialog({ message, onConfirm, onCancel }) {
   return (
-    <div className="fixed inset-0 bg-black/70 z-[1100] flex items-center justify-center p-4">
-      <div className="bg-app-card border border-app-border rounded-[18px] p-7 w-full max-w-[400px] flex flex-col gap-5 shadow-2xl">
+    <div className="fixed inset-0 bg-black/70 z-[1100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-app-card border border-app-border rounded-t-[22px] sm:rounded-[18px] p-5 sm:p-7 w-full sm:max-w-[400px] flex flex-col gap-5 shadow-2xl max-h-[80dvh] overflow-y-auto">
         <div>
           <div className="text-[28px] mb-2">⚠️</div>
           <p className="text-app-text m-0 text-[15px] leading-relaxed">{message}</p>
@@ -100,8 +102,7 @@ export function Toast({ msg, type, onDone }) {
   }, [onDone])
   return (
     <div 
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 py-2.5 px-5 rounded-[10px] text-[13px] font-bold z-[9999] shadow-xl text-app-bg"
-      style={{ background: type === "error" ? C.red : C.green }}
+      className={`fixed bottom-6 left-1/2 -translate-x-1/2 py-2.5 px-5 rounded-[10px] text-[13px] font-bold z-[9999] shadow-xl text-app-bg ${type === "error" ? "bg-app-red" : "bg-app-green"}`}
     >{msg}</div>
   )
 }
@@ -122,7 +123,7 @@ export function LoadingOverlay({ show, text = "Loading…" }) {
 // ── Table component ───────────────────────────────────────────
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
-export function Table({ cols, rows, onDelete, onEdit, pageSize: defaultPageSize = 10 }) {
+export function Table({ cols, rows, onDelete, onEdit, pageSize: defaultPageSize = 10, selectedIds, onSelectChange }) {
   const [page, setPage]         = useState(1)
   const [pageSize, setPageSize] = useState(defaultPageSize)
 
@@ -135,6 +136,28 @@ export function Table({ cols, rows, onDelete, onEdit, pageSize: defaultPageSize 
   const totalPages = Math.ceil(rows.length / pageSize)
   const start      = (page - 1) * pageSize
   const pageRows   = rows.slice(start, start + pageSize)
+
+  // Checkbox helpers
+  const selectable = !!onSelectChange
+  const pageIds = pageRows.map(r => r.id)
+  const allPageSelected = selectable && pageIds.length > 0 && pageIds.every(id => selectedIds?.has(id))
+  const somePageSelected = selectable && pageIds.some(id => selectedIds?.has(id))
+
+  const toggleRow = (id) => {
+    if (!onSelectChange) return
+    const next = new Set(selectedIds)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    onSelectChange(next)
+  }
+
+  const togglePage = () => {
+    if (!onSelectChange) return
+    const next = new Set(selectedIds)
+    if (allPageSelected) pageIds.forEach(id => next.delete(id))
+    else pageIds.forEach(id => next.add(id))
+    onSelectChange(next)
+  }
 
   const pageNums = []
   const delta = 2
@@ -157,6 +180,17 @@ export function Table({ cols, rows, onDelete, onEdit, pageSize: defaultPageSize 
         <table className="w-full border-collapse text-[13px]">
           <thead>
             <tr>
+              {selectable && (
+                <th className="py-2 px-2.5 border-b border-app-border w-[36px]">
+                  <input
+                    type="checkbox"
+                    checked={allPageSelected}
+                    ref={el => { if (el) el.indeterminate = somePageSelected && !allPageSelected }}
+                    onChange={togglePage}
+                    className="cursor-pointer accent-app-green"
+                  />
+                </th>
+              )}
               {cols.map(c => (
                 <th key={c.key} className="text-left py-2 px-2.5 border-b border-app-border text-app-muted font-semibold text-[11px] whitespace-nowrap">
                   {c.label}
@@ -166,27 +200,40 @@ export function Table({ cols, rows, onDelete, onEdit, pageSize: defaultPageSize 
             </tr>
           </thead>
           <tbody>
-            {pageRows.map((row, i) => (
-              <tr key={row.id ?? i} className="border-b border-app-border">
-                {cols.map(c => (
-                  <td key={c.key} className="py-2.5 px-2.5 text-app-text max-w-[260px]">
-                    {c.render ? c.render(row[c.key], row) : String(row[c.key] ?? "")}
+            {pageRows.map((row, i) => {
+              const isChecked = selectable && selectedIds?.has(row.id)
+              return (
+                <tr key={row.id ?? i} className={`border-b border-app-border ${isChecked ? 'bg-app-blue/10' : ''}`}>
+                  {selectable && (
+                    <td className="py-2.5 px-2.5">
+                      <input
+                        type="checkbox"
+                        checked={!!isChecked}
+                        onChange={() => toggleRow(row.id)}
+                        className="cursor-pointer accent-app-green"
+                      />
+                    </td>
+                  )}
+                  {cols.map(c => (
+                    <td key={c.key} className="py-2.5 px-2.5 text-app-text max-w-[260px]">
+                      {c.render ? c.render(row[c.key], row) : String(row[c.key] ?? "")}
+                    </td>
+                  ))}
+                  <td className="py-2.5 px-2.5">
+                    <div className="flex gap-1.5">
+                      {onEdit && (
+                        <button className={`${ghostBtnClass} py-1 px-2.5 text-xs`}
+                          onClick={() => onEdit(row)}>Edit</button>
+                      )}
+                      {onDelete && (
+                        <button className={`${btnClass('red')} py-1 px-2.5 text-xs`}
+                          onClick={() => onDelete(row)}>✕</button>
+                      )}
+                    </div>
                   </td>
-                ))}
-                <td className="py-2.5 px-2.5">
-                  <div className="flex gap-1.5">
-                    {onEdit && (
-                      <button className={`${ghostBtnClass} py-1 px-2.5 text-xs`}
-                        onClick={() => onEdit(row)}>Edit</button>
-                    )}
-                    {onDelete && (
-                      <button className={`${btnClass('red')} py-1 px-2.5 text-xs`}
-                        onClick={() => onDelete(row)}>✕</button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

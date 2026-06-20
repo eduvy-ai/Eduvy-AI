@@ -10,7 +10,7 @@ export default function LoginScreen({ onLogin }) {
   const [setupName, setSetupName] = useState("SuperAdmin")
 
   useEffect(() => {
-    fetch('/api/admin/me', { signal: AbortSignal.timeout(3000) }).then(r => {
+    API('/admin/me', { signal: AbortSignal.timeout(3000) }).then(r => {
       if (r.status === 401) setIsSetup(false)
     }).catch(() => {})
   }, [])

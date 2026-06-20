@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-import { COLORS, callAI, checkStudentQuery } from '../../shared.js'
+﻿import { useState, useRef, useEffect } from 'react'
+import { callAI, checkStudentQuery } from '../../shared.js'
 import { getStarters, getDisplayLang } from '../../shared.js'
 import { apiGetSession, apiSaveToSession } from '../../api.js'
 import { li } from '../../i18n/index.js'
@@ -120,7 +120,7 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
     const canvas = canvasRef.current
     const ctx = canvas.getContext("2d")
     const pos = getPos(e, canvas)
-    ctx.strokeStyle = COLORS.green
+    ctx.strokeStyle = '#00E5A0'
     ctx.lineWidth = 2.5
     ctx.lineCap = "round"
     ctx.lineJoin = "round"
@@ -170,7 +170,7 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-130px)]">
+    <div className="tutor-shell flex flex-col h-[calc(100vh-130px)]">
       {/* Mode tabs */}
       <div className="flex overflow-x-auto gap-1.5 py-2.5 px-3.5 bg-app-card border-b border-app-border shrink-0">
         {MODE_KEYS.map(m => {
@@ -227,8 +227,7 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
                 ref={canvasRef}
                 width={320}
                 height={175}
-                className="w-full bg-[#080818] rounded-[10px] block cursor-crosshair"
-                style={{ touchAction: "none" }}
+                className="w-full bg-[#080818] rounded-[10px] block cursor-crosshair touch-none"
                 onMouseDown={startDraw}
                 onMouseMove={draw}
                 onMouseUp={stopDraw}

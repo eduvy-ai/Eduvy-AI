@@ -1125,10 +1125,10 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                   <div>
                     <div 
                       className="bg-app-card border border-app-border rounded-[14px] p-4 mb-2.5"
-                      style={{ borderTop: `3px solid ${STUDIO_ITEMS.find(i => i.key === studioType)?.color ?? COLORS.green}` }}
+                      style={{ borderTop: `3px solid ${STUDIO_ITEMS.find(i => i.key === studioType)?.color ?? '#00E5A0'}` }}
                     >
                       <div className="flex items-center justify-between mb-2.5">
-                        <div className="text-xs font-bold" style={{ color: STUDIO_ITEMS.find(i => i.key === studioType)?.color ?? COLORS.green }}>
+                        <div className="text-xs font-bold" style={{ color: STUDIO_ITEMS.find(i => i.key === studioType)?.color ?? '#00E5A0' }}>
                           {STUDIO_ITEMS.find(i => i.key === studioType)?.icon} {STUDIO_ITEMS.find(i => i.key === studioType)?.label}
                         </div>
                         <button
@@ -1151,7 +1151,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                   const hasSpeech = typeof window !== 'undefined' && 'speechSynthesis' in window
                   const atEnd = lineIdx >= episode.exchanges.length - 1
                   const host = episode.exchanges[lineIdx]?.h
-                  const hostColor = host === 'Priya' ? COLORS.orange : COLORS.blue
+                  const hostColor = host === 'Priya' ? '#FF6B35' : '#7B9CFF'
                   return (
                     <div className="flex flex-col gap-3">
 
@@ -1212,7 +1212,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                             className="h-1.5 rounded-full transition-all duration-300"
                             style={{
                               width: i === lineIdx ? 16 : 6,
-                              background: i < lineIdx ? `${COLORS.yellow}80` : i === lineIdx ? COLORS.yellow : COLORS.border,
+                              background: i < lineIdx ? `#FFD16680` : i === lineIdx ? '#FFD166' : 'rgba(255,255,255,0.03)',
                             }}
                           />
                         ))}
@@ -1232,8 +1232,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                             ) : (
                               <button 
                                 onClick={stopPodcast} 
-                                className="flex-[2] py-3 px-[18px] rounded-[13px] border-none text-app-bg text-[13px] font-extrabold cursor-pointer font-[Sora,sans-serif]"
-                                style={{ background: `linear-gradient(135deg, ${COLORS.yellow}, #e6b800)` }}
+                                className="flex-[2] py-3 px-[18px] rounded-[13px] border-none text-app-bg text-[13px] font-extrabold cursor-pointer font-[Sora,sans-serif] bg-gradient-to-br from-app-yellow to-[#e6b800]"
                               >
                                 ⏸ Pause
                               </button>
@@ -1281,8 +1280,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                       {atEnd && podcastPlaying && (
                         <button 
                           onClick={stopPodcast} 
-                          className="w-full py-3 px-[18px] rounded-[13px] border-none text-app-bg text-[13px] font-extrabold cursor-pointer font-[Sora,sans-serif]"
-                          style={{ background: `linear-gradient(135deg, ${COLORS.yellow}, #e6b800)` }}
+                          className="w-full py-3 px-[18px] rounded-[13px] border-none text-app-bg text-[13px] font-extrabold cursor-pointer font-[Sora,sans-serif] bg-gradient-to-br from-app-yellow to-[#e6b800]"
                         >
                           ⏸ Pause
                         </button>
@@ -1325,8 +1323,8 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                         <div 
                           className="text-[10px] font-extrabold rounded-lg py-0.5 px-2.5 uppercase"
                           style={{
-                            color: cards[cardIdx].d === "hard" ? COLORS.red : cards[cardIdx].d === "medium" ? COLORS.yellow : COLORS.green,
-                            background: cards[cardIdx].d === "hard" ? `${COLORS.red}15` : cards[cardIdx].d === "medium" ? `${COLORS.yellow}15` : `${COLORS.green}15`,
+                            color: cards[cardIdx].d === "hard" ? '#FF6B6B' : cards[cardIdx].d === "medium" ? '#FFD166' : '#00E5A0',
+                            background: cards[cardIdx].d === "hard" ? `#FF6B6B15` : cards[cardIdx].d === "medium" ? `#FFD16615` : `#00E5A015`,
                           }}
                         >
                           {cards[cardIdx].d}
@@ -1338,8 +1336,8 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                       onClick={() => setCardFlipped(f => !f)}
                       className="w-full min-h-[180px] rounded-[18px] p-5 cursor-pointer flex flex-col justify-center items-center gap-2.5 text-center transition-all duration-300"
                       style={{
-                        background: cardFlipped ? `${COLORS.green}12` : COLORS.card,
-                        border: `1.5px solid ${cardFlipped ? COLORS.green : COLORS.border}`,
+                        background: cardFlipped ? `#00E5A012` : '#0b0b1c',
+                        border: `1.5px solid ${cardFlipped ? '#00E5A0' : 'rgba(255,255,255,0.03)'}`,
                       }}
                     >
                       {!cardFlipped ? (
@@ -1367,7 +1365,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                           className="h-1.5 rounded-full transition-all duration-300"
                           style={{
                             width: i === cardIdx ? 16 : 6,
-                            background: i === cardIdx ? COLORS.green : i < cardIdx ? `${COLORS.green}50` : COLORS.border,
+                            background: i === cardIdx ? '#00E5A0' : i < cardIdx ? `#00E5A050` : 'rgba(255,255,255,0.03)',
                           }}
                         />
                       ))}
@@ -1415,11 +1413,11 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                     <div className="flex flex-col gap-2">
                       {quizQ.o?.map((opt, i) => {
                         const letter = ["A","B","C","D"][i]
-                        let bg = COLORS.card, border = COLORS.border, color = COLORS.text
+                        let bg = '#0b0b1c', border = 'rgba(255,255,255,0.03)', color = '#eeeeff'
                         if (quizSel) {
-                          if (letter === quizQ.c)     { bg = `${COLORS.green}20`; border = COLORS.green; color = COLORS.green }
-                          else if (letter === quizSel) { bg = `${COLORS.red}15`;   border = COLORS.red;   color = COLORS.red   }
-                          else                         { bg = COLORS.card;          color = COLORS.muted                        }
+                          if (letter === quizQ.c)     { bg = `#00E5A020`; border = '#00E5A0'; color = '#00E5A0' }
+                          else if (letter === quizSel) { bg = `#FF6B6B15`;   border = '#FF6B6B';   color = '#FF6B6B'   }
+                          else                         { bg = '#0b0b1c';          color = '#6868a0'                        }
                         }
                         return (
                           <button 
@@ -1445,11 +1443,11 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                         <div 
                           className="rounded-xl p-3.5"
                           style={{
-                            background: quizSel === quizQ.c ? `${COLORS.green}10` : `${COLORS.red}10`,
-                            border: `1px solid ${quizSel === quizQ.c ? COLORS.green : COLORS.red}30`,
+                            background: quizSel === quizQ.c ? `#00E5A010` : `#FF6B6B10`,
+                            border: `1px solid ${quizSel === quizQ.c ? '#00E5A0' : '#FF6B6B'}30`,
                           }}
                         >
-                          <div className="text-xs font-bold mb-1.5" style={{ color: quizSel === quizQ.c ? COLORS.green : COLORS.red }}>
+                          <div className="text-xs font-bold mb-1.5" style={{ color: quizSel === quizQ.c ? '#00E5A0' : '#FF6B6B' }}>
                             {quizSel === quizQ.c ? "✅ Correct!" : `❌ Incorrect — Answer: ${quizQ.c}`}
                           </div>
                           <p className="text-[13px] text-app-text leading-relaxed m-0">{quizQ.e}</p>

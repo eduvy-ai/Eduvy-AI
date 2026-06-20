@@ -40,7 +40,11 @@ export default function AuthScreen({ onAuth }) {
       setAuthToken(token)
       onAuth(profile)
     } catch (e) {
-      setError(e.message || 'Login failed')
+      if (e.name === 'TimeoutError' || e.name === 'AbortError') {
+        setError('Server is starting up, please try again in a moment.')
+      } else {
+        setError(e.message || 'Login failed')
+      }
     }
     setLoading(false)
   }
@@ -74,7 +78,11 @@ export default function AuthScreen({ onAuth }) {
       setAuthToken(token)
       onAuth(profile)
     } catch (e) {
-      setError(e.message || 'Registration failed')
+      if (e.name === 'TimeoutError' || e.name === 'AbortError') {
+        setError('Server is starting up, please try again in a moment.')
+      } else {
+        setError(e.message || 'Registration failed')
+      }
     }
     setLoading(false)
   }

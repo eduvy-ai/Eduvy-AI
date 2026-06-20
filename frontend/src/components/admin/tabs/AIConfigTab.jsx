@@ -1,16 +1,13 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { API, C, inputClass, btnClass, ghostBtnClass, Table } from '../shared'
 
-// ── AI Config Constants ───────────────────────────────────────
+// ── Provider metadata (no static model lists here) ───────────
 const ADMIN_PROVIDERS = {
-  gemini:    { label: "Google Gemini", icon: "✦", color: "#7B9CFF",
-    models: ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"] },
-  groq:      { label: "Groq",          icon: "⚡", color: "#FFD166",
-    models: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"] },
-  anthropic: { label: "Anthropic Claude", icon: "◈", color: "#FF6B35",
-    models: ["claude-sonnet-4-20250514", "claude-3-5-haiku-20241022"] },
-  openai:    { label: "OpenAI GPT",    icon: "◎", color: "#00E5A0",
-    models: ["gpt-4o-mini", "gpt-4o"] },
+  gemini:    { label: "Google Gemini",    icon: "✦", color: "#7B9CFF" },
+  groq:      { label: "Groq",             icon: "⚡", color: "#FFD166" },
+  anthropic: { label: "Anthropic Claude", icon: "◈", color: "#FF6B35" },
+  openai:    { label: "OpenAI GPT",       icon: "◎", color: "#00E5A0" },
+  nvidia:    { label: "NVIDIA NIM",       icon: "⬡", color: "#76B900" },
 }
 
 const PLAN_LABELS = { free: "🆓 Free", basic: "⭐ Basic", pro: "🚀 Pro", premium: "👑 Premium" }
@@ -34,13 +31,19 @@ export default function AIConfigTab({ toast }) {
   const [keyVisible, setKeyVisible] = useState({})    // {"groq-1": bool, ...}
   const [keySaving, setKeySaving]   = useState(null)  // "groq-1" | null
   const [keyRemoving, setKeyRemoving] = useState(null) // "groq-1" | null
+
+  // Dynamic model lists — fetched per-provider, cached in memory
+  const [modelLists, setModelLists]   = useState({})   // {provider: string[]}
+  const [modelLoading, setModelLoading] = useState({}) // {provider: bool}
+  const fetchedRef = useRef(new Set())                 // providers already fetched this session
+
   // Per-user override
   const [userSearch, setUserSearch] = useState("")
   const [users, setUsers]           = useState([])
   const [userLoading, setUserLoading] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
   const [uProvider, setUProvider]   = useState("gemini")
-  const [uModel, setUModel]         = useState("gemini-2.0-flash")
+  const [uModel, setUModel]         = useState("")
   const [uSaving, setUSaving]       = useState(false)
 
   const loadConfig = useCallback(async () => {
@@ -58,7 +61,34 @@ export default function AIConfigTab({ toast }) {
     }
   }, [])
 
-  useEffect(() => { loadConfig() }, [loadConfig])
+  // Fetch live model list for a provider — cached per session, re-fetches after key save
+  const fetchModels = useCallback(async (provider, force = false) => {
+    if (!force && fetchedRef.current.has(provider)) return
+    fetchedRef.current.add(provider)
+    setModelLoading(s => ({ ...s, [provider]: true }))
+    try {
+      const res = await API(`/admin/ai-models/${provider}`)
+      if (res.ok) {
+        const d = await res.json()
+        setModelLists(m => ({ ...m, [provider]: d.models || [] }))
+      }
+    } catch (_) { /* silently keep whatever fallback is already set */ }
+    finally {
+      setModelLoading(s => ({ ...s, [provider]: false }))
+    }
+  }, [])
+
+  // Returns the current cached model list for a provider (pure — no side effects)
+  // Background pre-fetch in useEffect covers all providers on mount
+  const getModels = useCallback((provider) => {
+    return modelLists[provider] || []
+  }, [modelLists])
+
+  useEffect(() => {
+    loadConfig()
+    // Pre-fetch models for all providers in the background
+    Object.keys(ADMIN_PROVIDERS).forEach(p => fetchModels(p))
+  }, [loadConfig, fetchModels])
 
   const saveApiKeySlot = async (provider, slot) => {
     const slotKey = `${provider}-${slot}`
@@ -75,7 +105,9 @@ export default function AIConfigTab({ toast }) {
       if (res.ok) {
         toast(`${ADMIN_PROVIDERS[provider]?.label} — Slot ${slot} saved`)
         setKeyInputs(k => ({ ...k, [slotKey]: "" }))
-        loadConfig()  // refresh pool sizes
+        fetchedRef.current.delete(provider)   // invalidate cache so next render re-fetches
+        loadConfig()   // refresh pool sizes
+        fetchModels(provider, true)  // fetch fresh model list with the new key
       } else {
         const d = await res.json()
         toast(d.detail || "Failed to save key", "error")
@@ -142,8 +174,9 @@ export default function AIConfigTab({ toast }) {
 
   const openUserEdit = (user) => {
     setEditingUser(user)
-    setUProvider(user.ai_provider || "gemini")
-    setUModel(user.ai_model || "gemini-2.0-flash")
+    const prov = user.ai_provider || "gemini"
+    setUProvider(prov)
+    setUModel(user.ai_model || getModels(prov)[0] || "")
   }
 
   const saveUserOverride = async (clearOverride = false) => {
@@ -321,7 +354,7 @@ export default function AIConfigTab({ toast }) {
                   value={entry.provider}
                   onChange={e => {
                     const prov = e.target.value
-                    const firstModel = ADMIN_PROVIDERS[prov]?.models[0] || ""
+                    const firstModel = getModels(prov)[0] || ""
                     setRouting(r => ({ ...r, [plan]: { provider: prov, model: firstModel } }))
                   }}
                 >
@@ -335,10 +368,15 @@ export default function AIConfigTab({ toast }) {
                   className={`${inputClass} flex-[1_1_220px] min-w-0`}
                   value={entry.model}
                   onChange={e => setRouting(r => ({ ...r, [plan]: { ...entry, model: e.target.value } }))}
+                  disabled={!!modelLoading[entry.provider]}
                 >
-                  {(ADMIN_PROVIDERS[entry.provider]?.models || []).map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
+                  {modelLoading[entry.provider]
+                    ? <option>Loading…</option>
+                    : (getModels(entry.provider).length
+                        ? getModels(entry.provider).map(m => <option key={m} value={m}>{m}</option>)
+                        : <option value={entry.model}>{entry.model}</option>
+                      )
+                  }
                 </select>
 
                 <button
@@ -402,7 +440,7 @@ export default function AIConfigTab({ toast }) {
                   onChange={e => {
                     const prov = e.target.value
                     setUProvider(prov)
-                    setUModel(ADMIN_PROVIDERS[prov]?.models[0] || "")
+                    setUModel(getModels(prov)[0] || "")
                   }}
                 >
                   {Object.entries(ADMIN_PROVIDERS).map(([k, v]) => (
@@ -417,10 +455,15 @@ export default function AIConfigTab({ toast }) {
                   className={inputClass}
                   value={uModel}
                   onChange={e => setUModel(e.target.value)}
+                  disabled={!!modelLoading[uProvider]}
                 >
-                  {(ADMIN_PROVIDERS[uProvider]?.models || []).map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
+                  {modelLoading[uProvider]
+                    ? <option>Loading…</option>
+                    : (getModels(uProvider).length
+                        ? getModels(uProvider).map(m => <option key={m} value={m}>{m}</option>)
+                        : <option value={uModel}>{uModel || "—"}</option>
+                      )
+                  }
                 </select>
               </div>
 

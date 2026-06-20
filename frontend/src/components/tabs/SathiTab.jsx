@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { COLORS, callAI, LANG_RULES } from '../../shared.js'
+﻿import { useState, useEffect, useRef, useCallback } from 'react'
+import { callAI, LANG_RULES } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import {
   apiGetMySquad, apiMatchSquad,
@@ -23,21 +23,15 @@ function Avatar({ name = '?', size = 32, online = false, isAI = false }) {
     ? 'linear-gradient(135deg,#7B9CFF,#a04dff)'
     : `hsl(${((name.charCodeAt(0) || 65) * 37) % 360},55%,38%)`
   return (
-    <div style={{ position: 'relative', flexShrink: 0 }}>
-      <div style={{
-        width: size, height: size, borderRadius: '50%',
-        background: isAI ? bg : bg,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: isAI ? size * 0.55 : size * 0.45,
-        fontWeight: 900, color: '#fff',
-        border: `2px solid ${COLORS.card2}`,
-      }}>{initials}</div>
+    <div className="relative flex-shrink-0">
+      <div className="rounded-full flex items-center justify-center font-black text-white"
+        style={{
+          width: size, height: size, fontSize: isAI ? size * 0.55 : size * 0.45,
+          background: bg, border: `2px solid #101022`,
+        }}>{initials}</div>
       {online && (
-        <div style={{
-          position: 'absolute', bottom: 1, right: 1,
-          width: 9, height: 9, borderRadius: '50%',
-          background: COLORS.green, border: `2px solid ${COLORS.bg}`,
-        }} />
+        <div className="absolute bottom-0.5 right-0.5 w-[9px] h-[9px] rounded-full border-2"
+          style={{ background: '#00E5A0', borderColor: '#04040e' }} />
       )}
     </div>
   )
@@ -53,52 +47,39 @@ function Bubble({ msg, isMine, memberName }) {
     : ''
 
   if (isSystem) return (
-    <div style={{ textAlign: 'center', margin: '8px 0' }}>
-      <span style={{
-        fontSize: 11.5, color: COLORS.muted, fontWeight: 600,
-        background: COLORS.card2, borderRadius: 20, padding: '4px 12px',
-      }}>{msg.content}</span>
+    <div className="text-center my-2">
+      <span className="text-[11.5px] text-app-muted font-semibold bg-app-card2 rounded-[20px] px-3 py-1">{msg.content}</span>
     </div>
   )
 
   if (isChallenge) return (
-    <div style={{
-      background: `${COLORS.yellow}12`,
-      border: `1px solid ${COLORS.yellow}40`,
-      borderRadius: 14, padding: '10px 14px', margin: '8px 0',
-      fontSize: 13, color: COLORS.yellow, fontWeight: 600,
-    }}>🏆 {msg.content}</div>
+    <div className="bg-app-yellow/[0.07] border border-app-yellow/25 rounded-[14px] px-3.5 py-2.5 my-2 text-[13px] text-app-yellow font-semibold">🏆 {msg.content}</div>
   )
 
   return (
-    <div style={{
-      display: 'flex', gap: 8,
-      flexDirection: isMine ? 'row-reverse' : 'row',
-      alignItems: 'flex-end', margin: '4px 0',
-    }}>
+    <div className="flex gap-2 my-1"
+      style={{ flexDirection: isMine ? 'row-reverse' : 'row', alignItems: 'flex-end' }}>
       {!isMine && <Avatar name={isAIPeer ? 'AI' : (memberName || msg.display_name)} size={28} isAI={isAIPeer} />}
-      <div style={{ maxWidth: '72%', display: 'flex', flexDirection: 'column', gap: 3,
-        alignItems: isMine ? 'flex-end' : 'flex-start' }}>
+      <div className="max-w-[72%] flex flex-col gap-0.5"
+        style={{ alignItems: isMine ? 'flex-end' : 'flex-start' }}>
         {!isMine && (
-          <span style={{ fontSize: 10.5, color: COLORS.muted, fontWeight: 600, marginLeft: 4 }}>
+          <span className="text-[10.5px] text-app-muted font-semibold ml-1">
             {isAIPeer ? '🦉 Gyaani (AI Peer)' : (memberName || msg.display_name)}
           </span>
         )}
-        <div style={{
-          background: isMine
-            ? `linear-gradient(135deg,${COLORS.green},#33cc88)`
-            : isAIPeer
-              ? `${COLORS.blue}18`
-              : COLORS.card,
-          border: isMine ? 'none' : `1px solid ${isAIPeer ? COLORS.blue + '40' : COLORS.border}`,
-          borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-          padding: '9px 13px',
-          color: isMine ? '#04040e' : COLORS.text,
-          fontSize: 13.5, lineHeight: 1.55,
-        }}>
+        <div className="px-3.5 py-2.5 text-[13.5px] leading-[1.55]"
+          style={{
+            background: isMine
+              ? `linear-gradient(135deg,#00E5A0,#33cc88)`
+              : isAIPeer ? '#7B9CFF18' : '#0b0b1c',
+            border: isMine ? 'none' : `1px solid ${isAIPeer ? '#7B9CFF40' : 'rgba(255,255,255,0.03)'}`,
+            borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+            color: isMine ? '#04040e' : '#eeeeff',
+          }}>
           {msg.content}
         </div>
-        <span style={{ fontSize: 10, color: COLORS.muted, marginRight: isMine ? 4 : 0, marginLeft: isMine ? 0 : 4 }}>
+        <span className="text-[10px] text-app-muted"
+          style={{ marginRight: isMine ? 4 : 0, marginLeft: isMine ? 0 : 4 }}>
           {time}
         </span>
       </div>
@@ -127,60 +108,40 @@ function ChallengeBanner({ challenge, onSubmit, onDismiss }) {
   }
 
   if (done) return (
-    <div style={{
-      background: `${COLORS.green}15`, border: `1px solid ${COLORS.green}40`,
-      borderRadius: 14, padding: '12px 16px', margin: '0 0 10px',
-      fontSize: 13, color: COLORS.green, fontWeight: 700, textAlign: 'center',
-    }}>
+    <div className="bg-app-green/[0.08] border border-app-green/25 rounded-[14px] px-4 py-3 mb-2.5 text-[13px] text-app-green font-bold text-center">
       🎓 Challenge complete! +50 Teaching XP earned!
     </div>
   )
 
   return (
-    <div style={{
-      background: `${COLORS.yellow}0e`,
-      border: `1.5px solid ${COLORS.yellow}50`,
-      borderRadius: 16, padding: '14px 16px', margin: '0 0 10px',
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+    <div className="bg-app-yellow/[0.05] border-[1.5px] border-app-yellow/30 rounded-2xl px-4 py-3.5 mb-2.5">
+      <div className="flex justify-between items-start mb-2">
         <div>
-          <div style={{ fontSize: 11, fontWeight: 800, color: COLORS.yellow, letterSpacing: '0.06em', marginBottom: 3 }}>
+          <div className="text-[11px] font-extrabold text-app-yellow tracking-[0.06em] mb-0.5">
             📚 YOUR CHALLENGE — 50 Teaching XP
           </div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text }}>
-            Explain: <span style={{ color: COLORS.yellow }}>{challenge.concept}</span>
+          <div className="text-[14px] font-bold text-app-text">
+            Explain: <span className="text-app-yellow">{challenge.concept}</span>
           </div>
-          <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{challenge.subject}</div>
+          <div className="text-[11px] text-app-muted mt-0.5">{challenge.subject}</div>
         </div>
-        <button onClick={onDismiss} style={{
-          background: 'transparent', border: 'none', cursor: 'pointer',
-          color: COLORS.muted, fontSize: 18, padding: '0 4px',
-          fontFamily: 'Sora, sans-serif',
-        }}>×</button>
+        <button onClick={onDismiss} className="bg-transparent border-none cursor-pointer text-app-muted text-[18px] px-1">×</button>
       </div>
       <textarea
         value={text}
         onChange={e => setText(e.target.value)}
         placeholder="Explain this concept to your squad in simple words…"
         rows={3}
-        style={{
-          width: '100%', background: COLORS.card2,
-          border: `1px solid ${COLORS.border}`, borderRadius: 10,
-          padding: '8px 10px', color: COLORS.text, fontSize: 13,
-          fontFamily: 'Sora, sans-serif', resize: 'vertical',
-          outline: 'none', boxSizing: 'border-box',
-        }}
+        className="w-full bg-app-card2 border border-app-border rounded-[10px] px-2.5 py-2 text-app-text text-[13px] resize-y outline-none box-border"
       />
       <button
         onClick={submit}
         disabled={submitting || !text.trim()}
+        className="mt-2 w-full border-none rounded-[10px] py-2.5 text-[13px] font-extrabold"
         style={{
-          marginTop: 8, width: '100%',
-          background: text.trim() ? `linear-gradient(135deg,${COLORS.yellow},#ffaa00)` : COLORS.card,
-          border: 'none', borderRadius: 10, padding: '9px',
-          color: text.trim() ? '#04040e' : COLORS.muted,
-          fontSize: 13, fontWeight: 800, cursor: text.trim() ? 'pointer' : 'default',
-          fontFamily: 'Sora, sans-serif',
+          background: text.trim() ? `linear-gradient(135deg,#FFD166,#ffaa00)` : '#0b0b1c',
+          color: text.trim() ? '#04040e' : '#6868a0',
+          cursor: text.trim() ? 'pointer' : 'default',
         }}
       >
         {submitting ? 'Submitting…' : 'Submit Explanation 🚀'}
@@ -192,20 +153,16 @@ function ChallengeBanner({ challenge, onSubmit, onDismiss }) {
 // ── Members strip ─────────────────────────────────────────────
 function MembersStrip({ members, currentUserId }) {
   return (
-    <div style={{ display: 'flex', gap: 12, padding: '10px 14px', overflowX: 'auto',
-      borderBottom: `1px solid ${COLORS.border}`, background: COLORS.card }}>
+    <div className="flex gap-3 px-3.5 py-2.5 overflow-x-auto border-b border-app-border bg-app-card">
       {members.map(m => (
-        <div key={m.user_id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 44 }}>
+        <div key={m.user_id} className="flex flex-col items-center gap-1 min-w-[44px]">
           <Avatar name={m.name} size={36} online={m.online} />
-          <span style={{
-            fontSize: 10, color: m.user_id === currentUserId ? COLORS.green : COLORS.muted,
-            fontWeight: m.user_id === currentUserId ? 800 : 500,
-            maxWidth: 50, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>{m.user_id === currentUserId ? 'You' : m.name.split(' ')[0]}</span>
-          <span style={{
-            fontSize: 9, color: m.role === 'teacher' ? COLORS.yellow : COLORS.muted,
-            fontWeight: 700,
-          }}>{m.role === 'teacher' ? '⭐ teacher' : '📖 learner'}</span>
+          <span className="text-[10px] max-w-[50px] overflow-hidden text-ellipsis whitespace-nowrap"
+            style={{ color: m.user_id === currentUserId ? '#00E5A0' : '#6868a0', fontWeight: m.user_id === currentUserId ? 800 : 500 }}
+          >{m.user_id === currentUserId ? 'You' : m.name.split(' ')[0]}</span>
+          <span className="text-[9px] font-bold"
+            style={{ color: m.role === 'teacher' ? '#FFD166' : '#6868a0' }}
+          >{m.role === 'teacher' ? '⭐ teacher' : '📖 learner'}</span>
         </div>
       ))}
     </div>
@@ -220,46 +177,38 @@ function NoSquadScreen({ onMatch, matching }) {
     { icon: '🏆', title: 'Teach & learn together', desc: 'Complete challenges, earn Teaching XP, and grow together' },
   ]
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 18px', gap: 28 }}>
+    <div className="flex flex-col items-center px-4 py-8 gap-7">
       {/* Hero */}
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 56, marginBottom: 12 }}>🤝</div>
-        <h2 style={{ fontSize: 22, fontWeight: 900, margin: '0 0 8px', letterSpacing: -0.5 }}>
-          Sathi <span style={{ color: COLORS.green }}>Study Squads</span>
+      <div className="text-center">
+        <div className="text-[56px] mb-3">🤝</div>
+        <h2 className="text-[22px] font-black m-0 mb-2 tracking-tight">
+          Sathi <span className="text-app-green">Study Squads</span>
         </h2>
-        <p style={{ fontSize: 14, color: COLORS.muted, margin: 0, lineHeight: 1.6, maxWidth: 320 }}>
-          AI matches you with students who have <strong style={{ color: COLORS.text }}>complementary strengths</strong> — you teach what you know, learn what you don't.
+        <p className="text-[14px] text-app-muted m-0 leading-[1.6] max-w-[320px]">
+          AI matches you with students who have <strong className="text-app-text">complementary strengths</strong> — you teach what you know, learn what you don't.
         </p>
       </div>
 
       {/* How it works */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 380 }}>
+      <div className="flex flex-col gap-3 w-full max-w-[380px]">
         {steps.map((s, i) => (
-          <div key={i} style={{
-            background: COLORS.card, border: `1px solid ${COLORS.border}`,
-            borderRadius: 14, padding: '14px 16px',
-            display: 'flex', gap: 14, alignItems: 'flex-start',
-          }}>
-            <span style={{ fontSize: 26, flexShrink: 0 }}>{s.icon}</span>
+          <div key={i} className="bg-app-card border border-app-border rounded-[14px] px-4 py-3.5 flex gap-3.5 items-start">
+            <span className="text-[26px] flex-shrink-0">{s.icon}</span>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 800, color: COLORS.text, marginBottom: 3 }}>{s.title}</div>
-              <div style={{ fontSize: 12, color: COLORS.muted, lineHeight: 1.5 }}>{s.desc}</div>
+              <div className="text-[13px] font-extrabold text-app-text mb-0.5">{s.title}</div>
+              <div className="text-[12px] text-app-muted leading-[1.5]">{s.desc}</div>
             </div>
           </div>
         ))}
       </div>
 
       {/* Teaching XP callout */}
-      <div style={{
-        background: `${COLORS.yellow}10`, border: `1px solid ${COLORS.yellow}35`,
-        borderRadius: 14, padding: '12px 18px', width: '100%', maxWidth: 380,
-        display: 'flex', gap: 12, alignItems: 'center',
-      }}>
-        <span style={{ fontSize: 28 }}>🏆</span>
+      <div className="bg-app-yellow/[0.06] border border-app-yellow/20 rounded-[14px] px-4 py-3 w-full max-w-[380px] flex gap-3 items-center">
+        <span className="text-[28px]">🏆</span>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: COLORS.yellow }}>Teaching XP</div>
-          <div style={{ fontSize: 12, color: COLORS.muted, lineHeight: 1.5 }}>
-            Earn <strong style={{ color: COLORS.yellow }}>50 XP</strong> every time you successfully explain a concept to your squad — more than answering quizzes!
+          <div className="text-[13px] font-extrabold text-app-yellow">Teaching XP</div>
+          <div className="text-[12px] text-app-muted leading-[1.5]">
+            Earn <strong className="text-app-yellow">50 XP</strong> every time you successfully explain a concept to your squad — more than answering quizzes!
           </div>
         </div>
       </div>
@@ -268,21 +217,18 @@ function NoSquadScreen({ onMatch, matching }) {
       <button
         onClick={onMatch}
         disabled={matching}
+        className="border-none rounded-2xl px-10 py-4 text-[15px] font-black cursor-pointer flex items-center gap-2.5"
         style={{
-          background: matching ? COLORS.card : `linear-gradient(135deg,${COLORS.green},#33cc88)`,
-          border: 'none', borderRadius: 16, padding: '15px 40px',
-          color: matching ? COLORS.muted : '#04040e',
-          fontSize: 15, fontWeight: 900, cursor: matching ? 'default' : 'pointer',
-          fontFamily: 'Sora, sans-serif',
-          boxShadow: matching ? 'none' : `0 0 28px ${COLORS.green}44`,
-          display: 'flex', alignItems: 'center', gap: 10,
+          background: matching ? '#0b0b1c' : `linear-gradient(135deg,#00E5A0,#33cc88)`,
+          boxShadow: matching ? 'none' : `0 0 28px #00E5A044`,
+          color: matching ? '#6868a0' : '#04040e',
         }}
       >
         {matching
-          ? <><span style={{ width: 18, height: 18, border: `3px solid ${COLORS.green}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} /> Finding your squad…</>
+          ? <><span className="w-[18px] h-[18px] border-[3px] border-app-green border-t-transparent rounded-full animate-spin inline-block" /> Finding your squad…</>
           : '🤝 Find My Study Squad'}
       </button>
-      <p style={{ fontSize: 11, color: COLORS.muted, margin: '-16px 0 0', textAlign: 'center' }}>
+      <p className="text-[11px] text-app-muted -mt-4 text-center">
         Squads are based on your quiz mastery scores
       </p>
     </div>
@@ -297,22 +243,16 @@ function SubNav({ active, onChange }) {
     { key: 'daily',  icon: '📅', label: 'Daily'   },
   ]
   return (
-    <div style={{
-      display: 'flex', borderBottom: `1px solid ${COLORS.border}`,
-      background: COLORS.card, flexShrink: 0,
-    }}>
+    <div className="flex border-b border-app-border bg-app-card flex-shrink-0">
       {tabs.map(t => (
-        <button key={t.key} onClick={() => onChange(t.key)} style={{
-          flex: 1, background: 'transparent',
-          border: 'none',
-          borderBottom: active === t.key ? `2px solid ${COLORS.green}` : `2px solid transparent`,
-          padding: '9px 4px 8px',
-          color: active === t.key ? COLORS.green : COLORS.muted,
-          fontWeight: active === t.key ? 700 : 500,
-          fontSize: 12, cursor: 'pointer', fontFamily: 'Sora, sans-serif',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-        }}>
-          <span style={{ fontSize: 16 }}>{t.icon}</span>
+        <button key={t.key} onClick={() => onChange(t.key)}
+          className="flex-1 bg-transparent border-none px-1 pt-2.5 pb-2 text-[12px] cursor-pointer flex flex-col items-center gap-0.5"
+          style={{
+            borderBottom: active === t.key ? `2px solid #00E5A0` : `2px solid transparent`,
+            color: active === t.key ? '#00E5A0' : '#6868a0',
+            fontWeight: active === t.key ? 700 : 500,
+          }}>
+          <span className="text-[16px]">{t.icon}</span>
           {t.label}
         </button>
       ))}
@@ -429,72 +369,65 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
   // ── VIEW: Post a new doubt ────────────────────────────────
   const atLimit = quota && quota.remaining <= 0
   if (view === 'post') return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Header */}
-      <div style={{ padding: '12px 16px', borderBottom: `1px solid ${COLORS.border}`, background: COLORS.card, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-        <button onClick={() => setView('list')} style={{ background: 'transparent', border: 'none', color: COLORS.muted, fontSize: 20, cursor: 'pointer', fontFamily: 'Sora, sans-serif', lineHeight: 1 }}>←</button>
-        <span style={{ fontSize: 15, fontWeight: 800, color: COLORS.text, flex: 1 }}>❓ Post a Doubt</span>
+      <div className="px-4 py-3 border-b border-app-border bg-app-card flex-shrink-0 flex items-center gap-2.5">
+        <button onClick={() => setView('list')} className="bg-transparent border-none text-app-muted text-[20px] cursor-pointer leading-none">←</button>
+        <span className="text-[15px] font-extrabold text-app-text flex-1">❓ Post a Doubt</span>
         {quota && (
-          <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: atLimit ? `${COLORS.red}20` : `${COLORS.green}20`, color: atLimit ? COLORS.red : COLORS.green }}>
+          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-[20px]"
+            style={{ background: atLimit ? '#FF6B6B20' : '#00E5A020', color: atLimit ? '#FF6B6B' : '#00E5A0' }}>
             {atLimit ? 'Limit reached' : `${quota.remaining} left today`}
           </span>
         )}
       </div>
 
       {atLimit ? (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>🚫</div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.text, marginBottom: 8 }}>Daily limit reached</div>
-          <div style={{ fontSize: 13, color: COLORS.muted, lineHeight: 1.7 }}>
-            You've used all <strong style={{ color: COLORS.text }}>{quota.limit}</strong> doubts for today on the <strong style={{ color: COLORS.blue }}>{quota.plan}</strong> plan.<br />
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 text-center">
+          <div className="text-[48px] mb-3">🚫</div>
+          <div className="text-[16px] font-extrabold text-app-text mb-2">Daily limit reached</div>
+          <div className="text-[13px] text-app-muted leading-[1.7]">
+            You've used all <strong className="text-app-text">{quota.limit}</strong> doubts for today on the <strong className="text-app-blue">{quota.plan}</strong> plan.<br />
             Come back tomorrow — or upgrade for more!
           </div>
           {quota.plan !== 'premium' && (
-            <div style={{ marginTop: 20, fontSize: 11, color: COLORS.muted }}>
+            <div className="mt-5 text-[11px] text-app-muted">
               Free: 2/day · Basic: 5/day · Pro: 15/day · Premium: unlimited
             </div>
           )}
         </div>
       ) : (
         <>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, marginBottom: 8, letterSpacing: '0.04em' }}>YOUR DOUBT</div>
+          <div className="flex-1 overflow-y-auto px-4 py-5">
+            <div className="text-[12px] font-bold text-app-muted mb-2 tracking-[0.04em]">YOUR DOUBT</div>
             <textarea
               value={newQ}
               onChange={e => setNewQ(e.target.value)}
               placeholder="What are you stuck on? Write your doubt clearly so your squad can help…"
               rows={5}
               autoFocus
-              style={{
-                width: '100%', background: COLORS.card,
-                border: `1.5px solid ${newQ.trim() ? COLORS.blue : COLORS.border}`,
-                borderRadius: 14, padding: '13px 14px',
-                color: COLORS.text, fontSize: 14, fontFamily: 'Sora, sans-serif',
-                resize: 'none', lineHeight: 1.6, outline: 'none',
-                boxSizing: 'border-box',
-              }}
+              className="w-full bg-app-card rounded-[14px] px-3.5 py-3 text-app-text text-[14px] resize-none leading-[1.6] outline-none box-border"
+              style={{ border: `1.5px solid ${newQ.trim() ? '#7B9CFF' : 'rgba(255,255,255,0.03)'}` }}
             />
-            <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 6 }}>
+            <div className="text-[11px] text-app-muted mt-1.5">
               {newQ.trim().length} / 500 characters
             </div>
-            <div style={{ background: COLORS.card2, borderRadius: 12, padding: '12px 14px', marginTop: 16, fontSize: 12, color: COLORS.muted, lineHeight: 1.7 }}>
-              💡 <strong style={{ color: COLORS.text }}>Tips for a good doubt:</strong><br />
+            <div className="bg-app-card2 rounded-[12px] px-3.5 py-3 mt-4 text-[12px] text-app-muted leading-[1.7]">
+              💡 <strong className="text-app-text">Tips for a good doubt:</strong><br />
               • Be specific — "I don't understand step 3 of…"<br />
               • Mention what you already tried<br />
               • Add the topic or chapter name
             </div>
           </div>
-          <div style={{ padding: '12px 16px 16px', borderTop: `1px solid ${COLORS.border}`, background: COLORS.bg, flexShrink: 0 }}>
+          <div className="px-4 pt-3 pb-4 border-t border-app-border bg-app-bg flex-shrink-0">
             <button
               onClick={handlePost}
               disabled={!newQ.trim() || posting || newQ.trim().length > 500}
+              className="w-full py-3.5 border-none rounded-[14px] font-extrabold text-[15px]"
               style={{
-                width: '100%', padding: '14px',
-                background: newQ.trim() ? `linear-gradient(135deg,${COLORS.blue},#5577ee)` : COLORS.card,
-                border: 'none', borderRadius: 14,
-                color: newQ.trim() ? '#fff' : COLORS.muted,
-                fontWeight: 800, fontSize: 15, cursor: newQ.trim() ? 'pointer' : 'default',
-                fontFamily: 'Sora, sans-serif',
+                background: newQ.trim() ? `linear-gradient(135deg,#7B9CFF,#5577ee)` : '#0b0b1c',
+                color: newQ.trim() ? '#fff' : '#6868a0',
+                cursor: newQ.trim() ? 'pointer' : 'default',
               }}
             >{posting ? 'Posting…' : '📤 Post to Squad'}</button>
           </div>
@@ -505,36 +438,35 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
 
   // ── VIEW: Answers for a specific doubt ────────────────────
   if (view === 'answers') return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Header */}
-      <div style={{ padding: '12px 16px', borderBottom: `1px solid ${COLORS.border}`, background: COLORS.card, flexShrink: 0, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        <button onClick={() => { setView('list'); setOpenDoubt(null) }} style={{ background: 'transparent', border: 'none', color: COLORS.muted, fontSize: 20, cursor: 'pointer', fontFamily: 'Sora, sans-serif', lineHeight: 1, flexShrink: 0, marginTop: 2 }}>←</button>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: COLORS.text, lineHeight: 1.4 }}>{openDoubt?.question}</div>
-          <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 3 }}>
-            Asked by <strong style={{ color: COLORS.blue }}>{openDoubt?.display_name}</strong> · {openDoubt?.subject}
+      <div className="px-4 py-3 border-b border-app-border bg-app-card flex-shrink-0 flex items-start gap-2.5">
+        <button onClick={() => { setView('list'); setOpenDoubt(null) }} className="bg-transparent border-none text-app-muted text-[20px] cursor-pointer leading-none flex-shrink-0 mt-0.5">←</button>
+        <div className="flex-1">
+          <div className="text-[13.5px] font-bold text-app-text leading-[1.4]">{openDoubt?.question}</div>
+          <div className="text-[11px] text-app-muted mt-0.5">
+            Asked by <strong className="text-app-blue">{openDoubt?.display_name}</strong> · {openDoubt?.subject}
           </div>
         </div>
       </div>
 
       {/* Answers list */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col gap-2.5">
         {answers.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-            <div style={{ fontSize: 40, marginBottom: 10 }}>🙋</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text, marginBottom: 6 }}>No answers yet</div>
-            <div style={{ fontSize: 12, color: COLORS.muted }}>Be the first squadmate to help out!</div>
+          <div className="text-center px-5 py-10">
+            <div className="text-[40px] mb-2.5">🙋</div>
+            <div className="text-[14px] font-bold text-app-text mb-1.5">No answers yet</div>
+            <div className="text-[12px] text-app-muted">Be the first squadmate to help out!</div>
           </div>
         ) : answers.map((a, idx) => (
-          <div key={a.id} style={{
-            background: COLORS.card, border: `1px solid ${idx === 0 && a.upvotes > 0 ? COLORS.green + '40' : COLORS.border}`,
-            borderRadius: 14, padding: '12px 14px',
-          }}>
+          <div key={a.id}
+            className="bg-app-card rounded-[14px] px-3.5 py-3"
+            style={{ border: `1px solid ${idx === 0 && a.upvotes > 0 ? '#00E5A040' : 'rgba(255,255,255,0.03)'}` }}>
             {idx === 0 && a.upvotes > 0 && (
-              <div style={{ fontSize: 10, fontWeight: 800, color: COLORS.green, letterSpacing: '0.05em', marginBottom: 6 }}>⭐ TOP ANSWER</div>
+              <div className="text-[10px] font-extrabold text-app-green tracking-[0.05em] mb-1.5">⭐ TOP ANSWER</div>
             )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: a.user_id === userId ? COLORS.green : COLORS.blue }}>
+            <div className="flex justify-between items-center mb-1.5">
+              <span className="text-[12px] font-bold" style={{ color: a.user_id === userId ? '#00E5A0' : '#7B9CFF' }}>
                 {a.user_id === userId ? '✨ You' : a.display_name}
               </span>
               {a.ai_verdict && (() => {
@@ -546,34 +478,31 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
                 ) : null
               })()}
             </div>
-            <div style={{ fontSize: 13.5, color: COLORS.text, lineHeight: 1.6 }}>{a.answer}</div>
+            <div className="text-[13.5px] text-app-text leading-[1.6]">{a.answer}</div>
             {a.ai_note && (
-              <div style={{ fontSize: 11.5, color: COLORS.muted, marginTop: 7, padding: '7px 10px', background: COLORS.card2, borderRadius: 8, lineHeight: 1.55 }}>
+              <div className="text-[11.5px] text-app-muted mt-1.5 px-2.5 py-1.5 bg-app-card2 rounded-lg leading-[1.55]">
                 🤖 {a.ai_note}
               </div>
             )}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+            <div className="flex justify-end mt-2.5">
               <button
                 onClick={() => handleUpvote(a)}
                 disabled={a.user_id === userId || !!a.i_upvoted || !!upvoting}
+                className="flex items-center gap-1.5 rounded-[20px] px-3.5 py-1.5 text-[12px] font-bold"
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  background: a.i_upvoted ? `${COLORS.green}18` : `${COLORS.card2}`,
-                  border: `1px solid ${a.i_upvoted ? COLORS.green + '60' : COLORS.border}`,
-                  borderRadius: 20, padding: '5px 14px',
-                  color: a.i_upvoted ? COLORS.green : (a.user_id === userId ? COLORS.muted : COLORS.text),
-                  fontSize: 12, fontWeight: 700,
+                  background: a.i_upvoted ? '#00E5A018' : '#101022',
+                  border: `1px solid ${a.i_upvoted ? '#00E5A060' : 'rgba(255,255,255,0.03)'}`,
+                  color: a.i_upvoted ? '#00E5A0' : (a.user_id === userId ? '#6868a0' : '#eeeeff'),
                   cursor: a.user_id === userId || a.i_upvoted ? 'default' : 'pointer',
-                  fontFamily: 'Sora, sans-serif',
                   opacity: a.user_id === userId ? 0.45 : 1,
                 }}
               >
                 👍 {a.upvotes}
                 {!a.i_upvoted && a.user_id !== userId && (
-                  <span style={{ fontSize: 10, color: COLORS.green, fontWeight: 800 }}>+15 XP</span>
+                  <span className="text-[10px] text-app-green font-extrabold">+15 XP</span>
                 )}
-                {a.i_upvoted && <span style={{ fontSize: 10 }}>Voted</span>}
-                {a.user_id === userId && <span style={{ fontSize: 10 }}>Your answer</span>}
+                {a.i_upvoted && <span className="text-[10px]">Voted</span>}
+                {a.user_id === userId && <span className="text-[10px]">Your answer</span>}
               </button>
             </div>
           </div>
@@ -581,20 +510,22 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
       </div>
 
       {/* Write answer bar */}
-      <div style={{ padding: '10px 12px 14px', borderTop: `1px solid ${COLORS.border}`, background: COLORS.bg, flexShrink: 0 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, marginBottom: 6 }}>WRITE YOUR ANSWER</div>
-        <div style={{ display: 'flex', gap: 8 }}>
+      <div className="px-3 pt-2.5 pb-3.5 border-t border-app-border bg-app-bg flex-shrink-0">
+        <div className="text-[11px] font-bold text-app-muted mb-1.5">WRITE YOUR ANSWER</div>
+        <div className="flex gap-2">
           <input
             value={newAns}
             onChange={e => setNewAns(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleAnswer()}
             placeholder="Help your squadmate…"
-            style={{ flex: 1, background: COLORS.card, border: `1.5px solid ${newAns.trim() ? COLORS.blue : COLORS.border}`, borderRadius: 12, padding: '11px 14px', color: COLORS.text, fontSize: 13.5, fontFamily: 'Sora, sans-serif', outline: 'none' }}
+            className="flex-1 bg-app-card rounded-[12px] px-3.5 py-3 text-app-text text-[13.5px] outline-none"
+            style={{ border: `1.5px solid ${newAns.trim() ? '#7B9CFF' : 'rgba(255,255,255,0.03)'}` }}
           />
           <button
             onClick={handleAnswer}
             disabled={!newAns.trim() || ansPosting}
-            style={{ background: newAns.trim() ? `linear-gradient(135deg,${COLORS.blue},#5577ee)` : COLORS.card, border: 'none', borderRadius: 12, padding: '0 18px', color: newAns.trim() ? '#fff' : COLORS.muted, fontWeight: 800, fontSize: 13, cursor: newAns.trim() ? 'pointer' : 'default', fontFamily: 'Sora, sans-serif', flexShrink: 0 }}
+            className="border-none rounded-[12px] px-4 font-extrabold text-[13px] flex-shrink-0"
+            style={{ background: newAns.trim() ? `linear-gradient(135deg,#7B9CFF,#5577ee)` : '#0b0b1c', color: newAns.trim() ? '#fff' : '#6868a0', cursor: newAns.trim() ? 'pointer' : 'default' }}
           >{ansPosting ? '…' : 'Send'}</button>
         </div>
       </div>
@@ -603,15 +534,15 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
 
   // ── VIEW: Doubts list ─────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Header with Ask button */}
-      <div style={{ padding: '12px 14px', borderBottom: `1px solid ${COLORS.border}`, background: COLORS.card, flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="px-3.5 py-3 border-b border-app-border bg-app-card flex-shrink-0 flex justify-between items-center">
         <div>
-          <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.text }}>❓ Doubts Board</div>
-          <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 1 }}>
+          <div className="text-[14px] font-extrabold text-app-text">❓ Doubts Board</div>
+          <div className="text-[11px] text-app-muted mt-0.5">
             {doubts.length} doubt{doubts.length !== 1 ? 's' : ''}
             {quota && (
-              <span style={{ marginLeft: 8, fontWeight: 700, color: atLimit ? COLORS.red : COLORS.green }}>
+              <span className="ml-2 font-bold" style={{ color: atLimit ? '#FF6B6B' : '#00E5A0' }}>
                 · {atLimit ? '0 left' : `${quota.remaining}/${quota.limit} left today`}
               </span>
             )}
@@ -619,61 +550,52 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
         </div>
         <button
           onClick={() => setView('post')}
+          className="border-none rounded-[12px] px-4 py-2.5 font-extrabold text-[13px] cursor-pointer flex items-center gap-1.5"
           style={{
-            background: atLimit ? COLORS.card2 : `linear-gradient(135deg,${COLORS.blue},#5577ee)`,
-            border: atLimit ? `1px solid ${COLORS.border}` : 'none',
-            borderRadius: 12, padding: '9px 16px',
-            color: atLimit ? COLORS.muted : '#fff', fontWeight: 800, fontSize: 13,
-            cursor: 'pointer', fontFamily: 'Sora, sans-serif',
-            display: 'flex', alignItems: 'center', gap: 6,
+            background: atLimit ? '#101022' : `linear-gradient(135deg,#7B9CFF,#5577ee)`,
+            border: atLimit ? `1px solid rgba(255,255,255,0.03)` : 'none',
+            color: atLimit ? '#6868a0' : '#fff',
           }}
         >{atLimit ? '🚫 Limit' : '+ Ask'}</button>
       </div>
 
       {/* List */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 12px' }}>
+      <div className="flex-1 overflow-y-auto px-3 py-2.5">
         {loading ? (
-          <div style={{ textAlign: 'center', marginTop: 60 }}>
-            <div style={{ width: 32, height: 32, border: `3px solid ${COLORS.blue}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+          <div className="text-center mt-[60px]">
+            <div className="w-8 h-8 border-[3px] border-app-blue border-t-transparent rounded-full animate-spin mx-auto" />
           </div>
         ) : doubts.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🤔</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.text, marginBottom: 8 }}>No doubts yet!</div>
-            <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 24, lineHeight: 1.6 }}>
+          <div className="text-center px-6 py-12">
+            <div className="text-[48px] mb-3">🤔</div>
+            <div className="text-[16px] font-extrabold text-app-text mb-2">No doubts yet!</div>
+            <div className="text-[13px] text-app-muted mb-6 leading-[1.6]">
               Stuck on something? Post your doubt and your squadmates will help.
             </div>
-            <button onClick={() => setView('post')} style={{
-              background: `linear-gradient(135deg,${COLORS.blue},#5577ee)`,
-              border: 'none', borderRadius: 14, padding: '13px 32px',
-              color: '#fff', fontWeight: 800, fontSize: 14,
-              cursor: 'pointer', fontFamily: 'Sora, sans-serif',
-            }}>❓ Post First Doubt</button>
+            <button onClick={() => setView('post')} className="bg-gradient-to-br from-app-blue to-['#5577ee'] border-none rounded-[14px] px-8 py-3.5 text-white font-extrabold text-[14px] cursor-pointer">❓ Post First Doubt</button>
           </div>
         ) : doubts.map(d => (
           <button
             key={d.id}
             onClick={() => openAnswerView(d)}
+            className="w-full bg-app-card rounded-[14px] px-3.5 py-3 mb-2 cursor-pointer text-left"
             style={{
-              width: '100%', background: COLORS.card,
-              border: `1px solid ${d.status === 'answered' ? COLORS.green + '30' : COLORS.border}`,
-              borderLeft: `3px solid ${d.status === 'answered' ? COLORS.green : COLORS.blue}`,
-              borderRadius: 14, padding: '13px 14px', marginBottom: 8,
-              cursor: 'pointer', fontFamily: 'Sora, sans-serif', textAlign: 'left',
+              border: `1px solid ${d.status === 'answered' ? '#00E5A030' : 'rgba(255,255,255,0.03)'}`,
+              borderLeft: `3px solid ${d.status === 'answered' ? '#00E5A0' : '#7B9CFF'}`,
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 600, color: COLORS.text, flex: 1, lineHeight: 1.45 }}>{d.question}</div>
-              <span style={{
-                fontSize: 10, fontWeight: 800, padding: '3px 9px', borderRadius: 20, flexShrink: 0,
-                background: d.status === 'answered' ? `${COLORS.green}20` : `${COLORS.yellow}20`,
-                color: d.status === 'answered' ? COLORS.green : COLORS.yellow,
-              }}>{d.status === 'answered' ? '✓ Answered' : 'Open'}</span>
+            <div className="flex justify-between items-start gap-2">
+              <div className="text-[13.5px] font-semibold text-app-text flex-1 leading-[1.45]">{d.question}</div>
+              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-[20px] flex-shrink-0"
+                style={{
+                  background: d.status === 'answered' ? '#00E5A020' : '#FFD16620',
+                  color: d.status === 'answered' ? '#00E5A0' : '#FFD166',
+                }}>{d.status === 'answered' ? '✓ Answered' : 'Open'}</span>
             </div>
-            <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 6, display: 'flex', gap: 8 }}>
+            <div className="text-[11px] text-app-muted mt-1.5 flex gap-2">
               <span>{d.display_name}</span>
               <span>·</span>
-              <span style={{ color: COLORS.blue }}>{d.subject}</span>
+              <span className="text-app-blue">{d.subject}</span>
               <span>·</span>
               <span>{d.answer_count} answer{d.answer_count !== 1 ? 's' : ''}</span>
             </div>
@@ -686,9 +608,9 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
 
 // ── Daily Concept Panel ───────────────────────────────────────
 const DAILY_VERDICT = {
-  correct:   { bg: `${COLORS.green}15`,  border: `${COLORS.green}40`,  text: COLORS.green,  icon: '✅', label: 'Great understanding!',   xp: 30 },
-  partial:   { bg: `${COLORS.yellow}15`, border: `${COLORS.yellow}40`, text: COLORS.yellow, icon: '⚠️', label: 'Partially correct.',      xp: 15 },
-  incorrect: { bg: `${COLORS.red}15`,    border: `${COLORS.red}40`,    text: COLORS.red,    icon: '✗',  label: 'Needs more accuracy.',    xp:  5 },
+  correct:   { bg: `#00E5A015`,  border: `#00E5A040`,  text: '#00E5A0',  icon: '✅', label: 'Great understanding!',   xp: 30 },
+  partial:   { bg: `#FFD16615`, border: `#FFD16640`, text: '#FFD166', icon: '⚠️', label: 'Partially correct.',      xp: 15 },
+  incorrect: { bg: `#FF6B6B15`,    border: `#FF6B6B40`,    text: '#FF6B6B',    icon: '✗',  label: 'Needs more accuracy.',    xp:  5 },
 }
 
 function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
@@ -756,8 +678,8 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
   }
 
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-      <div style={{ width: 28, height: 28, border: `3px solid ${COLORS.yellow}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+    <div className="flex items-center justify-center flex-1">
+      <div className="w-7 h-7 border-[3px] border-app-yellow border-t-transparent rounded-full animate-spin" />
     </div>
   )
 
@@ -765,21 +687,21 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
   const v = verdict ? DAILY_VERDICT[verdict.verdict] : null
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: '16px 16px 24px' }}>
+    <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-4 pb-6">
       {/* Header */}
-      <div style={{ background: `${COLORS.yellow}10`, border: `1px solid ${COLORS.yellow}30`, borderRadius: 16, padding: '14px 16px', marginBottom: 16 }}>
-        <div style={{ fontSize: 11, fontWeight: 800, color: COLORS.yellow, letterSpacing: '0.06em', marginBottom: 6 }}>📅 DAILY CONCEPT · {today.toUpperCase()}</div>
-        <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.text }}>{data?.concept}</div>
-        <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 4 }}>{data?.subject} · Explain in your own words · AI grades your answer</div>
+      <div className="bg-app-yellow/[0.06] border border-app-yellow/20 rounded-2xl px-4 py-3.5 mb-4">
+        <div className="text-[11px] font-extrabold text-app-yellow tracking-[0.06em] mb-1.5">📅 DAILY CONCEPT · {today.toUpperCase()}</div>
+        <div className="text-[18px] font-black text-app-text">{data?.concept}</div>
+        <div className="text-[12px] text-app-muted mt-1">{data?.subject} · Explain in your own words · AI grades your answer</div>
       </div>
 
       {/* AI Reviewing spinner */}
       {reviewing && (
-        <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: '16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 22, height: 22, border: `3px solid ${COLORS.blue}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+        <div className="bg-app-card border border-app-border rounded-[14px] p-4 mb-4 flex items-center gap-3">
+          <div className="w-[22px] h-[22px] border-[3px] border-app-blue border-t-transparent rounded-full animate-spin flex-shrink-0" />
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.text }}>AI is reviewing your explanation…</div>
-            <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>XP will be based on accuracy</div>
+            <div className="text-[13px] font-bold text-app-text">AI is reviewing your explanation…</div>
+            <div className="text-[11px] text-app-muted mt-0.5">XP will be based on accuracy</div>
           </div>
         </div>
       )}
@@ -787,44 +709,43 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
       {/* AI Verdict card (shown after submit) */}
       {done && v && (
         <div style={{ background: v.bg, border: `1px solid ${v.border}`, borderRadius: 14, padding: '13px 15px', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <span style={{ fontSize: 18 }}>{v.icon}</span>
-            <span style={{ fontSize: 13, fontWeight: 800, color: v.text }}>{v.label}</span>
-            <span style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 800, color: COLORS.yellow }}>+{verdict.xp ?? v.xp} XP</span>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-[18px]">{v.icon}</span>
+            <span className="text-[13px] font-extrabold" style={{ color: v.text }}>{v.label}</span>
+            <span className="ml-auto text-[13px] font-extrabold text-app-yellow">+{verdict.xp ?? v.xp} XP</span>
           </div>
           {verdict.note && (
-            <div style={{ fontSize: 12.5, color: COLORS.text, lineHeight: 1.6, paddingLeft: 26 }}>🤖 {verdict.note}</div>
+            <div className="text-[12.5px] text-app-text leading-[1.6] pl-[26px]">🤖 {verdict.note}</div>
           )}
         </div>
       )}
 
       {/* Already submitted — show their explanation */}
       {done && data?.my_explanation && (
-        <div style={{ background: `${COLORS.green}08`, border: `1px solid ${COLORS.green}20`, borderRadius: 14, padding: '12px 14px', marginBottom: 16 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: COLORS.green, marginBottom: 6 }}>✅ YOUR EXPLANATION</div>
-          <div style={{ fontSize: 13.5, color: COLORS.text, lineHeight: 1.6 }}>{data.my_explanation.explanation}</div>
+        <div className="border border-app-green/20 rounded-[14px] px-3.5 py-3 mb-4" style={{ background: '#00E5A008' }}>
+          <div className="text-[11px] font-extrabold text-app-green mb-1.5">✅ YOUR EXPLANATION</div>
+          <div className="text-[13.5px] text-app-text leading-[1.6]">{data.my_explanation.explanation}</div>
         </div>
       )}
 
       {/* Input form */}
       {!done && !reviewing && (
-        <div style={{ marginBottom: 16 }}>
+        <div className="mb-4">
           <textarea value={text} onChange={e => setText(e.target.value)}
             placeholder={`Explain "${data?.concept}" in simple words…`}
             rows={4}
-            style={{ width: '100%', background: COLORS.card, border: `1.5px solid ${wordCount >= 10 ? COLORS.yellow : COLORS.border}`, borderRadius: 14, padding: '12px 14px', color: COLORS.text, fontSize: 13.5, fontFamily: 'Sora, sans-serif', resize: 'none', lineHeight: 1.55, boxSizing: 'border-box', outline: 'none' }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
-            <span style={{ fontSize: 11, color: wordCount >= 10 ? COLORS.green : COLORS.muted }}>{wordCount}/10 words minimum</span>
-            <span style={{ fontSize: 11, color: COLORS.muted }}>AI grades: ✅30 / ⚠️15 / ✗5 XP</span>
+            className="w-full bg-app-card rounded-[14px] px-3.5 py-3 text-app-text text-[13.5px] resize-none leading-[1.55] box-border outline-none"
+            style={{ border: `1.5px solid ${wordCount >= 10 ? '#FFD166' : 'rgba(255,255,255,0.03)'}` }} />
+          <div className="flex justify-between items-center mt-1.5">
+            <span className="text-[11px]" style={{ color: wordCount >= 10 ? '#00E5A0' : '#6868a0' }}>{wordCount}/10 words minimum</span>
+            <span className="text-[11px] text-app-muted">AI grades: ✅30 / ⚠️15 / ✗5 XP</span>
           </div>
           <button onClick={handleSubmit} disabled={submitting || wordCount < 10}
+            className="mt-2.5 w-full border-none rounded-[12px] py-3 font-extrabold text-[14px]"
             style={{
-              marginTop: 10, width: '100%',
-              background: wordCount >= 10 ? `linear-gradient(135deg,${COLORS.yellow},#ffb700)` : COLORS.card,
-              border: 'none', borderRadius: 12, padding: '12px',
-              color: wordCount >= 10 ? '#04040e' : COLORS.muted,
-              fontWeight: 800, fontSize: 14, cursor: wordCount >= 10 ? 'pointer' : 'default',
-              fontFamily: 'Sora, sans-serif',
+              background: wordCount >= 10 ? `linear-gradient(135deg,#FFD166,#ffb700)` : '#0b0b1c',
+              color: wordCount >= 10 ? '#04040e' : '#6868a0',
+              cursor: wordCount >= 10 ? 'pointer' : 'default',
             }}>
             {submitting && !reviewing ? 'Submitting…' : '📤 Submit for AI Review'}
           </button>
@@ -832,27 +753,27 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
       )}
 
       {/* Squad explanations */}
-      <div style={{ fontSize: 12, fontWeight: 800, color: COLORS.muted, letterSpacing: '0.05em', marginBottom: 10 }}>
+      <div className="text-[12px] font-extrabold text-app-muted tracking-[0.05em] mb-2.5">
         SQUAD'S EXPLANATIONS ({data?.explanations?.length || 0})
       </div>
       {(!data?.explanations || data.explanations.length === 0) ? (
-        <div style={{ textAlign: 'center', color: COLORS.muted, fontSize: 13, padding: '20px 0' }}>No one has explained yet today. Be the first! 🌟</div>
+        <div className="text-center text-app-muted text-[13px] py-5">No one has explained yet today. Be the first! 🌟</div>
       ) : data.explanations.map(ex => {
         const ev = ex.ai_verdict ? DAILY_VERDICT[ex.ai_verdict] : null
         return (
-          <div key={ex.id} style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: '12px 14px', marginBottom: 10 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: ex.user_id === userId ? COLORS.green : COLORS.blue }}>
+          <div key={ex.id} className="bg-app-card border border-app-border rounded-[14px] px-3.5 py-3 mb-2.5">
+            <div className="flex justify-between items-center mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[12px] font-bold" style={{ color: ex.user_id === userId ? '#00E5A0' : '#7B9CFF' }}>
                   {ex.user_id === userId ? '✨ You' : ex.display_name}
                 </span>
-                {ev && <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 20, background: ev.bg, color: ev.text }}>{ev.icon}</span>}
+                {ev && <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-[20px]" style={{ background: ev.bg, color: ev.text }}>{ev.icon}</span>}
               </div>
-              <span style={{ fontSize: 11, color: COLORS.yellow, fontWeight: 700 }}>+{ex.xp_awarded} XP</span>
+              <span className="text-[11px] text-app-yellow font-bold">+{ex.xp_awarded} XP</span>
             </div>
-            <div style={{ fontSize: 13.5, color: COLORS.text, lineHeight: 1.6 }}>{ex.explanation}</div>
+            <div className="text-[13.5px] text-app-text leading-[1.6]">{ex.explanation}</div>
             {ex.ai_note && (
-              <div style={{ fontSize: 11.5, color: COLORS.muted, marginTop: 7, padding: '6px 10px', background: COLORS.card2, borderRadius: 8 }}>🤖 {ex.ai_note}</div>
+              <div className="text-[11.5px] text-app-muted mt-1.5 px-2.5 py-1.5 bg-app-card2 rounded-lg">🤖 {ex.ai_note}</div>
             )}
           </div>
         )
@@ -1111,8 +1032,8 @@ You are Gyaani, a confused but curious Class ${(profile?.standard || 'Class 10')
   // ─────────────────────────────────────────────────────────
   // RENDER: loading
   if (loading) return (
-    <div className="tab-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300 }}>
-      <div style={{ width: 36, height: 36, border: `3px solid ${COLORS.green}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+    <div className="tab-content flex items-center justify-center min-h-[300px]">
+      <div className="w-9 h-9 border-[3px] border-app-green border-t-transparent rounded-full animate-spin" />
     </div>
   )
 
@@ -1127,32 +1048,26 @@ You are Gyaani, a confused but curious Class ${(profile?.standard || 'Class 10')
   const memberMap = Object.fromEntries(members.map(m => [m.user_id, m]))
 
   return (
-    <div className="tab-content" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 0 }}>
+    <div className="tab-content flex flex-col h-full p-0">
 
       {/* ── Header ── */}
-      <div style={{
-        padding: '10px 16px',
-        borderBottom: `1px solid ${COLORS.border}`,
-        background: COLORS.card,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        flexShrink: 0,
-      }}>
+      <div className="px-4 py-2.5 border-b border-app-border bg-app-card flex items-center justify-between flex-shrink-0">
         <div>
-          <div style={{ fontSize: 14, fontWeight: 900, color: COLORS.text }}>
+          <div className="text-[14px] font-black text-app-text">
             🤝 {squad.name}
           </div>
-          <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 1, display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span><span style={{ color: COLORS.blue, fontWeight: 700 }}>{squad.focus_subject}</span></span>
+          <div className="text-[11px] text-app-muted mt-0.5 flex gap-2 items-center">
+            <span><span className="text-app-blue font-bold">{squad.focus_subject}</span></span>
             <span>·</span>
             <span>{members.filter(m => m.online).length}/{members.length} online</span>
-            {squadStreak > 0 && <><span>·</span><span style={{ color: COLORS.orange, fontWeight: 700 }}>🔥 {squadStreak}d streak</span></>}
+            {squadStreak > 0 && <><span>·</span><span className="text-app-orange font-bold">🔥 {squadStreak}d streak</span></>}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div className="flex gap-1.5">
           <button onClick={handleCreateChallenge} title="Get a teach-this challenge"
-            style={{ background: `${COLORS.yellow}15`, border: `1px solid ${COLORS.yellow}40`, borderRadius: 10, padding: '6px 10px', fontSize: 13, cursor: 'pointer', fontFamily: 'Sora, sans-serif', color: COLORS.yellow, fontWeight: 700 }}>📚</button>
+            className="bg-app-yellow/[0.08] border border-app-yellow/25 rounded-[10px] px-2.5 py-1.5 text-[13px] cursor-pointer text-app-yellow font-bold">📚</button>
           <button onClick={handleLeave} disabled={leaving}
-            style={{ background: `${COLORS.red}15`, border: `1px solid ${COLORS.red}40`, borderRadius: 10, padding: '6px 10px', fontSize: 11, cursor: 'pointer', fontFamily: 'Sora, sans-serif', color: COLORS.red, fontWeight: 700 }}>Leave</button>
+            className="bg-app-red/[0.08] border border-app-red/25 rounded-[10px] px-2.5 py-1.5 text-[11px] cursor-pointer text-app-red font-bold">Leave</button>
         </div>
       </div>
 
@@ -1164,7 +1079,7 @@ You are Gyaani, a confused but curious Class ${(profile?.standard || 'Class 10')
 
       {/* ── Challenge banner (chat tab only) ── */}
       {activePanel === 'chat' && showChallenge && challenge && (
-        <div style={{ padding: '10px 14px 0', flexShrink: 0 }}>
+        <div className="px-3.5 pt-2.5 flex-shrink-0">
           <ChallengeBanner
             challenge={challenge}
             onSubmit={handleSubmitChallenge}
@@ -1174,15 +1089,15 @@ You are Gyaani, a confused but curious Class ${(profile?.standard || 'Class 10')
       )}
 
       {/* ── Panel content ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <div className="flex-1 flex flex-col min-h-0">
 
         {/* CHAT */}
         {activePanel === 'chat' && (
           <>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column' }}>
+            <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col">
               {messages.length === 0 && (
-                <div style={{ textAlign: 'center', color: COLORS.muted, fontSize: 13, marginTop: 40 }}>
-                  <div style={{ fontSize: 40, marginBottom: 10 }}>👋</div>
+        <div className="text-center text-app-muted text-[13px] mt-10">
+                  <div className="text-[40px] mb-2.5">👋</div>
                   Say hi to your squad!
                 </div>
               )}
@@ -1192,21 +1107,22 @@ You are Gyaani, a confused but curious Class ${(profile?.standard || 'Class 10')
               <div ref={messagesEnd} />
             </div>
             {showAIPeerBtn && (
-              <div style={{ padding: '6px 14px 0', flexShrink: 0, textAlign: 'center' }}>
+              <div className="px-3.5 pt-1.5 flex-shrink-0 text-center">
                 <button onClick={invokeAIPeer} disabled={aiPeerLoading}
-                  style={{ background: `${COLORS.blue}15`, border: `1px solid ${COLORS.blue}40`, borderRadius: 20, padding: '7px 18px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif', color: COLORS.blue, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  className="bg-app-blue/[0.08] border border-app-blue/25 rounded-[20px] px-4 py-1.5 text-[12px] font-bold cursor-pointer text-app-blue inline-flex items-center gap-1.5">
                   {aiPeerLoading
-                    ? <><span style={{ width: 12, height: 12, border: `2px solid ${COLORS.blue}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} /> Gyaani is thinking…</>
+                    ? <><span className="w-3 h-3 border-2 border-app-blue border-t-transparent rounded-full animate-spin inline-block" /> Gyaani is thinking…</>
                     : '🦉 Ask Gyaani (AI Study Peer)'}
                 </button>
-                <div style={{ fontSize: 10.5, color: COLORS.muted, marginTop: 4 }}>Squad's been quiet — Gyaani can spark discussion</div>
+                <div className="text-[10.5px] text-app-muted mt-1">Squad's been quiet — Gyaani can spark discussion</div>
               </div>
             )}
-            <form onSubmit={sendMessage} style={{ padding: '10px 12px 12px', borderTop: `1px solid ${COLORS.border}`, display: 'flex', gap: 8, flexShrink: 0, background: COLORS.bg }}>
+            <form onSubmit={sendMessage} className="px-3 pb-3 pt-2.5 border-t border-app-border flex gap-2 flex-shrink-0 bg-app-bg">
               <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} placeholder="Message your squad…"
-                style={{ flex: 1, background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: '10px 14px', color: COLORS.text, fontSize: 14, fontFamily: 'Sora, sans-serif', outline: 'none' }} />
+                className="flex-1 bg-app-card border border-app-border rounded-[14px] px-3.5 py-2.5 text-app-text text-[14px] outline-none" />
               <button type="submit" disabled={!input.trim() || sending}
-                style={{ background: input.trim() ? `linear-gradient(135deg,${COLORS.green},#33cc88)` : COLORS.card, border: 'none', borderRadius: 14, padding: '0 18px', cursor: input.trim() ? 'pointer' : 'default', color: input.trim() ? '#04040e' : COLORS.muted, fontSize: 18, fontWeight: 900, fontFamily: 'Sora, sans-serif', flexShrink: 0 }}>➤</button>
+                className="border-none rounded-[14px] px-4 text-[18px] font-black flex-shrink-0"
+                style={{ background: input.trim() ? `linear-gradient(135deg,#00E5A0,#33cc88)` : '#0b0b1c', color: input.trim() ? '#04040e' : '#6868a0', cursor: input.trim() ? 'pointer' : 'default' }}>➤</button>
             </form>
           </>
         )}

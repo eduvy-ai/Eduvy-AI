@@ -9,12 +9,14 @@ The old main.py still works - use this for new development.
 """
 import os
 import time
+import logging
 import warnings
 from collections import defaultdict
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 
 from app.core.config import settings
@@ -39,8 +41,20 @@ from app.modules.payments.router import router as payments_router
 from app.modules.drishti.router import router as drishti_router
 from app.modules.fetch.router import router as fetch_router
 from app.modules.admin.router import router as admin_router
+from app.modules.video.router import router as video_router
 
 load_dotenv()
+
+# ── Logging setup ─────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%H:%M:%S",
+)
+# Suppress noisy third-party loggers
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("multipart").setLevel(logging.WARNING)
 
 # ── Warn if JWT secret is insecure ────────────────────────────
 if settings.JWT_SECRET == "eduvyai-change-me":
@@ -75,14 +89,21 @@ app.add_middleware(
 # ── DB Init on Startup ────────────────────────────────────────
 @app.on_event("startup")
 def on_startup():
+    import logging as _logging
+    _startup_log = _logging.getLogger(__name__)
     init_db()
-    # Load API keys and plan routing from database
-    try:
-        from services.ai_service import load_plan_routing
-        load_plan_routing()
-        print("✅ API keys loaded from database")
-    except Exception as e:
-        print(f"⚠️ Could not load API keys from database: {e}")
+    # Load API keys + plan routing from DB into the in-memory pool.
+    # Must run AFTER init_db() so the app_settings table exists.
+    from services.ai_service import load_plan_routing, _KEY_POOLS
+    load_plan_routing()
+    active = {p: len(pool) for p, pool in _KEY_POOLS.items() if pool}
+    if active:
+        _startup_log.info("AI key pools loaded: %s", active)
+    else:
+        _startup_log.warning(
+            "AI key pools are EMPTY after startup — no provider keys found in DB or env vars. "
+            "Add keys via the admin panel or set GROQ_API_KEY/GEMINI_API_KEY in environment."
+        )
 
 # ── Security Headers Middleware ───────────────────────────────
 @app.middleware("http")
@@ -143,8 +164,23 @@ app.include_router(parent_router, prefix="/api")
 app.include_router(referrals_router, prefix="/api")
 app.include_router(payments_router, prefix="/api")
 app.include_router(drishti_router, prefix="/api")
+app.include_router(video_router, prefix="/api")
+
+# ── Static Files — generated videos ──────────────────────────
+_VIDEOS_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "videos")
+)
+os.makedirs(_VIDEOS_DIR, exist_ok=True)
+app.mount("/videos", StaticFiles(directory=_VIDEOS_DIR), name="videos")
 
 # ── Health Check ──────────────────────────────────────────────
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "service": "Eduvy-AI Backend", "version": "3.0.0"}
+    from services.ai_service import _KEY_POOLS
+    ai_status = {p: len(pool) for p, pool in _KEY_POOLS.items() if pool}
+    return {
+        "status": "ok",
+        "service": "Eduvy-AI Backend",
+        "version": "3.0.0",
+        "ai_providers": ai_status if ai_status else "NONE — add API keys",
+    }

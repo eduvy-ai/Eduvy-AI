@@ -13,12 +13,12 @@ const labelClass = "block text-[11px] font-bold text-app-muted mb-1.5 tracking-w
 // Maps plan → model label shown to student (read-only info)
 const PLAN_MODEL_LABEL = {
   free:    'Llama 3 8B (Groq)',
-  basic:   'Llama 3.3 70B (Groq)',
+  basic:   'Llama 3.3 70B (Groq / NVIDIA NIM)',
   pro:     'Your chosen model',
   premium: 'Your chosen model',
 }
 
-export default function SettingsModal({ config, savedKeys = {}, onSave, onClose, profile, onProfileSave }) {
+export default function SettingsModal({ config, savedKeys = {}, onSave, onClose, onLogout, profile, onProfileSave }) {
   const [activeTab, setActiveTab] = useState('ai')
   const [showUpgrade, setShowUpgrade] = useState(false)
 
@@ -426,6 +426,19 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
             )
           })()}
         </div>
+
+        {/* ── Logout — always visible, native app pattern ── */}
+        {onLogout && (
+          <div className="px-[18px] pt-3 pb-2">
+            <div className="h-px bg-white/[0.06] mb-4" />
+            <button
+              onClick={onLogout}
+              className="w-full bg-app-red/10 border border-app-red/25 text-app-red rounded-xl py-3 text-sm font-bold cursor-pointer font-[Sora,sans-serif] hover:bg-app-red/20 active:scale-[0.97] transition-all"
+            >
+              🚪 {ui.logout || 'Log Out'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
 
@@ -442,3 +455,4 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
     </>
   )
 }
+

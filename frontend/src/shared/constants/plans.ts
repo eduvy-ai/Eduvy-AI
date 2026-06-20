@@ -2,7 +2,7 @@
 // Defines what each plan tier can access
 
 export type PlanType = 'free' | 'basic' | 'pro' | 'premium'
-export type TabKey = 'home' | 'tutor' | 'videos' | 'notebook' | 'learntv' | 'labs' | 'discover' | 'sathi' | 'bhool' | 'muqabla'
+export type TabKey = 'home' | 'tutor' | 'videos' | 'notebook' | 'learntv' | 'labs' | 'discover' | 'sathi' | 'bhool' | 'muqabla' | 'videocreator'
 export type LabKey = 'quiz' | 'examiner' | 'samjhao' | 'podcast' | 'essay' | 'mental'
 
 export interface Plan {
@@ -27,7 +27,7 @@ export const PLANS: Record<PlanType, Plan> = {
     label: 'Basic',
     icon: '⭐',
     color: '#FFD166',
-    tabs: ['home', 'tutor', 'videos', 'notebook', 'bhool', 'muqabla'],
+    tabs: ['home', 'tutor', 'videos', 'notebook', 'videocreator', 'bhool', 'muqabla'],
     labs: [],
     aiCallsPerDay: 50,
   },
@@ -35,7 +35,7 @@ export const PLANS: Record<PlanType, Plan> = {
     label: 'Pro',
     icon: '🚀',
     color: '#7B9CFF',
-    tabs: ['home', 'tutor', 'videos', 'notebook', 'learntv', 'labs', 'sathi', 'bhool', 'muqabla'],
+    tabs: ['home', 'tutor', 'videos', 'notebook', 'learntv', 'labs', 'videocreator', 'sathi', 'bhool', 'muqabla'],
     labs: ['quiz', 'examiner', 'samjhao'],
     aiCallsPerDay: 200,
   },
@@ -43,7 +43,7 @@ export const PLANS: Record<PlanType, Plan> = {
     label: 'Premium',
     icon: '👑',
     color: '#00E5A0',
-    tabs: ['home', 'tutor', 'videos', 'notebook', 'learntv', 'labs', 'discover', 'sathi', 'bhool', 'muqabla'],
+    tabs: ['home', 'tutor', 'videos', 'notebook', 'learntv', 'labs', 'discover', 'videocreator', 'sathi', 'bhool', 'muqabla'],
     labs: ['quiz', 'examiner', 'samjhao', 'podcast', 'essay', 'mental'],
     aiCallsPerDay: Infinity,
   },

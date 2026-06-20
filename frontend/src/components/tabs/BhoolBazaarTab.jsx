@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { COLORS, callAI, LANG_RULES } from '../../shared.js'
-import { li } from '../../i18n/index.js'
+import { callAI, LANG_RULES } from '../../shared.js'
 import {
   apiCreateBhoolCard, apiGetMyBhoolCards, apiUpdateBhoolCard, apiDeleteBhoolCard,
   apiGetBhoolMarketplace, apiGetBhoolTop,
@@ -27,186 +26,100 @@ const EMOJI_REACTIONS = [
 ]
 
 // ── Small helpers ─────────────────────────────────────────────
-function Pill({ children, active, onClick, style }) {
+function Pill({ children, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      style={{
-        padding: '6px 14px',
-        borderRadius: 20,
-        border: `1px solid ${active ? COLORS.yellow : COLORS.border}`,
-        background: active ? `${COLORS.yellow}22` : COLORS.card2,
-        color: active ? COLORS.yellow : COLORS.text,
-        fontSize: 13,
-        cursor: 'pointer',
-        transition: 'all .15s',
-        ...style,
-      }}
+      className={`px-3.5 py-1.5 rounded-2xl text-[13px] cursor-pointer transition-all active:scale-95 border ${active ? 'border-app-yellow bg-app-yellow/15 text-app-yellow font-semibold' : 'border-app-border bg-app-card2 text-app-text hover:border-app-yellow/30'}`}
     >{children}</button>
   )
 }
 
 function BhoolCoins({ count }) {
   return (
-    <span style={{
-      background: `${COLORS.orange}22`, border: `1px solid ${COLORS.orange}44`,
-      color: COLORS.orange, fontSize: 12, borderRadius: 12, padding: '2px 8px',
-      fontWeight: 700,
-    }}>🪙 {count}</span>
+    <span className="bg-app-orange/15 border border-app-orange/30 text-app-orange text-xs rounded-xl px-2 py-0.5 font-bold">
+      🪙 {count}
+    </span>
   )
 }
 
 // ── Mistake Card (read-only) ──────────────────────────────────
-function MistakeCard({ card, isMine = false, onCollect, onReact, onPublish, onDelete, lang }) {
+function MistakeCard({ card, isMine = false, onCollect, onReact, onPublish, onDelete }) {
   const [showAnswer, setShowAnswer] = useState(false)
   const [reacting, setReacting] = useState(false)
   const [collecting, setCollecting] = useState(false)
 
   return (
-    <div style={{
-      background: COLORS.card,
-      border: `1px solid ${COLORS.border}`,
-      borderRadius: 16,
-      padding: '16px',
-      marginBottom: 12,
-    }}>
+    <div className="bg-app-card border border-app-border rounded-2xl p-4 mb-3">
       {/* Subject + standard row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-        <span style={{
-          background: `${COLORS.blue}22`, border: `1px solid ${COLORS.blue}44`,
-          color: COLORS.blue, fontSize: 11, borderRadius: 10, padding: '2px 8px',
-        }}>{card.subject}</span>
-        <span style={{
-          background: `${COLORS.muted}22`, color: COLORS.muted, fontSize: 11,
-          borderRadius: 10, padding: '2px 8px',
-        }}>{card.standard || card.author_standard}</span>
-        {!isMine && (
-          <span style={{ color: COLORS.muted, fontSize: 11, marginLeft: 'auto' }}>
-            by {card.author_name}
-          </span>
-        )}
+      <div className="flex items-center gap-2 mb-2.5 flex-wrap">
+        <span className="bg-app-blue/15 border border-app-blue/30 text-app-blue text-[11px] rounded-xl px-2 py-0.5">{card.subject}</span>
+        <span className="bg-app-muted/15 text-app-muted text-[11px] rounded-xl px-2 py-0.5">{card.standard || card.author_standard}</span>
+        {!isMine && <span className="text-app-muted text-[11px] ml-auto">by {card.author_name}</span>}
         {isMine && (
-          <span style={{
-            marginLeft: 'auto', fontSize: 11,
-            color: card.is_published ? COLORS.green : COLORS.muted,
-          }}>
+          <span className={`ml-auto text-[11px] ${card.is_published ? 'text-app-green' : 'text-app-muted'}`}>
             {card.is_published ? '✅ Published' : '🔒 Draft'}
           </span>
         )}
       </div>
 
-      {/* Question */}
-      <p style={{ color: COLORS.text, fontSize: 14, marginBottom: 8, fontWeight: 600 }}>
-        ❓ {card.question}
-      </p>
+      <p className="text-app-text text-sm mb-2 font-semibold">❓ {card.question}</p>
 
-      {/* Wrong answer */}
-      <div style={{
-        background: `${COLORS.red}15`, border: `1px solid ${COLORS.red}44`,
-        borderRadius: 10, padding: '8px 12px', marginBottom: 8,
-      }}>
-        <span style={{ color: COLORS.red, fontSize: 12, fontWeight: 700 }}>❌ I answered: </span>
-        <span style={{ color: COLORS.text, fontSize: 13 }}>{card.wrong_answer}</span>
+      <div className="bg-app-red/10 border border-app-red/30 rounded-xl px-3 py-2 mb-2">
+        <span className="text-app-red text-xs font-bold">❌ I answered: </span>
+        <span className="text-app-text text-[13px]">{card.wrong_answer}</span>
       </div>
 
-      {/* Reveal correct answer */}
       {!showAnswer ? (
-        <button
-          onClick={() => setShowAnswer(true)}
-          style={{
-            background: `${COLORS.green}22`, border: `1px solid ${COLORS.green}44`,
-            color: COLORS.green, borderRadius: 10, padding: '6px 14px',
-            fontSize: 13, cursor: 'pointer', marginBottom: 8,
-          }}>
+        <button onClick={() => setShowAnswer(true)}
+          className="bg-app-green/15 border border-app-green/30 text-app-green rounded-xl px-3.5 py-1.5 text-[13px] cursor-pointer mb-2 hover:bg-app-green/20 active:scale-95 transition-all">
           👁 Reveal Correct Answer
         </button>
       ) : (
-        <div style={{
-          background: `${COLORS.green}12`, border: `1px solid ${COLORS.green}44`,
-          borderRadius: 10, padding: '8px 12px', marginBottom: 8,
-        }}>
-          <span style={{ color: COLORS.green, fontSize: 12, fontWeight: 700 }}>✅ Correct: </span>
-          <span style={{ color: COLORS.text, fontSize: 13 }}>{card.correct_answer}</span>
-          {card.why_wrong && (
-            <p style={{ color: COLORS.muted, fontSize: 12, margin: '6px 0 0' }}>
-              💡 {card.why_wrong}
-            </p>
-          )}
+        <div className="bg-app-green/10 border border-app-green/30 rounded-xl px-3 py-2 mb-2">
+          <span className="text-app-green text-xs font-bold">✅ Correct: </span>
+          <span className="text-app-text text-[13px]">{card.correct_answer}</span>
+          {card.why_wrong && <p className="text-app-muted text-xs mt-1.5">💡 {card.why_wrong}</p>}
         </div>
       )}
 
-      {/* Footer */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+      <div className="flex items-center gap-2 flex-wrap mt-2">
         <BhoolCoins count={card.bhool_coins || 0} />
         {!isMine && typeof card.collect_count !== 'undefined' && (
-          <span style={{ color: COLORS.muted, fontSize: 12 }}>
-            🔖 {card.collect_count}
-          </span>
+          <span className="text-app-muted text-xs">🔖 {card.collect_count}</span>
         )}
 
-        {/* Reactions */}
         {!isMine && (
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+          <div className="flex gap-1 flex-wrap">
             {EMOJI_REACTIONS.map(r => (
-              <button
-                key={r.key}
-                disabled={reacting}
-                onClick={async () => {
-                  setReacting(true)
-                  try { await onReact(card.id, r.key) } finally { setReacting(false) }
-                }}
-                style={{
-                  background: card.my_reaction === r.key
-                    ? `${COLORS.yellow}33` : COLORS.card2,
-                  border: `1px solid ${card.my_reaction === r.key ? COLORS.yellow : COLORS.border}`,
-                  color: COLORS.text, borderRadius: 14, padding: '3px 9px',
-                  fontSize: 12, cursor: 'pointer',
-                }}
-              >{r.label}</button>
+              <button key={r.key} disabled={reacting}
+                onClick={async () => { setReacting(true); try { await onReact(card.id, r.key) } finally { setReacting(false) } }}
+                className={`rounded-2xl px-2.5 py-0.5 text-xs cursor-pointer border transition-all ${card.my_reaction === r.key ? 'bg-app-yellow/20 border-app-yellow text-app-yellow' : 'bg-app-card2 border-app-border text-app-text hover:border-app-yellow/30'}`}>
+                {r.label}
+              </button>
             ))}
           </div>
         )}
 
-        {/* Collect button */}
         {!isMine && (
-          <button
-            disabled={collecting || card.is_collected}
-            onClick={async () => {
-              setCollecting(true)
-              try { await onCollect(card.id) } finally { setCollecting(false) }
-            }}
-            style={{
-              marginLeft: 'auto',
-              background: card.is_collected ? `${COLORS.green}22` : `${COLORS.blue}22`,
-              border: `1px solid ${card.is_collected ? COLORS.green : COLORS.blue}44`,
-              color: card.is_collected ? COLORS.green : COLORS.blue,
-              borderRadius: 14, padding: '4px 12px', fontSize: 12, cursor: 'pointer',
-            }}
-          >{card.is_collected ? '✅ Saved' : '🔖 Collect +10 XP'}</button>
+          <button disabled={collecting || card.is_collected}
+            onClick={async () => { setCollecting(true); try { await onCollect(card.id) } finally { setCollecting(false) } }}
+            className={`ml-auto rounded-2xl px-3 py-1 text-xs cursor-pointer border transition-all ${card.is_collected ? 'bg-app-green/15 border-app-green/30 text-app-green' : 'bg-app-blue/15 border-app-blue/30 text-app-blue hover:bg-app-blue/20'} disabled:opacity-60`}>
+            {card.is_collected ? '✅ Saved' : '🔖 Collect +10 XP'}
+          </button>
         )}
 
-        {/* My card actions */}
         {isMine && !card.is_published && (
-          <button
-            onClick={() => onPublish(card.id)}
-            style={{
-              marginLeft: 'auto',
-              background: `${COLORS.orange}22`, border: `1px solid ${COLORS.orange}44`,
-              color: COLORS.orange, borderRadius: 14, padding: '4px 12px',
-              fontSize: 12, cursor: 'pointer',
-            }}
-          >🌐 Publish</button>
+          <button onClick={() => onPublish(card.id)}
+            className="ml-auto bg-app-orange/15 border border-app-orange/30 text-app-orange rounded-2xl px-3 py-1 text-xs cursor-pointer hover:bg-app-orange/20 active:scale-95 transition-all">
+            🌐 Publish
+          </button>
         )}
         {isMine && (
-          <button
-            onClick={() => onDelete(card.id)}
-            style={{
-              background: 'transparent', border: `1px solid ${COLORS.red}44`,
-              color: COLORS.red, borderRadius: 14, padding: '4px 12px',
-              fontSize: 12, cursor: 'pointer',
-              marginLeft: card.is_published ? 'auto' : 8,
-            }}
-          >🗑</button>
+          <button onClick={() => onDelete(card.id)}
+            className={`${!card.is_published ? 'ml-2' : 'ml-auto'} bg-transparent border border-app-red/30 text-app-red rounded-2xl px-3 py-1 text-xs cursor-pointer hover:bg-app-red/10 active:scale-95 transition-all`}>
+            🗑
+          </button>
         )}
       </div>
     </div>
@@ -267,105 +180,60 @@ In 1-2 short sentences, explain WHY a student would make this mistake and what c
     }
   }
 
-  const input = (value, onChange, placeholder, rows = 1) => ({
-    value, onChange: e => onChange(e.target.value), placeholder,
-    style: {
-      width: '100%', boxSizing: 'border-box',
-      background: COLORS.card2, border: `1px solid ${COLORS.border}`,
-      color: COLORS.text, borderRadius: 10, padding: '10px 12px',
-      fontSize: 14, fontFamily: 'Sora, sans-serif',
-      resize: 'vertical',
-      minHeight: rows > 1 ? rows * 28 : undefined,
-    },
-  })
+  const inputCls = "w-full box-border bg-app-card2 border border-app-border text-app-text rounded-xl px-3 py-2.5 text-sm resize-y outline-none focus:border-app-green/40 transition-colors placeholder:text-app-muted"
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: '#00000088', zIndex: 200,
-      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-    }} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{
-        background: COLORS.card, width: '100%', maxWidth: 600,
-        borderRadius: '20px 20px 0 0', padding: '24px 20px 32px',
-        maxHeight: '90vh', overflowY: 'auto',
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-          <h2 style={{ color: COLORS.text, margin: 0, fontSize: 18 }}>📝 Save a Bhool</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: COLORS.muted, fontSize: 22, cursor: 'pointer' }}>×</button>
+    <div className="fixed inset-0 bg-black/55 z-[200] flex items-end justify-center" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-app-card w-full max-w-[600px] rounded-t-[20px] px-5 pt-6 pb-8 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-5">
+          <h2 className="text-app-text m-0 text-lg font-extrabold">📝 Save a Bhool</h2>
+          <button onClick={onClose} className="bg-transparent border-none text-app-muted text-2xl cursor-pointer hover:text-app-text">×</button>
         </div>
 
-        {/* Subject */}
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ color: COLORS.muted, fontSize: 12, display: 'block', marginBottom: 4 }}>Subject</label>
-          <select
-            value={subject}
-            onChange={e => setSubject(e.target.value)}
-            style={{ ...input('', () => {}, '').style, cursor: 'pointer' }}
-          >
+        <div className="mb-3">
+          <label className="text-app-muted text-xs block mb-1">Subject</label>
+          <select value={subject} onChange={e => setSubject(e.target.value)} className={`${inputCls} cursor-pointer`}>
             {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
 
-        {/* Question */}
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ color: COLORS.muted, fontSize: 12, display: 'block', marginBottom: 4 }}>Question / Topic</label>
-          <textarea {...input(question, setQuestion, 'What was the question?', 2)} />
+        <div className="mb-3">
+          <label className="text-app-muted text-xs block mb-1">Question / Topic</label>
+          <textarea className={inputCls} value={question} onChange={e => setQuestion(e.target.value)} placeholder="What was the question?" rows={2} />
         </div>
 
-        {/* Wrong answer */}
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ color: COLORS.muted, fontSize: 12, display: 'block', marginBottom: 4 }}>My Wrong Answer ❌</label>
-          <textarea {...input(wrongAns, setWrongAns, 'What answer did you give (incorrectly)?', 2)} />
+        <div className="mb-3">
+          <label className="text-app-muted text-xs block mb-1">My Wrong Answer ❌</label>
+          <textarea className={inputCls} value={wrongAns} onChange={e => setWrongAns(e.target.value)} placeholder="What answer did you give (incorrectly)?" rows={2} />
         </div>
 
-        {/* Correct answer */}
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ color: COLORS.muted, fontSize: 12, display: 'block', marginBottom: 4 }}>Correct Answer ✅</label>
-          <textarea {...input(correctAns, setCorrectAns, 'What is the right answer?', 2)} />
+        <div className="mb-3">
+          <label className="text-app-muted text-xs block mb-1">Correct Answer ✅</label>
+          <textarea className={inputCls} value={correctAns} onChange={e => setCorrectAns(e.target.value)} placeholder="What is the right answer?" rows={2} />
         </div>
 
-        {/* Why wrong */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <label style={{ color: COLORS.muted, fontSize: 12 }}>Why did I get it wrong? 💡</label>
-            <button
-              onClick={handleAIExplain}
-              disabled={aiLoading || !question || !wrongAns || !correctAns}
-              style={{
-                background: `${COLORS.blue}22`, border: `1px solid ${COLORS.blue}44`,
-                color: COLORS.blue, borderRadius: 12, padding: '3px 10px',
-                fontSize: 12, cursor: 'pointer',
-              }}
-            >{aiLoading ? '✨ Thinking…' : '✨ AI Explain'}</button>
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-app-muted text-xs">Why did I get it wrong? 💡</label>
+            <button onClick={handleAIExplain} disabled={aiLoading || !question || !wrongAns || !correctAns}
+              className="bg-app-blue/15 border border-app-blue/30 text-app-blue rounded-xl px-2.5 py-1 text-xs cursor-pointer disabled:opacity-50 hover:bg-app-blue/20 active:scale-95 transition-all">
+              {aiLoading ? '✨ Thinking…' : '✨ AI Explain'}
+            </button>
           </div>
-          <textarea {...input(whyWrong, setWhyWrong, 'Optional: explain your misconception…', 2)} />
+          <textarea className={inputCls} value={whyWrong} onChange={e => setWhyWrong(e.target.value)} placeholder="Optional: explain your misconception…" rows={2} />
         </div>
 
-        {/* Publish toggle */}
-        <button
-          onClick={() => setPublish(p => !p)}
-          style={{
-            width: '100%', marginBottom: 16,
-            background: publish ? `${COLORS.green}22` : COLORS.card2,
-            border: `1px solid ${publish ? COLORS.green : COLORS.border}`,
-            color: publish ? COLORS.green : COLORS.muted,
-            borderRadius: 12, padding: '10px', fontSize: 14, cursor: 'pointer',
-          }}
-        >
+        <button onClick={() => setPublish(p => !p)}
+          className={`w-full mb-4 rounded-xl py-2.5 text-sm cursor-pointer border transition-all ${publish ? 'bg-app-green/15 border-app-green text-app-green' : 'bg-app-card2 border-app-border text-app-muted hover:bg-white/[0.03]'}`}>
           {publish ? '🌐 Will be published to Bazaar' : '🔒 Keep private (can publish later)'}
         </button>
 
-        {err && <p style={{ color: COLORS.red, fontSize: 13, marginBottom: 12 }}>{err}</p>}
+        {err && <p className="text-app-red text-[13px] mb-3">{err}</p>}
 
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          style={{
-            width: '100%', background: COLORS.orange, color: '#fff',
-            border: 'none', borderRadius: 14, padding: '14px',
-            fontSize: 16, fontWeight: 700, cursor: 'pointer',
-          }}
-        >{saving ? 'Saving…' : '💾 Save Bhool'}</button>
+        <button onClick={handleSave} disabled={saving}
+          className="w-full bg-app-orange text-white border-none rounded-2xl py-3.5 text-base font-extrabold cursor-pointer disabled:opacity-60 active:scale-[0.99] transition-all">
+          {saving ? 'Saving…' : '💾 Save Bhool'}
+        </button>
       </div>
     </div>
   )
@@ -386,33 +254,21 @@ function PublishConfirmModal({ card, onClose, onPublished }) {
   }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: '#00000088', zIndex: 200,
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
-    }} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{
-        background: COLORS.card, borderRadius: 20, padding: '28px 24px',
-        maxWidth: 420, width: '100%', textAlign: 'center',
-      }}>
-        <div style={{ fontSize: 48, marginBottom: 12 }}>🌐</div>
-        <h2 style={{ color: COLORS.text, marginBottom: 8 }}>Share Your Bhool?</h2>
-        <p style={{ color: COLORS.muted, fontSize: 14, marginBottom: 20 }}>
-          Publishing lets other students learn from your mistake — and earns you <strong style={{ color: COLORS.orange }}>🪙 5 Bhool Coins!</strong>
+    <div className="fixed inset-0 bg-black/55 z-[200] flex items-center justify-center p-5" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-app-card rounded-[20px] px-6 py-7 max-w-[420px] w-full text-center">
+        <div className="text-[48px] mb-3">🌐</div>
+        <h2 className="text-app-text mb-2 text-lg font-extrabold">Share Your Bhool?</h2>
+        <p className="text-app-muted text-sm mb-5">
+          Publishing lets other students learn from your mistake — and earns you <strong className="text-app-orange">🪙 5 Bhool Coins!</strong>
         </p>
-        <button
-          onClick={handlePublish}
-          disabled={publishing}
-          style={{
-            width: '100%', background: COLORS.orange, color: '#fff',
-            border: 'none', borderRadius: 14, padding: '13px',
-            fontSize: 16, fontWeight: 700, cursor: 'pointer', marginBottom: 10,
-          }}
-        >{publishing ? 'Publishing…' : '🌐 Yes, Publish!'}</button>
-        <button onClick={onClose} style={{
-          width: '100%', background: 'transparent',
-          border: `1px solid ${COLORS.border}`, color: COLORS.muted,
-          borderRadius: 14, padding: '11px', fontSize: 14, cursor: 'pointer',
-        }}>Keep Private</button>
+        <button onClick={handlePublish} disabled={publishing}
+          className="w-full bg-app-orange text-white border-none rounded-2xl py-3 text-base font-extrabold cursor-pointer mb-2.5 disabled:opacity-60 active:scale-[0.99] transition-all">
+          {publishing ? 'Publishing…' : '🌐 Yes, Publish!'}
+        </button>
+        <button onClick={onClose}
+          className="w-full bg-transparent border border-app-border text-app-muted rounded-2xl py-2.5 text-sm cursor-pointer hover:bg-white/[0.03] active:scale-[0.99] transition-all">
+          Keep Private
+        </button>
       </div>
     </div>
   )
@@ -554,39 +410,23 @@ export default function BhoolBazaarTab({ profile, addXp }) {
 
   // ── Render ────────────────────────────────────────────────
   return (
-    <div style={{
-      height: '100%', overflowY: 'auto',
-      padding: '16px 16px 80px',
-      maxWidth: 700, margin: '0 auto',
-    }}>
+    <div className="h-full overflow-y-auto px-4 pt-4 pb-20 max-w-[700px] mx-auto">
       {/* Header */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="mb-5">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 style={{ color: COLORS.text, margin: 0, fontSize: 22, fontWeight: 800 }}>
-              📛 Bhool Bazaar
-            </h1>
-            <p style={{ color: COLORS.muted, fontSize: 13, margin: '4px 0 0' }}>
-              Turn mistakes into learning assets
-            </p>
+            <h1 className="text-app-text m-0 text-[22px] font-extrabold">📛 Bhool Bazaar</h1>
+            <p className="text-app-muted text-[13px] mt-1 mb-0">Turn mistakes into learning assets</p>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            style={{
-              background: `linear-gradient(135deg, ${COLORS.orange}, #ff4e00)`,
-              color: '#fff', border: 'none', borderRadius: 14,
-              padding: '10px 18px', fontSize: 14, fontWeight: 700,
-              cursor: 'pointer', boxShadow: `0 4px 20px ${COLORS.orange}44`,
-            }}
-          >+ New Bhool</button>
+          <button onClick={() => setShowAddModal(true)}
+            className="bg-gradient-to-br from-app-orange to-[#ff4e00] text-white border-none rounded-2xl px-4 py-2.5 text-sm font-extrabold cursor-pointer shadow-[0_4px_20px_rgba(255,107,53,0.27)] active:scale-95 transition-all">
+            + New Bhool
+          </button>
         </div>
       </div>
 
       {/* Sub-nav */}
-      <div style={{
-        display: 'flex', gap: 8, flexWrap: 'wrap',
-        marginBottom: 16, overflowX: 'auto',
-      }}>
+      <div className="flex gap-2 flex-wrap mb-4 overflow-x-auto">
         {TABS.map(t => (
           <Pill key={t.key} active={activeTab === t.key} onClick={() => setActiveTab(t.key)}>
             {t.label}
@@ -596,28 +436,14 @@ export default function BhoolBazaarTab({ profile, addXp }) {
 
       {/* Feed filters */}
       {activeTab === 'feed' && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-          <select
-            value={filterSubject}
-            onChange={e => setFilterSubject(e.target.value)}
-            style={{
-              background: COLORS.card2, border: `1px solid ${COLORS.border}`,
-              color: COLORS.text, borderRadius: 10, padding: '6px 12px',
-              fontSize: 13, cursor: 'pointer',
-            }}
-          >
+        <div className="flex gap-2 mb-4 flex-wrap">
+          <select value={filterSubject} onChange={e => setFilterSubject(e.target.value)}
+            className="bg-app-card2 border border-app-border text-app-text rounded-xl px-3 py-1.5 text-[13px] cursor-pointer outline-none">
             <option value="">All Subjects</option>
             {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <select
-            value={filterSort}
-            onChange={e => setFilterSort(e.target.value)}
-            style={{
-              background: COLORS.card2, border: `1px solid ${COLORS.border}`,
-              color: COLORS.text, borderRadius: 10, padding: '6px 12px',
-              fontSize: 13, cursor: 'pointer',
-            }}
-          >
+          <select value={filterSort} onChange={e => setFilterSort(e.target.value)}
+            className="bg-app-card2 border border-app-border text-app-text rounded-xl px-3 py-1.5 text-[13px] cursor-pointer outline-none">
             <option value="recent">🕐 Recent</option>
             <option value="coins">🪙 Most Coins</option>
             <option value="collected">🔖 Most Saved</option>
@@ -627,11 +453,7 @@ export default function BhoolBazaarTab({ profile, addXp }) {
 
       {/* Error */}
       {err && (
-        <div style={{
-          background: `${COLORS.red}15`, border: `1px solid ${COLORS.red}33`,
-          borderRadius: 12, padding: '10px 14px', marginBottom: 12,
-          color: COLORS.red, fontSize: 13,
-        }}>{err}</div>
+        <div className="bg-app-red/10 border border-app-red/25 rounded-xl px-3.5 py-2.5 mb-3 text-app-red text-[13px]">{err}</div>
       )}
 
       {/* Empty states */}
@@ -679,21 +501,14 @@ export default function BhoolBazaarTab({ profile, addXp }) {
 
       {/* Load more */}
       {activeTab === 'feed' && hasMore && !loading && feedCards.length > 0 && (
-        <button
-          onClick={() => loadFeed(false)}
-          style={{
-            width: '100%', background: COLORS.card2,
-            border: `1px solid ${COLORS.border}`, color: COLORS.text,
-            borderRadius: 14, padding: '12px', fontSize: 14, cursor: 'pointer',
-            marginTop: 8,
-          }}
-        >Load More</button>
+        <button onClick={() => loadFeed(false)}
+          className="w-full mt-2 bg-app-card2 border border-app-border text-app-text rounded-2xl py-3 text-sm cursor-pointer hover:bg-white/[0.04] active:scale-[0.99] transition-all">
+          Load More
+        </button>
       )}
 
       {loading && (
-        <div style={{ textAlign: 'center', color: COLORS.muted, padding: '24px', fontSize: 14 }}>
-          Loading…
-        </div>
+        <div className="text-center text-app-muted py-6 text-sm">Loading…</div>
       )}
 
       {/* Modals */}
@@ -722,10 +537,10 @@ export default function BhoolBazaarTab({ profile, addXp }) {
 // ── Empty State ───────────────────────────────────────────────
 function EmptyState({ icon, title, subtitle }) {
   return (
-    <div style={{ textAlign: 'center', padding: '48px 24px' }}>
-      <div style={{ fontSize: 56, marginBottom: 12 }}>{icon}</div>
-      <h3 style={{ color: COLORS.text, margin: '0 0 8px' }}>{title}</h3>
-      <p style={{ color: COLORS.muted, fontSize: 14, margin: 0 }}>{subtitle}</p>
+    <div className="text-center py-12 px-6">
+      <div className="text-[56px] mb-3">{icon}</div>
+      <h3 className="text-app-text m-0 mb-2">{title}</h3>
+      <p className="text-app-muted text-sm m-0">{subtitle}</p>
     </div>
   )
 }
@@ -744,33 +559,17 @@ function TopList({ cards }) {
   return (
     <div>
       {Object.entries(bySubject).map(([subject, subCards]) => (
-        <div key={subject} style={{ marginBottom: 24 }}>
-          <h3 style={{ color: COLORS.yellow, fontSize: 15, marginBottom: 10 }}>
-            📚 {subject}
-          </h3>
+        <div key={subject} className="mb-6">
+          <h3 className="text-app-yellow text-[15px] mb-2.5">📚 {subject}</h3>
           {subCards.map((c, i) => (
-            <div
-              key={c.id}
-              style={{
-                background: COLORS.card,
-                border: `1px solid ${i === 0 ? COLORS.yellow + '44' : COLORS.border}`,
-                borderRadius: 14, padding: '12px 16px', marginBottom: 10,
-                display: 'flex', alignItems: 'flex-start', gap: 12,
-              }}
-            >
-              <span style={{
-                fontSize: 20, minWidth: 28, textAlign: 'center',
-                color: i === 0 ? COLORS.yellow : i === 1 ? '#aaa' : '#cd7f32',
-              }}>
+            <div key={c.id}
+              className={`bg-app-card border rounded-2xl px-4 py-3 mb-2.5 flex items-start gap-3 ${i === 0 ? 'border-app-yellow/25' : 'border-app-border'}`}>
+              <span className={`text-xl min-w-[28px] text-center ${i === 0 ? 'text-app-yellow' : i === 1 ? 'text-[#aaa]' : 'text-[#cd7f32]'}`}>
                 {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
               </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ color: COLORS.text, fontSize: 13, margin: '0 0 4px', fontWeight: 600 }}>
-                  {c.question}
-                </p>
-                <p style={{ color: COLORS.muted, fontSize: 12, margin: 0 }}>
-                  by {c.author_name} · 🔖 {c.collect_count} saved · <BhoolCoins count={c.bhool_coins || 0} />
-                </p>
+              <div className="flex-1 min-w-0">
+                <p className="text-app-text text-[13px] m-0 mb-1 font-semibold">{c.question}</p>
+                <p className="text-app-muted text-[12px] m-0">by {c.author_name} · 🔖 {c.collect_count} saved · <BhoolCoins count={c.bhool_coins || 0} /></p>
               </div>
             </div>
           ))}

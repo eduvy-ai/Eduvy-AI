@@ -12,6 +12,8 @@ export default function MediumsTab({ toast }) {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [confirmBulk, setConfirmBulk] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -63,7 +65,18 @@ export default function MediumsTab({ toast }) {
     setLoading(true)
     await API(`/admin/mediums/${confirmRow.id}`, { method: 'DELETE' })
     setLoading(false)
-    toast("Medium deactivated"); setConfirmRow(null); load()
+    toast("Medium deleted"); setConfirmRow(null); load()
+  }
+
+  const bulkDel = async () => {
+    if (!selectedIds.size) return
+    setLoading(true)
+    await API('/admin/mediums/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: [...selectedIds] }) })
+    setLoading(false)
+    toast(`${selectedIds.size} medium${selectedIds.size > 1 ? 's' : ''} deleted`)
+    setSelectedIds(new Set())
+    setConfirmBulk(false)
+    load()
   }
 
   const edit = row => {
@@ -92,7 +105,7 @@ export default function MediumsTab({ toast }) {
       {/* Add/Edit Modal */}
       {showModal && (
         <Modal title={editing ? "Edit Medium" : "Add Medium"} onClose={() => setShowModal(false)}>
-          <div className="grid grid-cols-[1fr_2fr] gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr] gap-2.5">
             <input className={inputClass} placeholder="ID (e.g. gujarati)"
               value={form.id} onChange={e => setForm(f => ({ ...f, id: e.target.value }))}
               disabled={!!editing} />
@@ -100,9 +113,9 @@ export default function MediumsTab({ toast }) {
               value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
           </div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <input className={`${inputClass} w-[120px] flex-shrink-0`} type="number" placeholder="Sort order"
+            <input className={`${inputClass} flex-1 min-w-[100px]`} type="number" placeholder="Sort order"
               value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))} />
-            <label className="flex items-center gap-1.5 text-app-muted text-[13px] flex-1">
+            <label className="flex items-center gap-2 text-app-muted text-[13px] cursor-pointer">
               <input type="checkbox" checked={form.is_active}
                 onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
               Active
@@ -118,15 +131,31 @@ export default function MediumsTab({ toast }) {
       {/* Confirm Delete */}
       {confirmRow && (
         <ConfirmDialog
-          message={`Deactivate medium "${confirmRow.name}"? It will be hidden from students but not permanently deleted.`}
+          message={`Permanently delete medium "${confirmRow.name}"? This will also delete all curriculum entries linked to this medium.`}
           onConfirm={del}
           onCancel={() => setConfirmRow(null)}
+        />
+      )}
+
+      {confirmBulk && (
+        <ConfirmDialog
+          message={`Permanently delete ${selectedIds.size} selected medium${selectedIds.size > 1 ? 's' : ''}? All linked curriculum entries will also be deleted.`}
+          onConfirm={bulkDel}
+          onCancel={() => setConfirmBulk(false)}
         />
       )}
 
       {/* Top action bar */}
       <div className="flex gap-2.5 items-center flex-wrap">
         <button className={btnClass('green')} onClick={openAdd}>+ Add Medium</button>
+        {selectedIds.size > 0 && (
+          <button className={btnClass('red')} onClick={() => setConfirmBulk(true)}>
+            Delete Selected ({selectedIds.size})
+          </button>
+        )}
+        {selectedIds.size > 0 && (
+          <button className={ghostBtnClass} onClick={() => setSelectedIds(new Set())}>Clear Selection</button>
+        )}
       </div>
 
       {/* Bulk Import */}
@@ -169,6 +198,8 @@ export default function MediumsTab({ toast }) {
         rows={filtered}
         onEdit={edit}
         onDelete={row => setConfirmRow(row)}
+        selectedIds={selectedIds}
+        onSelectChange={setSelectedIds}
       />
     </div>
   )
