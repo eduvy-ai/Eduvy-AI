@@ -5,10 +5,33 @@ import asyncio
 from fastapi import APIRouter, Depends
 
 from app.core.dependencies import get_current_user
-from app.modules.notebook.schemas import Source, ChatMessage, StudioOutput
+from app.modules.notebook.schemas import (
+    Source, ChatMessage, StudioOutput,
+    UploadStatusResponse, ReportViolationRequest
+)
 from app.modules.notebook.service import NotebookService
 
 router = APIRouter(prefix="/notebook", tags=["Notebook"])
+
+
+# --- Upload Status & Violations ------------------------------
+
+@router.get("/{user_id}/upload-status", response_model=UploadStatusResponse)
+async def get_upload_status(user_id: str, current_user: str = Depends(get_current_user)):
+    """Get upload status: source count, violations, blocked status."""
+    return await asyncio.to_thread(NotebookService.get_upload_status, user_id, current_user)
+
+
+@router.post("/{user_id}/report-violation")
+async def report_violation(
+    user_id: str,
+    data: ReportViolationRequest,
+    current_user: str = Depends(get_current_user)
+):
+    """Report a content violation. After 5 violations, user is blocked."""
+    return await asyncio.to_thread(
+        NotebookService.report_violation, user_id, current_user, data.reason
+    )
 
 
 # --- Sources -------------------------------------------------
@@ -26,10 +49,11 @@ async def add_source(
     current_user: str = Depends(get_current_user)
 ):
     """Add or update a notebook source."""
+    # Use the new method that includes summary
     return await asyncio.to_thread(
-        NotebookService.add_source,
+        NotebookService.add_source_with_summary,
         user_id, current_user,
-        data.id, data.name, data.type, data.content, data.icon, data.added_at,
+        data.id, data.name, data.type, data.content, data.summary, data.icon, data.added_at,
     )
 
 

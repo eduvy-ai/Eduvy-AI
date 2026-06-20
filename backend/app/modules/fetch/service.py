@@ -8,6 +8,7 @@ from typing import Dict, List
 import httpx
 
 _YOUTUBE_RE = re.compile(r"youtube\.com|youtu\.be", re.IGNORECASE)
+_YT_VIDEO_ID_RE = re.compile(r"(?:v=|youtu\.be/)([a-zA-Z0-9_-]{11})")
 _MAX_CHARS = 10_000
 
 # Educational YouTube channels
@@ -18,6 +19,42 @@ _YT_EDU_CHANNELS = {
     "biology": "Unacademy OR Vedantu OR Khan Academy",
     "science": "PhysicsWallah OR Khan Academy OR Vedantu",
 }
+
+
+def _yt_get_video_info(url: str) -> Dict:
+    """Get video info (title, description, channel) from YouTube URL."""
+    try:
+        import yt_dlp
+        ydl_opts = {
+            'quiet': True,
+            'skip_download': True,
+            'no_warnings': True,
+            'extract_flat': False,
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            title = info.get('title', '')
+            channel = info.get('channel') or info.get('uploader') or ''
+            description = (info.get('description') or '')[:2000]
+            duration = info.get('duration') or 0
+            
+            # Build content string
+            content = f"📺 Video: {title}\n"
+            content += f"📺 Channel: {channel}\n"
+            if duration:
+                mins = duration // 60
+                secs = duration % 60
+                content += f"⏱️ Duration: {mins}:{secs:02d}\n"
+            content += f"\n📝 Description:\n{description}"
+            
+            return {
+                "content": content.strip(),
+                "title": title,
+                "channel": channel,
+                "isYouTube": True
+            }
+    except Exception as e:
+        return {"content": f"YouTube video (could not fetch details: {e})", "isYouTube": True}
 
 
 def _yt_search(query: str, limit: int = 10) -> List[Dict]:
@@ -58,13 +95,28 @@ class FetchService:
         """Fetch content from URL."""
         is_youtube = bool(_YOUTUBE_RE.search(url))
         
+        # For YouTube URLs, extract video info using yt-dlp
+        if is_youtube:
+            loop = asyncio.get_event_loop()
+            try:
+                result = await asyncio.wait_for(
+                    loop.run_in_executor(None, _yt_get_video_info, url),
+                    timeout=20.0
+                )
+                return result
+            except asyncio.TimeoutError:
+                return {"content": "YouTube video (timeout fetching details)", "isYouTube": True}
+            except Exception as e:
+                return {"content": f"YouTube video (error: {e})", "isYouTube": True}
+        
+        # For non-YouTube URLs, fetch HTML content
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.get(url)
                 content = resp.text[:_MAX_CHARS]
-                return {"content": content, "isYouTube": is_youtube}
+                return {"content": content, "isYouTube": False}
         except Exception as e:
-            return {"content": f"Error: {e}", "isYouTube": is_youtube}
+            return {"content": f"Error: {e}", "isYouTube": False}
     
     @staticmethod
     async def youtube_search(query: str, limit: int = 10) -> List[Dict]:

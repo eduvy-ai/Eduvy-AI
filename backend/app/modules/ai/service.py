@@ -176,6 +176,80 @@ class AIService:
         }
     
     @staticmethod
+    async def extract_image_content(
+        user_id: str,
+        image_base64: str,
+        mime_type: str,
+        prompt: str,
+        language: str
+    ) -> Dict:
+        """Extract text/content from an image using AI Vision."""
+        from services.ai_service import call_vision
+        
+        user = AIService.get_user_info(user_id)
+        plan = user["plan"]
+        
+        # Check quota
+        current, limit = AIService.check_quota(user_id, plan)
+        if current >= limit:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Daily AI quota ({limit} calls) exceeded."
+            )
+        
+        # Build extraction prompt
+        extraction_prompt = f"""You are analyzing an image uploaded by a Class {user.get('standard', '10')} student in India.
+
+TASK: Extract ALL text and content from this image. This could be:
+- Textbook pages, notes, diagrams
+- Handwritten notes
+- Charts, graphs, tables
+- Question papers, worksheets
+
+RESPOND IN {language.upper()}.
+
+OUTPUT FORMAT:
+1. First, describe what type of document/image this is (1 line)
+2. Then extract ALL readable text, preserving structure
+3. If it's a diagram/chart, describe what it shows
+4. If text is handwritten, do your best to read it
+
+{prompt if prompt else ''}
+
+IMPORTANT: If this is NOT educational content (social media, memes, random photos, etc.), start your response with "[NOT_EDUCATIONAL]" and briefly explain why."""
+
+        # Call Vision API
+        try:
+            response, prompt_tokens, completion_tokens = await call_vision(
+                image_base64=image_base64,
+                mime_type=mime_type,
+                prompt=extraction_prompt,
+                language=language,
+            )
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"Vision service error: {str(e)}")
+        
+        # Track usage
+        AIService.check_and_increment_usage(user_id, plan, prompt_tokens, completion_tokens)
+        
+        # Check if educational
+        is_educational = not response.startswith("[NOT_EDUCATIONAL]")
+        
+        # Generate short summary
+        summary = ""
+        if is_educational and len(response) > 100:
+            # Take first 2 sentences as summary
+            sentences = response.replace('\n', ' ').split('. ')
+            summary = '. '.join(sentences[:2]) + '.' if len(sentences) > 1 else sentences[0]
+            summary = summary[:200]
+        
+        return {
+            "content": response,
+            "is_educational": is_educational,
+            "summary": summary,
+        }
+    
+    @staticmethod
     def get_usage(user_id: str) -> Dict:
         """Get usage stats for user."""
         user = AIService.get_user_info(user_id)

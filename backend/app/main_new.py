@@ -76,6 +76,13 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup():
     init_db()
+    # Load API keys and plan routing from database
+    try:
+        from services.ai_service import load_plan_routing
+        load_plan_routing()
+        print("✅ API keys loaded from database")
+    except Exception as e:
+        print(f"⚠️ Could not load API keys from database: {e}")
 
 # ── Security Headers Middleware ───────────────────────────────
 @app.middleware("http")

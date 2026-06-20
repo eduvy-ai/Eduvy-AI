@@ -38,6 +38,9 @@ def create_all_tables():
             referred_by     TEXT DEFAULT '',
             is_admin        BOOLEAN DEFAULT FALSE,
             is_drishti      BOOLEAN DEFAULT FALSE,
+            upload_violations INTEGER DEFAULT 0,
+            upload_blocked    BOOLEAN DEFAULT FALSE,
+            upload_block_reason TEXT DEFAULT '',
             created_at      TEXT DEFAULT CURRENT_DATE
         )
     """)
@@ -74,6 +77,7 @@ def create_all_tables():
             name        TEXT NOT NULL,
             type        TEXT DEFAULT 'text',
             content     TEXT DEFAULT '',
+            summary     TEXT DEFAULT '',
             icon        TEXT DEFAULT '📄',
             added_at    BIGINT DEFAULT 0,
             PRIMARY KEY (id, user_id)

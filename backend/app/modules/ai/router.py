@@ -5,7 +5,7 @@ import asyncio
 from fastapi import APIRouter, Depends
 
 from app.core.dependencies import get_current_user
-from app.modules.ai.schemas import ChatRequest
+from app.modules.ai.schemas import ChatRequest, VisionRequest, VisionResponse
 from app.modules.ai.service import AIService
 
 router = APIRouter(prefix="/ai", tags=["AI"])
@@ -22,6 +22,18 @@ async def chat(data: ChatRequest, current_user: str = Depends(get_current_user))
         history,
         data.max_tokens,
         data.mode,
+    )
+
+
+@router.post("/vision", response_model=VisionResponse)
+async def extract_image_content(data: VisionRequest, current_user: str = Depends(get_current_user)):
+    """Extract text/content from an image using AI Vision."""
+    return await AIService.extract_image_content(
+        current_user,
+        data.image_base64,
+        data.mime_type,
+        data.prompt,
+        data.language,
     )
 
 

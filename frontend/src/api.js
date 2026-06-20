@@ -628,6 +628,7 @@ export async function apiSaveSource(userId, source) {
       name: source.name,
       type: source.type,
       content: source.content,
+      summary: source.summary || '',
       icon: source.icon,
       added_at: source.addedAt ?? source.added_at ?? 0,
     }),
@@ -695,6 +696,46 @@ export async function apiSaveStudioOutput(userId, type, outputJson) {
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return safeJson(res)
+}
+
+// ── Notebook Upload Status & Violations ────────────────────────
+
+export async function apiGetUploadStatus(userId) {
+  const res = await fetch(`${API_BASE_URL}/api/notebook/${userId}/upload-status`, {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(5000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)  // { can_upload, sources_count, max_sources, violations, max_violations, blocked, block_reason }
+}
+
+export async function apiReportViolation(userId, reason = 'inappropriate_content') {
+  const res = await fetch(`${API_BASE_URL}/api/notebook/${userId}/report-violation`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ reason }),
+    signal: AbortSignal.timeout(5000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)  // { violations, blocked, block_reason, remaining_attempts }
+}
+
+// ── AI Vision - Extract content from images ────────────────────
+
+export async function apiExtractImageContent(imageBase64, mimeType, prompt = '', language = 'English') {
+  const res = await fetch(`${API_BASE_URL}/api/ai/vision`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({
+      image_base64: imageBase64,
+      mime_type: mimeType,
+      prompt,
+      language,
+    }),
+    signal: AbortSignal.timeout(60000), // 60s timeout for vision
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)  // { content, is_educational, summary }
 }
 
 // ─── Chat Sessions (TutorTab, MentalLab) ─────────────────────

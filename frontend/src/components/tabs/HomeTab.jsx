@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { COLORS, callAI, SUBS, getBhoolStats, parseAIObject, getDisplayLang } from '../../shared.js'
-import { apiGetMastery } from '../../api.js'
+import { apiGetMastery, apiGetMySquad, apiGetPendingMuqabalaBattles } from '../../api.js'
 import { li } from '../../i18n/index.js'
 
 // ── Bhool Curve stats (reads localStorage) ───────────────────
@@ -60,11 +60,11 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
   const [selectedSub, setSelectedSub]     = useState(null)
   const [subPlan, setSubPlan]             = useState("")
   const [subLoading, setSubLoading]       = useState(false)
-  const [oracleTopics, setOracleTopics]   = useState([])
-  const [oracleLoading, setOracleLoading] = useState(false)
-  const [oracleSel, setOracleSel]         = useState(null)
-  const [oracleDeep, setOracleDeep]       = useState("")
-  const [deepLoading, setDeepLoading]     = useState(false)
+  
+  // ── Notifications & Squad ───────────────────────────────────
+  const [pendingBattles, setPendingBattles] = useState([])
+  const [mySquad, setMySquad]               = useState(null)
+  const [lastTab, setLastTab]               = useState(null)
 
   // ── Mood Check ──────────────────────────────────────────────
   const [mood, setMood] = useState(() => {
@@ -93,6 +93,25 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
       .then(data => { if (data && Object.keys(data).length) setMasteries(data) })
       .catch(() => {})
   }, [userId])
+
+  // ── Load notifications, squad, and last tab ─────────────
+  useEffect(() => {
+    // Last visited tab from localStorage
+    try {
+      const saved = localStorage.getItem('eduvyai_last_tab')
+      if (saved && saved !== 'home') setLastTab(saved)
+    } catch {}
+
+    // Pending Muqabla battles
+    apiGetPendingMuqabalaBattles()
+      .then(data => { if (data?.battles?.length) setPendingBattles(data.battles) })
+      .catch(() => {})
+
+    // My squad info
+    apiGetMySquad()
+      .then(data => { if (data?.squad) setMySquad(data.squad) })
+      .catch(() => {})
+  }, [])
 
   // Overall mastery average (0% for untouched subjects)
   const masteryValues = subjects.map(s => masteries[s] ?? 0)
@@ -179,39 +198,6 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
     setSubLoading(false)
   }
 
-  // ── Exam Oracle ───────────────────────────────────────────
-  const generateOracle = async () => {
-    setOracleLoading(true)
-    setOracleTopics([])
-    setOracleSel(null)
-    setOracleDeep("")
-    const res = await callAI(
-      `List the 5 most likely exam topics for ${profile.board} ${profile.standard} this year.`,
-      "", [], 3, 1200, "home_oracle"
-    )
-    const lines = res.split('\n').filter(l => /^\d+\./.test(l.trim()))
-    const parsed = lines.slice(0, 5).map(l => {
-      const match = l.match(/^\d+\.\s*(.+?)[\s—-]+(\d+)%/)
-      return match ? { topic: match[1].trim(), pct: Number(match[2]) } : { topic: l.replace(/^\d+\.\s*/, '').trim(), pct: 70 }
-    })
-    setOracleTopics(parsed.length ? parsed : [{ topic: res, pct: 80 }])
-    addXp(5)
-    setOracleLoading(false)
-  }
-
-  const deepDive = async (topic) => {
-    setOracleSel(topic)
-    setDeepLoading(true)
-    setOracleDeep("")
-    const res = await callAI(
-      `Give me a deep dive on: ${topic.topic} for ${profile.board} ${profile.standard}.`,
-      "", [], 3, 1200, "home_deep_dive"
-    )
-    setOracleDeep(res)
-    addXp(3)
-    setDeepLoading(false)
-  }
-
   const greeting = getTimeGreeting(getDisplayLang(profile))
   const ui = li(getDisplayLang(profile))
 
@@ -246,10 +232,10 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
       ) : (
         <div className="bg-app-card2 border border-app-border rounded-[14px] py-2.5 px-3.5 mb-3.5 flex items-center justify-between">
           <span className="text-[13px] text-app-muted">
-            {mood === "fresh"    && "😄 You're fresh — tackle the hard topics today! 🚀"}
-            {mood === "okay"     && "😐 You're doing okay — steady progress wins. 💪"}
-            {mood === "stressed" && "😟 You're stressed — quick wins only, no new topics. 🧘"}
-            {mood === "tired"    && "😴 You're tired — try Story Mode in the Tutor tab. 📖"}
+            {mood === "fresh"    && (ui.moodFreshFeedback || "😄 You're fresh — tackle the hard topics today! 🚀")}
+            {mood === "okay"     && (ui.moodOkayFeedback || "😐 You're doing okay — steady progress wins. 💪")}
+            {mood === "stressed" && (ui.moodStressedFeedback || "😟 You're stressed — quick wins only, no new topics. 🧘")}
+            {mood === "tired"    && (ui.moodTiredFeedback || "😴 You're tired — try Story Mode in the Tutor tab. 📖")}
           </span>
           <button 
             onClick={() => { setMood(null); localStorage.removeItem('eduvyai_mood') }} 
@@ -312,7 +298,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
               <p className="text-[13px] text-app-text leading-[1.8] whitespace-pre-wrap m-0">{brief}</p>
             </div>
             <button onClick={generateBrief} disabled={briefLoading} className="ghost-btn mt-2.5">
-              {briefLoading ? "Refreshing…" : "↺ Refresh Brief"}
+              {briefLoading ? (ui.refreshing || "Refreshing…") : (ui.refreshBrief || "↺ Refresh Brief")}
             </button>
           </>
         )}
@@ -320,30 +306,30 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
 
       {/* ── Bhool Curve Memory Health ─────────────────────── */}
       {bhoolDue > 0 && (
-        <Section title="🧠 Memory Health — Bhool Curve">
+        <Section title={`🧠 ${ui.memoryHealth || 'Memory Health — Bhool Curve'}`}>
           <p className="text-xs text-app-muted mb-3">
-            Based on spaced repetition science — these concepts need review before you forget them
+            {ui.basedOnScience || 'Based on spaced repetition science — these concepts need review before you forget them'}
           </p>
           <div className="flex gap-2 mb-3.5">
             {bhool.overdue.length > 0 && (
               <div className="flex-1 bg-app-red/10 border border-app-red/30 rounded-xl py-2.5 px-3 text-center">
                 <div className="text-xl mb-1">🔴</div>
                 <div className="text-lg font-black text-app-red">{bhool.overdue.length}</div>
-                <div className="text-[10px] text-app-muted mt-0.5">Forget today</div>
+                <div className="text-[10px] text-app-muted mt-0.5">{ui.forgetToday || 'Forget today'}</div>
               </div>
             )}
             {bhool.soon.length > 0 && (
               <div className="flex-1 bg-app-yellow/10 border border-app-yellow/30 rounded-xl py-2.5 px-3 text-center">
                 <div className="text-xl mb-1">🟡</div>
                 <div className="text-lg font-black text-app-yellow">{bhool.soon.length}</div>
-                <div className="text-[10px] text-app-muted mt-0.5">Due in 48h</div>
+                <div className="text-[10px] text-app-muted mt-0.5">{ui.dueIn48h || 'Due in 48h'}</div>
               </div>
             )}
             {bhool.fresh.length > 0 && (
               <div className="flex-1 bg-app-green/10 border border-app-green/20 rounded-xl py-2.5 px-3 text-center">
                 <div className="text-xl mb-1">🟢</div>
                 <div className="text-lg font-black text-app-green">{bhool.fresh.length}</div>
-                <div className="text-[10px] text-app-muted mt-0.5">Fresh</div>
+                <div className="text-[10px] text-app-muted mt-0.5">{ui.freshLabel || 'Fresh'}</div>
               </div>
             )}
           </div>
@@ -353,26 +339,26 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
                 key={i} 
                 className="flex items-center gap-2 bg-app-card2 rounded-lg py-1.5 px-2.5 mb-1.5 border border-app-red/20"
               >
-                <span className="text-[10px] bg-app-red text-white rounded py-px px-1.5 font-bold">REVIEW</span>
+                <span className="text-[10px] bg-app-red text-white rounded py-px px-1.5 font-bold">{ui.reviewLabel || 'REVIEW'}</span>
                 <span className="text-xs text-app-text font-semibold">{item.concept}</span>
                 <span className="text-[11px] text-app-muted ml-auto">{item.subject}</span>
               </div>
             ))}
           </div>
           <button onClick={() => setTab('labs')} className="primary-btn">
-            ⚡ Quick Revise Now
+            {ui.quickReviseNow || '⚡ Quick Revise Now'}
           </button>
         </Section>
       )}
 
       {/* ── Mera Sawaal — Hyper-local Daily Problem ──────── */}
-      <Section title="🎯 Mera Sawaal — Today's Challenge">
+      <Section title={ui.todaysChallenge || "🎯 Mera Sawaal — Today's Challenge"}>
         <p className="text-xs text-app-muted mb-3">
-          A real-world problem using examples from your own state and culture
+          {ui.realWorldProblem || 'A real-world problem using examples from your own state and culture'}
         </p>
         {!dailyQ ? (
           <button onClick={generateDailyQ} disabled={dailyQLoad} className="primary-btn">
-            {dailyQLoad ? "🎲 Generating…" : "🎲 Get Today's Problem"}
+            {dailyQLoad ? `🎲 ${ui.generating || 'Generating'}…` : (ui.getTodaysProblem || "🎲 Get Today's Problem")}
           </button>
         ) : (
           <div className="flex flex-col gap-2.5">
@@ -392,25 +378,25 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
                 onClick={() => { setDailyAns(true); addXp(8) }} 
                 className="primary-btn bg-app-yellow/20 border border-app-yellow/40 !text-app-yellow"
               >
-                💡 Show Solution (+8 XP)
+                {ui.showSolutionXp || '💡 Show Solution (+8 XP)'}
               </button>
             ) : (
               <div className="bg-app-green/10 border border-app-green/20 rounded-xl p-3.5">
-                <div className="text-xs font-bold text-app-green mb-1.5">✅ Solution</div>
+                <div className="text-xs font-bold text-app-green mb-1.5">{ui.solution || '✅ Solution'}</div>
                 <p className="text-[13px] text-app-text leading-[1.7] whitespace-pre-wrap m-0">{dailyQ.a}</p>
               </div>
             )}
             <button onClick={generateDailyQ} disabled={dailyQLoad} className="ghost-btn">
-              {dailyQLoad ? "Generating…" : "↺ New Problem"}
+              {dailyQLoad ? (ui.generating || 'Generating') + '…' : (ui.newProblem || '↺ New Problem')}
             </button>
           </div>
         )}
       </Section>
 
       {/* ── Subject Mastery ───────────────────────────────── */}
-      <Section title="📚 Subject Mastery">
+      <Section title={`📚 ${ui.subjectMastery || 'Subject Mastery'}`}>
         <p className="text-xs text-app-muted mb-3">
-          Tap a subject to get a personalised study plan
+          {ui.tapSubjectForPlan || 'Tap a subject to get a personalised study plan'}
         </p>
         <div className="flex flex-col gap-2">
           {subjects.map(sub => {
@@ -457,11 +443,11 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
         {(subLoading || subPlan) && (
           <div className="mt-3">
             {subLoading
-              ? <LoadingDots label={`Generating plan for ${selectedSub}…`} />
+              ? <LoadingDots label={`${ui.generatingFor || 'Generating plan for'} ${selectedSub}…`} />
               : (
                 <div className="ai-card" style={{ borderColor: `${masteryColor(masteries[selectedSub] ?? 0)}30` }}>
                   <div className="text-xs font-bold mb-1.5" style={{ color: masteryColor(masteries[selectedSub] ?? 0) }}>
-                    📋 Study Plan — {selectedSub}
+                    {ui.studyPlanFor || '📋 Study Plan —'} {selectedSub}
                   </div>
                   <p className="text-[13px] text-app-text leading-[1.8] whitespace-pre-wrap m-0">{subPlan}</p>
                 </div>
@@ -471,73 +457,97 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
         )}
       </Section>
 
-      {/* ── Exam Oracle ───────────────────────────────────── */}
-      <Section title="🔮 Exam Oracle">
-        <p className="text-xs text-app-muted mb-3">
-          AI predicts the most likely topics for your {profile.board} {profile.standard} exam
-        </p>
-        {!oracleTopics.length ? (
-          <button onClick={generateOracle} disabled={oracleLoading} className="primary-btn">
-            {oracleLoading ? "🔮 Predicting…" : "⚡ Predict This Year's Topics"}
-          </button>
-        ) : (
-          <>
-            <div className="flex flex-col gap-2">
-              {oracleTopics.map((t, i) => {
-                const topicColor = t.pct >= 80 ? COLORS.red : t.pct >= 60 ? COLORS.yellow : COLORS.green
-                return (
-                  <button
-                    key={i}
-                    onClick={() => deepDive(t)}
-                    className="rounded-xl py-3 px-3.5 flex items-center justify-between cursor-pointer font-[Sora,sans-serif] text-left border"
-                    style={{
-                      background: oracleSel?.topic === t.topic ? `${topicColor}12` : COLORS.card2,
-                      borderColor: oracleSel?.topic === t.topic ? `${topicColor}50` : COLORS.border,
-                    }}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span 
-                        className="text-[11px] font-extrabold rounded-md py-0.5 px-1.5 min-w-[20px] text-center"
-                        style={{ color: topicColor, background: `${topicColor}15` }}
-                      >{i + 1}</span>
-                      <span className="text-[13px] text-app-text font-semibold">{t.topic}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <div className="w-12 h-1 bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${t.pct}%`, background: topicColor }} />
-                      </div>
-                      <span className="text-xs font-black min-w-[32px] text-right" style={{ color: topicColor }}>{t.pct}%</span>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-            <button
-              onClick={generateOracle}
-              disabled={oracleLoading}
-              className="ghost-btn mt-2.5"
-            >
-              {oracleLoading ? "Predicting…" : "↺ Re-predict"}
-            </button>
-          </>
-        )}
-
-        {(deepLoading || oracleDeep) && (
-          <div className="mt-3">
-            {deepLoading
-              ? <LoadingDots label={`Deep diving into ${oracleSel?.topic}…`} />
-              : (
-                <div className="ai-card border-app-yellow/30">
-                  <div className="text-xs font-bold text-app-yellow mb-1.5">
-                    🔮 Deep Dive — {oracleSel?.topic}
-                  </div>
-                  <p className="text-[13px] text-app-text leading-[1.8] whitespace-pre-wrap m-0">{oracleDeep}</p>
+      {/* ── Continue Learning ────────────────────────────────── */}
+      {lastTab && (
+        <Section title={`📚 ${ui.continueLearning || 'Continue Learning'}`}>
+          <button
+            onClick={() => setTab(lastTab)}
+            className="w-full rounded-[14px] py-3.5 px-4 flex items-center justify-between cursor-pointer font-[Sora,sans-serif] border bg-app-card2 border-app-blue/30 hover:border-app-blue/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xl">
+                {lastTab === 'tutor' && '🤖'}
+                {lastTab === 'notebook' && '📖'}
+                {lastTab === 'videos' && '🎬'}
+                {lastTab === 'labs' && '🧪'}
+                {lastTab === 'sathi' && '👥'}
+                {lastTab === 'bhool' && '🧠'}
+                {lastTab === 'muqabla' && '⚔️'}
+                {!['tutor','notebook','videos','labs','sathi','bhool','muqabla'].includes(lastTab) && '📌'}
+              </span>
+              <div>
+                <div className="text-[13px] font-bold text-app-text">
+                  {lastTab === 'tutor' && (ui.tutorTab?.replace(/^🤖\s*/, '') || 'Tutor')}
+                  {lastTab === 'notebook' && (ui.notebookTab?.replace(/^📓\s*/, '') || 'Notebook')}
+                  {lastTab === 'videos' && (ui.videosTab?.replace(/^🎬\s*/, '') || 'Videos')}
+                  {lastTab === 'labs' && (ui.labsTab?.replace(/^🧪\s*/, '') || 'Labs')}
+                  {lastTab === 'sathi' && (ui.sathiTab?.replace(/^🤝\s*/, '') || 'Companion')}
+                  {lastTab === 'bhool' && (ui.bhoolTab?.replace(/^📛\s*/, '') || 'Mistakes')}
+                  {lastTab === 'muqabla' && (ui.muqablaTab?.replace(/^⚔️\s*/, '') || 'Battle')}
+                  {lastTab === 'learntv' && (ui.learntvTab?.replace(/^📺\s*/, '') || 'Learn TV')}
+                  {!['tutor','notebook','videos','labs','sathi','bhool','muqabla','learntv'].includes(lastTab) && lastTab}
                 </div>
-              )
-            }
+                <div className="text-[11px] text-app-muted">{ui.pickUpWhereLeftOff || 'Pick up where you left off'}</div>
+              </div>
+            </div>
+            <span className="text-app-blue text-lg">→</span>
+          </button>
+        </Section>
+      )}
+
+      {/* ── Notifications ────────────────────────────────────── */}
+      {pendingBattles.length > 0 && (
+        <Section title={`🔔 ${ui.notifications || 'Notifications'}`}>
+          <div className="flex flex-col gap-2">
+            {pendingBattles.slice(0, 3).map((battle, i) => (
+              <button
+                key={battle.id || i}
+                onClick={() => setTab('muqabla')}
+                className="w-full rounded-xl py-3 px-3.5 flex items-center gap-3 cursor-pointer font-[Sora,sans-serif] text-left border bg-app-red/10 border-app-red/30"
+              >
+                <span className="text-lg">⚔️</span>
+                <div className="flex-1">
+                  <div className="text-[13px] font-bold text-app-text">
+                    {battle.challenger_name || ui.someone || 'Someone'} {ui.challengedYou || 'challenged you!'}
+                  </div>
+                  <div className="text-[11px] text-app-muted">
+                    {battle.subject} • {battle.question_count || 5} {ui.questionsCount || 'questions'}
+                  </div>
+                </div>
+                <span className="text-[11px] font-bold text-app-red bg-app-red/20 rounded-lg py-1 px-2">{ui.accept || 'Accept'}</span>
+              </button>
+            ))}
           </div>
-        )}
-      </Section>
+        </Section>
+      )}
+
+      {/* ── Squad Activity ───────────────────────────────────── */}
+      {mySquad && (
+        <Section title={`👥 ${ui.yourSquad || 'Your Squad'}`}>
+          <button
+            onClick={() => setTab('sathi')}
+            className="w-full rounded-[14px] py-3.5 px-4 flex items-center justify-between cursor-pointer font-[Sora,sans-serif] border bg-gradient-to-r from-app-green/10 to-app-blue/10 border-app-green/30 hover:border-app-green/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">👥</span>
+              <div>
+                <div className="text-[13px] font-bold text-app-text">{mySquad.name || ui.studySquad || 'Study Squad'}</div>
+                <div className="text-[11px] text-app-muted">
+                  {mySquad.member_count || mySquad.members?.length || '?'} {ui.members || 'members'} • {mySquad.focus_subject || 'General'}
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-0.5">
+              {mySquad.message_count > 0 && (
+                <span className="text-[10px] font-bold text-white bg-app-green rounded-full py-0.5 px-2">
+                  {mySquad.message_count} {ui.newMessages || 'new'}
+                </span>
+              )}
+              <span className="text-app-green text-lg">→</span>
+            </div>
+          </button>
+        </Section>
+      )}
 
     </div>
   )

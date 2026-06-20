@@ -151,7 +151,7 @@ def _fix_model(provider: str, model: str) -> str:
 def load_plan_routing():
     """Load plan routing config AND stored API keys from app_settings into memory."""
     try:
-        from database import get_db   # local import to avoid circular deps at module load
+        from app.db.connection import get_db   # local import to avoid circular deps at module load
         conn = get_db()
         try:
             cur = conn.cursor()
@@ -211,7 +211,7 @@ _ENV_BASE = {
 def save_api_key(provider: str, key: str, slot: int = 1):
     """Persist API key for provider at the given slot (1–5) to app_settings and update the pool."""
     db_key = f"api_key_{provider}" if slot == 1 else f"api_key_{provider}_{slot}"
-    from database import get_db
+    from app.db.connection import get_db
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -234,7 +234,7 @@ def save_api_key(provider: str, key: str, slot: int = 1):
 def remove_api_key_slot(provider: str, slot: int):
     """Delete a DB key slot and rebuild the in-memory pool from env vars + remaining slots."""
     db_key = f"api_key_{provider}" if slot == 1 else f"api_key_{provider}_{slot}"
-    from database import get_db
+    from app.db.connection import get_db
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -260,7 +260,7 @@ def remove_api_key_slot(provider: str, slot: int):
 
 def get_key_slot_status() -> dict:
     """Return per-provider slot info for the admin panel.  Never returns actual key values."""
-    from database import get_db
+    from app.db.connection import get_db
     conn = get_db()
     result = {}
     try:
@@ -314,7 +314,7 @@ def get_key_pool_sizes() -> dict[str, int]:
 
 def save_plan_routing(plan: str, provider: str, model: str):
     """Persist one plan's routing to app_settings and update the in-memory cache."""
-    from database import get_db
+    from app.db.connection import get_db
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -552,6 +552,60 @@ async def _gemini(client: httpx.AsyncClient, model: str, key: str,
     text = parts[0].get("text", "") if parts else ""
     meta = data.get("usageMetadata", {})
     return text, meta.get("promptTokenCount", 0), meta.get("candidatesTokenCount", 0)
+
+
+async def _gemini_vision(client: httpx.AsyncClient, model: str, key: str,
+                         prompt: str, image_base64: str, mime_type: str,
+                         max_tokens: int = 1000) -> tuple[str, int, int]:
+    """Call Gemini Vision API with an image."""
+    r = await client.post(
+        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}",
+        headers={"Content-Type": "application/json"},
+        json={
+            "contents": [{
+                "parts": [
+                    {"text": prompt},
+                    {"inline_data": {"mime_type": mime_type, "data": image_base64}}
+                ]
+            }],
+            "generationConfig": {"maxOutputTokens": max_tokens},
+        },
+    )
+    r.raise_for_status()
+    data = r.json()
+    if "error" in data:
+        return ("⚠️ " + data["error"].get("message", "Unknown error"), 0, 0)
+    parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])
+    text = parts[0].get("text", "") if parts else ""
+    meta = data.get("usageMetadata", {})
+    return text, meta.get("promptTokenCount", 0), meta.get("candidatesTokenCount", 0)
+
+
+async def call_vision(
+    image_base64: str,
+    mime_type: str,
+    prompt: str,
+    language: str = "English",
+) -> tuple[str, int, int]:
+    """Extract text/content from an image using Gemini Vision."""
+    # Get a Gemini key
+    key = _next_key("gemini")
+    if not key:
+        return ("⚠️ Vision service is temporarily unavailable.", 0, 0)
+    
+    # Use gemini-2.0-flash for vision (supports multimodal)
+    model = "gemini-2.0-flash"
+    
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        try:
+            result = await _gemini_vision(
+                client, model, key, prompt, image_base64, mime_type, max_tokens=1500
+            )
+            return result
+        except httpx.HTTPStatusError as exc:
+            return (f"⚠️ Vision error: {exc.response.status_code}", 0, 0)
+        except Exception as exc:
+            return (f"⚠️ Vision error: {str(exc)[:100]}", 0, 0)
 
 
 async def _groq(client: httpx.AsyncClient, model: str, key: str,

@@ -1,11 +1,16 @@
 import { useState, useRef, useEffect } from 'react'
-import { COLORS, callAI, parseAIArray, parseAIObject, SUBS, checkStudentQuery } from '../../shared.js'
+import { COLORS, callAI, parseAIArray, parseAIObject, SUBS, checkStudentQuery, validateSourceContent, checkContentRelevance, generateSmartSummary } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import {
   apiGetSources, apiSaveSource, apiDeleteSource,
   apiGetNotebookChat, apiSaveChatMessage, apiClearNotebookChat,
-  apiSaveStudioOutput,
+  apiSaveStudioOutput, apiGetUploadStatus, apiReportViolation,
+  apiExtractImageContent,
 } from '../../api.js'
+
+// ── Max limits ─────────────────────────────────────────────────
+const MAX_SOURCES = 15
+const MAX_VIOLATIONS = 5
 
 // ─── Studio output types ──────────────────────────────────────
 const STUDIO_ITEMS = [
@@ -53,6 +58,39 @@ async function fetchUrlContent(url) {
   } catch { return null }
 }
 
+// ─── Extract text from PDF using pdf.js ───────────────────────
+async function extractPdfText(file) {
+  try {
+    const pdfjsLib = window.pdfjsLib
+    if (!pdfjsLib) {
+      console.warn("pdf.js not loaded - check if CDN script loaded properly")
+      return null
+    }
+    
+    console.log("Extracting PDF:", file.name, "Size:", file.size)
+    const arrayBuffer = await file.arrayBuffer()
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+    console.log("PDF loaded, pages:", pdf.numPages)
+    
+    let fullText = ""
+    const maxPages = Math.min(pdf.numPages, 20) // Limit to first 20 pages
+    
+    for (let i = 1; i <= maxPages; i++) {
+      const page = await pdf.getPage(i)
+      const textContent = await page.getTextContent()
+      const pageText = textContent.items.map(item => item.str).join(" ")
+      console.log(`Page ${i}: ${pageText.length} chars`)
+      fullText += pageText + "\n\n"
+    }
+    
+    console.log("Total extracted text length:", fullText.trim().length)
+    return fullText.trim().slice(0, 15000) // Limit to 15k chars
+  } catch (err) {
+    console.error("PDF extraction error:", err)
+    return null
+  }
+}
+
 export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx, docName, setDocName }) {
 
   // ── View state ──────────────────────────────────────────────
@@ -68,11 +106,19 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
   const [pasteTitle, setPasteTitle] = useState("")
   const [urlInput, setUrlInput]   = useState("")
   const [urlLoading, setUrlLoading] = useState(false)
+  const [validationError, setValidationError] = useState("") // Toast message for blocked content
+  const [validating, setValidating] = useState(false) // Show "Checking content..."
+
+  // ── Upload Status & Violations ──────────────────────────────
+  const [uploadBlocked, setUploadBlocked] = useState(false)
+  const [blockReason, setBlockReason] = useState("")
+  const [violations, setViolations] = useState(0)
 
   // ── Chat ────────────────────────────────────────────────────
   const [messages, setMessages] = useState([])
   const [chatInput, setChatInput] = useState("")
   const [chatLoading, setChatLoading] = useState(false)
+  const [selectedSource, setSelectedSource] = useState(null) // null = all sources, or source.id
   const chatEndRef = useRef(null)
 
   // ── Studio ──────────────────────────────────────────────────
@@ -185,14 +231,14 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view])
 
-  // ── Load sources + chat from backend on mount ────────────────
+  // ── Load sources + chat + upload status from backend on mount ──
   useEffect(() => {
     if (!userId) return
     apiGetSources(userId)
       .then(rows => {
         const loaded = rows.map(r => ({
           id: r.id, name: r.name, type: r.type,
-          content: r.content, icon: r.icon, addedAt: r.added_at,
+          content: r.content, summary: r.summary || '', icon: r.icon, addedAt: r.added_at,
         }))
         setSources(loaded)
       })
@@ -202,13 +248,25 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
     apiGetNotebookChat(userId)
       .then(rows => setMessages(rows))
       .catch(() => {})
+
+    // Load upload status (violations, blocked)
+    apiGetUploadStatus(userId)
+      .then(status => {
+        setUploadBlocked(status.blocked || false)
+        setBlockReason(status.block_reason || '')
+        setViolations(status.violations || 0)
+      })
+      .catch(() => {})
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
   // ── Combined source context ──────────────────────────────────
-  const getContext = () => {
+  const getContext = (filterSourceId = null) => {
     if (!sources.length) return ""
-    return sources.map((s, i) => `[Source ${i + 1}: ${s.name}]\n${s.content}`).join("\n\n---\n\n")
+    const filtered = filterSourceId 
+      ? sources.filter(s => s.id === filterSourceId)
+      : sources
+    return filtered.map((s, i) => `[Source ${i + 1}: ${s.name}]\n${s.content}`).join("\n\n---\n\n")
   }
 
   // Sync global docCtx whenever sources change
@@ -219,44 +277,336 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sources])
 
+  // ── Violation warning messages ────────────────────────────────
+  const getViolationWarning = (remaining, lang) => {
+    const msgs = {
+      English: `⚠️ This content is not allowed. ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining.`,
+      Hindi: `⚠️ यह सामग्री अनुमत नहीं है। ${remaining} प्रयास बाकी।`,
+      Marathi: `⚠️ हे कंटेंट अनुमत नाही. ${remaining} प्रयत्न बाकी.`,
+    }
+    return msgs[lang] || msgs.English
+  }
+
+  const getBlockedMessage = (lang) => {
+    const msgs = {
+      English: "🚫 Upload access blocked due to repeated violations. Contact support.",
+      Hindi: "🚫 बार-बार नियमों के उल्लंघन के कारण अपलोड अक्षम। सहायता से संपर्क करें।",
+      Marathi: "🚫 वारंवार उल्लंघनामुळे अपलोड बंद आहे. सहाय्यतेशी संपर्क साधा.",
+    }
+    return msgs[lang] || msgs.English
+  }
+
+  const getMaxSourcesMessage = (lang) => {
+    const msgs = {
+      English: `📚 You've reached the maximum ${MAX_SOURCES} sources. Delete some to add more.`,
+      Hindi: `📚 आपने अधिकतम ${MAX_SOURCES} स्रोत जोड़ लिए हैं। और जोड़ने के लिए कुछ हटाएं।`,
+      Marathi: `📚 तुम्ही जास्तीत जास्त ${MAX_SOURCES} स्रोत जोडले. आणखी जोडण्यासाठी काही हटवा.`,
+    }
+    return msgs[lang] || msgs.English
+  }
+
+  // ── Handle validation failure ─────────────────────────────────
+  const handleValidationFailure = async (errorMsg) => {
+    const lang = profile?.language || 'English'
+    
+    // Report violation to backend
+    try {
+      const result = await apiReportViolation(userId, 'inappropriate_content')
+      setViolations(result.violations)
+      
+      if (result.blocked) {
+        setUploadBlocked(true)
+        setBlockReason(result.block_reason)
+        setValidationError(getBlockedMessage(lang))
+      } else {
+        setValidationError(getViolationWarning(result.remaining_attempts, lang))
+      }
+    } catch {
+      // Fallback: just show the error message
+      setValidationError(errorMsg)
+    }
+  }
+
   // ── Add source: file upload ──────────────────────────────────
   const handleFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    let content = ""
-    if (file.name.match(/\.(txt|md)$/i)) {
-      content = (await file.text()).slice(0, 10000)
-    } else {
-      content = `[Binary file — using filename as context: ${file.name}]`
+    setValidationError("") // Clear previous error
+    const lang = profile?.language || 'English'
+    
+    // Check if blocked
+    if (uploadBlocked) {
+      setValidationError(getBlockedMessage(lang))
+      e.target.value = ""
+      return
     }
-    const src = { id: newId(), name: file.name, type: "file", content, icon: "📄", addedAt: Date.now() }
+    
+    // Check max sources limit
+    if (sources.length >= MAX_SOURCES) {
+      setValidationError(getMaxSourcesMessage(lang))
+      e.target.value = ""
+      return
+    }
+    
+    setValidating(true)
+    
+    // Layer 1: File type validation
+    const validation = validateSourceContent({ filename: file.name, type: 'file' }, profile)
+    if (!validation.valid) {
+      await handleValidationFailure(validation.message)
+      setValidating(false)
+      e.target.value = ""
+      return
+    }
+    
+    let content = ""
+    let summary = ""
+    let icon = "📄"
+    
+    // Handle different file types
+    if (file.name.match(/\.(txt|md)$/i)) {
+      // Text files - read directly
+      content = (await file.text()).slice(0, 10000)
+      icon = "📝"
+    } else if (file.name.match(/\.(png|jpg|jpeg|gif|webp|bmp)$/i)) {
+      // IMAGE FILES - Use AI Vision to extract content
+      icon = "🖼️"
+      try {
+        // Convert to base64
+        const arrayBuffer = await file.arrayBuffer()
+        const base64 = btoa(
+          new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+        )
+        const mimeType = file.type || 'image/png'
+        
+        // Call Vision API to extract content
+        const visionResult = await apiExtractImageContent(base64, mimeType, '', lang)
+        
+        // Check if vision returned an error
+        if (visionResult.content?.startsWith('⚠️')) {
+          const errorMsgs = {
+            English: "Could not read this image. Please try again later or upload a different image.",
+            Hindi: "इस इमेज को पढ़ नहीं पाया। बाद में फिर से कोशिश करें।",
+            Marathi: "हे चित्र वाचता आलं नाही. नंतर पुन्हा प्रयत्न करा.",
+          }
+          setValidationError(errorMsgs[lang] || errorMsgs.English)
+          setValidating(false)
+          e.target.value = ""
+          return
+        }
+        
+        if (!visionResult.is_educational) {
+          // Image is not educational - report violation
+          await handleValidationFailure(visionResult.content || "This image doesn't appear to be study material.")
+          setValidating(false)
+          e.target.value = ""
+          return
+        }
+        
+        content = visionResult.content || `[Image: ${file.name}]`
+        summary = visionResult.summary || ""
+      } catch (err) {
+        // Vision failed - show error, don't save broken source
+        const errorMsgs = {
+          English: "Could not process this image. Try a smaller or clearer image.",
+          Hindi: "इस इमेज को प्रोसेस नहीं कर पाया। छोटी या साफ इमेज अपलोड करें।",
+          Marathi: "हे चित्र प्रोसेस करता आलं नाही. लहान किंवा स्पष्ट चित्र अपलोड करा.",
+        }
+        setValidationError(errorMsgs[lang] || errorMsgs.English)
+        setValidating(false)
+        e.target.value = ""
+        return
+      }
+    } else if (file.name.match(/\.(pdf)$/i)) {
+      // PDF files - extract text content
+      icon = "📕"
+      const extractedText = await extractPdfText(file)
+      console.log("PDF extraction result:", extractedText ? `${extractedText.length} chars` : "null/empty")
+      
+      if (extractedText === null || extractedText.length < 20) {
+        // Could not extract text - show simple message
+        const errorMsgs = {
+          English: "📕 Can't read this PDF! Try uploading a photo instead.",
+          Hindi: "📕 ये PDF नहीं पढ़ पाया! फोटो upload करो।",
+          Marathi: "📕 हे PDF वाचता आलं नाही! फोटो upload करा.",
+        }
+        setValidationError(errorMsgs[lang] || errorMsgs.English)
+        setValidating(false)
+        e.target.value = ""
+        return
+      }
+      
+      content = extractedText
+      
+      // Validate PDF content (same as text files)
+      const contentCheck = validateSourceContent({ content, type: 'file' }, profile)
+      if (!contentCheck.valid) {
+        await handleValidationFailure(contentCheck.message)
+        setValidating(false)
+        e.target.value = ""
+        return
+      }
+      
+      // AI content relevance check
+      const relevance = await checkContentRelevance(content, profile)
+      if (!relevance.relevant) {
+        await handleValidationFailure(relevance.reason || "Content not relevant to studies")
+        setValidating(false)
+        e.target.value = ""
+        return
+      }
+      
+      // Generate summary
+      summary = await generateSmartSummary(content, profile)
+    } else {
+      // Other files - just use filename
+      content = `[File: ${file.name}]`
+    }
+    
+    // Layer 2: Content keyword validation (for text files only - images and PDFs already validated above)
+    if (content.length > 100 && !file.name.match(/\.(png|jpg|jpeg|gif|webp|bmp|pdf)$/i)) {
+      const contentCheck = validateSourceContent({ content, type: 'file' }, profile)
+      if (!contentCheck.valid) {
+        await handleValidationFailure(contentCheck.message)
+        setValidating(false)
+        e.target.value = ""
+        return
+      }
+      
+      // Layer 3: AI content relevance check
+      const relevance = await checkContentRelevance(content, profile)
+      if (!relevance.relevant) {
+        await handleValidationFailure(relevance.reason || "Content not relevant to studies")
+        setValidating(false)
+        e.target.value = ""
+        return
+      }
+    }
+    
+    // Generate summary if not already done (for text files)
+    if (!summary && content.length > 100 && !file.name.match(/\.(png|jpg|jpeg|gif|webp|bmp|pdf)$/i)) {
+      summary = await generateSmartSummary(content, profile)
+    }
+    
+    const src = { id: newId(), name: file.name, type: "file", content, summary, icon, addedAt: Date.now() }
     setSources(p => [...p, src])
     apiSaveSource(userId, src).catch(() => {})
     setAddOpen(false)
+    setValidating(false)
     e.target.value = ""
   }
 
   // ── Add source: paste text ────────────────────────────────────
-  const addPastedText = () => {
+  const addPastedText = async () => {
     if (!pasteText.trim()) return
+    setValidationError("") // Clear previous error
+    const lang = profile?.language || 'English'
+    
+    // Check if blocked
+    if (uploadBlocked) {
+      setValidationError(getBlockedMessage(lang))
+      return
+    }
+    
+    // Check max sources limit
+    if (sources.length >= MAX_SOURCES) {
+      setValidationError(getMaxSourcesMessage(lang))
+      return
+    }
+    
+    setValidating(true)
+    
+    const content = pasteText.trim().slice(0, 10000)
+    
+    // Layer 1: Keyword validation
+    const validation = validateSourceContent({ content, type: 'text' }, profile)
+    if (!validation.valid) {
+      await handleValidationFailure(validation.message)
+      setValidating(false)
+      return
+    }
+    
+    // Layer 2 (AI): Check content relevance for longer text
+    if (content.length > 200) {
+      const relevance = await checkContentRelevance(content, profile)
+      if (!relevance.relevant) {
+        await handleValidationFailure(relevance.reason || "Content not relevant to studies")
+        setValidating(false)
+        return
+      }
+    }
+    
+    // ✅ Content is valid — generate smart summary
+    const summary = await generateSmartSummary(content, profile)
+    
     const name = pasteTitle.trim() || `Note ${sources.length + 1}`
-    const src = { id: newId(), name, type: "text", content: pasteText.trim().slice(0, 10000), icon: "📝", addedAt: Date.now() }
+    const src = { id: newId(), name, type: "text", content, summary, icon: "📝", addedAt: Date.now() }
     setSources(p => [...p, src])
     apiSaveSource(userId, src).catch(() => {})
     setPasteText(""); setPasteTitle(""); setAddOpen(false)
+    setValidating(false)
   }
 
   // ── Add source: URL ───────────────────────────────────────────
   const addUrl = async () => {
     if (!urlInput.trim()) return
+    setValidationError("") // Clear previous error
+    const lang = profile?.language || 'English'
+    
+    // Check if blocked
+    if (uploadBlocked) {
+      setValidationError(getBlockedMessage(lang))
+      return
+    }
+    
+    // Check max sources limit
+    if (sources.length >= MAX_SOURCES) {
+      setValidationError(getMaxSourcesMessage(lang))
+      return
+    }
+    
     setUrlLoading(true)
+    
     const url = urlInput.trim()
+    
+    // Layer 1: URL domain validation
+    const urlValidation = validateSourceContent({ url, type: 'url' }, profile)
+    if (!urlValidation.valid) {
+      await handleValidationFailure(urlValidation.message)
+      setUrlLoading(false)
+      return
+    }
+    
     const result = await fetchUrlContent(url)
+    console.log("URL fetch result:", result) // Debug log
     const isYT = result?.isYouTube ?? /youtube\.com|youtu\.be/i.test(url)
     const content = result?.content
       ?? `[URL: ${url}]\n(Could not fetch content due to site restrictions. AI will reference this URL.)`
+    console.log("Content to store:", content.slice(0, 500)) // Debug log
+    
+    // Layer 2: Content keyword validation
+    const contentValidation = validateSourceContent({ content, type: 'url' }, profile)
+    if (!contentValidation.valid) {
+      await handleValidationFailure(contentValidation.message)
+      setUrlLoading(false)
+      return
+    }
+    
+    // Layer 3 (AI): Check content relevance
+    if (content.length > 200) {
+      const relevance = await checkContentRelevance(content, profile)
+      if (!relevance.relevant) {
+        await handleValidationFailure(relevance.reason || "Content not relevant to studies")
+        setUrlLoading(false)
+        return
+      }
+    }
+    
+    // ✅ Content is valid — generate smart summary
+    const summary = await generateSmartSummary(content, profile)
+    
     const name = url.replace(/https?:\/\/(www\.)?/, "").slice(0, 40)
-    const src = { id: newId(), name, type: "url", content, icon: isYT ? "▶️" : "🌐", addedAt: Date.now() }
+    const src = { id: newId(), name, type: "url", content, summary, icon: isYT ? "▶️" : "🌐", addedAt: Date.now() }
     setSources(p => [...p, src])
     apiSaveSource(userId, src).catch(() => {})
     setUrlInput(""); setUrlLoading(false); setAddOpen(false)
@@ -265,6 +615,8 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
   const removeSource = (id) => {
     setSources(p => p.filter(s => s.id !== id))
     apiDeleteSource(userId, id).catch(() => {})
+    // Clear selected source if it was the removed one
+    if (selectedSource === id) setSelectedSource(null)
   }
 
   // ── Chat ─────────────────────────────────────────────────────
@@ -280,14 +632,24 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
     const newMsgs = [...messages, userMsg]
     setMessages(newMsgs); setChatInput(""); setChatLoading(true)
     apiSaveChatMessage(userId, "user", userMsg.content).catch(() => {})
-    const ctx = getContext()
+    const ctx = getContext(selectedSource) // Use filtered context if source selected
+    const sourceLabel = selectedSource 
+      ? sources.find(s => s.id === selectedSource)?.name || "selected source"
+      : "all sources"
     const res = await callAI(
-      `${chatInput.trim()}\n\nSources:\n${ctx.slice(0, 6000)}`,
+      `${chatInput.trim()}\n\n[Answering from: ${sourceLabel}]\n\nSources:\n${ctx.slice(0, 6000)}`,
       "", newMsgs, 3, 1500, "notebook_chat"
     )
     setMessages(m => [...m, { role: "assistant", content: res }])
     apiSaveChatMessage(userId, "assistant", res).catch(() => {})
     addXp(2); setChatLoading(false)
+  }
+
+  // ── Clear chat session ─────────────────────────────────────────
+  const clearChat = async () => {
+    setMessages([])
+    setSelectedSource(null)
+    apiClearNotebookChat(userId).catch(() => {})
   }
 
   // ── Studio generation ─────────────────────────────────────────
@@ -464,13 +826,62 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
             )}
 
             {/* Add source button */}
-            <button onClick={() => setAddOpen(p => !p)} className="primary-btn">
-              {addOpen ? "✕ Cancel" : "+ Add Source"}
-            </button>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <button 
+                onClick={() => setAddOpen(p => !p)} 
+                className="primary-btn"
+                disabled={uploadBlocked || sources.length >= MAX_SOURCES}
+              >
+                {addOpen ? "✕ Cancel" : "+ Add Source"}
+              </button>
+              
+              {/* Source count indicator */}
+              <span className="text-xs text-gray-400">
+                {sources.length}/{MAX_SOURCES} sources
+                {violations > 0 && !uploadBlocked && (
+                  <span className="text-yellow-400 ml-2">⚠️ {MAX_VIOLATIONS - violations} attempts left</span>
+                )}
+              </span>
+            </div>
+
+            {/* Blocked message */}
+            {uploadBlocked && (
+              <div className="bg-red-500/15 border border-red-500/40 rounded-xl py-3 px-4 text-[13px] text-red-400 mt-3 flex items-start gap-2">
+                <span className="text-lg">🚫</span>
+                <div>
+                  <strong>Upload access blocked</strong>
+                  <p className="mt-1 text-red-400/80">{blockReason || "Contact support for assistance."}</p>
+                </div>
+              </div>
+            )}
 
             {/* Add source panel */}
             {addOpen && (
               <div className="bg-app-card border border-app-border rounded-2xl p-4 mt-3">
+                {/* Validation error toast */}
+                {validationError && (
+                  <div className="bg-red-500/15 border border-red-500/40 rounded-xl py-2.5 px-3.5 text-[13px] text-red-400 mb-3 flex items-start gap-2">
+                    <span className="text-base">⚠️</span>
+                    <div className="flex-1">
+                      {validationError}
+                      <button 
+                        onClick={() => setValidationError("")}
+                        className="ml-2 text-red-400/70 hover:text-red-400 cursor-pointer font-[Sora,sans-serif]"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Validating indicator */}
+                {validating && (
+                  <div className="bg-app-green/10 border border-app-green/30 rounded-xl py-2.5 px-3.5 text-[13px] text-app-green mb-3 flex items-center gap-2">
+                    <span className="animate-spin">⏳</span>
+                    Checking content...
+                  </div>
+                )}
+                
                 {/* Tabs */}
                 <div className="flex gap-1.5 mb-3.5">
                   {[["file", "📄 File"], ["text", "📝 Text"], ["url", "🌐 URL"]].map(([k, l]) => (
@@ -509,8 +920,8 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                       onChange={e => setPasteText(e.target.value)}
                     />
                     <div className="text-[11px] text-app-muted text-right">{pasteText.length}/10000</div>
-                    <button onClick={addPastedText} disabled={!pasteText.trim()} className="primary-btn">
-                      Add Text Source
+                    <button onClick={addPastedText} disabled={!pasteText.trim() || validating} className="primary-btn">
+                      {validating ? "Checking…" : "Add Text Source"}
                     </button>
                   </div>
                 )}
@@ -542,6 +953,38 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
         {/* ════ CHAT VIEW ════ */}
         {view === "chat" && (
           <div className="flex flex-col h-full">
+            {/* Chat header with source filter and clear */}
+            {sources.length > 0 && (
+              <div className="px-3.5 py-2.5 bg-app-card border-b border-app-border flex items-center gap-2 shrink-0">
+                {/* Source selector */}
+                <div className="flex-1 flex items-center gap-2">
+                  <span className="text-[11px] text-app-muted whitespace-nowrap">Ask from:</span>
+                  <select
+                    value={selectedSource || ""}
+                    onChange={e => setSelectedSource(e.target.value || null)}
+                    className="flex-1 bg-app-bg border border-app-border rounded-lg py-1.5 px-2.5 text-[12px] text-app-text font-[Sora,sans-serif] cursor-pointer"
+                  >
+                    <option value="">📚 All Sources ({sources.length})</option>
+                    {sources.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.icon} {s.name.slice(0, 30)}{s.name.length > 30 ? "…" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Clear chat button */}
+                {messages.length > 0 && (
+                  <button
+                    onClick={clearChat}
+                    className="text-[11px] text-app-muted hover:text-red-400 px-2 py-1 rounded-lg border border-transparent hover:border-red-400/30 cursor-pointer font-[Sora,sans-serif] transition-colors"
+                  >
+                    🗑️ Clear
+                  </button>
+                )}
+              </div>
+            )}
+            
             <div className="flex-1 overflow-y-auto p-3.5">
               {sources.length === 0 && (
                 <div className="bg-app-yellow/10 border border-app-yellow/30 rounded-xl py-3 px-3.5 text-[13px] text-app-yellow mb-3.5">
@@ -571,7 +1014,14 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                 {messages.map((m, i) => (
                   <div key={i} className={m.role === "user" ? "user-bubble" : "ai-bubble"}>{m.content}</div>
                 ))}
-                {chatLoading && <div className="ai-bubble">Searching sources…</div>}
+                {chatLoading && (
+                  <div className="ai-bubble">
+                    {selectedSource 
+                      ? `Searching "${sources.find(s => s.id === selectedSource)?.name?.slice(0, 20) || 'source'}"…`
+                      : "Searching sources…"
+                    }
+                  </div>
+                )}
                 <div ref={chatEndRef} />
               </div>
             </div>
@@ -580,7 +1030,10 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
               <input
                 className="tutor-input flex-1 py-2.5 px-3.5"
                 type="text"
-                placeholder="Ask about your sources…"
+                placeholder={selectedSource 
+                  ? `Ask about "${sources.find(s => s.id === selectedSource)?.name?.slice(0, 20) || 'source'}"…`
+                  : "Ask about your sources…"
+                }
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && sendChat()}

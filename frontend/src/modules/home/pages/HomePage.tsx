@@ -2,10 +2,12 @@
 // Main dashboard/home page
 // Uses Redux for user data and delegates to existing UI
 
-import React from 'react'
-import { useSelector } from 'react-redux'
+import React, { useCallback } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import type { RootState } from '../../../redux/store'
+import type { RootState, AppDispatch } from '../../../redux/store'
+import { addXpLocal } from '../../auth/slice'
+import { apiAddXp } from '../../../api'
 
 // Import existing tab component
 // @ts-ignore - JSX component
@@ -16,17 +18,33 @@ import HomeTabLegacy from '../../../components/tabs/HomeTab'
  */
 const HomePage: React.FC = () => {
   const navigate = useNavigate()
+  const dispatch = useDispatch<AppDispatch>()
   const { user } = useSelector((state: RootState) => state.auth)
 
-  // Create addXp function (placeholder - XP is managed by backend)
-  const addXp = async (_points: number) => {
-    // XP is added via backend when actions complete
-  }
+  // Add XP to user profile (backend + local Redux)
+  const addXp = useCallback(async (points: number) => {
+    if (!user?.id || points <= 0) return
+    
+    // Optimistically update local state
+    dispatch(addXpLocal(points))
+    
+    // Send to backend (fire and forget, no blocking)
+    try {
+      await apiAddXp(user.id, points)
+    } catch (err) {
+      // Silent fail - XP sync will catch up on next login
+      console.warn('XP sync failed:', err)
+    }
+  }, [dispatch, user?.id])
 
-  // Navigate to other tabs
-  const setTab = (tab: string) => {
+  // Navigate to other tabs and save last visited
+  const setTab = useCallback((tab: string) => {
+    // Save last visited tab for "Continue Learning" feature
+    try {
+      localStorage.setItem('eduvyai_last_tab', tab)
+    } catch {}
     navigate(`/app/${tab}`)
-  }
+  }, [navigate])
 
   return (
     <HomeTabLegacy

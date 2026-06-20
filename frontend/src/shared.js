@@ -591,6 +591,188 @@ export function checkStudentQuery(text, profile) {
   return { blocked: false }
 }
 
+// ─── Source Content Validation ───────────────────────────────
+// Allowed file extensions for notebook sources
+const _ALLOWED_EXTENSIONS = /\.(txt|md|pdf|doc|docx|ppt|pptx|xls|xlsx|csv|json|html|htm|png|jpg|jpeg|gif|webp|bmp)$/i
+
+// Blocked file extensions (executables, media, archives)
+const _BLOCKED_EXTENSIONS = /\.(exe|msi|bat|cmd|sh|app|dmg|apk|mp3|mp4|avi|mkv|mov|wmv|flv|wav|aac|ogg|zip|rar|7z|tar|gz|iso|dll|sys|bin)$/i
+
+// Educational domain whitelist (partial match)
+const _EDU_DOMAINS = [
+  'wikipedia.org', 'khanacademy.org', 'ncert.nic.in', 'cbse.gov.in',
+  'byjus.com', 'toppr.com', 'vedantu.com', 'unacademy.com',
+  'britannica.com', 'sciencedirect.com', 'researchgate.net',
+  'coursera.org', 'edx.org', 'mit.edu', 'stanford.edu',
+  'geeksforgeeks.org', 'w3schools.com', 'tutorialspoint.com',
+  'youtube.com', 'youtu.be', // YouTube for educational videos
+  '.edu', '.ac.in', '.gov.in', '.nic.in', // Educational TLDs
+]
+
+// Non-educational URL patterns
+const _BLOCKED_URL_PATTERNS = [
+  /\b(pornhub|xvideos|xnxx|redtube|youporn|xhamster|brazzers|onlyfans)\./i,
+  /\b(gambling|casino|betting|poker|slots)\./i,
+  /\b(torrent|piratebay|1337x|rarbg|kickass)\./i,
+]
+
+const _SOURCE_BLOCKED_MSGS = {
+  English:  "This content doesn't seem related to your studies. Please add educational materials from your syllabus.",
+  Hindi:    "यह सामग्री आपकी पढ़ाई से संबंधित नहीं लगती। कृपया अपने पाठ्यक्रम से शैक्षिक सामग्री जोड़ें।",
+  Gujarati: "આ સામગ્રી તમારા અભ્યાસ સાથે સંબંધિત લાગતી નથી. કૃપા કરીને તમારા અભ્યાસક્રમમાંથી શૈક્ષણિક સામગ્રી ઉમેરો.",
+  Marathi:  "ही सामग्री तुमच्या अभ्यासाशी संबंधित दिसत नाही. कृपया तुमच्या अभ्यासक्रमातून शैक्षणिक सामग्री जोडा.",
+  Tamil:    "இந்த உள்ளடக்கம் உங்கள் படிப்புடன் தொடர்புடையதாகத் தெரியவில்லை. உங்கள் பாடத்திட்டத்திலிருந்து கல்விப் பொருட்களைச் சேர்க்கவும்.",
+  Telugu:   "ఈ కంటెంట్ మీ చదువుకు సంబంధించినది కాదు. దయచేసి మీ సిలబస్ నుండి విద్యా సామగ్రిని జోడించండి.",
+  Kannada:  "ಈ ವಿಷಯವು ನಿಮ್ಮ ಅಧ್ಯಯನಕ್ಕೆ ಸಂಬಂಧಿಸಿದೆ ಎಂದು ತೋರುತ್ತಿಲ್ಲ. ದಯವಿಟ್ಟು ನಿಮ್ಮ ಪಠ್ಯಕ್ರಮದಿಂದ ಶೈಕ್ಷಣಿಕ ಸಾಮಗ್ರಿಗಳನ್ನು ಸೇರಿಸಿ.",
+  Bengali:  "এই বিষয়বস্তু আপনার পড়াশোনার সাথে সম্পর্কিত বলে মনে হচ্ছে না। অনুগ্রহ করে আপনার পাঠ্যক্রম থেকে শিক্ষামূলক সামগ্রী যোগ করুন।",
+  Punjabi:  "ਇਹ ਸਮੱਗਰੀ ਤੁਹਾਡੀ ਪੜ੍ਹਾਈ ਨਾਲ ਸੰਬੰਧਿਤ ਨਹੀਂ ਲੱਗਦੀ। ਕਿਰਪਾ ਕਰਕੇ ਆਪਣੇ ਪਾਠਕ੍ਰਮ ਤੋਂ ਵਿਦਿਅਕ ਸਮੱਗਰੀ ਸ਼ਾਮਲ ਕਰੋ।",
+  Odia:     "ଏହି ବିଷୟବସ୍ତୁ ତୁମ ପଢ଼ାଲେଖ ସହ ସମ୍ବନ୍ଧିତ ମନେ ହେଉନାହିଁ। ଦୟାକରି ତୁମ ପାଠ୍ୟକ୍ରମରୁ ଶିକ୍ଷାମୂଳକ ସାମଗ୍ରୀ ଯୋଡ଼।",
+  Urdu:     "یہ مواد آپ کی پڑھائی سے متعلق نہیں لگتا۔ براہ کرم اپنے نصاب سے تعلیمی مواد شامل کریں۔",
+}
+
+const _FILE_TYPE_BLOCKED_MSGS = {
+  English:  "This file type is not allowed. Please upload documents like PDF, Word, or text files.",
+  Hindi:    "यह फ़ाइल प्रकार अनुमत नहीं है। कृपया PDF, Word, या टेक्स्ट फ़ाइलें अपलोड करें।",
+  Gujarati: "આ ફાઇલ પ્રકાર મંજૂર નથી. કૃપા કરીને PDF, Word અથવા ટેક્સ્ટ ફાઇલો અપલોડ કરો.",
+  Marathi:  "हा फाइल प्रकार परवानगी नाही. कृपया PDF, Word किंवा टेक्स्ट फाइल्स अपलोड करा.",
+  Tamil:    "இந்த கோப்பு வகை அனுமதிக்கப்படவில்லை. PDF, Word அல்லது உரை கோப்புகளை பதிவேற்றவும்.",
+  Telugu:   "ఈ ఫైల్ రకం అనుమతించబడలేదు. దయచేసి PDF, Word లేదా టెక్స్ట్ ఫైల్‌లను అప్‌లోడ్ చేయండి.",
+  Kannada:  "ಈ ಫೈಲ್ ಪ್ರಕಾರವನ್ನು ಅನುಮತಿಸಲಾಗಿಲ್ಲ. ದಯವಿಟ್ಟು PDF, Word ಅಥವಾ ಪಠ್ಯ ಫೈಲ್‌ಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ.",
+  Bengali:  "এই ফাইলের ধরন অনুমোদিত নয়। অনুগ্রহ করে PDF, Word বা টেক্সট ফাইল আপলোড করুন।",
+  Punjabi:  "ਇਹ ਫਾਈਲ ਕਿਸਮ ਮਨਜ਼ੂਰ ਨਹੀਂ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ PDF, Word ਜਾਂ ਟੈਕਸਟ ਫਾਈਲਾਂ ਅੱਪਲੋਡ ਕਰੋ।",
+  Odia:     "ଏହି ଫାଇଲ ପ୍ରକାର ଅନୁମୋଦିତ ନୁହେଁ। ଦୟାକରି PDF, Word କିମ୍ବା ଟେକ୍ସଟ ଫାଇଲ ଅପଲୋଡ କର।",
+  Urdu:     "اس فائل کی قسم کی اجازت نہیں ہے۔ براہ کرم PDF، Word یا ٹیکسٹ فائلیں اپ لوڈ کریں۔",
+}
+
+/**
+ * Validates source content for notebook uploads.
+ * Layer 1: Keyword blocking (reuses _BLOCKED_PATTERNS)
+ * Layer 2: File type validation
+ * Layer 3: URL domain checking
+ * 
+ * @param {Object} options - Validation options
+ * @param {string} options.content - The text content to validate
+ * @param {string} options.filename - Original filename (for file uploads)
+ * @param {string} options.url - URL (for URL sources)
+ * @param {string} options.type - Source type: 'file' | 'text' | 'url'
+ * @param {Object} profile - User profile with language
+ * @returns {{ valid: boolean, message?: string }}
+ */
+export function validateSourceContent({ content, filename, url, type }, profile) {
+  const lang = profile?.language || 'English'
+  
+  // Layer 2: File type validation (for file uploads)
+  if (type === 'file' && filename) {
+    if (_BLOCKED_EXTENSIONS.test(filename)) {
+      return { valid: false, message: _FILE_TYPE_BLOCKED_MSGS[lang] || _FILE_TYPE_BLOCKED_MSGS.English }
+    }
+    // Warn but allow if not in allowed list (could be .odt, .rtf, etc.)
+  }
+  
+  // Layer 3: URL domain checking
+  if (type === 'url' && url) {
+    // Block known inappropriate domains
+    for (const pattern of _BLOCKED_URL_PATTERNS) {
+      if (pattern.test(url)) {
+        return { valid: false, message: _SOURCE_BLOCKED_MSGS[lang] || _SOURCE_BLOCKED_MSGS.English }
+      }
+    }
+  }
+  
+  // Layer 1: Content keyword blocking (reuse existing patterns)
+  if (content && typeof content === 'string') {
+    for (const pattern of _BLOCKED_PATTERNS) {
+      if (pattern.test(content)) {
+        return { valid: false, message: _SOURCE_BLOCKED_MSGS[lang] || _SOURCE_BLOCKED_MSGS.English }
+      }
+    }
+  }
+  
+  return { valid: true }
+}
+
+/**
+ * AI-based content relevance check (Layer 2 - optional, for ambiguous content)
+ * Call this only if basic validation passes but you want deeper check.
+ * @param {string} content - Text content to validate
+ * @param {Object} profile - User profile
+ * @returns {Promise<{ relevant: boolean, reason?: string }>}
+ */
+export async function checkContentRelevance(content, profile) {
+  if (!content || content.length < 50) return { relevant: true } // Too short to judge
+  
+  const sample = content.slice(0, 2000) // Check first 2000 chars
+  const standard = profile?.standard || '10'
+  const subjects = (profile?.subjects || []).join(', ') || 'general subjects'
+  
+  try {
+    const prompt = `You are a STRICT content moderator for an educational app used by Class ${standard} students in India studying ${subjects}.
+
+THE STUDENT IS IN SCHOOL. They should ONLY be uploading content related to their SCHOOL STUDIES.
+
+Analyze this content:
+"""${sample}"""
+
+Respond with ONLY a JSON object:
+{"relevant": true/false, "reason": "brief reason"}
+
+✅ ALLOW ONLY:
+- School textbook chapters, NCERT/State board content
+- Class notes on Math, Science, History, Geography, English, Hindi, etc.
+- Exam preparation material (JEE, NEET, board exams)
+- Educational articles explaining school topics
+- Study guides, question banks, solved examples
+
+❌ BLOCK EVERYTHING ELSE:
+- Business documents, proposals, contracts, invoices
+- Job applications, resumes, portfolios
+- Code/programming projects, GitHub repos
+- Product documentation, API docs, tech specs
+- News articles, blog posts (unless educational)
+- Entertainment, movies, music, games
+- Social media content
+- Personal documents, letters
+- Adult content, violence
+- Random text not related to school curriculum
+
+If it's NOT clearly school study material → return {"relevant": false}`
+    
+    const res = await callAI(prompt, '', [], 1, 200, 'content_moderation')
+    const parsed = parseAIObject(res)
+    if (parsed && typeof parsed.relevant === 'boolean') {
+      return parsed
+    }
+    return { relevant: true } // Fail open if AI response is unclear
+  } catch {
+    return { relevant: true } // Fail open on error
+  }
+}
+
+// ─── Generate Smart Summary ────────────────────────────────────
+export async function generateSmartSummary(content, profile) {
+  if (!content || content.length < 100) return ""
+  
+  const sample = content.slice(0, 2000) // First 2000 chars
+  const lang = profile?.language || 'English'
+  
+  try {
+    const prompt = `You are summarizing study material for a Class ${profile?.standard || '10'} student.
+
+Content:
+"""${sample}"""
+
+Write a 2-3 line summary in ${lang}. Keep it simple and clear.
+Focus on: What topic is this? What are the main points?
+
+Reply with ONLY the summary text, no quotes or labels.`
+    
+    const res = await callAI(prompt, '', [], 0.7, 150, 'content_moderation')
+    return (res || '').trim().slice(0, 300)
+  } catch {
+    return ""
+  }
+}
+
 // ─── System Prompt Builder ────────────────────────────────────
 export function buildSystemPrompt(profile, modeInstructions = "") {
   _currentLanguage = profile.language || "English"  // track for sanitiser
