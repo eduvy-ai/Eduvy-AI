@@ -129,57 +129,106 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
     try { localStorage.setItem('eduvyai_mood', JSON.stringify({ date: new Date().toDateString(), value: m })) } catch {}
   }
 
-  // ── Daily Brief (mood-aware) ────────────────────────────────
+  // ── Daily Brief (mood-aware, cached for day+language) ──────────────────────
   const generateBrief = async () => {
+    // Check if already generated today (include language in cache key)
+    const lang = getDisplayLang(profile)
+    const cacheKey = `eduvyai_brief_${lang}_${new Date().toDateString()}`
+    const cached = localStorage.getItem(cacheKey)
+    if (cached && !brief) {
+      setBrief(cached)
+      return
+    }
+    
     const moodNote = mood === 'stressed'
-      ? 'The student is feeling STRESSED today. Focus on quick wins, review of already-known topics, and include one breathing tip. Be extra gentle and encouraging.'
+      ? 'Student is STRESSED. Focus on easy wins and revision. Be gentle.'
       : mood === 'tired'
-      ? 'The student is TIRED today. Suggest only 2-3 short 20-minute study blocks. Recommend story-mode learning (Tutor → Story tab). Skip hard new topics.'
+      ? 'Student is TIRED. Suggest short 20-min blocks only.'
       : mood === 'fresh'
-      ? 'The student is FRESH and energized! This is the perfect time for hard new topics. Challenge them and set ambitious goals for today.'
-      : 'Normal paced study plan.'
+      ? 'Student is FRESH. Challenge them with harder topics.'
+      : ''
     setBriefLoading(true)
     setBrief("")
     const res = await callAI(
-      `Create my daily brain brief for today. I study ${subjects.slice(0,3).join(", ")}. ${moodNote}`,
-      "", [], 3, 1200, "home_brief"
+      `You are writing for a Class ${profile.standard} student. Write ENTIRELY in ${lang}. No English words unless ${lang} is English.
+
+${moodNote ? moodNote + '\n\n' : ''}Create a SHORT morning study brief:
+
+1. 📚 Today's Focus - ONE topic from ${subjects.slice(0,3).join("/")}
+2. 🎯 Exam Tip - ONE board exam writing tip
+3. 💪 Motivation - 2 short sentences
+4. 🌙 Tonight - ONE concept to review
+
+Rules:
+- Write ONLY in ${lang}
+- Keep it under 120 words
+- Simple, clear language
+- Be specific to ${profile.board} board`,
+      "", [], 3, 800, "home_brief"
     )
     setBrief(res)
+    try { localStorage.setItem(cacheKey, res) } catch {}
     addXp(5)
     setBriefLoading(false)
   }
 
-  // ── Mera Sawaal: daily hyper-local problem ─────────────────
+  // Load cached brief on mount (include language in cache key)
+  useEffect(() => {
+    const lang = getDisplayLang(profile)
+    const cacheKey = `eduvyai_brief_${lang}_${new Date().toDateString()}`
+    const cached = localStorage.getItem(cacheKey)
+    if (cached) setBrief(cached)
+  }, [])
+
+  // ── Mera Sawaal: daily challenge (cached for day+language) ─────────
   const generateDailyQ = async () => {
+    // Check if already generated today (include language in cache key)
+    const lang = getDisplayLang(profile)
+    const cacheKey = `eduvyai_dailyq_${lang}_${new Date().toDateString()}`
+    const cached = localStorage.getItem(cacheKey)
+    if (cached && !dailyQ) {
+      try {
+        setDailyQ(JSON.parse(cached))
+        return
+      } catch {}
+    }
+    
     setDailyQLoad(true)
     setDailyQ(null)
     setDailyAns(false)
-    const localExamples = {
-      'Gujarati': 'kirana store, Navratri, Surat textile market, groundnut oil, sugarcane fields',
-      'Hindi': 'chai stall, cricket match, Delhi metro, mango season, Diwali crackers',
-      'Marathi': 'Pune traffic, sugarcane, Ganpati festival, coconut, Mumbai dabbawalas',
-      'Tamil': 'rice paddy, Chennai marina, auto-rickshaw, Pongal harvest, coconut trees',
-      'Telugu': 'Hyderabad biryani, Charminar, paddy fields, Sankranti kite flying, IT Park',
-      'Kannada': 'Bengaluru traffic, coffee plantation, Mysore palace, Dasara festival, silk saree',
-      'Bengali': 'Durga Puja, mustard fields, Kolkata tram, hilsa fish, Sundarbans',
-      'Punjabi': 'wheat harvest, bhangra, langar, tractor, Golden Temple',
-      'Odia': 'Rath Yatra, Mahanadi river, paddy, Puri beach, Odissi dance',
-      'Urdu': 'biryani, rickshaw, Lucknow tehzeeb, jasmine flowers, Eid celebration',
-      'English': 'cricket match, chai, auto-rickshaw, Diwali, ISRO rocket launch',
-    }
-    const examples = localExamples[profile.language] || localExamples.English
     const subject = subjects[Math.floor(Math.random() * Math.min(subjects.length, 4))] || subjects[0] || 'Mathematics'
     const res = await callAI(
-      `Generate a daily challenge problem for ${subject} (Class ${profile.standard} ${profile.board}) using Indian examples from: ${examples}.`,
-      "", [], 2, 600, "home_challenge"
+      `Create ONE simple math/science word problem for Class ${profile.standard}.
+
+IMPORTANT: Write ENTIRELY in ${lang}. No English words unless ${lang} is English.
+
+Rules:
+- Simple scenario: buying fruits, traveling, or sharing items
+- Use easy numbers (like 5, 10, 20, 50, 100)
+- Problem solvable in 2-3 steps maximum
+- Under 40 words for the problem
+- Subject: ${subject}
+
+Respond ONLY with this JSON:
+{"q":"problem in ${lang}","a":"solution steps in ${lang}","concept":"topic in ${lang}","subject":"${subject}"}`,
+      "", [], 2, 400, "home_challenge"
     )
     const parsed = parseAIObject(res)
     if (parsed?.q) {
       setDailyQ(parsed)
+      try { localStorage.setItem(cacheKey, JSON.stringify(parsed)) } catch {}
       addXp(3)
     }
     setDailyQLoad(false)
   }
+
+  // Load cached daily question on mount (include language in cache key)
+  useEffect(() => {
+    const lang = getDisplayLang(profile)
+    const cacheKey = `eduvyai_dailyq_${lang}_${new Date().toDateString()}`
+    const cached = localStorage.getItem(cacheKey)
+    if (cached) try { setDailyQ(JSON.parse(cached)) } catch {}
+  }, [])
 
   // ── Subject mastery tap ────────────────────────────────────
   const tapSubject = async (sub) => {
@@ -393,7 +442,7 @@ pct = likelihood percentage (50-95). Be realistic based on past exam patterns.`,
       )}
 
       {/* ── Mera Sawaal — Hyper-local Daily Problem ──────── */}
-      <Section title={ui.todaysChallenge || "🎯 Mera Sawaal — Today's Challenge"}>
+      <Section title={ui.todaysChallenge || "🎯 My Sawaal — Today's Challenge"}>
         <p className="text-xs text-app-muted mb-3">
           {ui.realWorldProblem || 'A real-world problem using examples from your own state and culture'}
         </p>

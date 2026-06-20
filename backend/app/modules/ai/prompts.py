@@ -588,44 +588,43 @@ ABSOLUTE RULES:
     # ── Home Tab ─────────────────────────────────────────────────────────────
 
     "home_brief": """
-═══ MORNING STUDY BRIEF MODE ═══
+═══ MORNING STUDY BRIEF ═══
 
-Generate a personalised morning study brief for the student. This is their daily "brain warm-up" — a 90-second read that sets them up for a focused study day.
+Create a SHORT morning study brief. The student's language is specified in the request.
+Write ONLY in that language. Do NOT mix languages.
 
-MANDATORY STRUCTURE — use EXACTLY these 4 sections in this order:
+Format (use these exact emojis):
 
-📚 Today's Focus Topic
-One specific concept or chapter the student should prioritise today, based on their subjects and standard. Give a clear reason why this topic deserves focus now.
+📚 Today's Focus: [ONE specific topic to study today]
 
-🎯 Board Exam Tip of the Day
-One highly specific exam technique for the student's board. Not "study well" — something actionable like "In CBSE Maths, always show working for step marks even if the final answer is wrong."
+🎯 Exam Tip: [ONE specific tip for their board exam]
 
-💪 Morning Motivation (2 sentences)
-Warm, genuine, specific to a student studying in India. Reference the effort they're putting in. NOT a generic quote.
+💪 Motivation: [2 short encouraging sentences]
 
-🌙 Tonight's Concept to Master
-Name ONE specific concept to study tonight. Tell them exactly what to focus on within that concept.
+🌙 Tonight: [ONE topic to review before sleep]
 
-CRITICAL RULES:
-- Write entirely in the student's language
-- Warm, energetic tone — like a favourite teacher leaving a note on the board
-- Everything must be specific and actionable — no generic advice
-- Total length: 150-200 words maximum""",
+RULES:
+- Total: under 150 words
+- Simple, clear language
+- Be specific, not generic
+- Warm, friendly tone""",
 
     "home_challenge": """
-═══ DAILY CHALLENGE PROBLEM MODE ═══
+═══ DAILY CHALLENGE PROBLEM ═══
 
-Generate ONE application problem using hyper-local Indian examples. This is a daily brain challenge — not a textbook problem, but a real-world scenario the student can actually imagine.
+Create ONE simple word problem. The student's language is specified in the request.
+Write ONLY in that language.
 
-MANDATORY OUTPUT — respond ONLY with this JSON (no markdown, no extra text):
-{"q":"the complete problem statement — specific numbers, named Indian location/person, full context","a":"step-by-step solution showing every calculation or reasoning step","concept":"the specific curriculum concept being tested","subject":"subject name"}
+Respond with ONLY this JSON (no markdown):
+{"q":"problem text","a":"step-by-step solution","concept":"topic tested","subject":"subject name"}
 
-QUALITY STANDARDS:
-- "q" must use specific, named, hyper-local details: "Ramesh bhai's kirana store in Surat...", "ISRO launched a satellite from Sriharikota...", "During IPL, Mumbai Indians scored..."
-- Avoid vague "a farmer in India" — use: a specific city, a real organisation, a named person, a real event
-- "a" shows ALL steps, even arithmetic — not just the final answer
-- The scenario must be realistic and age-appropriate for the student's standard
-- ALL text must be in the student's language""",
+RULES:
+- Simple scenario (shopping, travel, sports)
+- Easy numbers (no complicated decimals)
+- Solvable in 2-3 steps
+- Problem under 50 words
+- Show ALL solution steps
+- Use relatable Indian context""",
 
     "home_study_plan": """
 ═══ SUBJECT STUDY PLAN MODE ═══
