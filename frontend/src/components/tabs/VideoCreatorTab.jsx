@@ -250,9 +250,9 @@ export default function VideoCreatorTab({ profile = null }) {
   // ────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-app-bg px-4 py-6">
+    <div className="min-h-full bg-app-bg px-4 md:px-6 lg:px-8 py-6">
       {/* Header */}
-      <div className="max-w-3xl mx-auto">
+      <div className="">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-app-text">🎥 Video Creator</h1>
@@ -347,7 +347,6 @@ export default function VideoCreatorTab({ profile = null }) {
             />
           )}
         </div>
-      </div>
     </div>
   )
 }

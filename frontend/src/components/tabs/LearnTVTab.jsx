@@ -377,7 +377,7 @@ export default function LearnTVTab({ profile }) {
   // RENDER
   // ═══════════════════════════════════════════════════════════
   return (
-    <div className="px-0.5 max-w-[800px] mx-auto">
+    <div className="px-4 md:px-6 lg:px-8 py-4">
       {/* Header */}
       <div className="flex items-center gap-2.5 mb-3.5">
         <span className="text-[22px]">📺</span>

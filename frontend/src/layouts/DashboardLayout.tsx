@@ -195,7 +195,7 @@ const DashboardLayout: React.FC = () => {
       {/* ── Main Content Area ── */}
       <main className="tab-content">
         {/* key={tab} re-mounts div on tab change, triggering the CSS fade-slide-up animation */}
-        <div key={tab} className="tab-fade-in" style={{ minHeight: '100%' }}>
+        <div key={tab} className="tab-fade-in h-full flex flex-col">
           <Outlet />
         </div>
       </main>

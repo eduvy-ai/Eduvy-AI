@@ -321,13 +321,12 @@ input, textarea, select { outline: none; border: none; }
     border-radius: 0 3px 3px 0;
   }
 
-  /* Main content — thin scrollbar on desktop, top padding */
+  /* Main content — thin scrollbar on desktop, responsive padding */
   .tab-content {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding-top: 0;
-    padding-bottom: 32px;
+    padding: 16px 24px 32px;
     min-width: 0;
     min-height: 0;
     scrollbar-width: thin;
@@ -353,9 +352,16 @@ input, textarea, select { outline: none; border: none; }
   .side-nav {
     width: 260px;
     padding: 28px 16px;
-  }  .side-nav button.side-active::before {
+  }
+  .side-nav button.side-active::before {
     left: -16px;
-  }}
+  }
+  
+  /* More generous padding on wide screens */
+  .tab-content {
+    padding: 20px 32px 32px;
+  }
+}
 
 /* ── Landing page nav pricing link — hidden on mobile, visible on wider screens ── */
 @media (min-width: 480px) {

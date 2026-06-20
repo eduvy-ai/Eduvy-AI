@@ -35,7 +35,7 @@ export default function LabsTab(props) {
   const nextPlanInfo = nextPlan ? PLANS[nextPlan] : null
 
   return (
-    <div className="p-4 max-w-[720px] mx-auto">
+    <div className="p-4 md:p-6 lg:p-8">
       <h2 className="text-lg font-extrabold text-app-text mb-1">⚗️ Labs</h2>
       <p className="text-[13px] text-app-muted mb-5">AI-powered learning experiments</p>
 

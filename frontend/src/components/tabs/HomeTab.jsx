@@ -243,7 +243,7 @@ pct = likelihood percentage (50-95). Be realistic based on past exam patterns.`,
   const ui = li(getDisplayLang(profile))
 
   return (
-    <div className="py-4 px-4 pb-6 max-w-[720px] mx-auto">
+    <div className="py-4 px-4 md:px-6 lg:px-8 pb-6">
 
       {/* ── Mood Check (fresh each day) ───────────────────── */}
       {!mood ? (

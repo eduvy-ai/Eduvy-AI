@@ -778,10 +778,10 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
   // RENDER
   // ═══════════════════════════════════════════════════════════════
   return (
-    <div className="flex flex-col h-[calc(100vh-130px)]">
+    <div className="flex flex-col h-full min-h-0">
 
       {/* ── Top sub-nav ── */}
-      <div className="flex bg-app-card border-b border-app-border py-2 px-3 pb-0 gap-1 shrink-0">
+      <div className="flex bg-app-card border-b border-app-border py-2 px-3 md:px-5 pb-0 gap-1 shrink-0">
         {[
           { key: "sources", icon: "📚", label: `Sources (${sources.length})` },
           { key: "chat",    icon: "💬", label: "Chat"    },
@@ -802,11 +802,11 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
       </div>
 
       {/* ── Content area ── */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto min-h-0">
 
         {/* ════ SOURCES VIEW ════ */}
         {view === "sources" && (
-          <div className="p-3.5">
+          <div className="p-3.5 md:p-5 lg:p-6">
             {!sourcesLoaded ? (
               /* Loading state */
               <div className="flex flex-col items-center justify-center py-20">

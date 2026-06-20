@@ -170,7 +170,7 @@ export default function TutorTab({ profile, userId, addXp, docCtx }) {
   }
 
   return (
-    <div className="tutor-shell flex flex-col h-[calc(100vh-130px)]">
+    <div className="tutor-shell flex flex-col h-full min-h-0">
       {/* Mode tabs */}
       <div className="flex overflow-x-auto gap-1.5 py-2.5 px-3.5 bg-app-card border-b border-app-border shrink-0">
         {MODE_KEYS.map(m => {

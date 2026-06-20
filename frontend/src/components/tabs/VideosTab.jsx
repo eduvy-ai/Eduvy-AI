@@ -2120,7 +2120,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
 
   // ----------------------------------------------------------
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'calc(100vh - 130px)' }}>
+    <div className="flex flex-col h-full min-h-0">
 
       {/* CSS: Google Fonts + all keyframes */}
       <style>{`
