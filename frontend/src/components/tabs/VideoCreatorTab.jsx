@@ -252,101 +252,100 @@ export default function VideoCreatorTab({ profile = null }) {
   return (
     <div className="min-h-full bg-app-bg px-4 md:px-6 lg:px-8 py-6">
       {/* Header */}
-      <div className="">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-app-text">🎥 Video Creator</h1>
-            <p className="text-sm text-app-muted mt-0.5">
-              Create animated whiteboard explainer videos with AI
-            </p>
-          </div>
-          <button
-            onClick={toggleLibrary}
-            className="text-sm px-3 py-1.5 rounded-lg bg-app-card2 text-app-text border border-app-border hover:bg-white/5 transition-colors"
-          >
-            📁 My Videos
-          </button>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-app-text">🎥 Video Creator</h1>
+          <p className="text-sm text-app-muted mt-0.5">
+            Create animated whiteboard explainer videos with AI
+          </p>
         </div>
+        <button
+          onClick={toggleLibrary}
+          className="text-sm px-3 py-1.5 rounded-lg bg-app-card2 text-app-text border border-app-border hover:bg-white/5 transition-colors"
+        >
+          📁 My Videos
+        </button>
+      </div>
 
-        {/* Library panel */}
-        {showLibrary && (
-          <LibraryPanel
-            library={library}
-            loading={libraryLoading}
-            onDelete={handleDelete}
-            onPlay={(v) => {
-              setVideoData(v)
-              setVideoId(v.id)
-              setStep(4)
-              setShowLibrary(false)
-            }}
+      {/* Library panel */}
+      {showLibrary && (
+        <LibraryPanel
+          library={library}
+          loading={libraryLoading}
+          onDelete={handleDelete}
+          onPlay={(v) => {
+            setVideoData(v)
+            setVideoId(v.id)
+            setStep(4)
+            setShowLibrary(false)
+          }}
+        />
+      )}
+
+      {/* Progress stepper */}
+      <Stepper current={step} />
+
+      {/* Error bar */}
+      {error && (
+        <div className="mt-4 p-3 rounded-lg bg-app-red/15 border border-app-red/30 text-app-red text-sm">
+          {error}
+        </div>
+      )}
+
+      {/* Step panels */}
+      <div className="mt-6">
+        {step === 0 && (
+          <StepInput
+            topic={topic} setTopic={setTopic}
+            grade={grade} setGrade={setGrade}
+            subject={subject} setSubject={setSubject}
+            narrLang={narrLang} setNarrLang={setNarrLang}
+            onscreenLang={onscreenLang} setOnscreenLang={setOnscreenLang}
+            timing={timing} setTiming={setTiming}
+            pacing={pacing} setPacing={setPacing}
+            onNext={handleStep1Next}
           />
         )}
 
-        {/* Progress stepper */}
-        <Stepper current={step} />
-
-        {/* Error bar */}
-        {error && (
-          <div className="mt-4 p-3 rounded-lg bg-app-red/15 border border-app-red/30 text-app-red text-sm">
-            {error}
-          </div>
+        {step === 1 && (
+          <StepStyle
+            styleVariant={styleVariant} setStyleVariant={setStyleVariant}
+            orientation={orientation} setOrientation={setOrientation}
+            loading={loading}
+            onBack={goBack}
+            onNext={handleGenerateScript}
+          />
         )}
 
-        {/* Step panels */}
-        <div className="mt-6">
-          {step === 0 && (
-            <StepInput
-              topic={topic} setTopic={setTopic}
-              grade={grade} setGrade={setGrade}
-              subject={subject} setSubject={setSubject}
-              narrLang={narrLang} setNarrLang={setNarrLang}
-              onscreenLang={onscreenLang} setOnscreenLang={setOnscreenLang}
-              timing={timing} setTiming={setTiming}
-              pacing={pacing} setPacing={setPacing}
-              onNext={handleStep1Next}
-            />
-          )}
+        {step === 2 && (
+          <StepScript
+            title={projectTitle}
+            scenes={scenes}
+            onSceneChange={handleSceneChange}
+            onBack={goBack}
+            onNext={handleStartRender}
+          />
+        )}
 
-          {step === 1 && (
-            <StepStyle
-              styleVariant={styleVariant} setStyleVariant={setStyleVariant}
-              orientation={orientation} setOrientation={setOrientation}
-              loading={loading}
-              onBack={goBack}
-              onNext={handleGenerateScript}
-            />
-          )}
+        {step === 3 && (
+          <StepGenerating
+            status={genStatus}
+            progress={genProgress}
+            error={genError}
+            onRetry={handleNewVideo}
+          />
+        )}
 
-          {step === 2 && (
-            <StepScript
-              title={projectTitle}
-              scenes={scenes}
-              onSceneChange={handleSceneChange}
-              onBack={goBack}
-              onNext={handleStartRender}
-            />
-          )}
-
-          {step === 3 && (
-            <StepGenerating
-              status={genStatus}
-              progress={genProgress}
-              error={genError}
-              onRetry={handleNewVideo}
-            />
-          )}
-
-          {step === 4 && (
-            <StepDone
-              videoData={videoData}
-              shareUrl={shareUrl}
-              shareLoading={shareLoading}
-              onShare={handleShare}
-              onNewVideo={handleNewVideo}
-            />
-          )}
-        </div>
+        {step === 4 && (
+          <StepDone
+            videoData={videoData}
+            shareUrl={shareUrl}
+            shareLoading={shareLoading}
+            onShare={handleShare}
+            onNewVideo={handleNewVideo}
+          />
+        )}
+      </div>
     </div>
   )
 }

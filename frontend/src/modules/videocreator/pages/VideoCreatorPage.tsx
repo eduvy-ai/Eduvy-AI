@@ -12,6 +12,7 @@ import VideoCreatorTab from '../../../components/tabs/VideoCreatorTab'
 const VideoCreatorPage: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth)
 
+  // @ts-expect-error - JSX component accepts any profile shape
   return <VideoCreatorTab profile={user} />
 }
 
