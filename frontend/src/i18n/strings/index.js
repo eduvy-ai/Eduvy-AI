@@ -10,7 +10,6 @@ import { HOME } from './home.js'
 import { TABS } from './tabs.js'
 import { FORMS } from './forms.js'
 import { ERRORS } from './errors.js'
-import { TUTOR } from './tutor.js'
 import { NOTEBOOK } from './notebook.js'
 import { LABS } from './labs.js'
 import { QUIZ } from './quiz.js'
@@ -32,7 +31,6 @@ const STRING_MODULES = {
   ...TABS,
   ...FORMS,
   ...ERRORS,
-  ...TUTOR,
   ...NOTEBOOK,
   ...LABS,
   ...QUIZ,

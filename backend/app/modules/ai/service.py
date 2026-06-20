@@ -30,6 +30,71 @@ class AIService:
     """AI chat business logic."""
     
     @staticmethod
+    def get_student_progress(user_id: str) -> Dict:
+        """Fetch student's mastery scores and quiz accuracy for AI context.
+        
+        Returns:
+            {
+                "mastery": {"Math": 75, "Science": 40, ...},
+                "quiz_accuracy": {"Math": 80, "Science": 55, ...},
+                "weak_topics": ["Science", "English", ...],  # subjects needing help
+                "strong_topics": ["Math", ...]  # subjects doing well
+            }
+        """
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            
+            # Fetch mastery scores
+            cur.execute(
+                "SELECT subject, score FROM mastery WHERE user_id = %s",
+                (user_id,)
+            )
+            mastery = {row["subject"]: row["score"] for row in cur.fetchall()}
+            
+            # Fetch quiz accuracy per subject
+            cur.execute(
+                """SELECT subject,
+                          SUM(total) AS total,
+                          SUM(correct) AS correct
+                   FROM quiz_results
+                   WHERE user_id = %s
+                   GROUP BY subject""",
+                (user_id,)
+            )
+            quiz_accuracy = {}
+            for row in cur.fetchall():
+                total = row["total"] or 0
+                correct = row["correct"] or 0
+                if total > 0:
+                    quiz_accuracy[row["subject"]] = round((correct / total) * 100)
+            
+            # Determine weak and strong topics
+            # Weak: mastery < 50% OR quiz accuracy < 60%
+            # Strong: mastery >= 70% AND quiz accuracy >= 70%
+            all_subjects = set(mastery.keys()) | set(quiz_accuracy.keys())
+            weak_topics = []
+            strong_topics = []
+            
+            for subj in all_subjects:
+                m_score = mastery.get(subj, 50)  # default 50 if no data
+                q_score = quiz_accuracy.get(subj, 50)  # default 50 if no data
+                
+                if m_score < 50 or q_score < 60:
+                    weak_topics.append(subj)
+                elif m_score >= 70 and q_score >= 70:
+                    strong_topics.append(subj)
+            
+            return {
+                "mastery": mastery,
+                "quiz_accuracy": quiz_accuracy,
+                "weak_topics": weak_topics[:3],  # top 3 weak
+                "strong_topics": strong_topics[:3],  # top 3 strong
+            }
+        finally:
+            conn.close()
+    
+    @staticmethod
     def get_user_info(user_id: str) -> Dict:
         """Get user AI-related info including profile fields for prompt building."""
         conn = get_db()
@@ -133,7 +198,15 @@ class AIService:
                 "language": user["language"],
                 "subjects": user["subjects"],
             }
-            system_prompt = build_system_prompt(profile, mode)
+            # Fetch student progress for personalized teaching
+            progress = AIService.get_student_progress(user_id)
+            system_prompt = build_system_prompt(profile, mode, progress)
+            
+            # For regional languages, upgrade to a better model if on free plan
+            # Small models (8B) struggle with non-English languages
+            upgrade_for_regional = plan == "free" and user["language"] not in ["English", ""]
+        else:
+            upgrade_for_regional = False
 
         # Check quota
         current, limit = AIService.check_quota(user_id, plan)
@@ -148,6 +221,12 @@ class AIService:
         model = user["ai_model"]
         if not user["ai_admin_override"]:
             provider, model = resolve_provider_model(plan, provider, model)
+        
+        # Override for regional languages on free plan (use Gemini for better quality)
+        # Gemini handles Indian languages (Hindi, Marathi, Tamil, etc.) much better than Llama
+        if upgrade_for_regional:
+            provider = "gemini"
+            model = "gemini-2.0-flash"
         
         # Call AI
         try:

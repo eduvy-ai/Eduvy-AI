@@ -46,7 +46,6 @@ function masteryLabel(pct, lang) {
 // ── Quick action cards config (labels come from i18n) ────────
 const QUICK_ACTION_KEYS = [
   { icon: "📖", labelKey: "smartNotes",    tab: "notebook", grad: "linear-gradient(135deg,#7B9CFF22,#7B9CFF08)", accent: "#7B9CFF" },
-  { icon: "🤖", labelKey: "aiTutor",       tab: "tutor",    grad: "linear-gradient(135deg,#00E5A022,#00E5A008)", accent: "#00E5A0" },
   { icon: "🎯", labelKey: "takeQuiz",      tab: "labs",     grad: "linear-gradient(135deg,#FF6B6B22,#FF6B6B08)", accent: "#FF6B6B" },
   { icon: "🎙️", labelKey: "aiPodcast",    tab: "labs",     grad: "linear-gradient(135deg,#FFD16622,#FFD16608)", accent: "#FFD166" },
   { icon: "🎬", labelKey: "findVideos",    tab: "videos",   grad: "linear-gradient(135deg,#FF6B3522,#FF6B3508)", accent: "#FF6B35" },
@@ -389,7 +388,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
             {mood === "fresh"    && (ui.moodFreshFeedback || "😄 You're fresh — tackle the hard topics today! 🚀")}
             {mood === "okay"     && (ui.moodOkayFeedback || "😐 You're doing okay — steady progress wins. 💪")}
             {mood === "stressed" && (ui.moodStressedFeedback || "😟 You're stressed — quick wins only, no new topics. 🧘")}
-            {mood === "tired"    && (ui.moodTiredFeedback || "😴 You're tired — try Story Mode in the Tutor tab. 📖")}
+            {mood === "tired"    && (ui.moodTiredFeedback || "😴 You're tired — try watching a video or take it easy. 📖")}
           </span>
           <button 
             onClick={() => { setMood(null); localStorage.removeItem('eduvyai_mood') }} 
@@ -693,18 +692,16 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
           >
             <div className="flex items-center gap-3">
               <span className="text-xl">
-                {lastTab === 'tutor' && '🤖'}
                 {lastTab === 'notebook' && '📖'}
                 {lastTab === 'videos' && '🎬'}
                 {lastTab === 'labs' && '🧪'}
                 {lastTab === 'sathi' && '👥'}
                 {lastTab === 'bhool' && '🧠'}
                 {lastTab === 'muqabla' && '⚔️'}
-                {!['tutor','notebook','videos','labs','sathi','bhool','muqabla'].includes(lastTab) && '📌'}
+                {!['notebook','videos','labs','sathi','bhool','muqabla'].includes(lastTab) && '📌'}
               </span>
               <div>
                 <div className="text-[13px] font-bold text-app-text">
-                  {lastTab === 'tutor' && (ui.tutorTab?.replace(/^🤖\s*/, '') || 'Tutor')}
                   {lastTab === 'notebook' && (ui.notebookTab?.replace(/^📓\s*/, '') || 'Notebook')}
                   {lastTab === 'videos' && (ui.videosTab?.replace(/^🎬\s*/, '') || 'Videos')}
                   {lastTab === 'labs' && (ui.labsTab?.replace(/^🧪\s*/, '') || 'Labs')}
@@ -712,7 +709,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
                   {lastTab === 'bhool' && (ui.bhoolTab?.replace(/^📛\s*/, '') || 'Mistakes')}
                   {lastTab === 'muqabla' && (ui.muqablaTab?.replace(/^⚔️\s*/, '') || 'Battle')}
                   {lastTab === 'learntv' && (ui.learntvTab?.replace(/^📺\s*/, '') || 'Learn TV')}
-                  {!['tutor','notebook','videos','labs','sathi','bhool','muqabla','learntv'].includes(lastTab) && lastTab}
+                  {!['notebook','videos','labs','sathi','bhool','muqabla','learntv'].includes(lastTab) && lastTab}
                 </div>
                 <div className="text-[11px] text-app-muted">{ui.pickUpWhereLeftOff || 'Pick up where you left off'}</div>
               </div>

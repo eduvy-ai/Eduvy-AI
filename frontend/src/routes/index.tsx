@@ -22,7 +22,6 @@ const HelperPortal = lazy(() => import('../components/HelperPortal'))
 // Module pages (Redux-connected)
 const HomePage = lazy(() => import('../modules/home/pages/HomePage'))
 const NotebookPage = lazy(() => import('../modules/notebook/pages/NotebookPage'))
-const TutorPage = lazy(() => import('../modules/tutor/pages/TutorPage'))
 const VideosPage = lazy(() => import('../modules/videos/pages/VideosPage'))
 const LearnTVPage = lazy(() => import('../modules/learntv/pages/LearnTVPage'))
 const SathiPage = lazy(() => import('../modules/sathi/pages/SathiPage'))
@@ -88,7 +87,6 @@ const AppRoutes: React.FC = () => {
           {/* All module pages (Redux-connected) */}
           <Route path="home" element={<HomePage />} />
           <Route path="notebook" element={<NotebookPage />} />
-          <Route path="tutor" element={<TutorPage />} />
           <Route path="videos" element={<VideosPage />} />
           <Route path="learntv" element={<LearnTVPage />} />
           <Route path="sathi" element={<SathiPage />} />

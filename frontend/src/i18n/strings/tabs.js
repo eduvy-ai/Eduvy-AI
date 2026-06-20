@@ -20,21 +20,7 @@ export const TABS = {
     Urdu:     "🏠 ہوم",
   },
 
-  tutorTab: {
-    English:  "🤖 Tutor",
-    Hindi:    "🤖 ट्यूटर",
-    Gujarati: "🤖 ટ્યુટર",
-    Marathi:  "🤖 ट्यूटर",
-    Tamil:    "🤖 ஆசிரியர்",
-    Telugu:   "🤖 ట్యూటర్",
-    Kannada:  "🤖 ಟ್ಯೂಟರ್",
-    Bengali:  "🤖 টিউটর",
-    Punjabi:  "🤖 ਟਿਊਟਰ",
-    Odia:     "🤖 ଟ୍ୟୁଟର",
-    Urdu:     "🤖 ٹیوٹر",
-  },
-
-  notebookTab: {
+notebookTab: {
     English:  "📓 Notebook",
     Hindi:    "📓 नोटबुक",
     Gujarati: "📓 નોટબુક",

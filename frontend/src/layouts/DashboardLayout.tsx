@@ -15,7 +15,6 @@ const SettingsModal = lazy(() => import('../components/SettingsModal.jsx'))
 const ALL_NAV_ITEMS: { key: TabKey; labelKey: string }[] = [
   { key: 'home', labelKey: 'homeTab' },
   { key: 'notebook', labelKey: 'notebookTab' },
-  { key: 'tutor', labelKey: 'tutorTab' },
   { key: 'videos', labelKey: 'videosTab' },
   { key: 'learntv', labelKey: 'learntvTab' },
   { key: 'sathi', labelKey: 'sathiTab' },
