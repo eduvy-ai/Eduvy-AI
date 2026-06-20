@@ -759,177 +759,167 @@ READ THE SOURCES SECTION BELOW AND ANSWER BASED ON THAT CONTENT.""",
     "notebook_podcast": """
 ═══ NOTEBOOK PODCAST SCRIPT MODE ═══
 
-You are creating an educational podcast episode from a student's uploaded study sources. Hosts: Priya (enthusiastic, storytelling-focused) and Aryan (analytical, deep questions).
+You are creating an educational podcast episode from a student's uploaded study sources. 
+Hosts: Priya (enthusiastic, explains with stories) and Aryan (asks smart questions, clarifies).
+
+The student's language is specified in the request. Generate ALL content in THAT language.
 
 MANDATORY OUTPUT — respond ONLY with this JSON (no markdown, no extra text):
-{"title":"episode title based on source content","exchanges":[{"h":"Priya","t":"dialogue line"},{"h":"Aryan","t":"dialogue line"},{"h":"Priya","t":"dialogue line"},{"h":"Aryan","t":"dialogue line"},{"h":"Priya","t":"dialogue line"},{"h":"Aryan","t":"dialogue line"}],"pts":["key learning point 1","key learning point 2","key learning point 3"],"tip":"one exam tip from this source material"}
+{"title":"episode title","exchanges":[{"h":"Priya","t":"dialogue"},{"h":"Aryan","t":"dialogue"},{"h":"Priya","t":"dialogue"},{"h":"Aryan","t":"dialogue"},{"h":"Priya","t":"dialogue"},{"h":"Aryan","t":"dialogue"}],"pts":["point 1","point 2","point 3"],"tip":"exam tip"}
 
 STRICT RULES:
-- ALL dialogue MUST be based on the actual content of the uploaded sources
-- "exchanges" must have EXACTLY 6 items — alternating Priya and Aryan, starting with Priya
-- ALL text must be in the student's language — ZERO English unless the medium IS English
-- Dialogue must cover the MOST IMPORTANT concepts from the sources
-- "pts" summarise the 3 most important things from the sources
-- Do NOT add information that is not in the provided sources""",
+- "exchanges" must have EXACTLY 6 items alternating Priya and Aryan
+- Dialogue must explain the MOST IMPORTANT concepts from the sources
+- Keep each dialogue line SHORT (1-2 sentences max) for better TTS
+- "pts" = 3 key takeaways, "tip" = 1 exam tip
+- Output ONLY valid JSON, nothing else""",
 
     "notebook_mindmap": """
 ═══ MIND MAP GENERATOR MODE ═══
 
 Create a structured mind map from the student's uploaded study sources.
+The student's language is specified in the request. Generate ALL content in THAT language.
 
 MANDATORY OUTPUT — respond ONLY with this JSON (no markdown, no extra text):
-{"center":"main topic of the sources (3-5 words max)","branches":[{"label":"Branch Name","emoji":"🔬","color":"#00E5A0","nodes":["sub-point 1","sub-point 2","sub-point 3"]},{"label":"Branch Name","emoji":"📊","color":"#FFD166","nodes":["sub-point 1","sub-point 2"]},{"label":"Branch Name","emoji":"⚡","color":"#7B9CFF","nodes":["sub-point 1","sub-point 2","sub-point 3"]},{"label":"Branch Name","emoji":"🎯","color":"#FF6B6B","nodes":["sub-point 1","sub-point 2"]}]}
+{"center":"main topic (3-5 words)","branches":[{"label":"Branch 1","emoji":"🔬","color":"#00E5A0","nodes":["point 1","point 2","point 3"]},{"label":"Branch 2","emoji":"📊","color":"#FFD166","nodes":["point 1","point 2"]},{"label":"Branch 3","emoji":"⚡","color":"#7B9CFF","nodes":["point 1","point 2","point 3"]},{"label":"Branch 4","emoji":"🎯","color":"#FF6B6B","nodes":["point 1","point 2"]}]}
 
 STRICT RULES:
-- Generate EXACTLY 4 branches
-- Each branch must have 2-4 nodes
-- "center" captures the single unifying theme of ALL the sources
-- Each branch label is a major theme or category from the sources (3 words max)
-- Each node is a specific concept, fact, or term from the sources (keep it brief)
-- Choose emoji that visually represent the branch topic
-- ALL text (center, labels, nodes) must be in the student's language
-- Base content ONLY on the provided source material""",
+- Generate EXACTLY 4 branches with 2-4 nodes each
+- "center" = main theme of ALL sources (keep short)
+- Each branch = a major category/theme
+- Each node = specific concept/fact (brief)
+- Output ONLY valid JSON, nothing else""",
 
     "notebook_flashcard": """
 ═══ FLASHCARD GENERATOR MODE ═══
 
 Create 8 study flashcards from the student's uploaded sources.
+The student's language is specified in the request. Generate ALL content in THAT language.
 
 MANDATORY OUTPUT — respond ONLY with this JSON array (no markdown, no extra text):
-[{"q":"question on front of card","a":"answer on back of card","hint":"memory trick or hint","d":"easy|medium|hard"},{"q":"...","a":"...","hint":"...","d":"..."}]
+[{"q":"question","a":"answer","hint":"memory trick","d":"easy"},{"q":"...","a":"...","hint":"...","d":"medium"},...]
 
 STRICT RULES:
 - Generate EXACTLY 8 flashcards
-- "q" must be a specific, unambiguous question — not "What is X?" but "What is the function of X in Y process?"
-- "a" must be complete but concise — one clear answer, not a paragraph
-- "hint" must be a genuine memory device — acronym, analogy, rhyme, or visual hook — not just a rephrasing of the answer
-- "d" must accurately reflect difficulty: easy = direct recall, medium = understanding, hard = analysis/application
-- Cover the 8 MOST IMPORTANT concepts from the sources — prioritise what appears most often or is most tested
-- ALL text (q, a, hint) must be in the student's language
-- Base content ONLY on the provided source material""",
+- "q" = specific question (not vague "What is X?")
+- "a" = clear, concise answer (1-2 sentences max)
+- "hint" = memory device (acronym, analogy, rhyme)
+- "d" = "easy", "medium", or "hard"
+- Cover the 8 MOST IMPORTANT concepts from sources
+- Output ONLY valid JSON array, nothing else""",
 
     "notebook_quiz": """
 ═══ SOURCE-BASED QUIZ GENERATOR MODE ═══
 
 Create ONE multiple-choice question based on the student's uploaded sources.
+The student's language is specified in the request. Generate ALL content in THAT language.
 
 MANDATORY OUTPUT — respond ONLY with this JSON (no markdown, no extra text):
-{"q":"question text based on source content","o":["A) option one","B) option two","C) option three","D) option four"],"c":"A","e":"explanation of correct answer referencing the source","concept":"concept from the source being tested"}
+{"q":"question text","o":["A) option one","B) option two","C) option three","D) option four"],"c":"A","e":"explanation why correct","concept":"concept being tested"}
 
 STRICT RULES:
-- The question MUST test a concept that is actually present in the provided sources
-- "c" must be exactly one capital letter: "A", "B", "C", or "D"
-- "o" must have EXACTLY 4 items, each starting with its letter
-- "e" must explain WHY the correct answer is right with reference to the source material
-- "concept" names the specific concept from the source being tested
-- ALL text must be in the student's language
-- Distractors must be plausible based on the source content — not random wrong answers""",
+- Question MUST test a concept from the sources
+- "c" = exactly one letter: "A", "B", "C", or "D"
+- "o" = EXACTLY 4 options, each starting with its letter
+- "e" = explain why the answer is correct
+- "concept" = name the concept being tested
+- Output ONLY valid JSON, nothing else""",
 
     "notebook_guide": """
 ═══ STUDY GUIDE GENERATOR MODE ═══
 
 Create a comprehensive study guide from the student's uploaded sources.
+The student's language is specified in the request. Generate ALL content in THAT language.
 
-MANDATORY STRUCTURE — use EXACTLY these 8 sections with these exact headers:
+USE EXACTLY these sections:
 
 📌 Overview (2-3 sentences)
-What this source is about and why it matters for study.
-
 🔑 Key Concepts (5-8 bullet points)
-The most important concepts, each with a one-line explanation.
-
 📖 Definitions to Know
-List every technical term defined in the source with its definition.
-
-📐 Formulas & Rules (if applicable)
-All formulas, equations, or rules present in the source with conditions for use.
-
-✏️ Worked Examples (if applicable)
-2-3 key examples from the source, showing the approach and solution.
-
-⚠️ Common Mistakes
-3 mistakes a student might make based on this material.
-
+📐 Formulas & Rules (if any)
+✏️ Worked Examples (if any)
+⚠️ Common Mistakes (3 mistakes)
 ❓ Practice Questions (5 questions)
-5 questions ranging from easy to hard, based entirely on the source content.
+✅ Revision Checklist (7-10 "I can..." statements)
 
-✅ Revision Checklist
-7-10 "I can..." statements the student should be able to confirm after studying this material.
-
-CRITICAL RULES:
-- Base ALL content ONLY on the provided source material
-- Write entirely in the student's language
-- Every section is MANDATORY — do not skip any""",
+RULES:
+- Base ALL content on the provided sources only
+- Every section is mandatory
+- Keep explanations clear and concise
+- Use simple language appropriate for the student's level""",
 
     "notebook_brief": """
 ═══ BRIEFING DOCUMENT MODE ═══
 
-Create a concise briefing document from the student's uploaded sources — a quick-reference summary a student can review in 5 minutes before an exam.
+Create a concise briefing (5-minute read) from the student's uploaded sources.
+The student's language is specified in the request. Generate ALL content in THAT language.
 
-MANDATORY STRUCTURE:
+USE EXACTLY this structure:
 
 📋 One-Paragraph Summary
-2-3 sentences capturing the single most important idea from the entire source.
+2-3 sentences with the main idea.
 
 ⚡ Key Points (5-7 bullet points)
-The essential facts, concepts, or arguments — one clear sentence each.
+Essential facts, one clear sentence each.
 
 💡 Most Important Insight
-The single most exam-relevant takeaway from this source. One sentence.
+The single most exam-relevant takeaway. One sentence.
 
 🔗 Connections
-How this topic connects to 1-2 other topics the student is likely studying.
+How this connects to 1-2 other topics.
 
-CRITICAL RULES:
-- Total length: 150-200 words maximum — this is a BRIEF, not a full summary
-- Use bullet points only in the "Key Points" section — rest is prose
-- Base ALL content ONLY on the provided source material
-- Write entirely in the student's language""",
+RULES:
+- Total: 150-200 words MAX
+- Keep it brief and exam-focused
+- Base on provided sources only""",
 
     "notebook_faq": """
 ═══ FAQ GENERATOR MODE ═══
 
 Extract 8 Frequently Asked Questions from the student's uploaded sources.
+The student's language is specified in the request. Generate ALL content in THAT language.
 
-MANDATORY OUTPUT — generate EXACTLY 8 Q&A pairs in this format:
+FORMAT:
 
 Q1: [question]
-A1: [clear, complete answer based on the source]
+A1: [clear, complete answer]
 
 Q2: [question]
 A2: [answer]
 
 ... through Q8/A8
 
-QUALITY STANDARDS:
-- Questions should cover the most important and most commonly tested aspects of the source
-- Questions should vary: some direct recall (What is...?), some application (How does...?), some analysis (Why does...?)
-- Answers must be complete enough to stand alone — a student should be able to answer an exam question from these FAQs alone
-- Base ALL content ONLY on the provided source material
-- Write entirely in the student's language""",
+RULES:
+- Cover the most important and testable content
+- Mix question types: What is...?, How does...?, Why does...?
+- Answers must be complete enough for exam prep
+- Base on provided sources only""",
 
     "notebook_timeline": """
 ═══ TIMELINE / SEQUENCE EXTRACTOR MODE ═══
 
-Extract the key dates, events, or sequential steps from the student's uploaded sources and present them as a clear numbered timeline.
+Extract key dates, events, or steps from the student's uploaded sources.
+The student's language is specified in the request. Generate ALL content in THAT language.
 
-MANDATORY FORMAT:
+FORMAT:
 
-📅 Timeline: [Title based on source content]
+📅 Timeline: [Title]
 
-1. [Date/Step] — [Event/Concept description — one sentence]
-2. [Date/Step] — [description]
-3. [Date/Step] — [description]
-... continue for all significant events/steps ...
+1. [Date/Step] — [Description]
+2. [Date/Step] — [Description]
+3. [Date/Step] — [Description]
+...
 
-📌 Key Takeaway: [one sentence summarising the significance of this sequence]
+📌 Key Takeaway: [one sentence summary]
 
-FALLBACK RULE: If the source has no dates or chronological content, create a logical sequence of key concepts in the order they should be understood — label each step as "Step 1:", "Step 2:", etc. and explain what to learn in each step.
+IF NO DATES: Create a logical learning sequence:
+- Step 1: [What to learn first]
+- Step 2: [What comes next]
+...
 
-CRITICAL RULES:
-- Base ALL content ONLY on the provided source material
-- Each entry must be specific and informative — not just a label
-- Write entirely in the student's language""",
+RULES:
+- Each entry must be specific and informative
+- Base on provided sources only""",
 
     # ── Videos Tab ───────────────────────────────────────────────────────────
 

@@ -125,6 +125,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
   const [studioType, setStudioType]     = useState(null)
   const [studioOutput, setStudioOutput] = useState("")
   const [studioLoading, setStudioLoading] = useState(false)
+  const [selectedStudioSource, setSelectedStudioSource] = useState(null) // null = all sources
   // Podcast
   const [episode, setEpisode]       = useState(null)
   const [lineIdx, setLineIdx]       = useState(0)
@@ -659,36 +660,54 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
     setStudioType(type); setStudioOutput(""); setStudioLoading(true)
     setEpisode(null); setMindMap(null); setCards([]); setQuizQ(null)
     setLineIdx(0); setCardIdx(0); setCardFlipped(false); setQuizSel(null)
-    const ctx = getContext().slice(0, 6000)
+    
+    const ctx = getContext(selectedStudioSource).slice(0, 6000)
+    const lang = profile?.language || 'English'
+    const sourceLabel = selectedStudioSource 
+      ? sources.find(s => s.id === selectedStudioSource)?.name || "selected source"
+      : `all ${sources.length} sources`
+    
+    // Add student context to help AI respond appropriately
+    const studentContext = `\n\n[Student: Class ${profile?.standard || '10'}, ${profile?.board || 'CBSE'}, Language: ${lang}]\n[Generating from: ${sourceLabel}]\n\nSources:\n${ctx}`
 
     // local captures for persistence (state won't update synchronously)
     let _savedJson = null
 
-    if (type === "podcast") {
-      const res = await callAI(`Create a podcast episode about:\n${ctx}`, "", [], 3, 2000, "notebook_podcast")
-      const parsed = parseAIObject(res)
-      if (parsed?.exchanges?.length) { setEpisode(parsed); _savedJson = JSON.stringify(parsed) } else { setStudioOutput(res); _savedJson = res }
+    try {
+      if (type === "podcast") {
+        const res = await callAI(`Create a podcast episode in ${lang}.${studentContext}`, "", [], 3, 2000, "notebook_podcast")
+        const parsed = parseAIObject(res)
+        if (parsed?.exchanges?.length) { setEpisode(parsed); _savedJson = JSON.stringify(parsed) } 
+        else { setStudioOutput("⚠️ Could not generate podcast. Please try again."); _savedJson = res }
 
-    } else if (type === "mindmap") {
-      const res = await callAI(`Create a mind map from:\n${ctx}`, "", [], 3, 1500, "notebook_mindmap")
-      const parsed = parseAIObject(res)
-      setMindMap(parsed); _savedJson = JSON.stringify(parsed)
+      } else if (type === "mindmap") {
+        const res = await callAI(`Create a mind map in ${lang}.${studentContext}`, "", [], 3, 1500, "notebook_mindmap")
+        const parsed = parseAIObject(res)
+        if (parsed?.center && parsed?.branches) { setMindMap(parsed); _savedJson = JSON.stringify(parsed) }
+        else { setStudioOutput("⚠️ Could not generate mind map. Please try again."); _savedJson = res }
 
-    } else if (type === "flashcards") {
-      const res = await callAI(`Create 8 flashcards from:\n${ctx}`, "", [], 3, 1500, "notebook_flashcard")
-      const parsed = parseAIArray(res)
-      if (parsed?.length) { setCards(parsed); _savedJson = JSON.stringify(parsed) } else { setStudioOutput(res); _savedJson = res }
+      } else if (type === "flashcards") {
+        const res = await callAI(`Create 8 flashcards in ${lang}.${studentContext}`, "", [], 3, 1500, "notebook_flashcard")
+        const parsed = parseAIArray(res)
+        if (parsed?.length) { setCards(parsed); _savedJson = JSON.stringify(parsed) } 
+        else { setStudioOutput("⚠️ Could not generate flashcards. Please try again."); _savedJson = res }
 
-    } else if (type === "quiz") {
-      const res = await callAI(`Create an MCQ from:\n${ctx}`, "", [], 3, 800, "notebook_quiz")
-      const parsed = parseAIObject(res)
-      if (parsed?.q) { setQuizQ(parsed); setQuizSel(null); _savedJson = JSON.stringify(parsed) } else { setStudioOutput(res); _savedJson = res }
+      } else if (type === "quiz") {
+        const res = await callAI(`Create an MCQ in ${lang}.${studentContext}`, "", [], 3, 800, "notebook_quiz")
+        const parsed = parseAIObject(res)
+        if (parsed?.q && parsed?.o?.length === 4) { setQuizQ(parsed); setQuizSel(null); _savedJson = JSON.stringify(parsed) } 
+        else { setStudioOutput("⚠️ Could not generate quiz. Please try again."); _savedJson = res }
 
-    } else {
-      const modeMap = { guide: "notebook_guide", brief: "notebook_brief", faq: "notebook_faq", timeline: "notebook_timeline" }
-      const res = await callAI(`Sources:\n${ctx}`, "", [], 3, 2000, modeMap[type] || "notebook_guide")
-      setStudioOutput(res); _savedJson = res
+      } else {
+        const modeMap = { guide: "notebook_guide", brief: "notebook_brief", faq: "notebook_faq", timeline: "notebook_timeline" }
+        const res = await callAI(`Generate in ${lang}.${studentContext}`, "", [], 3, 2000, modeMap[type] || "notebook_guide")
+        setStudioOutput(res || "⚠️ Could not generate content. Please try again."); _savedJson = res
+      }
+    } catch (err) {
+      console.error("Studio generation error:", err)
+      setStudioOutput("⚠️ Something went wrong. Please try again.")
     }
+    
     addXp(10); setStudioLoading(false)
     if (_savedJson) apiSaveStudioOutput(userId, type, _savedJson).catch(() => {})
   }
@@ -788,7 +807,13 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
         {/* ════ SOURCES VIEW ════ */}
         {view === "sources" && (
           <div className="p-3.5">
-            {sources.length === 0 ? (
+            {!sourcesLoaded ? (
+              /* Loading state */
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="w-9 h-9 border-[3px] border-app-green border-t-transparent rounded-full animate-spin mb-4" />
+                <div className="text-[13px] text-app-muted">Loading sources...</div>
+              </div>
+            ) : sources.length === 0 ? (
               <div className="text-center py-10 px-5 text-app-muted">
                 <div className="text-5xl mb-3">📓</div>
                 <div className="text-[15px] font-bold text-app-text mb-1.5">
@@ -953,6 +978,14 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
         {/* ════ CHAT VIEW ════ */}
         {view === "chat" && (
           <div className="flex flex-col h-full">
+            {/* Loading state */}
+            {!sourcesLoaded ? (
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <div className="w-9 h-9 border-[3px] border-app-green border-t-transparent rounded-full animate-spin mb-4" />
+                <div className="text-[13px] text-app-muted">Loading chat...</div>
+              </div>
+            ) : (
+              <>
             {/* Chat header with source filter and clear */}
             {sources.length > 0 && (
               <div className="px-3.5 py-2.5 bg-app-card border-b border-app-border flex items-center gap-2 shrink-0">
@@ -1046,16 +1079,23 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                 ↑
               </button>
             </div>
+              </>
+            )}
           </div>
         )}
 
         {/* ════ STUDIO VIEW ════ */}
         {view === "studio" && (
-          <div className="p-3.5">
+          <div className="flex flex-col h-full">
 
-            {/* No sources — show empty state only, no grid */}
-            {sources.length === 0 ? (
-              <div className="text-center py-12 px-5">
+            {/* Loading sources */}
+            {!sourcesLoaded ? (
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <div className="w-9 h-9 border-[3px] border-app-green border-t-transparent rounded-full animate-spin mb-4" />
+                <div className="text-[13px] text-app-muted">Loading studio...</div>
+              </div>
+            ) : sources.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center px-5">
                 <div className="text-5xl mb-3">🎨</div>
                 <div className="text-[15px] font-bold text-app-text mb-1.5">
                   Studio is ready
@@ -1069,21 +1109,41 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
               </div>
             ) : (
               <>
-                {/* ── Back button — always visible when a type is selected ── */}
-                {studioType && (
-                  <button
-                    onClick={() => {
-                      stopPodcast()
-                      setStudioType(null); setStudioOutput(""); setEpisode(null)
-                      setMindMap(null); setCards([]); setQuizQ(null)
-                      setLineIdx(0); setCardIdx(0); setCardFlipped(false); setQuizSel(null)
-                    }}
-                    className="ghost-btn mb-3.5"
-                  >
-                    ← Back to Studio
-                  </button>
-                )}
-
+                {/* Studio header with source filter */}
+                <div className="px-3.5 py-2.5 bg-app-card border-b border-app-border flex items-center gap-2 shrink-0">
+                  <div className="flex-1 flex items-center gap-2">
+                    <span className="text-[11px] text-app-muted whitespace-nowrap">Generate from:</span>
+                    <select
+                      value={selectedStudioSource || ""}
+                      onChange={e => setSelectedStudioSource(e.target.value || null)}
+                      className="flex-1 bg-app-bg border border-app-border rounded-lg py-1.5 px-2.5 text-[12px] text-app-text font-[Sora,sans-serif] cursor-pointer"
+                    >
+                      <option value="">📚 All Sources ({sources.length})</option>
+                      {sources.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.icon} {s.name.slice(0, 30)}{s.name.length > 30 ? "…" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Reset button - when a type is selected */}
+                  {studioType && (
+                    <button
+                      onClick={() => {
+                        stopPodcast()
+                        setStudioType(null); setStudioOutput(""); setEpisode(null)
+                        setMindMap(null); setCards([]); setQuizQ(null)
+                        setLineIdx(0); setCardIdx(0); setCardFlipped(false); setQuizSel(null)
+                      }}
+                      className="text-[11px] text-app-muted hover:text-red-400 px-2 py-1 rounded-lg border border-transparent hover:border-red-400/30 cursor-pointer font-[Sora,sans-serif] transition-colors"
+                    >
+                      🗑️ Clear
+                    </button>
+                  )}
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-3.5">
                 {/* ── Output type grid (shown when no active type) ── */}
                 {!studioType && (
                   <div className="grid grid-cols-2 gap-2.5 mb-3.5">
@@ -1457,6 +1517,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                     )}
                   </div>
                 )}
+                </div>
               </>
             )}
           </div>

@@ -80,6 +80,13 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
   const [dailyAns, setDailyAns]     = useState(false)
   const [dailyQLoad, setDailyQLoad] = useState(false)
 
+  // ── Exam Oracle ─────────────────────────────────────────────
+  const [oracleTopics, setOracleTopics] = useState([])
+  const [oracleLoading, setOracleLoading] = useState(false)
+  const [oracleSel, setOracleSel] = useState(null)
+  const [oracleDeep, setOracleDeep] = useState("")
+  const [deepLoading, setDeepLoading] = useState(false)
+
   // ── Bhool Curve ─────────────────────────────────────────────
   const bhool = useBhoolStats()
   const bhoolDue = bhool.overdue.length + bhool.soon.length
@@ -196,6 +203,40 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
     setSubPlan(res || "No plan generated. Please try again.")
     addXp(3)
     setSubLoading(false)
+  }
+
+  // ── Exam Oracle: predict important topics ──────────────────
+  const generateOracle = async () => {
+    setOracleLoading(true)
+    setOracleTopics([])
+    setOracleSel(null)
+    setOracleDeep("")
+    const res = await callAI(
+      `Predict the 5 most likely topics for ${profile.board} Class ${profile.standard} exam this year. Subjects: ${subjects.slice(0,4).join(", ")}. 
+Return JSON: [{"topic":"Topic Name","subject":"Subject","pct":85},...]
+pct = likelihood percentage (50-95). Be realistic based on past exam patterns.`,
+      "", [], 3, 800, "home_oracle"
+    )
+    const parsed = parseAIObject(res)
+    if (Array.isArray(parsed) && parsed.length) {
+      setOracleTopics(parsed)
+      addXp(5)
+    }
+    setOracleLoading(false)
+  }
+
+  const deepDive = async (topic) => {
+    if (deepLoading) return
+    setOracleSel(topic)
+    setOracleDeep("")
+    setDeepLoading(true)
+    const res = await callAI(
+      `Deep dive into "${topic.topic}" for ${profile.board} Class ${profile.standard}. Cover: key concepts, common mistakes, important formulas/facts, and 2 likely exam questions. Keep it concise.`,
+      "", [], 3, 1000, "home_deep_dive"
+    )
+    setOracleDeep(res)
+    addXp(3)
+    setDeepLoading(false)
   }
 
   const greeting = getTimeGreeting(getDisplayLang(profile))
