@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { COLORS, callAI, SUBS, getBhoolStats, parseAIObject, getDisplayLang } from '../../shared.js'
-import { apiGetMastery, apiGetMySquad, apiGetPendingMuqabalaBattles } from '../../api.js'
+import { apiGetMastery, apiGetMySquad, apiGetPendingMuqabalaBattles, apiGetDailyContent, apiSaveDailyContent } from '../../api.js'
 import { li } from '../../i18n/index.js'
 
 // ── Bhool Curve stats (reads localStorage) ───────────────────
@@ -129,15 +129,19 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
     try { localStorage.setItem('eduvyai_mood', JSON.stringify({ date: new Date().toDateString(), value: m })) } catch {}
   }
 
-  // ── Daily Brief (mood-aware, cached for day+language) ──────────────────────
+  // ── Daily Brief (mood-aware, saved to database) ──────────────────────
   const generateBrief = async () => {
-    // Check if already generated today (include language in cache key)
     const lang = getDisplayLang(profile)
-    const cacheKey = `eduvyai_brief_${lang}_${new Date().toDateString()}`
-    const cached = localStorage.getItem(cacheKey)
-    if (cached && !brief) {
-      setBrief(cached)
-      return
+    
+    // Check if already generated today in database
+    if (!brief) {
+      try {
+        const existing = await apiGetDailyContent('brief', lang)
+        if (existing?.exists && existing.content) {
+          setBrief(existing.content)
+          return
+        }
+      } catch {}
     }
     
     const moodNote = mood === 'stressed'
@@ -167,29 +171,35 @@ Rules:
       "", [], 3, 800, "home_brief"
     )
     setBrief(res)
-    try { localStorage.setItem(cacheKey, res) } catch {}
+    // Save to database
+    try { await apiSaveDailyContent('brief', res, lang) } catch {}
     addXp(5)
     setBriefLoading(false)
   }
 
-  // Load cached brief on mount (include language in cache key)
+  // Load brief from database on mount
   useEffect(() => {
     const lang = getDisplayLang(profile)
-    const cacheKey = `eduvyai_brief_${lang}_${new Date().toDateString()}`
-    const cached = localStorage.getItem(cacheKey)
-    if (cached) setBrief(cached)
+    apiGetDailyContent('brief', lang)
+      .then(data => { if (data?.exists && data.content) setBrief(data.content) })
+      .catch(() => {})
   }, [])
 
-  // ── Mera Sawaal: daily challenge (cached for day+language) ─────────
+  // ── Mera Sawaal: daily challenge (saved to database) ─────────
   const generateDailyQ = async () => {
-    // Check if already generated today (include language in cache key)
     const lang = getDisplayLang(profile)
-    const cacheKey = `eduvyai_dailyq_${lang}_${new Date().toDateString()}`
-    const cached = localStorage.getItem(cacheKey)
-    if (cached && !dailyQ) {
+    
+    // Check if already generated today in database
+    if (!dailyQ) {
       try {
-        setDailyQ(JSON.parse(cached))
-        return
+        const existing = await apiGetDailyContent('dailyq', lang)
+        if (existing?.exists && existing.content) {
+          const parsed = JSON.parse(existing.content)
+          if (parsed?.q) {
+            setDailyQ(parsed)
+            return
+          }
+        }
       } catch {}
     }
     
@@ -216,18 +226,26 @@ Respond ONLY with this JSON:
     const parsed = parseAIObject(res)
     if (parsed?.q) {
       setDailyQ(parsed)
-      try { localStorage.setItem(cacheKey, JSON.stringify(parsed)) } catch {}
+      // Save to database
+      try { await apiSaveDailyContent('dailyq', JSON.stringify(parsed), lang) } catch {}
       addXp(3)
     }
     setDailyQLoad(false)
   }
 
-  // Load cached daily question on mount (include language in cache key)
+  // Load daily question from database on mount
   useEffect(() => {
     const lang = getDisplayLang(profile)
-    const cacheKey = `eduvyai_dailyq_${lang}_${new Date().toDateString()}`
-    const cached = localStorage.getItem(cacheKey)
-    if (cached) try { setDailyQ(JSON.parse(cached)) } catch {}
+    apiGetDailyContent('dailyq', lang)
+      .then(data => {
+        if (data?.exists && data.content) {
+          try {
+            const parsed = JSON.parse(data.content)
+            if (parsed?.q) setDailyQ(parsed)
+          } catch {}
+        }
+      })
+      .catch(() => {})
   }, [])
 
   // ── Subject mastery tap ────────────────────────────────────

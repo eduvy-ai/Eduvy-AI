@@ -916,3 +916,28 @@ export async function apiVideoPublic(shareToken) {
   if (!res.ok) throw new Error(json?.detail || `HTTP ${res.status}`)
   return json
 }
+
+// ── Home Daily Content ────────────────────────────────────────
+
+export async function apiGetDailyContent(contentType, language = 'English') {
+  const res = await fetch(
+    `${API_BASE_URL}/api/home/daily-content/${contentType}?language=${encodeURIComponent(language)}`,
+    {
+      headers: _authHeaders(),
+      signal: AbortSignal.timeout(8000),
+    }
+  )
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)  // { exists, content, language, date } or { exists: false, content: null }
+}
+
+export async function apiSaveDailyContent(contentType, content, language = 'English') {
+  const res = await fetch(`${API_BASE_URL}/api/home/daily-content`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ content_type: contentType, content, language }),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)  // { content_type, content, language, date, exists }
+}

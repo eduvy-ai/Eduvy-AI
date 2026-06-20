@@ -493,6 +493,20 @@ def create_all_tables():
         )
     """)
 
+    # ── Daily Content (Home page brief & daily question) ─────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS daily_content (
+            id           SERIAL PRIMARY KEY,
+            user_id      TEXT NOT NULL,
+            content_type TEXT NOT NULL,
+            content      TEXT NOT NULL,
+            language     TEXT NOT NULL DEFAULT 'English',
+            date         TEXT NOT NULL,
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (user_id, content_type, language, date)
+        )
+    """)
+
     # ── Idempotent column additions ───────────────────────────
     # Add ai_admin_override to users if not present
     cur.execute("""
