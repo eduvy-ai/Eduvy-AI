@@ -460,7 +460,7 @@ pct = likelihood percentage (50-95). Be realistic based on past exam patterns.`,
       )}
 
       {/* ── Mera Sawaal — Hyper-local Daily Problem ──────── */}
-      <Section title={ui.todaysChallenge || "🎯 My Sawaal — Today's Challenge"}>
+      <Section title={ui.todaysChallenge || "🎯 My Question — Today's Challenge"}>
         <p className="text-xs text-app-muted mb-3">
           {ui.realWorldProblem || 'A real-world problem using examples from your own state and culture'}
         </p>

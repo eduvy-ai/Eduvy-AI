@@ -822,7 +822,7 @@ export const HOME = {
 
   // Mera Sawaal section
   todaysChallenge: {
-    English:  "🎯 My Sawaal — Today's Challenge",
+    English:  "🎯 My Question — Today's Challenge",
     Hindi:    "🎯 मेरा सवाल — आज की चुनौती",
     Gujarati: "🎯 મારો સવાલ — આજનો પડકાર",
     Marathi:  "🎯 माझा प्रश्न — आजचे आव्हान",
