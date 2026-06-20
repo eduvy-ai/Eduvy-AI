@@ -941,3 +941,116 @@ export async function apiSaveDailyContent(contentType, content, language = 'Engl
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return safeJson(res)  // { content_type, content, language, date, exists }
 }
+
+/**
+ * Generate daily questions via backend AI - sends full student context.
+ * Backend acts like a real teacher who knows the student.
+ * @param {Object} context - Full student context
+ * @returns {Promise<{questions: Array, saved: boolean}>}
+ */
+export async function apiGenerateDailyQuestions(context) {
+  const res = await fetch(`${API_BASE_URL}/api/home/generate-daily-questions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({
+      standard: context.standard || 'Class 8',
+      board: context.board || 'CBSE',
+      language: context.language || 'English',
+      mood: context.mood || 'okay',
+      math_mastery: context.mathMastery || 0,
+      science_mastery: context.scienceMastery || 0,
+      weak_topics: context.weakTopics || [],
+      recent_topics: context.recentTopics || []
+    }),
+    signal: AbortSignal.timeout(30000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}
+
+/**
+ * Generate daily brief via backend AI - mood-aware.
+ * @param {Object} context - Student context
+ * @returns {Promise<{brief: string, saved: boolean}>}
+ */
+export async function apiGenerateDailyBrief(context) {
+  const res = await fetch(`${API_BASE_URL}/api/home/generate-daily-brief`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({
+      standard: context.standard || 'Class 8',
+      board: context.board || 'CBSE',
+      language: context.language || 'English',
+      mood: context.mood || 'okay',
+      subjects: context.subjects || []
+    }),
+    signal: AbortSignal.timeout(30000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}
+
+/**
+ * Generate study plan via backend AI.
+ * @param {Object} context - Subject and student context
+ * @returns {Promise<{plan: string, saved: boolean}>}
+ */
+export async function apiGenerateStudyPlan(context) {
+  const res = await fetch(`${API_BASE_URL}/api/home/generate-study-plan`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({
+      subject: context.subject,
+      mastery: context.mastery || 0,
+      standard: context.standard || 'Class 10',
+      board: context.board || 'CBSE',
+      language: context.language || 'English'
+    }),
+    signal: AbortSignal.timeout(30000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}
+
+/**
+ * Generate exam oracle predictions via backend AI.
+ * @param {Object} context - Student context
+ * @returns {Promise<{topics: Array, saved: boolean}>}
+ */
+export async function apiGenerateExamOracle(context) {
+  const res = await fetch(`${API_BASE_URL}/api/home/generate-exam-oracle`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({
+      standard: context.standard || 'Class 10',
+      board: context.board || 'CBSE',
+      language: context.language || 'English',
+      subjects: context.subjects || []
+    }),
+    signal: AbortSignal.timeout(30000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}
+
+/**
+ * Generate deep dive content via backend AI.
+ * @param {Object} context - Topic and student context
+ * @returns {Promise<{content: string, saved: boolean}>}
+ */
+export async function apiGenerateDeepDive(context) {
+  const res = await fetch(`${API_BASE_URL}/api/home/generate-deep-dive`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({
+      topic: context.topic,
+      subject: context.subject,
+      standard: context.standard || 'Class 10',
+      board: context.board || 'CBSE',
+      language: context.language || 'English'
+    }),
+    signal: AbortSignal.timeout(30000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}

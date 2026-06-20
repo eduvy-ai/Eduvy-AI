@@ -931,11 +931,22 @@ export function parseAIObject(text) {
 
 export function parseAIArray(text) {
   try {
-    const clean = text.replace(/```json|```/g, "").trim()
+    let clean = text.replace(/```json|```/g, "").trim()
     const start = clean.indexOf("[")
     const end = clean.lastIndexOf("]")
     if (start === -1 || end === -1) throw new Error("No JSON array found")
-    return JSON.parse(clean.slice(start, end + 1))
+    let json = clean.slice(start, end + 1)
+    
+    // Fix common AI mistake: ["q":... instead of [{"q":...
+    json = json.replace(/^\[\s*"q"\s*:/g, '[{"q":')
+    // Fix missing closing } before ]
+    if (json.match(/[^}]\s*\]$/)) {
+      json = json.replace(/\]$/, '}]')
+    }
+    // Fix missing { after commas between objects
+    json = json.replace(/},\s*"q"\s*:/g, '},{"q":')
+    
+    return JSON.parse(json)
   } catch { return null }
 }
 
