@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useStudyCoach } from '../../modules/studycoach'
+import { useAuth } from '../../modules/auth'
 import QuestionInput from './QuestionInput'
 import ConceptOverview from './ConceptOverview'
 import KeyTakeaways from './KeyTakeaways'
@@ -19,8 +20,12 @@ import { TeacherModePlayer } from '../teacher'
 
 export default function StudyCoachPage() {
   const { response, isLoading, error, mode, ask, setMode, clear, dismissError } = useStudyCoach()
+  const { user } = useAuth()
   const [question, setQuestion] = useState('')
   const [showTeacherMode, setShowTeacherMode] = useState(false)
+
+  // Use user's medium (instruction language) for TTS
+  const userLanguage = user?.language || 'English'
 
   const handleSubmit = useCallback(async () => {
     if (!question.trim()) return
@@ -172,6 +177,7 @@ export default function StudyCoachPage() {
         <TeacherModePlayer
           studyCoachResponse={response}
           onClose={() => setShowTeacherMode(false)}
+          language={userLanguage}
         />
       )}
     </div>
