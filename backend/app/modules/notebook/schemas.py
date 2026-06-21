@@ -11,6 +11,7 @@ class Source(BaseModel):
     type: str = "text"
     content: str = ""
     summary: str = ""
+    file_url: str = ""
     icon: str = "📄"
     added_at: int = 0
 

@@ -41,6 +41,7 @@ def create_all_tables():
             upload_violations INTEGER DEFAULT 0,
             upload_blocked    BOOLEAN DEFAULT FALSE,
             upload_block_reason TEXT DEFAULT '',
+            avatar_url      TEXT DEFAULT '',
             created_at      TEXT DEFAULT CURRENT_DATE
         )
     """)
@@ -78,6 +79,7 @@ def create_all_tables():
             type        TEXT DEFAULT 'text',
             content     TEXT DEFAULT '',
             summary     TEXT DEFAULT '',
+            file_url    TEXT DEFAULT '',
             icon        TEXT DEFAULT '📄',
             added_at    BIGINT DEFAULT 0,
             PRIMARY KEY (id, user_id)
@@ -172,6 +174,7 @@ def create_all_tables():
             why_wrong       TEXT DEFAULT '',
             is_published    BOOLEAN DEFAULT TRUE,
             bhool_coins     INT DEFAULT 0,
+            image_url       TEXT DEFAULT '',
             created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)

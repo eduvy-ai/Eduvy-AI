@@ -26,6 +26,7 @@ class ProfileUpdate(BaseModel):
     display_language: Optional[str] = Field(default=None, alias="displayLanguage")
     subjects: Optional[List[str]] = None
     school: Optional[str] = None
+    avatar_url: Optional[str] = Field(default=None, alias="avatarUrl")
 
     class Config:
         populate_by_name = True

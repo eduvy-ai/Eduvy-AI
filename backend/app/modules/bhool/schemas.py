@@ -13,6 +13,7 @@ class BhoolCardCreate(BaseModel):
     correct_answer: str
     why_wrong: str = ""
     is_published: bool = False
+    image_url: str = ""
 
 
 class BhoolCardUpdate(BaseModel):
@@ -22,6 +23,7 @@ class BhoolCardUpdate(BaseModel):
     correct_answer: Optional[str] = None
     why_wrong: Optional[str] = None
     is_published: Optional[bool] = None
+    image_url: Optional[str] = None
 
 
 class ReactRequest(BaseModel):
