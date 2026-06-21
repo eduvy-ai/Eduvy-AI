@@ -1,6 +1,6 @@
 // ─── Study Coach Page ───────────────────────────────────────
 
-import React, { useState, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useStudyCoach } from '../../modules/studycoach'
 import QuestionInput from './QuestionInput'
 import ConceptOverview from './ConceptOverview'

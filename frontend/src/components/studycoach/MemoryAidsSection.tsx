@@ -1,6 +1,6 @@
 // ─── Memory Aids Section Component ───────────────────────────────────
 
-import React from 'react'
+
 import type { MemoryAids } from '../../modules/studycoach'
 
 interface MemoryAidsSectionProps {

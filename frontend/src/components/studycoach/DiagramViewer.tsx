@@ -1,6 +1,6 @@
 // ─── Diagram Viewer Component ───────────────────────────────────
 
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { DiagramData } from '../../modules/studycoach'
 
 interface DiagramViewerProps {
@@ -37,7 +37,7 @@ function sanitizeMermaidContent(content: string): string {
       return line
     }
     // For node labels in brackets, simplify to ASCII-safe text
-    return line.replace(/\[([^\]]+)\]/g, (match, label) => {
+    return line.replace(/\[([^\]]+)\]/g, (_match, label) => {
       // If label has non-ASCII, keep it but wrap safely
       return `[${label}]`
     })

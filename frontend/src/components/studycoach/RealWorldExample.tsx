@@ -1,6 +1,6 @@
 // ─── Real World Example Card ───────────────────────────────────
 
-import React from 'react'
+
 
 interface RealWorldExampleProps {
   example: string

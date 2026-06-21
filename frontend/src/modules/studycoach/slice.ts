@@ -20,7 +20,7 @@ export const askStudyCoach = createAsyncThunk<
   { rejectValue: string }
 >(
   'studyCoach/ask',
-  async (request, { rejectWithValue, getState }) => {
+  async (request, { rejectWithValue }) => {
     try {
       const response = await studyCoachApi.ask(request)
       return response

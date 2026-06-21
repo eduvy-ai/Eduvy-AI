@@ -1,6 +1,6 @@
 // ─── Key Takeaways Card ───────────────────────────────────
 
-import React from 'react'
+
 
 interface KeyTakeawaysProps {
   takeaways: string[]

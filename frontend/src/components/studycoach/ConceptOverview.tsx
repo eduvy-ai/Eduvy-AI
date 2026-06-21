@@ -1,6 +1,6 @@
 // ─── Concept Overview Card ───────────────────────────────────
 
-import React from 'react'
+
 
 interface ConceptOverviewProps {
   title: string

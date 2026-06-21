@@ -1,6 +1,6 @@
 // ─── Exam Notes Card ───────────────────────────────────────
 
-import React from 'react'
+
 
 interface ExamNotesProps {
   notes: string[]

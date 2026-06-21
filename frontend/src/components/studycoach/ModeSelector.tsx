@@ -1,6 +1,6 @@
 // ─── Mode Selector Component ───────────────────────────────────
 
-import React from 'react'
+
 import { MODE_INFO, type StudyCoachMode } from '../../modules/studycoach'
 
 interface ModeSelectorProps {

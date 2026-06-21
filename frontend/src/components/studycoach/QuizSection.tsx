@@ -1,6 +1,6 @@
 // ─── Quiz Section Component ───────────────────────────────────
 
-import React, { useState } from 'react'
+import { useState } from 'react'
 import type { QuizQuestion } from '../../modules/studycoach'
 
 interface QuizSectionProps {

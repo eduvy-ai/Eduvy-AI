@@ -1,6 +1,6 @@
 // ─── Related Topics Card ───────────────────────────────────
 
-import React from 'react'
+
 
 interface RelatedTopicsProps {
   topics: string[]

@@ -1,6 +1,6 @@
 // ─── Next Topic Card ───────────────────────────────────
 
-import React from 'react'
+
 
 interface NextTopicProps {
   topic: string

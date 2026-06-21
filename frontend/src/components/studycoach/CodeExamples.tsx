@@ -1,6 +1,6 @@
 // ─── Code Examples Component ───────────────────────────────────
 
-import React, { useState } from 'react'
+import { useState } from 'react'
 import type { CodeExample } from '../../modules/studycoach'
 
 interface CodeExamplesProps {

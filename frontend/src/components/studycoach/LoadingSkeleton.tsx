@@ -1,6 +1,6 @@
 // ─── Loading Skeleton Component ───────────────────────────────────
 
-import React from 'react'
+
 
 export default function LoadingSkeleton() {
   return (
