@@ -149,10 +149,49 @@ def _patch_edge_tts_ssl() -> None:
         logger.debug("edge-tts SSL patch skipped: %s", exc)
 
 
+def _preprocess_text_for_tts(text: str, lang: str) -> str:
+    """
+    Preprocess text for better TTS pronunciation.
+    
+    - Normalizes whitespace
+    - Handles mixed scripts (Devanagari + English)
+    - Adds pauses between sentences
+    """
+    import re
+    
+    # Normalize whitespace
+    text = re.sub(r'\s+', ' ', text.strip())
+    
+    # Remove markdown formatting that TTS can't handle
+    text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # **bold** -> bold
+    text = re.sub(r'\*([^*]+)\*', r'\1', text)      # *italic* -> italic
+    text = re.sub(r'`([^`]+)`', r'\1', text)        # `code` -> code
+    text = re.sub(r'#+ ', '', text)                  # Remove heading markers
+    
+    # For Indian languages, add slight pause after English words
+    # This helps TTS switch context better
+    lang_lower = lang.lower() if lang else ""
+    if lang_lower in ["marathi", "hindi", "gujarati", "tamil", "telugu", "kannada", "mr", "hi", "gu", "ta", "te", "kn"]:
+        # Add comma pause after common English words in Devanagari text
+        # This helps the TTS not stumble on script switches
+        text = re.sub(r'([A-Za-z]{3,})\s+', r'\1, ', text)
+    
+    # Replace multiple punctuation with single
+    text = re.sub(r'([.!?])\s*\1+', r'\1', text)
+    
+    # Ensure sentence-ending punctuation has space
+    text = re.sub(r'([.!?])([A-Za-z\u0900-\u097F])', r'\1 \2', text)
+    
+    return text
+
+
 async def _generate_tts_edge(text: str, lang: str, output_path: str) -> str:
     """Generate TTS using Microsoft Neural Voice via edge-tts."""
     _patch_edge_tts_ssl()
     import edge_tts
+    
+    # Preprocess text for better pronunciation
+    text = _preprocess_text_for_tts(text, lang)
     
     # Normalize language input
     lang_normalized = lang.strip().lower() if lang else "english"
@@ -160,7 +199,7 @@ async def _generate_tts_edge(text: str, lang: str, output_path: str) -> str:
     # Try exact match first, then lowercase, then default to US English
     voice = _EDGE_VOICE_MAP.get(lang) or _EDGE_VOICE_MAP.get(lang_normalized) or "en-US-AriaNeural"
     
-    logger.debug(f"TTS voice selection: lang='{lang}' -> voice='{voice}'")
+    logger.info(f"TTS: lang='{lang}' -> voice='{voice}', text_preview='{text[:100]}...'")
     
     tts = edge_tts.Communicate(text, voice)
     await tts.save(output_path)
@@ -170,6 +209,9 @@ async def _generate_tts_edge(text: str, lang: str, output_path: str) -> str:
 async def _generate_tts_gtts(text: str, lang: str, output_path: str) -> str:
     """Generate TTS using gTTS (Google, robotic fallback)."""
     from gtts import gTTS
+    
+    # Preprocess text
+    text = _preprocess_text_for_tts(text, lang)
     
     # Normalize language input
     lang_normalized = lang.strip().lower() if lang else "english"
@@ -194,19 +236,25 @@ async def generate_tts(text: str, lang: str, output_path: str) -> str:
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
     # Log incoming language for debugging
-    logger.info(f"generate_tts called: lang='{lang}', text_len={len(text)}")
+    logger.info(f"generate_tts: lang='{lang}', text_len={len(text)}, text_preview='{text[:80]}...'")
 
     # Primary: edge-tts (Microsoft Neural TTS)
     try:
         await _generate_tts_edge(text, lang, output_path)
         if os.path.exists(output_path) and os.path.getsize(output_path) > 200:
-            logger.debug("edge-tts OK (%s, %d bytes)", lang, os.path.getsize(output_path))
+            size = os.path.getsize(output_path)
+            logger.info(f"TTS SUCCESS [edge-tts]: lang={lang}, size={size} bytes")
             return output_path
+        else:
+            logger.warning(f"TTS edge-tts produced empty/small file, falling back to gTTS")
     except Exception as exc:
-        logger.warning("edge-tts failed (lang=%s): %s — falling back to gTTS", lang, exc)
+        logger.warning(f"TTS edge-tts FAILED (lang={lang}): {exc} — falling back to gTTS")
 
     # Fallback: gTTS
+    logger.info(f"TTS using gTTS fallback for lang={lang}")
     await _generate_tts_gtts(text, lang, output_path)
+    size = os.path.getsize(output_path) if os.path.exists(output_path) else 0
+    logger.info(f"TTS SUCCESS [gTTS]: lang={lang}, size={size} bytes")
     return output_path
 
 

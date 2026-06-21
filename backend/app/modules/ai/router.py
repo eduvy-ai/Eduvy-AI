@@ -118,3 +118,67 @@ async def get_teacher_audio_file(user_id: str, beat_id: str):
         raise HTTPException(status_code=404, detail="Audio file not found")
     
     return FileResponse(audio_path, media_type="audio/mpeg")
+
+
+@router.get("/tts-test")
+async def test_tts(text: str = "Hello, this is a test.", lang: str = "English"):
+    """
+    Diagnostic endpoint to test TTS on production.
+    
+    Tests both edge-tts and gTTS and returns which one works.
+    """
+    import os
+    import tempfile
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    results = {"text": text, "lang": lang, "edge_tts": None, "gtts": None}
+    
+    test_dir = os.path.join(tempfile.gettempdir(), "tts_test")
+    os.makedirs(test_dir, exist_ok=True)
+    
+    # Test edge-tts
+    try:
+        import edge_tts
+        from app.services.audio_pipeline import _EDGE_VOICE_MAP
+        
+        voice = _EDGE_VOICE_MAP.get(lang) or _EDGE_VOICE_MAP.get(lang.lower()) or "en-US-AriaNeural"
+        edge_path = os.path.join(test_dir, "edge_test.mp3")
+        
+        tts = edge_tts.Communicate(text, voice)
+        await tts.save(edge_path)
+        
+        size = os.path.getsize(edge_path)
+        results["edge_tts"] = {
+            "status": "success",
+            "voice": voice,
+            "size_bytes": size,
+        }
+        logger.info(f"TTS Test - edge-tts OK: voice={voice}, size={size}")
+    except Exception as e:
+        results["edge_tts"] = {"status": "error", "error": str(e)}
+        logger.error(f"TTS Test - edge-tts FAILED: {e}")
+    
+    # Test gTTS
+    try:
+        from gtts import gTTS
+        from app.services.audio_pipeline import LANG_CODE_MAP
+        
+        lang_code = LANG_CODE_MAP.get(lang) or LANG_CODE_MAP.get(lang.lower()) or "en"
+        gtts_path = os.path.join(test_dir, "gtts_test.mp3")
+        
+        tts = gTTS(text=text, lang=lang_code, slow=False)
+        tts.save(gtts_path)
+        
+        size = os.path.getsize(gtts_path)
+        results["gtts"] = {
+            "status": "success", 
+            "lang_code": lang_code,
+            "size_bytes": size,
+        }
+        logger.info(f"TTS Test - gTTS OK: lang_code={lang_code}, size={size}")
+    except Exception as e:
+        results["gtts"] = {"status": "error", "error": str(e)}
+        logger.error(f"TTS Test - gTTS FAILED: {e}")
+    
+    return results
