@@ -12,6 +12,12 @@ export type {
   CodeExample,
   MemoryAids,
   UsageInfo,
+  // Teacher Mode types
+  WordTiming,
+  TeacherBeat,
+  TeacherAudioRequest,
+  TeacherAudioResponse,
+  TeacherModeState,
 } from './types'
 
 export { MODE_INFO } from './types'

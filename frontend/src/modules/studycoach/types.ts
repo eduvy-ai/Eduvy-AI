@@ -83,6 +83,48 @@ export interface StudyCoachState {
   }>
 }
 
+// ─── Teacher Mode Types ───────────────────────────────────────
+
+export interface WordTiming {
+  word: string
+  start_ms: number
+  end_ms: number
+}
+
+export interface TeacherBeat {
+  id: string
+  text: string
+  audio_url: string
+  duration_ms: number
+  word_timings: WordTiming[]
+  section: string
+  diagram_id?: string | null
+}
+
+export interface TeacherAudioRequest {
+  content: string
+  section?: string
+  language?: string
+  full_lesson?: boolean
+  study_coach_response?: StudyCoachResponse
+}
+
+export interface TeacherAudioResponse {
+  beats: TeacherBeat[]
+  total_duration_ms: number
+  language: string
+  cache_key?: string
+}
+
+export interface TeacherModeState {
+  isPlaying: boolean
+  currentBeatIndex: number
+  currentWordIndex: number
+  playbackSpeed: number
+  audioData: TeacherAudioResponse | null
+  isGenerating: boolean
+}
+
 export const MODE_INFO: Record<StudyCoachMode, { label: string; description: string; icon: string }> = {
   study_coach: {
     label: 'Study Coach',

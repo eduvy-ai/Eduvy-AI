@@ -74,10 +74,27 @@ class VideoService:
     async def start_generation(request: VideoGenerateRequest, user_id: str) -> Dict[str, Any]:
         """
         1. Enforce plan limits
-        2. Call AI to generate the script
-        3. Persist project + frames to DB
-        4. Return project dict (status='queued') — rendering runs in background
+        2. Check R2 storage limit
+        3. Call AI to generate the script
+        4. Persist project + frames to DB
+        5. Return project dict (status='queued') — rendering runs in background
         """
+        # Check R2 storage limit before starting video generation
+        from app.services.r2_storage import is_r2_configured, get_r2_storage_stats
+        if is_r2_configured():
+            stats = get_r2_storage_stats()
+            if stats["is_limit_reached"]:
+                raise HTTPException(
+                    status_code=507,
+                    detail=f"Storage limit reached: {stats['total_gb']:.2f}GB / {stats['limit_gb']}GB. Cannot create new videos."
+                )
+            # Warn if approaching limit (videos are typically 5-50MB each)
+            if stats["remaining_gb"] < 0.1:  # Less than 100MB remaining
+                raise HTTPException(
+                    status_code=507,
+                    detail=f"Storage nearly full: only {stats['remaining_gb']*1000:.0f}MB remaining. Please delete some files."
+                )
+        
         plan = await asyncio.to_thread(_get_user_plan, user_id)
 
         def _count():
@@ -281,15 +298,19 @@ class VideoService:
 
     @staticmethod
     async def delete_video(video_id: str, user_id: str) -> bool:
+        from app.services.r2_storage import r2_storage, is_r2_configured
+        
         def _delete():
             conn = get_db()
             try:
                 project = q.get_video_project(conn, video_id, user_id)
                 if not project:
                     return None
+                # Delete local files if they exist
                 for path_key in ("file_path", "thumb_path"):
                     path = project.get(path_key, "")
-                    if path and os.path.exists(path):
+                    # Only delete local files (not R2 URLs)
+                    if path and not path.startswith("http") and os.path.exists(path):
                         try:
                             os.remove(path)
                         except OSError:
@@ -309,6 +330,16 @@ class VideoService:
         result = await asyncio.to_thread(_delete)
         if result is None:
             raise VideoNotFoundException(video_id)
+        
+        # Delete from R2 if configured
+        if is_r2_configured():
+            try:
+                # Delete all files with this video's prefix
+                await r2_storage.delete_prefix(f"videos/{user_id}/{video_id}/")
+                logger.info("Deleted video %s files from R2", video_id)
+            except Exception as r2_err:
+                logger.warning("Failed to delete video %s from R2: %s", video_id, r2_err)
+        
         return result
 
     @staticmethod

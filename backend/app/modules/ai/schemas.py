@@ -118,3 +118,42 @@ class StudyCoachResponse(BaseModel):
     # Metadata
     mode: str = Field(default="study_coach")
     usage: Optional[dict] = None
+
+
+# ── Teacher Mode Audio Schemas ───────────────────────────────────────────────
+
+
+class WordTiming(BaseModel):
+    """Word-level timing for karaoke highlighting."""
+    word: str
+    start_ms: int
+    end_ms: int
+
+
+class TeacherBeat(BaseModel):
+    """A single beat (1-2 sentences) in Teacher Mode narration."""
+    id: str
+    text: str
+    audio_url: str
+    duration_ms: int
+    word_timings: List[WordTiming] = Field(default_factory=list)
+    section: str = Field(default="overview", description="Which section this beat belongs to")
+    diagram_id: Optional[str] = None
+
+
+class TeacherAudioRequest(BaseModel):
+    """Request to generate Teacher Mode audio for Study Coach content."""
+    content: str = Field(..., min_length=10, max_length=10000, description="Text content to explain")
+    section: str = Field(default="overview", description="Section identifier (overview, takeaways, example)")
+    language: str = Field(default="English", description="Language for TTS voice")
+    full_lesson: bool = Field(default=False, description="Generate full lesson with all sections")
+    # For full lesson mode, pass the complete StudyCoachResponse
+    study_coach_response: Optional[dict] = None
+
+
+class TeacherAudioResponse(BaseModel):
+    """Response with generated Teacher Mode audio and timings."""
+    beats: List[TeacherBeat]
+    total_duration_ms: int
+    language: str
+    cache_key: Optional[str] = None

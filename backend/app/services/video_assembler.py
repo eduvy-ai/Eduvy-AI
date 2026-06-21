@@ -163,9 +163,58 @@ async def assemble_video(
         thumb_path = os.path.join(out_dir, "thumb.jpg")
         await _extract_thumbnail(final_video, thumb_path)
 
+        # ── Upload to R2 if configured ────────────────────────────────────
+        from app.services.r2_storage import r2_storage, is_r2_configured, StorageLimitExceeded
+        
+        if is_r2_configured():
+            try:
+                # Upload video to R2
+                r2_video_key = f"videos/{user_id}/{video_id}/{video_id}.mp4"
+                file_url = await r2_storage.upload_file(
+                    file_path=final_video,
+                    key=r2_video_key,
+                    user_id=user_id,
+                    content_type="video/mp4",
+                    category="video",
+                    delete_local=False,  # Keep local for now
+                )
+                
+                # Upload thumbnail to R2
+                thumb_url = ""
+                if os.path.exists(thumb_path):
+                    r2_thumb_key = f"videos/{user_id}/{video_id}/thumb.jpg"
+                    thumb_url = await r2_storage.upload_file(
+                        file_path=thumb_path,
+                        key=r2_thumb_key,
+                        user_id=user_id,
+                        content_type="image/jpeg",
+                        category="video_thumbnail",
+                        delete_local=False,
+                    )
+                
+                logger.info("Uploaded video %s to R2", video_id)
+                
+                # Clean up local files after successful R2 upload
+                try:
+                    shutil.rmtree(out_dir)
+                except Exception as cleanup_err:
+                    logger.warning("Failed to cleanup local video dir %s: %s", out_dir, cleanup_err)
+                    
+            except StorageLimitExceeded as e:
+                logger.error("R2 storage limit exceeded for video %s: %s", video_id, e)
+                # Fall back to local storage
+                file_url = f"{_VIDEOS_URL}/{user_id}/{video_id}/{video_id}.mp4"
+                thumb_url = f"{_VIDEOS_URL}/{user_id}/{video_id}/thumb.jpg" if os.path.exists(thumb_path) else ""
+            except Exception as r2_err:
+                logger.warning("R2 upload failed for video %s: %s, using local", video_id, r2_err)
+                file_url = f"{_VIDEOS_URL}/{user_id}/{video_id}/{video_id}.mp4"
+                thumb_url = f"{_VIDEOS_URL}/{user_id}/{video_id}/thumb.jpg" if os.path.exists(thumb_path) else ""
+        else:
+            # R2 not configured, use local storage
+            file_url = f"{_VIDEOS_URL}/{user_id}/{video_id}/{video_id}.mp4"
+            thumb_url = f"{_VIDEOS_URL}/{user_id}/{video_id}/thumb.jpg" if os.path.exists(thumb_path) else ""
+
         # ── Update DB — done ──────────────────────────────────────────────
-        file_url = f"{_VIDEOS_URL}/{user_id}/{video_id}/{video_id}.mp4"
-        thumb_url = f"{_VIDEOS_URL}/{user_id}/{video_id}/thumb.jpg" if os.path.exists(thumb_path) else ""
         conn = get_db()
         try:
             q.update_video_status(

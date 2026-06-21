@@ -43,6 +43,7 @@ from app.modules.fetch.router import router as fetch_router
 from app.modules.admin.router import router as admin_router
 from app.modules.video.router import router as video_router
 from app.modules.home.router import router as home_router
+from app.modules.storage.router import router as storage_router
 
 load_dotenv()
 
@@ -167,6 +168,7 @@ app.include_router(payments_router, prefix="/api")
 app.include_router(drishti_router, prefix="/api")
 app.include_router(video_router, prefix="/api")
 app.include_router(home_router, prefix="/api")
+app.include_router(storage_router, prefix="/api")
 
 # ── Static Files — generated videos ──────────────────────────
 _VIDEOS_DIR = os.path.abspath(

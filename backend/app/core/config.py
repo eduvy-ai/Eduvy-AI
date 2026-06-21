@@ -49,5 +49,30 @@ class Settings:
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
+    # ── Cloudflare R2 Storage ─────────────────────────────────
+    R2_ACCOUNT_ID: str = os.getenv("R2_ACCOUNT_ID", "")
+    R2_ACCESS_KEY_ID: str = os.getenv("R2_ACCESS_KEY_ID", "")
+    R2_SECRET_ACCESS_KEY: str = os.getenv("R2_SECRET_ACCESS_KEY", "")
+    R2_BUCKET_NAME: str = os.getenv("R2_BUCKET_NAME", "eduvyai")
+    R2_PUBLIC_URL: str = os.getenv("R2_PUBLIC_URL", "")
+    R2_STORAGE_LIMIT_GB: float = float(os.getenv("R2_STORAGE_LIMIT_GB", "5"))
+    
+    @property
+    def r2_endpoint_url(self) -> str:
+        """R2 S3-compatible endpoint URL."""
+        if self.R2_ACCOUNT_ID:
+            return f"https://{self.R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+        return ""
+    
+    @property
+    def r2_storage_limit_bytes(self) -> int:
+        """Storage limit in bytes."""
+        return int(self.R2_STORAGE_LIMIT_GB * 1024 * 1024 * 1024)
+    
+    @property
+    def r2_configured(self) -> bool:
+        """Check if R2 is properly configured."""
+        return bool(self.R2_ACCOUNT_ID and self.R2_ACCESS_KEY_ID and self.R2_SECRET_ACCESS_KEY)
+
 
 settings = Settings()

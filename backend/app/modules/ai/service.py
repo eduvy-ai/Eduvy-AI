@@ -752,3 +752,152 @@ IMPORTANT: If this is NOT educational content (social media, memes, random photo
                 }
         
         return result
+
+    @staticmethod
+    async def generate_teacher_audio(
+        user_id: str,
+        content: str,
+        section: str = "overview",
+        language: str = "English",
+        full_lesson: bool = False,
+        study_coach_response: dict = None,
+    ) -> dict:
+        """
+        Generate Teacher Mode audio with word-level timing.
+        
+        Audio files are stored in R2 storage if configured, otherwise locally.
+        
+        Args:
+            user_id: Authenticated user ID
+            content: Text content to generate audio for
+            section: Section identifier (overview, takeaways, example)
+            language: Language for TTS voice
+            full_lesson: Whether to generate for full StudyCoach response
+            study_coach_response: Complete StudyCoach response (for full_lesson mode)
+        
+        Returns:
+            TeacherAudioResponse dict with beats, timings, and audio URLs
+        """
+        import os
+        import tempfile
+        import hashlib
+        from app.services.audio_pipeline import generate_tts_with_timing, split_into_beats
+        from app.services.r2_storage import r2_storage, StorageLimitExceeded, is_r2_configured
+        
+        # Get user profile for language preference
+        user = AIService.get_user_info(user_id)
+        lang = language or user.get("language", "English")
+        
+        # Create temp directory for local audio generation
+        audio_dir = os.path.join(tempfile.gettempdir(), "eduvy_teacher_audio", user_id)
+        os.makedirs(audio_dir, exist_ok=True)
+        
+        # Check if R2 is configured and within limits
+        use_r2 = is_r2_configured()
+        if use_r2:
+            can_store, stats = r2_storage.check_limit(0)
+            if not can_store:
+                raise HTTPException(
+                    status_code=507,
+                    detail=f"Storage limit reached: {stats['total_gb']:.2f}GB / {stats['limit_gb']}GB. Please contact support."
+                )
+        
+        beats_list = []
+        total_duration_ms = 0
+        
+        async def process_beat(sec_name: str, beat_text: str, idx: int) -> dict:
+            """Generate and optionally upload a single beat."""
+            content_hash = hashlib.md5(beat_text.encode()).hexdigest()[:8]
+            beat_id = f"{sec_name}_{idx}_{content_hash}"
+            
+            # Generate audio locally first
+            result = await generate_tts_with_timing(
+                text=beat_text,
+                lang=lang,
+                output_dir=audio_dir,
+                beat_id=beat_id,
+            )
+            
+            # Determine audio URL
+            if use_r2 and result.get("audio_path"):
+                try:
+                    # Upload to R2
+                    r2_key = f"teacher_audio/{user_id}/{beat_id}.mp3"
+                    audio_url = await r2_storage.upload_file(
+                        file_path=result["audio_path"],
+                        key=r2_key,
+                        user_id=user_id,
+                        content_type="audio/mpeg",
+                        category="teacher_audio",
+                        delete_local=True,  # Clean up local file
+                    )
+                except StorageLimitExceeded as e:
+                    raise HTTPException(
+                        status_code=507,
+                        detail=f"Storage limit reached: {e.current_gb:.2f}GB / {e.limit_gb:.2f}GB"
+                    )
+            else:
+                # Use local serving
+                audio_url = f"/api/ai/teacher-audio/{user_id}/{beat_id}"
+            
+            return {
+                "id": beat_id,
+                "text": beat_text,
+                "audio_url": audio_url,
+                "duration_ms": result["duration_ms"],
+                "word_timings": result["word_timings"],
+                "section": sec_name,
+                "diagram_id": None,
+            }
+        
+        if full_lesson and study_coach_response:
+            # Generate audio for all sections in the StudyCoach response
+            sections_to_process = []
+            
+            # Add overview
+            if study_coach_response.get("overview"):
+                sections_to_process.append(("overview", study_coach_response["overview"]))
+            
+            # Add key takeaways as one beat
+            takeaways = study_coach_response.get("key_takeaways", [])
+            if takeaways:
+                takeaways_text = "Here are the key points to remember: " + ". ".join(takeaways)
+                sections_to_process.append(("takeaways", takeaways_text))
+            
+            # Add real-world example
+            if study_coach_response.get("real_world_example"):
+                sections_to_process.append(("example", study_coach_response["real_world_example"]))
+            
+            # Add exam notes as one beat
+            exam_notes = study_coach_response.get("exam_notes", [])
+            if exam_notes:
+                notes_text = "For exam preparation, remember: " + ". ".join(exam_notes)
+                sections_to_process.append(("exam_notes", notes_text))
+            
+            # Process each section
+            for sec_name, sec_content in sections_to_process:
+                # Split into beats
+                beat_texts = split_into_beats(sec_content, max_sentences=2)
+                
+                for i, beat_text in enumerate(beat_texts):
+                    beat_data = await process_beat(sec_name, beat_text, i)
+                    beats_list.append(beat_data)
+                    total_duration_ms += beat_data["duration_ms"]
+        else:
+            # Single section mode
+            beat_texts = split_into_beats(content, max_sentences=2)
+            
+            for i, beat_text in enumerate(beat_texts):
+                beat_data = await process_beat(section, beat_text, i)
+                beats_list.append(beat_data)
+                total_duration_ms += beat_data["duration_ms"]
+        
+        # Generate cache key for this content
+        cache_key = hashlib.md5(f"{user_id}:{content[:100]}:{lang}".encode()).hexdigest()[:12]
+        
+        return {
+            "beats": beats_list,
+            "total_duration_ms": total_duration_ms,
+            "language": lang,
+            "cache_key": cache_key,
+        }

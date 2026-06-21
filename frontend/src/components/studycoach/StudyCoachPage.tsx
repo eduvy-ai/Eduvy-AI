@@ -15,10 +15,12 @@ import NextTopic from './NextTopic'
 import CodeExamples from './CodeExamples'
 import MemoryAidsSection from './MemoryAidsSection'
 import LoadingSkeleton from './LoadingSkeleton'
+import { TeacherModePlayer } from '../teacher'
 
 export default function StudyCoachPage() {
   const { response, isLoading, error, mode, ask, setMode, clear, dismissError } = useStudyCoach()
   const [question, setQuestion] = useState('')
+  const [showTeacherMode, setShowTeacherMode] = useState(false)
 
   const handleSubmit = useCallback(async () => {
     if (!question.trim()) return
@@ -73,8 +75,18 @@ export default function StudyCoachPage() {
         {/* Results */}
         {response && !isLoading && (
           <div className="space-y-5 animate-fade-in">
-            {/* New Question Button */}
-            <div className="flex justify-center">
+            {/* Action Buttons */}
+            <div className="flex justify-center gap-3">
+              {/* Teacher Mode Button */}
+              <button
+                onClick={() => setShowTeacherMode(true)}
+                className="px-5 py-2 bg-gradient-to-r from-app-green to-emerald-500 hover:from-app-green/90 hover:to-emerald-500/90 rounded-full text-sm text-white font-semibold shadow-lg shadow-app-green/20 transition-all flex items-center gap-2"
+              >
+                <span>▶</span>
+                Teacher Mode
+              </button>
+              
+              {/* New Question Button */}
               <button
                 onClick={handleNewQuestion}
                 className="px-5 py-2 bg-app-card2 border border-app-border hover:border-app-green/30 rounded-full text-sm text-app-muted hover:text-app-green transition-colors"
@@ -154,6 +166,14 @@ export default function StudyCoachPage() {
           </div>
         )}
       </div>
+
+      {/* Teacher Mode Player - Full Screen Overlay */}
+      {showTeacherMode && response && (
+        <TeacherModePlayer
+          studyCoachResponse={response}
+          onClose={() => setShowTeacherMode(false)}
+        />
+      )}
     </div>
   )
 }
