@@ -130,3 +130,53 @@ async def delete_user_files(user_id: str, current_user: str = Depends(get_curren
         "deleted_count": deleted_count,
         "message": f"Deleted {deleted_count} files for user {user_id}",
     }
+
+
+@router.delete("/teacher-audio/{user_id}")
+async def clear_teacher_audio_cache(user_id: str, current_user: str = Depends(get_current_user)):
+    """
+    Clear cached teacher audio for a specific user.
+    
+    Useful when voice/language settings change and old cached audio 
+    needs to be regenerated.
+    
+    Admin only.
+    """
+    if not _is_admin(current_user):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    if not is_r2_configured():
+        raise HTTPException(status_code=400, detail="R2 storage not configured")
+    
+    # Delete all teacher audio files for this user
+    deleted_count = await r2_storage.delete_prefix(f"teacher_audio/{user_id}/")
+    
+    return {
+        "user_id": user_id,
+        "deleted_count": deleted_count,
+        "message": f"Cleared {deleted_count} cached teacher audio files for user {user_id}",
+    }
+
+
+@router.delete("/teacher-audio-legacy")
+async def clear_legacy_teacher_audio(current_user: str = Depends(get_current_user)):
+    """
+    Clear ALL legacy teacher audio (files without language subfolder).
+    
+    These are orphaned files from before the language-aware cache was implemented.
+    
+    Admin only.
+    """
+    if not _is_admin(current_user):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    if not is_r2_configured():
+        raise HTTPException(status_code=400, detail="R2 storage not configured")
+    
+    # Delete all teacher_audio files
+    deleted_count = await r2_storage.delete_prefix("teacher_audio/")
+    
+    return {
+        "deleted_count": deleted_count,
+        "message": f"Cleared {deleted_count} legacy teacher audio files. New audio will be generated with correct voices.",
+    }

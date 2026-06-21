@@ -830,8 +830,9 @@ IMPORTANT: If this is NOT educational content (social media, memes, random photo
             _BEAT_GENERATION_LOCKS[lock_key] = future
             
             try:
-                # Check if already in R2
-                r2_key = f"teacher_audio/{user_id}/{beat_id}.mp3"
+                # Include language in R2 key so different languages get separate audio
+                lang_code = lang.lower().replace(" ", "_")[:10] if lang else "en"
+                r2_key = f"teacher_audio/{user_id}/{lang_code}/{beat_id}.mp3"
                 if use_r2 and await r2_storage.exists(r2_key):
                     # Already uploaded, return cached result
                     audio_url = r2_storage.get_url(r2_key)
