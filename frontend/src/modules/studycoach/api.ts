@@ -27,6 +27,8 @@ export const studyCoachApi = {
       language: request.language ?? 'English',
       full_lesson: request.full_lesson ?? false,
       study_coach_response: request.study_coach_response,
+    }, {
+      timeout: 180000, // 3 minutes - audio generation with fallbacks takes time
     })
     return response.data
   },

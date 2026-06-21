@@ -25,10 +25,10 @@ _FFMPEG = (
 )
 
 # ── Microsoft Neural Voice map (edge-tts) ─────────────────────────────────────
-# Indian-accent voices for best quality with Indian languages
+# Using more reliable US/UK voices as primary, Indian as fallback
 _EDGE_VOICE_MAP = {
-    "en":       "en-IN-NeerjaNeural",
-    "English":  "en-IN-NeerjaNeural",
+    "en":       "en-US-AriaNeural",  # More reliable than Indian voice
+    "English":  "en-US-AriaNeural",
     "hi":       "hi-IN-SwaraNeural",
     "Hindi":    "hi-IN-SwaraNeural",
     "gu":       "gu-IN-DhwaniNeural",
@@ -234,6 +234,58 @@ def _parse_srt_to_word_timings(srt_path: str) -> list[dict]:
     return timings
 
 
+def _estimate_word_timing_from_sentences(full_text: str, sentence_boundaries: list[dict]) -> list[dict]:
+    """
+    Estimate word-level timing from sentence boundaries.
+    
+    edge-tts 7.x only provides SentenceBoundary events, not WordBoundary.
+    We estimate word timing by distributing the sentence duration proportionally.
+    
+    Args:
+        full_text: The full text that was synthesized
+        sentence_boundaries: List of {"text", "start_ms", "duration_ms"}
+    
+    Returns:
+        List of {"word": str, "start_ms": int, "end_ms": int}
+    """
+    import re
+    
+    word_timings = []
+    
+    # Split full text into words (preserving order)
+    all_words = re.findall(r'\S+', full_text)
+    word_idx = 0
+    
+    for sent in sentence_boundaries:
+        sent_text = sent.get("text", "")
+        start_ms = sent.get("start_ms", 0)
+        duration_ms = sent.get("duration_ms", 0)
+        
+        # Split sentence into words
+        sent_words = re.findall(r'\S+', sent_text)
+        if not sent_words:
+            continue
+        
+        # Calculate total character length (for proportional timing)
+        total_chars = sum(len(w) for w in sent_words)
+        if total_chars == 0:
+            continue
+        
+        # Distribute timing proportionally by word length
+        current_ms = start_ms
+        for word in sent_words:
+            word_duration = int((len(word) / total_chars) * duration_ms)
+            word_timings.append({
+                "word": word,
+                "start_ms": current_ms,
+                "end_ms": current_ms + word_duration,
+            })
+            current_ms += word_duration
+            word_idx += 1
+    
+    return word_timings
+
+
 async def generate_tts_with_timing(
     text: str, 
     lang: str, 
@@ -258,6 +310,7 @@ async def generate_tts_with_timing(
             "word_timings": [{"word": "Hello", "start_ms": 0, "end_ms": 500}, ...]
         }
     """
+    import time
     os.makedirs(output_dir, exist_ok=True)
     
     audio_path = os.path.join(output_dir, f"{beat_id}.mp3")
@@ -265,67 +318,95 @@ async def generate_tts_with_timing(
     
     _patch_edge_tts_ssl()
     
-    try:
-        import edge_tts
-        voice = _EDGE_VOICE_MAP.get(lang, "en-IN-NeerjaNeural")
-        logger.info(f"Using voice: {voice} for language: {lang}")
+    # Retry logic for edge-tts (sometimes fails with "No audio received")
+    max_retries = 3
+    last_error = None
+    
+    for attempt in range(max_retries):
+        try:
+            import edge_tts
+            voice = _EDGE_VOICE_MAP.get(lang, "en-IN-NeerjaNeural")
+            if attempt == 0:
+                logger.info(f"Using voice: {voice} for language: {lang}")
+            
+            tts = edge_tts.Communicate(text, voice)
+            
+            # Collect boundaries from stream
+            # edge-tts 7.x provides SentenceBoundary (not WordBoundary)
+            sentence_boundaries = []
+            word_boundaries = []
+            
+            with open(audio_path, "wb") as audio_file:
+                async for chunk in tts.stream():
+                    if chunk["type"] == "audio":
+                        audio_file.write(chunk["data"])
+                    elif chunk["type"] == "WordBoundary":
+                        # If WordBoundary is available (older versions)
+                        word_boundaries.append({
+                            "word": chunk.get("text", ""),
+                            "start_ms": int(chunk.get("offset", 0) / 10000),
+                            "end_ms": int((chunk.get("offset", 0) + chunk.get("duration", 0)) / 10000),
+                        })
+                    elif chunk["type"] == "SentenceBoundary":
+                        # edge-tts 7.x provides sentence-level timing
+                        sentence_boundaries.append({
+                            "text": chunk.get("text", ""),
+                            "start_ms": int(chunk.get("offset", 0) / 10000),
+                            "duration_ms": int(chunk.get("duration", 0) / 10000),
+                        })
+            
+            # Use word boundaries if available, otherwise estimate from sentences
+            if word_boundaries:
+                word_timings = [w for w in word_boundaries if w["word"].strip()]
+            else:
+                # Estimate word timing from sentence boundaries
+                word_timings = _estimate_word_timing_from_sentences(text, sentence_boundaries)
+            
+            logger.info(f"Captured {len(word_timings)} word timings (sentences: {len(sentence_boundaries)})")
+            
+            # Get audio duration
+            duration_ms = 0
+            if word_timings:
+                duration_ms = word_timings[-1]["end_ms"]
+            elif sentence_boundaries:
+                last = sentence_boundaries[-1]
+                duration_ms = last["start_ms"] + last["duration_ms"]
+            else:
+                # Fallback: estimate from file size (rough ~16kbps for mp3)
+                file_size = os.path.getsize(audio_path)
+                duration_ms = int((file_size / 2000) * 1000)
+            
+            logger.info(f"Generated teacher audio: {audio_path} ({duration_ms}ms, {len(word_timings)} words)")
+            
+            return {
+                "audio_path": audio_path,
+                "srt_path": srt_path,
+                "duration_ms": duration_ms,
+                "word_timings": word_timings,
+            }
         
-        tts = edge_tts.Communicate(text, voice)
-        
-        # Collect word boundaries directly from stream
-        word_boundaries = []
-        
-        with open(audio_path, "wb") as audio_file:
-            async for chunk in tts.stream():
-                if chunk["type"] == "audio":
-                    audio_file.write(chunk["data"])
-                elif chunk["type"] == "WordBoundary":
-                    # Extract word timing from WordBoundary event
-                    word_boundaries.append({
-                        "word": chunk.get("text", ""),
-                        "start_ms": int(chunk.get("offset", 0) / 10000),  # Convert 100-nanosecond units to ms
-                        "end_ms": int((chunk.get("offset", 0) + chunk.get("duration", 0)) / 10000),
-                    })
-        
-        # Filter out empty words
-        word_timings = [w for w in word_boundaries if w["word"].strip()]
-        
-        logger.info(f"Captured {len(word_timings)} word boundaries")
-        
-        # Get audio duration
-        duration_ms = 0
-        if word_timings:
-            duration_ms = word_timings[-1]["end_ms"]
-        else:
-            # Fallback: estimate from file size (rough ~16kbps for mp3)
-            file_size = os.path.getsize(audio_path)
-            duration_ms = int((file_size / 2000) * 1000)  # rough estimate
-        
-        logger.info(f"Generated teacher audio: {audio_path} ({duration_ms}ms, {len(word_timings)} words)")
-        
-        return {
-            "audio_path": audio_path,
-            "srt_path": srt_path,
-            "duration_ms": duration_ms,
-            "word_timings": word_timings,
-        }
-        
-    except Exception as exc:
-        logger.warning(f"edge-tts with subtitles failed: {exc} — falling back to basic TTS")
-        
-        # Fallback: generate audio without word timings
-        await _generate_tts_gtts(text, lang, audio_path)
-        
-        # Estimate duration from text length (~150 words/min)
-        word_count = len(text.split())
-        duration_ms = int((word_count / 150) * 60 * 1000)
-        
-        return {
-            "audio_path": audio_path,
-            "srt_path": None,
-            "duration_ms": duration_ms,
-            "word_timings": [],  # No word-level timing with fallback
-        }
+        except Exception as exc:
+            last_error = exc
+            if attempt < max_retries - 1:
+                logger.debug(f"edge-tts attempt {attempt + 1} failed: {exc}, retrying...")
+                await asyncio.sleep(0.2)  # Quick retry
+                continue
+            # All retries exhausted
+            logger.warning(f"edge-tts failed after {max_retries} attempts: {exc} — falling back to basic TTS")
+    
+    # Fallback: generate audio without word timings
+    await _generate_tts_gtts(text, lang, audio_path)
+    
+    # Estimate duration from text length (~150 words/min)
+    word_count = len(text.split())
+    duration_ms = int((word_count / 150) * 60 * 1000)
+    
+    return {
+        "audio_path": audio_path,
+        "srt_path": None,
+        "duration_ms": duration_ms,
+        "word_timings": [],  # No word-level timing with fallback
+    }
 
 
 def split_into_beats(text: str, max_sentences: int = 2) -> list[str]:

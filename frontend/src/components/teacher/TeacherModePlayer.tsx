@@ -283,7 +283,14 @@ export const TeacherModePlayer: FC<Props> = ({
               <audio
                 ref={audioRef}
                 onEnded={handleAudioEnded}
+                onError={(e) => {
+                  const audio = e.currentTarget
+                  console.error('Audio error:', audio.error?.message, 'URL:', audio.src)
+                  setError(`Audio failed to load: ${audio.error?.message || 'Unknown error'}`)
+                }}
+                onCanPlay={() => console.log('Audio ready:', currentBeat?.audio_url)}
                 preload="auto"
+                crossOrigin="anonymous"
               />
             </div>
           )}

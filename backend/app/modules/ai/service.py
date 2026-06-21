@@ -1,6 +1,8 @@
 """
 AI Service - Business logic for AI chat proxy.
 """
+import asyncio
+import logging
 from datetime import datetime, timezone
 from typing import Dict, Tuple
 from fastapi import HTTPException
@@ -9,6 +11,8 @@ from app.db.connection import get_db
 from services.ai_service import call_ai, resolve_provider_model
 from app.modules.ai.prompts import build_system_prompt, VALID_MODES
 
+logger = logging.getLogger(__name__)
+
 # Daily call quota per plan
 PLANS_QUOTA = {
     "free": 10,
@@ -16,6 +20,10 @@ PLANS_QUOTA = {
     "pro": 200,
     "premium": 10_000,
 }
+
+# In-progress beat generation cache to prevent duplicates
+# Format: {beat_id: asyncio.Future}
+_BEAT_GENERATION_LOCKS: Dict[str, asyncio.Future] = {}
 
 
 def _today() -> str:
@@ -806,49 +814,87 @@ IMPORTANT: If this is NOT educational content (social media, memes, random photo
         total_duration_ms = 0
         
         async def process_beat(sec_name: str, beat_text: str, idx: int) -> dict:
-            """Generate and optionally upload a single beat."""
+            """Generate and optionally upload a single beat with deduplication."""
             content_hash = hashlib.md5(beat_text.encode()).hexdigest()[:8]
             beat_id = f"{sec_name}_{idx}_{content_hash}"
+            lock_key = f"{user_id}:{beat_id}"
             
-            # Generate audio locally first
-            result = await generate_tts_with_timing(
-                text=beat_text,
-                lang=lang,
-                output_dir=audio_dir,
-                beat_id=beat_id,
-            )
+            # Check if already in progress or completed
+            if lock_key in _BEAT_GENERATION_LOCKS:
+                logger.debug(f"Beat {beat_id} already in progress, waiting...")
+                return await _BEAT_GENERATION_LOCKS[lock_key]
             
-            # Determine audio URL
-            if use_r2 and result.get("audio_path"):
-                try:
-                    # Upload to R2
-                    r2_key = f"teacher_audio/{user_id}/{beat_id}.mp3"
-                    audio_url = await r2_storage.upload_file(
-                        file_path=result["audio_path"],
-                        key=r2_key,
-                        user_id=user_id,
-                        content_type="audio/mpeg",
-                        category="teacher_audio",
-                        delete_local=True,  # Clean up local file
-                    )
-                except StorageLimitExceeded as e:
-                    raise HTTPException(
-                        status_code=507,
-                        detail=f"Storage limit reached: {e.current_gb:.2f}GB / {e.limit_gb:.2f}GB"
-                    )
-            else:
-                # Use local serving
-                audio_url = f"/api/ai/teacher-audio/{user_id}/{beat_id}"
+            # Create a future for this beat
+            loop = asyncio.get_event_loop()
+            future = loop.create_future()
+            _BEAT_GENERATION_LOCKS[lock_key] = future
             
-            return {
-                "id": beat_id,
-                "text": beat_text,
-                "audio_url": audio_url,
-                "duration_ms": result["duration_ms"],
-                "word_timings": result["word_timings"],
-                "section": sec_name,
-                "diagram_id": None,
-            }
+            try:
+                # Check if already in R2
+                r2_key = f"teacher_audio/{user_id}/{beat_id}.mp3"
+                if use_r2 and await r2_storage.exists(r2_key):
+                    # Already uploaded, return cached result
+                    audio_url = r2_storage.get_url(r2_key)
+                    logger.debug(f"Beat {beat_id} already in R2")
+                    result_data = {
+                        "id": beat_id,
+                        "text": beat_text,
+                        "audio_url": audio_url,
+                        "duration_ms": 5000,  # Estimate
+                        "word_timings": [],
+                        "section": sec_name,
+                        "diagram_id": None,
+                    }
+                    future.set_result(result_data)
+                    return result_data
+                
+                # Generate audio locally first
+                result = await generate_tts_with_timing(
+                    text=beat_text,
+                    lang=lang,
+                    output_dir=audio_dir,
+                    beat_id=beat_id,
+                )
+                
+                # Determine audio URL
+                if use_r2 and result.get("audio_path"):
+                    try:
+                        audio_url = await r2_storage.upload_file(
+                            file_path=result["audio_path"],
+                            key=r2_key,
+                            user_id=user_id,
+                            content_type="audio/mpeg",
+                            category="teacher_audio",
+                            delete_local=True,
+                        )
+                    except StorageLimitExceeded as e:
+                        raise HTTPException(
+                            status_code=507,
+                            detail=f"Storage limit reached: {e.current_gb:.2f}GB / {e.limit_gb:.2f}GB"
+                        )
+                else:
+                    audio_url = f"/api/ai/teacher-audio/{user_id}/{beat_id}"
+                
+                result_data = {
+                    "id": beat_id,
+                    "text": beat_text,
+                    "audio_url": audio_url,
+                    "duration_ms": result["duration_ms"],
+                    "word_timings": result["word_timings"],
+                    "section": sec_name,
+                    "diagram_id": None,
+                }
+                future.set_result(result_data)
+                return result_data
+            except Exception as e:
+                future.set_exception(e)
+                raise
+            finally:
+                # Clean up lock after a short delay to handle rapid duplicate requests
+                async def cleanup():
+                    await asyncio.sleep(5)
+                    _BEAT_GENERATION_LOCKS.pop(lock_key, None)
+                asyncio.create_task(cleanup())
         
         if full_lesson and study_coach_response:
             # Generate audio for all sections in the StudyCoach response

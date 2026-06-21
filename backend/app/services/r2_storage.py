@@ -347,10 +347,8 @@ class R2Storage:
         
         logger.info(f"Uploaded to R2: {key} ({file_size} bytes, {category})")
         
-        # Return public URL
-        if settings.R2_PUBLIC_URL:
-            return f"{settings.R2_PUBLIC_URL.rstrip('/')}/{key}"
-        return f"{settings.r2_endpoint_url}/{self.bucket}/{key}"
+        # Return public URL (presigned if no public URL configured)
+        return self.get_url(key)
     
     async def upload_file(
         self,
@@ -397,11 +395,21 @@ class R2Storage:
             )
         
         if delete_local:
-            try:
-                os.remove(file_path)
-                logger.debug(f"Deleted local file: {file_path}")
-            except Exception as e:
-                logger.warning(f"Failed to delete local file {file_path}: {e}")
+            # Retry deletion with small delay (handles Windows file locks)
+            import time
+            for attempt in range(3):
+                try:
+                    os.remove(file_path)
+                    logger.debug(f"Deleted local file: {file_path}")
+                    break
+                except PermissionError:
+                    if attempt < 2:
+                        time.sleep(0.5)  # Wait for file handle release
+                    else:
+                        logger.warning(f"Could not delete local file {file_path} (file locked)")
+                except Exception as e:
+                    logger.warning(f"Failed to delete local file {file_path}: {e}")
+                    break
         
         return url
     
@@ -496,7 +504,33 @@ class R2Storage:
         """Get public URL for a key."""
         if settings.R2_PUBLIC_URL:
             return f"{settings.R2_PUBLIC_URL.rstrip('/')}/{key}"
-        return f"{settings.r2_endpoint_url}/{self.bucket}/{key}"
+        # Generate presigned URL if no public URL configured
+        return self.get_presigned_url(key)
+    
+    def get_presigned_url(self, key: str, expires_in: int = 3600) -> str:
+        """
+        Generate a presigned URL for temporary public access.
+        
+        Args:
+            key: The file key in R2
+            expires_in: URL expiration in seconds (default 1 hour)
+            
+        Returns:
+            Presigned URL that allows temporary access
+        """
+        if not self.configured:
+            return ""
+        
+        try:
+            url = self.client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': self.bucket, 'Key': key},
+                ExpiresIn=expires_in
+            )
+            return url
+        except Exception as e:
+            logger.warning(f"Failed to generate presigned URL for {key}: {e}")
+            return f"{settings.r2_endpoint_url}/{self.bucket}/{key}"
     
     async def cleanup_expired(self) -> int:
         """
