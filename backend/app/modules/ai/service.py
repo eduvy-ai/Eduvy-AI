@@ -370,3 +370,385 @@ IMPORTANT: If this is NOT educational content (social media, memes, random photo
             }
         finally:
             conn.close()
+    
+    @staticmethod
+    async def study_coach(
+        user_id: str,
+        question: str,
+        mode: str = "study_coach",
+        subject_override: str = None,
+        chapter_override: str = None,
+    ) -> Dict:
+        """
+        Generate a structured learning experience for the given question.
+        
+        Args:
+            user_id: Authenticated user ID
+            question: The question or topic to learn about
+            mode: study_coach | study_coach_eli10 | study_coach_exam | study_coach_coding | study_coach_revision
+            subject_override: Optional subject context override
+            chapter_override: Optional chapter context
+        
+        Returns:
+            Complete StudyCoachResponse dict with all learning sections
+        """
+        import json
+        import re
+        
+        # Validate mode
+        valid_modes = {"study_coach", "study_coach_eli10", "study_coach_exam", "study_coach_coding", "study_coach_revision"}
+        if mode not in valid_modes:
+            mode = "study_coach"
+        
+        # Get user info and profile
+        user = AIService.get_user_info(user_id)
+        plan = user["plan"]
+        
+        # Check quota
+        current, limit = AIService.check_quota(user_id, plan)
+        if current >= limit:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Daily AI quota ({limit} calls) exceeded. Upgrade your plan for more."
+            )
+        
+        # Build profile for prompt
+        profile = {
+            "name": user["name"],
+            "standard": user["standard"],
+            "board": user["board"],
+            "language": user["language"],
+            "subjects": user["subjects"],
+        }
+        
+        # Apply overrides
+        if subject_override:
+            profile["current_subject"] = subject_override
+        if chapter_override:
+            profile["current_chapter"] = chapter_override
+        
+        # Fetch student progress for personalization
+        progress = AIService.get_student_progress(user_id)
+        progress_for_prompt = {
+            "weak_areas": progress.get("weak_topics", []),
+            "strong_areas": progress.get("strong_topics", []),
+        }
+        
+        # Build system prompt
+        system_prompt = build_system_prompt(profile, mode, progress_for_prompt)
+        
+        if not system_prompt:
+            raise HTTPException(status_code=400, detail=f"Invalid Study Coach mode: {mode}")
+        
+        # Enhance the question with context
+        enhanced_prompt = question
+        if subject_override:
+            enhanced_prompt = f"[Subject: {subject_override}] {question}"
+        if chapter_override:
+            enhanced_prompt = f"[Chapter: {chapter_override}] {enhanced_prompt}"
+        
+        # Resolve provider/model
+        provider = user["ai_provider"]
+        model = user["ai_model"]
+        if not user["ai_admin_override"]:
+            provider, model = resolve_provider_model(plan, provider, model)
+        
+        # Use better model for regional languages on free plan
+        if plan == "free" and user["language"] not in ["English", ""]:
+            provider = "gemini"
+            model = "gemini-2.0-flash"
+        
+        # Call AI
+        try:
+            response, prompt_tokens, completion_tokens = await call_ai(
+                provider=provider,
+                model=model,
+                prompt=enhanced_prompt,
+                system_prompt=system_prompt,
+                history=[],
+                max_tokens=4096,  # Study Coach needs more tokens for full response
+            )
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"AI service error: {str(e)}")
+        
+        # Track usage
+        new_count = AIService.check_and_increment_usage(user_id, plan, prompt_tokens, completion_tokens)
+        
+        # Parse JSON response
+        parsed = AIService._parse_study_coach_response(response, mode)
+        
+        # Add metadata
+        parsed["mode"] = mode
+        parsed["usage"] = {
+            "calls_today": new_count,
+            "daily_limit": limit,
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+        }
+        
+        return parsed
+    
+    @staticmethod
+    def _extract_fields_manually(response: str) -> Dict:
+        """
+        Last-resort extraction of fields from malformed JSON using regex.
+        Returns None if extraction fails.
+        """
+        import re
+        
+        result = {
+            "title": "Learning Response",
+            "difficulty": "Intermediate",
+            "overview": "",
+            "key_takeaways": [],
+            "diagram": None,
+            "real_world_example": "",
+            "quiz": [],
+            "flashcards": [],
+            "exam_notes": [],
+            "related_topics": [],
+            "next_topic": "",
+        }
+        
+        try:
+            # Extract title
+            title_match = re.search(r'"title"\s*:\s*"([^"]+)"', response)
+            if title_match:
+                result["title"] = title_match.group(1)
+            
+            # Extract difficulty
+            diff_match = re.search(r'"difficulty"\s*:\s*"([^"]+)"', response)
+            if diff_match:
+                result["difficulty"] = diff_match.group(1)
+            
+            # Extract overview (can be long, so be careful)
+            overview_match = re.search(r'"overview"\s*:\s*"((?:[^"\\]|\\.)*)"\s*,', response)
+            if overview_match:
+                result["overview"] = overview_match.group(1).replace('\\n', '\n').replace('\\"', '"')
+            
+            # Extract key_takeaways as array of strings
+            takeaways_match = re.search(r'"key_takeaways"\s*:\s*\[(.*?)\]', response, re.DOTALL)
+            if takeaways_match:
+                items = re.findall(r'"((?:[^"\\]|\\.)*)"', takeaways_match.group(1))
+                result["key_takeaways"] = [item.replace('\\n', '\n') for item in items[:6]]
+            
+            # Extract real_world_example
+            example_match = re.search(r'"real_world_example"\s*:\s*"((?:[^"\\]|\\.)*)"', response)
+            if example_match:
+                result["real_world_example"] = example_match.group(1).replace('\\n', '\n')
+            
+            # Extract next_topic
+            next_match = re.search(r'"next_topic"\s*:\s*"([^"]+)"', response)
+            if next_match:
+                result["next_topic"] = next_match.group(1)
+            
+            # Extract related_topics
+            related_match = re.search(r'"related_topics"\s*:\s*\[(.*?)\]', response, re.DOTALL)
+            if related_match:
+                items = re.findall(r'"([^"]+)"', related_match.group(1))
+                result["related_topics"] = items[:5]
+            
+            # Extract exam_notes
+            notes_match = re.search(r'"exam_notes"\s*:\s*\[(.*?)\]', response, re.DOTALL)
+            if notes_match:
+                items = re.findall(r'"((?:[^"\\]|\\.)*)"', notes_match.group(1))
+                result["exam_notes"] = items[:5]
+            
+            # Only return if we got meaningful content
+            if result["title"] != "Learning Response" or result["overview"]:
+                return result
+            return None
+            
+        except Exception:
+            return None
+    
+    @staticmethod
+    def _parse_study_coach_response(response: str, mode: str) -> Dict:
+        """
+        Parse AI response into StudyCoachResponse structure.
+        
+        Handles:
+        - Raw JSON
+        - JSON wrapped in markdown code blocks
+        - Partial/malformed JSON with graceful defaults
+        """
+        import json
+        import re
+        
+        # Try to extract JSON from the response
+        json_str = response.strip()
+        
+        # Remove markdown code blocks if present
+        if json_str.startswith("```"):
+            # Find the JSON inside code blocks
+            match = re.search(r'```(?:json)?\s*(\{[\s\S]*?\})\s*```', json_str)
+            if match:
+                json_str = match.group(1)
+            else:
+                # Try removing just the backticks
+                json_str = re.sub(r'^```(?:json)?\s*', '', json_str)
+                json_str = re.sub(r'\s*```$', '', json_str)
+        
+        # Clean up common JSON issues from AI
+        def fix_json(s: str) -> str:
+            # Remove trailing commas before ] or }
+            s = re.sub(r',\s*]', ']', s)
+            s = re.sub(r',\s*}', '}', s)
+            # Fix malformed Mermaid arrows (|> -> -->)
+            s = re.sub(r'\|>', '-->', s)
+            # Fix unescaped newlines in strings (common AI error)
+            # Replace actual newlines inside strings with escaped \n
+            s = re.sub(r'(?<!\\)\n', '\\n', s)
+            return s
+        
+        def repair_json(s: str) -> str:
+            """Attempt to repair malformed JSON by balancing brackets."""
+            s = fix_json(s)
+            
+            # Count brackets to see if they're balanced
+            open_braces = s.count('{')
+            close_braces = s.count('}')
+            open_brackets = s.count('[')
+            close_brackets = s.count(']')
+            
+            # Add missing closing braces/brackets at the end
+            if close_braces < open_braces:
+                s = s.rstrip()
+                # Remove trailing incomplete content after last complete field
+                # Look for the last complete key-value pair
+                if s.endswith(','):
+                    s = s[:-1]
+                if s.endswith('"'):
+                    # Might be unclosed string, try to close it
+                    pass
+                s += '}' * (open_braces - close_braces)
+            
+            if close_brackets < open_brackets:
+                # Find position to insert missing ]
+                s = s.rstrip()
+                s += ']' * (open_brackets - close_brackets)
+            
+            # Final cleanup
+            s = re.sub(r',\s*]', ']', s)
+            s = re.sub(r',\s*}', '}', s)
+            s = re.sub(r'}\s*]', '}]', s)  # Fix }] spacing
+            s = re.sub(r']\s*}', ']}', s)  # Fix ]} spacing
+            
+            return s
+        
+        json_str = repair_json(json_str)
+        
+        # Try to parse JSON
+        try:
+            data = json.loads(json_str)
+        except json.JSONDecodeError as e:
+            # Try to find JSON object in the response and repair it
+            match = re.search(r'\{[\s\S]*\}', response)
+            if match:
+                repaired_json = repair_json(match.group())
+                try:
+                    data = json.loads(repaired_json)
+                except json.JSONDecodeError:
+                    # Last resort: try to extract valid fields manually
+                    data = AIService._extract_fields_manually(response)
+                    if data:
+                        return data
+                    # Return minimal response on complete failure
+                    return {
+                        "title": "Learning Response",
+                        "difficulty": "Intermediate",
+                        "overview": response[:2000] if len(response) > 2000 else response,
+                        "key_takeaways": [],
+                        "diagram": None,
+                        "real_world_example": "",
+                        "quiz": [],
+                        "flashcards": [],
+                        "exam_notes": [],
+                        "related_topics": [],
+                        "next_topic": "",
+                    }
+            else:
+                return {
+                    "title": "Learning Response",
+                    "difficulty": "Intermediate",
+                    "overview": response[:2000] if len(response) > 2000 else response,
+                    "key_takeaways": [],
+                    "diagram": None,
+                    "real_world_example": "",
+                    "quiz": [],
+                    "flashcards": [],
+                    "exam_notes": [],
+                    "related_topics": [],
+                    "next_topic": "",
+                }
+        
+        # Normalize and validate the response structure
+        result = {
+            "title": data.get("title", "Learning Response"),
+            "difficulty": data.get("difficulty", "Intermediate"),
+            "overview": data.get("overview", ""),
+            "key_takeaways": data.get("key_takeaways", []) or [],
+            "real_world_example": data.get("real_world_example", ""),
+            "quiz": [],
+            "flashcards": [],
+            "exam_notes": data.get("exam_notes", []) or [],
+            "related_topics": data.get("related_topics", []) or [],
+            "next_topic": data.get("next_topic", ""),
+        }
+        
+        # Parse diagram
+        diagram = data.get("diagram")
+        if diagram and isinstance(diagram, dict):
+            result["diagram"] = {
+                "type": diagram.get("type", "flowchart"),
+                "content": diagram.get("content", ""),
+            }
+        else:
+            result["diagram"] = None
+        
+        # Parse quiz questions
+        raw_quiz = data.get("quiz", [])
+        if isinstance(raw_quiz, list):
+            for q in raw_quiz:
+                if isinstance(q, dict) and q.get("question"):
+                    result["quiz"].append({
+                        "question": q.get("question", ""),
+                        "options": q.get("options", [])[:4],
+                        "correct_answer": q.get("correct_answer", "A"),
+                        "explanation": q.get("explanation", ""),
+                    })
+        
+        # Parse flashcards
+        raw_flashcards = data.get("flashcards", [])
+        if isinstance(raw_flashcards, list):
+            for f in raw_flashcards:
+                if isinstance(f, dict) and f.get("front"):
+                    result["flashcards"].append({
+                        "front": f.get("front", ""),
+                        "back": f.get("back", ""),
+                    })
+        
+        # Parse mode-specific fields
+        if mode == "study_coach_coding":
+            code_examples = data.get("code_examples", [])
+            if isinstance(code_examples, list):
+                result["code_examples"] = []
+                for ex in code_examples:
+                    if isinstance(ex, dict) and ex.get("code"):
+                        result["code_examples"].append({
+                            "language": ex.get("language", "python"),
+                            "title": ex.get("title", ""),
+                            "code": ex.get("code", ""),
+                            "explanation": ex.get("explanation", ""),
+                        })
+        
+        if mode == "study_coach_revision":
+            memory_aids = data.get("memory_aids", {})
+            if isinstance(memory_aids, dict):
+                result["memory_aids"] = {
+                    "mnemonics": memory_aids.get("mnemonics", []) or [],
+                    "acronyms": memory_aids.get("acronyms", []) or [],
+                    "patterns": memory_aids.get("patterns", []) or [],
+                }
+        
+        return result

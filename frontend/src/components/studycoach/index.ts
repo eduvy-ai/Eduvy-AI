@@ -1,0 +1,17 @@
+// ─── Study Coach Components Barrel Export ───────────────────────────
+
+export { default as StudyCoachPage } from './StudyCoachPage'
+export { default as ModeSelector } from './ModeSelector'
+export { default as QuestionInput } from './QuestionInput'
+export { default as ConceptOverview } from './ConceptOverview'
+export { default as KeyTakeaways } from './KeyTakeaways'
+export { default as DiagramViewer } from './DiagramViewer'
+export { default as RealWorldExample } from './RealWorldExample'
+export { default as QuizSection } from './QuizSection'
+export { default as FlashcardSection } from './FlashcardSection'
+export { default as ExamNotes } from './ExamNotes'
+export { default as RelatedTopics } from './RelatedTopics'
+export { default as NextTopic } from './NextTopic'
+export { default as CodeExamples } from './CodeExamples'
+export { default as MemoryAidsSection } from './MemoryAidsSection'
+export { default as LoadingSkeleton } from './LoadingSkeleton'

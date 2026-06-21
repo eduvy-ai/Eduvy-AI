@@ -14,6 +14,7 @@ const SettingsModal = lazy(() => import('../components/SettingsModal.jsx'))
 // Navigation items with i18n label keys (not actual labels)
 const ALL_NAV_ITEMS: { key: TabKey; labelKey: string }[] = [
   { key: 'home', labelKey: 'homeTab' },
+  { key: 'coach', labelKey: 'coachTab' },
   { key: 'notebook', labelKey: 'notebookTab' },
   { key: 'videos', labelKey: 'videosTab' },
   { key: 'learntv', labelKey: 'learntvTab' },

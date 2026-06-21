@@ -29,6 +29,7 @@ const BhoolPage = lazy(() => import('../modules/bhool/pages/BhoolPage'))
 const MuqablaPage = lazy(() => import('../modules/muqabla/pages/MuqablaPage'))
 const LabsPage = lazy(() => import('../modules/labs/pages/LabsPage'))
 const VideoCreatorPage = lazy(() => import('../modules/videocreator/pages/VideoCreatorPage'))
+const StudyCoachPage = lazy(() => import('../modules/studycoach/pages/StudyCoachPage'))
 
 // Loading fallback component
 const PageLoader = () => (
@@ -94,6 +95,7 @@ const AppRoutes: React.FC = () => {
           <Route path="muqabla" element={<MuqablaPage />} />
           <Route path="labs" element={<LabsPage />} />
           <Route path="videocreator" element={<VideoCreatorPage />} />
+          <Route path="coach" element={<StudyCoachPage />} />
         </Route>
 
         {/* ── Catch-all Redirect ── */}

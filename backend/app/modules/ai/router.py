@@ -5,7 +5,13 @@ import asyncio
 from fastapi import APIRouter, Depends
 
 from app.core.dependencies import get_current_user
-from app.modules.ai.schemas import ChatRequest, VisionRequest, VisionResponse
+from app.modules.ai.schemas import (
+    ChatRequest,
+    VisionRequest,
+    VisionResponse,
+    StudyCoachRequest,
+    StudyCoachResponse,
+)
 from app.modules.ai.service import AIService
 
 router = APIRouter(prefix="/ai", tags=["AI"])
@@ -22,6 +28,29 @@ async def chat(data: ChatRequest, current_user: str = Depends(get_current_user))
         history,
         data.max_tokens,
         data.mode,
+    )
+
+
+@router.post("/study-coach", response_model=StudyCoachResponse)
+async def study_coach(data: StudyCoachRequest, current_user: str = Depends(get_current_user)):
+    """
+    Generate a structured learning experience for a question or topic.
+    
+    Modes:
+    - study_coach: Comprehensive learning experience (default)
+    - study_coach_eli10: Explain Like I'm 10 - simple, fun explanations
+    - study_coach_exam: Exam prep focus - board exam patterns and tips
+    - study_coach_coding: Coding concepts with code examples
+    - study_coach_revision: Quick revision with mnemonics and key points
+    
+    The response adapts to the student's profile (standard, board, medium/language).
+    """
+    return await AIService.study_coach(
+        user_id=current_user,
+        question=data.question,
+        mode=data.mode,
+        subject_override=data.subject_override,
+        chapter_override=data.chapter_override,
     )
 
 
