@@ -15,9 +15,9 @@ def _is_admin(user_id: str) -> bool:
     conn = get_db()
     try:
         cur = conn.cursor()
-        cur.execute("SELECT role FROM users WHERE id = %s", (user_id,))
+        cur.execute("SELECT is_admin FROM users WHERE id = %s", (user_id,))
         row = cur.fetchone()
-        return row and row.get("role") in ("admin", "superadmin")
+        return row and row.get("is_admin", False)
     finally:
         conn.close()
 
