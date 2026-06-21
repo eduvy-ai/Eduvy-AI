@@ -27,47 +27,106 @@ _FFMPEG = (
 # ── Microsoft Neural Voice map (edge-tts) ─────────────────────────────────────
 # Using more reliable US/UK voices as primary, Indian as fallback
 _EDGE_VOICE_MAP = {
-    "en":       "en-US-AriaNeural",  # More reliable than Indian voice
+    # English variants - all map to US English for consistency
+    "en":       "en-US-AriaNeural",
+    "en-us":    "en-US-AriaNeural",
+    "en-in":    "en-US-AriaNeural",
+    "english":  "en-US-AriaNeural",
     "English":  "en-US-AriaNeural",
+    # Hindi
     "hi":       "hi-IN-SwaraNeural",
+    "hi-in":    "hi-IN-SwaraNeural",
+    "hindi":    "hi-IN-SwaraNeural",
     "Hindi":    "hi-IN-SwaraNeural",
+    # Gujarati
     "gu":       "gu-IN-DhwaniNeural",
+    "gu-in":    "gu-IN-DhwaniNeural",
+    "gujarati": "gu-IN-DhwaniNeural",
     "Gujarati": "gu-IN-DhwaniNeural",
+    # Marathi
     "mr":       "mr-IN-AarohiNeural",
+    "mr-in":    "mr-IN-AarohiNeural",
+    "marathi":  "mr-IN-AarohiNeural",
     "Marathi":  "mr-IN-AarohiNeural",
+    # Tamil
     "ta":       "ta-IN-PallaviNeural",
+    "ta-in":    "ta-IN-PallaviNeural",
+    "tamil":    "ta-IN-PallaviNeural",
     "Tamil":    "ta-IN-PallaviNeural",
+    # Telugu
     "te":       "te-IN-ShrutiNeural",
+    "te-in":    "te-IN-ShrutiNeural",
+    "telugu":   "te-IN-ShrutiNeural",
     "Telugu":   "te-IN-ShrutiNeural",
+    # Kannada
     "kn":       "kn-IN-SapnaNeural",
+    "kn-in":    "kn-IN-SapnaNeural",
+    "kannada":  "kn-IN-SapnaNeural",
     "Kannada":  "kn-IN-SapnaNeural",
+    # Bengali
     "bn":       "bn-IN-TanishaaNeural",
+    "bn-in":    "bn-IN-TanishaaNeural",
+    "bengali":  "bn-IN-TanishaaNeural",
     "Bengali":  "bn-IN-TanishaaNeural",
+    # Urdu
     "ur":       "ur-PK-UzmaNeural",
+    "ur-pk":    "ur-PK-UzmaNeural",
+    "urdu":     "ur-PK-UzmaNeural",
     "Urdu":     "ur-PK-UzmaNeural",
 }
 
 # ── gTTS fallback language codes ───────────────────────────────────────────────
 LANG_CODE_MAP = {
+    # English
     "en":       "en",
+    "en-us":    "en",
+    "en-in":    "en",
+    "english":  "en",
     "English":  "en",
+    # Hindi
     "hi":       "hi",
+    "hi-in":    "hi",
+    "hindi":    "hi",
     "Hindi":    "hi",
+    # Gujarati
     "gu":       "gu",
+    "gu-in":    "gu",
+    "gujarati": "gu",
     "Gujarati": "gu",
+    # Marathi
     "mr":       "mr",
+    "mr-in":    "mr",
+    "marathi":  "mr",
     "Marathi":  "mr",
+    # Tamil
     "ta":       "ta",
+    "ta-in":    "ta",
+    "tamil":    "ta",
     "Tamil":    "ta",
+    # Telugu
     "te":       "te",
+    "te-in":    "te",
+    "telugu":   "te",
     "Telugu":   "te",
+    # Kannada
     "kn":       "kn",
+    "kn-in":    "kn",
+    "kannada":  "kn",
     "Kannada":  "kn",
+    # Bengali
     "bn":       "bn",
+    "bn-in":    "bn",
+    "bengali":  "bn",
     "Bengali":  "bn",
+    # Punjabi
     "pa":       "pa",
+    "pa-in":    "pa",
+    "punjabi":  "pa",
     "Punjabi":  "pa",
+    # Urdu
     "ur":       "ur",
+    "ur-pk":    "ur",
+    "urdu":     "ur",
     "Urdu":     "ur",
 }
 
@@ -94,7 +153,15 @@ async def _generate_tts_edge(text: str, lang: str, output_path: str) -> str:
     """Generate TTS using Microsoft Neural Voice via edge-tts."""
     _patch_edge_tts_ssl()
     import edge_tts
-    voice = _EDGE_VOICE_MAP.get(lang, "en-IN-NeerjaNeural")
+    
+    # Normalize language input
+    lang_normalized = lang.strip().lower() if lang else "english"
+    
+    # Try exact match first, then lowercase, then default to US English
+    voice = _EDGE_VOICE_MAP.get(lang) or _EDGE_VOICE_MAP.get(lang_normalized) or "en-US-AriaNeural"
+    
+    logger.debug(f"TTS voice selection: lang='{lang}' -> voice='{voice}'")
+    
     tts = edge_tts.Communicate(text, voice)
     await tts.save(output_path)
     return output_path
@@ -103,7 +170,12 @@ async def _generate_tts_edge(text: str, lang: str, output_path: str) -> str:
 async def _generate_tts_gtts(text: str, lang: str, output_path: str) -> str:
     """Generate TTS using gTTS (Google, robotic fallback)."""
     from gtts import gTTS
-    lang_code = LANG_CODE_MAP.get(lang, "en")
+    
+    # Normalize language input
+    lang_normalized = lang.strip().lower() if lang else "english"
+    lang_code = LANG_CODE_MAP.get(lang) or LANG_CODE_MAP.get(lang_normalized) or "en"
+    
+    logger.debug(f"gTTS fallback: lang='{lang}' -> code='{lang_code}'")
 
     def _synth() -> None:
         tts = gTTS(text=text, lang=lang_code, slow=False)
@@ -120,6 +192,9 @@ async def generate_tts(text: str, lang: str, output_path: str) -> str:
     Returns output_path on success.
     """
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    
+    # Log incoming language for debugging
+    logger.info(f"generate_tts called: lang='{lang}', text_len={len(text)}")
 
     # Primary: edge-tts (Microsoft Neural TTS)
     try:
