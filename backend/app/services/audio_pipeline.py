@@ -185,6 +185,55 @@ def _preprocess_text_for_tts(text: str, lang: str) -> str:
     return text
 
 
+async def _generate_tts_edge_cli(text: str, lang: str, output_path: str) -> bool:
+    """
+    Try edge-tts via CLI subprocess (more reliable on cloud servers).
+    Returns True if successful, False otherwise.
+    """
+    import shutil
+    
+    edge_tts_bin = shutil.which("edge-tts")
+    if not edge_tts_bin:
+        return False
+    
+    # Normalize language and get voice
+    lang_normalized = lang.strip().lower() if lang else "english"
+    voice = _EDGE_VOICE_MAP.get(lang) or _EDGE_VOICE_MAP.get(lang_normalized) or "en-US-AriaNeural"
+    
+    # Write text to temp file (handles special characters better)
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8") as f:
+        f.write(text)
+        text_file = f.name
+    
+    try:
+        cmd = [
+            edge_tts_bin,
+            "--voice", voice,
+            "--file", text_file,
+            "--write-media", output_path,
+        ]
+        result = await asyncio.to_thread(
+            subprocess.run, cmd, capture_output=True, timeout=30
+        )
+        
+        if result.returncode == 0 and os.path.exists(output_path) and os.path.getsize(output_path) > 500:
+            logger.info(f"TTS SUCCESS [edge-tts CLI]: voice={voice}, size={os.path.getsize(output_path)}")
+            return True
+        
+        stderr = result.stderr.decode() if result.stderr else ""
+        logger.debug(f"edge-tts CLI failed: {stderr[:200]}")
+        return False
+    except subprocess.TimeoutExpired:
+        logger.debug("edge-tts CLI timeout")
+        return False
+    except Exception as exc:
+        logger.debug(f"edge-tts CLI error: {exc}")
+        return False
+    finally:
+        if os.path.exists(text_file):
+            os.remove(text_file)
+
+
 async def _generate_tts_edge(text: str, lang: str, output_path: str) -> str:
     """Generate TTS using Microsoft Neural Voice via edge-tts."""
     _patch_edge_tts_ssl()
