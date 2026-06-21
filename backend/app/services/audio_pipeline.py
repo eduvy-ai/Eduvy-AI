@@ -43,11 +43,11 @@ _EDGE_VOICE_MAP = {
     "gu-in":    "gu-IN-DhwaniNeural",
     "gujarati": "gu-IN-DhwaniNeural",
     "Gujarati": "gu-IN-DhwaniNeural",
-    # Marathi
-    "mr":       "mr-IN-AarohiNeural",
-    "mr-in":    "mr-IN-AarohiNeural",
-    "marathi":  "mr-IN-AarohiNeural",
-    "Marathi":  "mr-IN-AarohiNeural",
+    # Marathi - Using ManoharNeural (male) for better pronunciation
+    "mr":       "mr-IN-ManoharNeural",
+    "mr-in":    "mr-IN-ManoharNeural",
+    "marathi":  "mr-IN-ManoharNeural",
+    "Marathi":  "mr-IN-ManoharNeural",
     # Tamil
     "ta":       "ta-IN-PallaviNeural",
     "ta-in":    "ta-IN-PallaviNeural",
