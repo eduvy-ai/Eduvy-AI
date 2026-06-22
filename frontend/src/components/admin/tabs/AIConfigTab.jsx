@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { API, C, inputClass, btnClass, ghostBtnClass, Table } from '../shared'
+import { API, C, inputClass, btnClass, ghostBtnClass, Table, LoadingOverlay } from '../shared'
 
 // ── Provider metadata (no static model lists here) ───────────
 const ADMIN_PROVIDERS = {
@@ -207,15 +207,7 @@ export default function AIConfigTab({ toast }) {
 
   return (
     <div className="flex flex-col gap-7 relative">
-      {/* Loading overlay */}
-      {loading && (
-        <div className="absolute inset-0 bg-app-bg/70 rounded-2xl flex items-center justify-center z-10">
-          <div className="flex items-center gap-2 bg-app-card2 py-3 px-5 rounded-xl border border-app-border">
-            <span className="animate-spin text-lg">⏳</span>
-            <span className="text-app-muted text-sm">Loading config…</span>
-          </div>
-        </div>
-      )}
+      <LoadingOverlay show={loading} text="Loading config…" />
 
       {/* ── Section 0: Provider API Keys (Round-Robin Pool) ── */}
       <div className="bg-app-card2 rounded-2xl p-[22px] flex flex-col gap-4">
@@ -333,9 +325,7 @@ export default function AIConfigTab({ toast }) {
           </p>
         </div>
 
-        {loading ? (
-          <p className="text-app-muted text-[13px]">Loading…</p>
-        ) : (
+        {!loading && (
           ["free", "basic", "pro", "premium"].map(plan => {
             const entry = routing[plan] || { provider: "gemini", model: "gemini-2.0-flash" }
             const provMeta = ADMIN_PROVIDERS[entry.provider] || ADMIN_PROVIDERS.gemini

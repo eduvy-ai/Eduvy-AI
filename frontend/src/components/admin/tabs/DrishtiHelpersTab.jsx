@@ -165,7 +165,8 @@ export default function DrishtiHelpersTab({ toast }) {
   ]
 
   return (
-    <div>
+    <div className="relative">
+      <LoadingOverlay show={loading} />
       {/* Toolbar */}
       <div className="flex items-center gap-3 flex-wrap mb-4">
         <button onClick={openCreate} className={`${btnClass()} py-2.5 px-[18px] w-auto`}>+ Add Helper</button>
@@ -179,17 +180,15 @@ export default function DrishtiHelpersTab({ toast }) {
         )}
       </div>
 
-      {loading ? <LoadingOverlay show text="Loading helpers…" /> : (
-        <Table
-          cols={cols}
-          rows={helpers}
-          onEdit={openEdit}
-          onDelete={(row) => setConfirmDelete(row)}
-          selectedIds={selectedIds}
-          onSelectChange={setSelectedIds}
-          pageSize={10}
-        />
-      )}
+      <Table
+        cols={cols}
+        rows={helpers}
+        onEdit={openEdit}
+        onDelete={(row) => setConfirmDelete(row)}
+        selectedIds={selectedIds}
+        onSelectChange={setSelectedIds}
+        pageSize={10}
+      />
 
       {/* Single Delete Confirm */}
       {confirmDelete && (
@@ -258,7 +257,7 @@ export default function DrishtiHelpersTab({ toast }) {
               <button onClick={() => setAssignModal(null)} className="bg-transparent border-none text-app-muted cursor-pointer text-xl">×</button>
             </div>
 
-            {assignLoading ? <p className="text-app-muted">Loading…</p> : (
+            {assignLoading ? <LoadingOverlay show text="Loading students…" /> : (
               <>
                 {/* Currently Assigned */}
                 <div className="mb-5">

@@ -36,6 +36,7 @@ export default function UsageTab({ toast }) {
 
   return (
     <div className="flex flex-col gap-6">
+      <LoadingOverlay show={loading} />
       {/* Controls */}
       <div className="flex gap-2.5 flex-wrap items-center">
         <div className="flex items-center gap-2">

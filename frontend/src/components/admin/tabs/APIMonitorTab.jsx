@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useCallback } from 'react'
-import { API, C, ghostBtnClass } from '../shared'
+import { API, C, ghostBtnClass, LoadingOverlay } from '../shared'
 
 // ── Provider metadata ─────────────────────────────────────────
 const PROVIDER_COLORS = {
@@ -158,6 +158,8 @@ export default function APIMonitorTab({ toast }) {
 
   const activeProviders = data?.providers?.filter(p => p.has_key).length ?? 0
   const totalProviders  = data?.providers?.length ?? 5
+
+  if (!data && loading) return <LoadingOverlay show />
 
   return (
     <div className="flex flex-col gap-6">

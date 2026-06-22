@@ -141,15 +141,7 @@ export default function UsersTab({ toast }) {
 
   return (
     <div className="flex flex-col gap-5 relative">
-      {/* Loading overlay */}
-      {loading && (
-        <div className="absolute inset-0 bg-app-bg/70 rounded-2xl flex items-center justify-center z-10">
-          <div className="flex items-center gap-2 bg-app-card2 py-3 px-5 rounded-xl border border-app-border">
-            <span className="animate-spin text-lg">⏳</span>
-            <span className="text-app-muted text-sm">Loading…</span>
-          </div>
-        </div>
-      )}
+      <LoadingOverlay show={loading} />
       {/* Edit Plan Modal */}
       {editing && (
         <div className="fixed inset-0 bg-black/70 z-[999] flex items-center justify-center p-4">
@@ -234,7 +226,7 @@ export default function UsersTab({ toast }) {
           <button className={ghostBtnClass} onClick={() => setSelectedIds(new Set())}>Clear Selection</button>
         )}
         <span className="text-app-muted text-xs whitespace-nowrap">
-          {loading ? "Loading…" : `${users.length} users`}
+          {`${users.length} users`}
         </span>
       </div>
 

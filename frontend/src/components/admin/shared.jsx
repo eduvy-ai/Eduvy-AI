@@ -111,9 +111,9 @@ export function Toast({ msg, type, onDone }) {
 export function LoadingOverlay({ show, text = "Loading…" }) {
   if (!show) return null
   return (
-    <div className="absolute inset-0 bg-app-bg/70 rounded-2xl flex items-center justify-center z-10">
-      <div className="flex items-center gap-2 bg-app-card2 py-3 px-5 rounded-xl border border-app-border">
-        <span className="animate-spin text-lg">⏳</span>
+    <div className="fixed inset-0 bg-app-bg/80 flex items-center justify-center z-[100]">
+      <div className="flex items-center gap-3 bg-app-card2 py-4 px-6 rounded-xl border border-app-border shadow-xl">
+        <div className="w-6 h-6 rounded-full border-[2.5px] border-app-green/30 border-t-app-green animate-spin" />
         <span className="text-app-muted text-sm">{text}</span>
       </div>
     </div>
