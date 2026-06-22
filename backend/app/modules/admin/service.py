@@ -619,24 +619,26 @@ class AdminService:
     # ── API / Model Dashboard ──────────────────────────────────
 
     @staticmethod
-    def get_api_dashboard() -> Dict:
-        """Return live provider pool status, plan routing, and today's usage estimates."""
+    def get_api_dashboard(from_date: str = None, to_date: str = None) -> Dict:
+        """Return live provider pool status, plan routing, and usage estimates for a date range."""
         from services.ai_service import _KEY_POOLS, _PLAN_ROUTING
         conn = get_db()
         try:
             cur = conn.cursor()
             today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            start_date = from_date if from_date else today
+            end_date = to_date if to_date else today
 
-            # Today's calls + tokens grouped by user plan
+            # Calls + tokens grouped by user plan for date range
             cur.execute(
                 """SELECT u.plan,
                           COALESCE(SUM(a.call_count), 0)                        AS calls,
                           COALESCE(SUM(a.prompt_tokens + a.completion_tokens), 0) AS tokens
                    FROM ai_usage a
                    JOIN users u ON u.id = a.user_id
-                   WHERE a.date = %s
+                   WHERE a.date >= %s AND a.date <= %s
                    GROUP BY u.plan""",
-                (today,),
+                (start_date, end_date),
             )
             plan_usage: dict = {r["plan"]: {"calls": int(r["calls"]), "tokens": int(r["tokens"])}
                                 for r in cur.fetchall()}
@@ -744,7 +746,7 @@ class AdminService:
                 "plans":              plans,
                 "total_calls_today":  total_calls,
                 "total_tokens_today": total_tokens,
-                "as_of":              today,
+                "as_of":              f"{start_date} to {end_date}" if start_date != end_date else start_date,
             }
         finally:
             conn.close()
@@ -1080,6 +1082,34 @@ class AdminService:
             cur.execute("UPDATE drishti_helpers SET is_active=FALSE WHERE id=%s", (helper_id,))
             conn.commit()
             return {"ok": True}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def delete_helper_permanent(helper_id: int) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM helper_notes WHERE helper_id=%s", (helper_id,))
+            cur.execute("DELETE FROM drishti_assignments WHERE helper_id=%s", (helper_id,))
+            cur.execute("DELETE FROM drishti_helpers WHERE id=%s", (helper_id,))
+            conn.commit()
+            return {"ok": True}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def bulk_delete_helpers(ids: list) -> Dict:
+        if not ids:
+            return {"deleted": 0}
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM helper_notes WHERE helper_id = ANY(%s)", (ids,))
+            cur.execute("DELETE FROM drishti_assignments WHERE helper_id = ANY(%s)", (ids,))
+            cur.execute("DELETE FROM drishti_helpers WHERE id = ANY(%s)", (ids,))
+            conn.commit()
+            return {"deleted": len(ids)}
         finally:
             conn.close()
 

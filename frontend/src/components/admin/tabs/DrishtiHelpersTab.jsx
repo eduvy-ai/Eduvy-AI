@@ -9,9 +9,14 @@ export default function DrishtiHelpersTab({ toast }) {
   const [editing, setEditing]   = useState(null)
   const [newToken, setNewToken]  = useState(null)
   const [form, setForm]         = useState({ helper_name: '', helper_email: '', helper_type: 'teacher', notes: '' })
-  
+
+  // Selection & delete state
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [confirmDelete, setConfirmDelete] = useState(null)
+  const [confirmBulk, setConfirmBulk] = useState(false)
+
   // Student assignment state
-  const [assignModal, setAssignModal] = useState(null) // helper object or null
+  const [assignModal, setAssignModal] = useState(null)
   const [assignedStudents, setAssignedStudents] = useState([])
   const [allDrishtiStudents, setAllDrishtiStudents] = useState([])
   const [assignLoading, setAssignLoading] = useState(false)
@@ -58,8 +63,34 @@ export default function DrishtiHelpersTab({ toast }) {
     } catch (e) { toast(e.message, 'error') }
   }
 
+  // ── Delete (permanent) ──
+  const deleteHelper = async (helper) => {
+    try {
+      const r = await API(`/admin/drishti-helpers/${helper.id}/permanent`, { method: 'DELETE' })
+      if (!r.ok) throw new Error('Failed to delete')
+      toast('Helper deleted permanently')
+      setConfirmDelete(null)
+      load()
+    } catch (e) { toast(e.message, 'error') }
+  }
+
+  // ── Bulk Delete ──
+  const bulkDelete = async () => {
+    if (!selectedIds.size) return
+    try {
+      const r = await API('/admin/drishti-helpers/bulk-delete', {
+        method: 'POST',
+        body: JSON.stringify({ ids: [...selectedIds] }),
+      })
+      if (!r.ok) throw new Error('Bulk delete failed')
+      toast(`${selectedIds.size} helper${selectedIds.size > 1 ? 's' : ''} deleted`)
+      setSelectedIds(new Set())
+      setConfirmBulk(false)
+      load()
+    } catch (e) { toast(e.message, 'error') }
+  }
+
   const deactivate = async (id) => {
-    if (!confirm('Deactivate this helper?')) return
     try {
       const r = await API(`/admin/drishti-helpers/${id}`, { method: 'DELETE' })
       if (!r.ok) throw new Error('Failed')
@@ -113,30 +144,69 @@ export default function DrishtiHelpersTab({ toast }) {
   const assignedIds = new Set(assignedStudents.map(s => s.id))
   const unassignedStudents = allDrishtiStudents.filter(s => !assignedIds.has(s.id))
 
+  // ── Table Columns ──
+  const cols = [
+    { key: 'helper_name', label: 'Name' },
+    { key: 'helper_email', label: 'Email' },
+    { key: 'helper_type', label: 'Type' },
+    { key: 'student_count', label: 'Students', render: (v) => v || 0 },
+    { key: 'is_active', label: 'Status', render: (v) => v ? '🟢 Active' : '🔴 Inactive' },
+    { key: 'token_preview', label: 'Token', render: (v) => <code className="text-app-yellow text-[11px]">{v}</code> },
+    {
+      key: 'actions', label: '', render: (_, row) => (
+        <div className="flex gap-1.5 flex-wrap">
+          <button onClick={() => openAssignModal(row)} className={`${ghostBtnClass} py-1 px-2.5 text-[11px] text-app-blue border-app-blue/40`}>👥 Assign</button>
+          {row.is_active && (
+            <button onClick={() => deactivate(row.id)} className={`${ghostBtnClass} py-1 px-2.5 text-[11px] text-app-yellow border-app-yellow/40`}>Deactivate</button>
+          )}
+        </div>
+      )
+    },
+  ]
+
   return (
     <div>
-      <button onClick={openCreate} className={`${btnClass()} py-2.5 px-[18px] w-auto mb-4`}>+ Add Helper</button>
+      {/* Toolbar */}
+      <div className="flex items-center gap-3 flex-wrap mb-4">
+        <button onClick={openCreate} className={`${btnClass()} py-2.5 px-[18px] w-auto`}>+ Add Helper</button>
+        {selectedIds.size > 0 && (
+          <button onClick={() => setConfirmBulk(true)} className={`${btnClass('red')} py-2.5 px-[18px] w-auto`}>
+            🗑️ Delete Selected ({selectedIds.size})
+          </button>
+        )}
+        {selectedIds.size > 0 && (
+          <button className={ghostBtnClass} onClick={() => setSelectedIds(new Set())}>Clear Selection</button>
+        )}
+      </div>
 
-      {loading ? <p className="text-app-muted">Loading…</p> : (
-        <div className="flex flex-col gap-2.5">
-          {helpers.map(h => (
-            <div key={h.id} className="bg-app-card2 border border-app-border rounded-[14px] py-3.5 px-4">
-              <div className="flex justify-between items-start flex-wrap gap-2">
-                <div>
-                  <p className="text-app-text font-bold text-sm m-0">{h.helper_name}</p>
-                  <p className="text-app-muted text-xs my-1">{h.helper_email} · {h.helper_type}</p>
-                  <p className="text-app-muted text-[11px] m-0">Students: <strong className="text-app-text">{h.student_count || 0}</strong> · Token: <code className="text-app-yellow">{h.token_preview}</code></p>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  <button onClick={() => openAssignModal(h)} className={`${ghostBtnClass} text-app-blue border-app-blue/40`}>👥 Assign</button>
-                  <button onClick={() => openEdit(h)} className={ghostBtnClass}>Edit</button>
-                  {h.is_active && <button onClick={() => deactivate(h.id)} className={`${ghostBtnClass} text-app-red border-app-red/40`}>Deactivate</button>}
-                </div>
-              </div>
-            </div>
-          ))}
-          {helpers.length === 0 && <p className="text-app-muted text-center py-6">No helpers yet. Click "+ Add Helper" to create one.</p>}
-        </div>
+      {loading ? <LoadingOverlay show text="Loading helpers…" /> : (
+        <Table
+          cols={cols}
+          rows={helpers}
+          onEdit={openEdit}
+          onDelete={(row) => setConfirmDelete(row)}
+          selectedIds={selectedIds}
+          onSelectChange={setSelectedIds}
+          pageSize={10}
+        />
+      )}
+
+      {/* Single Delete Confirm */}
+      {confirmDelete && (
+        <ConfirmDialog
+          message={`Permanently delete helper "${confirmDelete.helper_name}"? This will also remove all their assignments and notes.`}
+          onConfirm={() => deleteHelper(confirmDelete)}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
+
+      {/* Bulk Delete Confirm */}
+      {confirmBulk && (
+        <ConfirmDialog
+          message={`Permanently delete ${selectedIds.size} selected helper${selectedIds.size > 1 ? 's' : ''}? All their assignments and notes will be removed.`}
+          onConfirm={bulkDelete}
+          onCancel={() => setConfirmBulk(false)}
+        />
       )}
 
       {/* Create/Edit Helper Modal */}

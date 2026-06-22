@@ -139,17 +139,20 @@ function ProviderCard({ p }) {
 export default function APIMonitorTab({ toast }) {
   const [data, setData]     = useState(null)
   const [loading, setLoading] = useState(false)
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const [fromDate, setFromDate] = useState(todayStr)
+  const [toDate, setToDate]     = useState(todayStr)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await API('/admin/api-dashboard')
+      const res = await API(`/admin/api-dashboard?from_date=${fromDate}&to_date=${toDate}`)
       if (res.ok) setData(await res.json())
       else toast?.('Failed to load dashboard', 'error')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [fromDate, toDate])
 
   useEffect(() => { load() }, [load])
 
@@ -165,20 +168,43 @@ export default function APIMonitorTab({ toast }) {
           <h2 className="text-base font-bold m-0 text-app-text">API &amp; Model Monitor</h2>
           {data?.as_of && (
             <p className="text-[11px] m-0 text-app-muted">
-              Today — {data.as_of} &nbsp;·&nbsp; estimates based on plan routing
+              {data.as_of} &nbsp;·&nbsp; estimates based on plan routing
             </p>
           )}
         </div>
-        <button className={`${ghostBtnClass} py-2 px-3.5 text-xs`} onClick={load}>
-          {loading ? '…' : '↺ Refresh'}
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <label className="text-[11px] text-app-muted font-semibold">From</label>
+            <input
+              type="date"
+              value={fromDate}
+              max={toDate}
+              onChange={e => setFromDate(e.target.value)}
+              className="bg-app-card2 border border-app-border rounded-xl py-2 px-3 text-app-text text-[13px] font-[Sora,sans-serif] outline-none focus:ring-1 focus:ring-app-green/40"
+            />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <label className="text-[11px] text-app-muted font-semibold">To</label>
+            <input
+              type="date"
+              value={toDate}
+              min={fromDate}
+              max={todayStr}
+              onChange={e => setToDate(e.target.value)}
+              className="bg-app-card2 border border-app-border rounded-xl py-2 px-3 text-app-text text-[13px] font-[Sora,sans-serif] outline-none focus:ring-1 focus:ring-app-green/40"
+            />
+          </div>
+          <button className={`${ghostBtnClass} py-2 px-3.5 text-xs`} onClick={load}>
+            {loading ? '…' : '↺ Refresh'}
+          </button>
+        </div>
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
         {[
-          { label: 'Total calls today',  value: fmtK(data?.total_calls_today),  color: C.blue },
-          { label: 'Total tokens today', value: fmtK(data?.total_tokens_today), color: C.green },
+          { label: 'Total calls',  value: fmtK(data?.total_calls_today),  color: C.blue },
+          { label: 'Total tokens', value: fmtK(data?.total_tokens_today), color: C.green },
           { label: 'Active providers',   value: `${activeProviders} / ${totalProviders}`, color: C.yellow },
           { label: 'Plans configured',   value: String(data?.plans?.length ?? '—'), color: C.orange },
         ].map(s => (

@@ -259,9 +259,9 @@ async def bulk_delete_users(data: BulkDeleteStr, admin_id: int = Depends(get_adm
 # ── API / Model Dashboard ─────────────────────────────────────
 
 @router.get("/api-dashboard")
-async def get_api_dashboard(admin_id: int = Depends(get_admin_user)):
-    """Live provider pool status, plan routing, and today's estimated usage per provider."""
-    return await asyncio.to_thread(AdminService.get_api_dashboard)
+async def get_api_dashboard(from_date: str = Query(None), to_date: str = Query(None), admin_id: int = Depends(get_admin_user)):
+    """Live provider pool status, plan routing, and usage per provider for a date range."""
+    return await asyncio.to_thread(AdminService.get_api_dashboard, from_date, to_date)
 
 
 # ── AI Usage ──────────────────────────────────────────────────
@@ -353,6 +353,16 @@ async def assign_student(helper_id: int, student_id: str, admin_id: int = Depend
 @router.delete("/drishti-helpers/{helper_id}/assign/{student_id}")
 async def unassign_student(helper_id: int, student_id: str, admin_id: int = Depends(get_admin_user)):
     return await asyncio.to_thread(AdminService.unassign_student, helper_id, student_id)
+
+
+@router.delete("/drishti-helpers/{helper_id}/permanent")
+async def delete_helper_permanent(helper_id: int, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.delete_helper_permanent, helper_id)
+
+
+@router.post("/drishti-helpers/bulk-delete")
+async def bulk_delete_helpers(data: BulkDeleteInt, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.bulk_delete_helpers, data.ids)
 
 
 @router.get("/drishti-students")
