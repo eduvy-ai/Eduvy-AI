@@ -12,6 +12,18 @@ import StylePicker from '../video/StylePicker'
 import SceneEditor from '../video/SceneEditor'
 import VideoPlayer from '../video/VideoPlayer'
 
+// Build a usable media URL from a stored path. When videos are served from R2
+// the backend stores an ABSOLUTE url (https://…) — those must be used as-is.
+// Only relative paths (local /videos/… served by the API) get the API base
+// prepended. (Prepending the API base to an absolute R2 url produced a broken
+// "https://api…https://r2…" url — video/thumbnail failed to load in production.)
+function mediaUrl(path) {
+  if (!path) return null
+  const p = String(path).replace(/\\/g, '/')
+  if (/^https?:\/\//i.test(p)) return p
+  return `${API_BASE_URL}${p.startsWith('/') ? '' : '/'}${p}`
+}
+
 const STEPS = ['Input', 'Style', 'Script', 'Generating', 'Done']
 
 const LANGUAGES = [
@@ -611,12 +623,8 @@ function StepGenerating({ status, progress, error, onRetry }) {
 // ── Step 5: Done ──────────────────────────────────────────────
 
 function StepDone({ videoData, shareUrl, shareLoading, onShare, onNewVideo }) {
-  const videoUrl = videoData?.file_path
-    ? `${API_BASE_URL}${videoData.file_path.replace(/\\/g, '/')}`
-    : null
-  const thumbUrl = videoData?.thumb_path
-    ? `${API_BASE_URL}${videoData.thumb_path.replace(/\\/g, '/')}`
-    : null
+  const videoUrl = mediaUrl(videoData?.file_path)
+  const thumbUrl = mediaUrl(videoData?.thumb_path)
 
   return (
     <div className="space-y-5">
@@ -674,7 +682,7 @@ function LibraryPanel({ library, loading, onDelete, onPlay }) {
           <div key={v.id} className="flex items-center gap-3 px-4 py-3">
             {v.thumb_path ? (
               <img
-                src={`${API_BASE_URL}${v.thumb_path.replace(/\\/g, '/')}`}
+                src={mediaUrl(v.thumb_path)}
                 alt="thumb"
                 className="w-14 h-10 object-cover rounded-lg shrink-0 bg-app-card2"
               />
