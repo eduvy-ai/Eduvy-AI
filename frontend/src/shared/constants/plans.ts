@@ -2,7 +2,7 @@
 // Defines what each plan tier can access
 
 export type PlanType = 'free' | 'basic' | 'pro' | 'premium'
-export type TabKey = 'home' | 'videos' | 'notebook' | 'learntv' | 'labs' | 'discover' | 'sathi' | 'bhool' | 'muqabla' | 'videocreator' | 'coach'
+export type TabKey = 'home' | 'videos' | 'notebook' | 'learntv' | 'labs' | 'sathi' | 'bhool' | 'muqabla' | 'videocreator' | 'coach'
 export type LabKey = 'quiz' | 'examiner' | 'samjhao' | 'podcast' | 'essay' | 'mental'
 
 export interface Plan {
@@ -43,7 +43,7 @@ export const PLANS: Record<PlanType, Plan> = {
     label: 'Premium',
     icon: '👑',
     color: '#00E5A0',
-    tabs: ['home', 'coach', 'videos', 'notebook', 'learntv', 'labs', 'discover', 'videocreator', 'sathi', 'bhool', 'muqabla'],
+    tabs: ['home', 'coach', 'videos', 'notebook', 'learntv', 'labs', 'videocreator', 'sathi', 'bhool', 'muqabla'],
     labs: ['quiz', 'examiner', 'samjhao', 'podcast', 'essay', 'mental'],
     aiCallsPerDay: Infinity,
   },

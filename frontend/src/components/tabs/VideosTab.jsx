@@ -2152,6 +2152,13 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
 
       {/* -- Top bar: board style + level + search -- */}
       <div style={{ padding:'10px 14px', flexShrink:0, background:COLORS.card, borderBottom:`1px solid ${COLORS.border}` }}>
+        {/* Title */}
+        <div style={{ marginBottom:9 }}>
+          <div style={{ fontSize:15, fontWeight:800, color:COLORS.text, fontFamily:'Sora,sans-serif' }}>🎬 AI Whiteboard Lessons</div>
+          <div style={{ fontSize:11, color:COLORS.muted, marginTop:2, lineHeight:1.4 }}>
+            Ask any topic and watch an animated whiteboard lesson, narrated in your language.
+          </div>
+        </div>
         {/* Row 1: board style */}
         <div style={{ display:'flex', gap:6, marginBottom:7 }}>
           {Object.entries(BS).map(([k,v]) => (
@@ -2189,7 +2196,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
         {/* Row 3: search */}
         <div style={{ display:'flex', gap:8 }}>
           <input style={{ ...iStyle, flex:1 }}
-            placeholder="Ask anything� e.g. How does photosynthesis work?"
+            placeholder="Ask anything… e.g. How does photosynthesis work?"
             value={question} onChange={e => setQuestion(e.target.value)}
             onKeyDown={e => e.key==='Enter' && generate()} />
           <button onClick={() => generate()} disabled={loading || !question.trim()}
@@ -2204,10 +2211,10 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
         {/* Loading � Golpo-style pipeline progress */}
         {loading && (() => {
           const STAGES = [
-            { icon:'🧠', label:'Understanding', desc:'Reading your topic deeply�' },
-            { icon:'🗺️', label:'Storyboard',    desc:'Planning which visuals fit each scene�' },
-            { icon:'✍️', label:'Scripting',     desc:'Writing the teaching script scene by scene�' },
-            { icon:'✅', label:'Ready',          desc:'Finalising your whiteboard lesson�' },
+            { icon:'🧠', label:'Understanding', desc:'Reading your topic deeply…' },
+            { icon:'🗺️', label:'Storyboard',    desc:'Planning which visuals fit each scene…' },
+            { icon:'✍️', label:'Scripting',     desc:'Writing the teaching script scene by scene…' },
+            { icon:'✅', label:'Ready',          desc:'Finalising your whiteboard lesson…' },
           ]
           const stageIdx = Math.max(0, pipelineStage - 1) // 1-4 ? 0-3 index
           return (

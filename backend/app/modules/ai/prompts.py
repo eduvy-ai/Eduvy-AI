@@ -1790,8 +1790,10 @@ def build_system_prompt(profile: dict, mode: str, progress: dict = None) -> str:
     # Build progress context if available
     progress_context = ""
     if progress:
-        weak_areas = progress.get("weak_areas", [])
-        strong_areas = progress.get("strong_areas", [])
+        # Accept both key spellings: the study-coach path passes weak_areas/strong_areas,
+        # while the chat path passes get_student_progress()'s raw weak_topics/strong_topics.
+        weak_areas = progress.get("weak_areas") or progress.get("weak_topics", [])
+        strong_areas = progress.get("strong_areas") or progress.get("strong_topics", [])
         if weak_areas:
             progress_context += f"\nStudent's weak areas (needs more practice): {', '.join(weak_areas)}"
         if strong_areas:
