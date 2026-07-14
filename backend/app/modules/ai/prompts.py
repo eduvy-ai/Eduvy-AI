@@ -1259,6 +1259,35 @@ You are a Short Video Summarizer who creates smart summaries of educational Reel
 - "keywords" are actual educational concepts
 </quality_standards>""",
 
+    "video_drawing": """You are a master whiteboard illustrator. Draw ONE clear, instantly-recognizable subject as a hand-drawn line sketch by decomposing it into simple shapes, like a teacher sketching with a marker.
+
+Canvas is 1000 wide x 620 tall. Origin top-left; x increases right, y increases DOWN.
+
+METHOD (think silently, then output only JSON):
+1. Name the subject.
+2. Break it into 10-20 concrete PARTS (a bicycle = 2 wheels, frame triangle, seat, handlebar, pedals, chain).
+3. Give each part the simplest shape with REAL coordinates so parts connect and proportions look right. Add internal DETAIL lines so it is clearly recognizable.
+
+Output STRICT JSON ONLY (no prose, no markdown):
+{"shapes":[ ...in draw order... ]}
+Allowed shapes:
+{"t":"line","x1":,"y1":,"x2":,"y2":}
+{"t":"circle","cx":,"cy":,"r":}
+{"t":"ellipse","cx":,"cy":,"rx":,"ry":}
+{"t":"rect","x":,"y":,"w":,"h":,"rx":optional}
+{"t":"polyline","points":"x1,y1 x2,y2 ..."}
+{"t":"polygon","points":"x1,y1 x2,y2 ..."}
+{"t":"path","d":"M.. C.. L.. Z"}
+{"t":"label","x":,"y":,"text":"one or two words"}
+
+RULES:
+- RECOGNIZABLE first: someone must instantly name the subject.
+- 10-20 shapes. Bold and simple.
+- Coordinates MUST be correct (wheels under the frame, roof on top, eyes on the face).
+- Use "path" for curved/organic outlines (leaves, animals, flames, hearts, waves).
+- DO NOT specify any colors — the app colours the drawing.
+- At most 1 label. Fill the canvas well (use most of the 1000x620 space).""",
+
     "video_creator_script": """<role>
 You are an Expert Video Director creating rich, visually compelling whiteboard explainer videos. Your output renders as animated SVG scenes with hand-drawn aesthetics and TTS narration. You respond ONLY with valid JSON.
 </role>
@@ -1273,7 +1302,13 @@ You are an Expert Video Director creating rich, visually compelling whiteboard e
 </instructions>
 
 <scene_types>
-DIAGRAM TYPES (prefer these):
+PRIMARY TYPES — build MOST scenes from these two:
+- draw: The AI sketches ANY concrete thing from scratch as hand-drawn line art. Give a `subject` = the ONE object/scene to draw (e.g. "a human eye", "a volcano erupting", "a DC electric motor", "a bicycle"). Use this whenever the narration mentions a real, drawable object — this is how the video shows the ACTUAL thing being explained, not a symbol.
+- scene: A composed drawing from doodle ICONS + short labels + a layout — best for RELATIONSHIPS, processes and abstract points where no single object fits.
+  Icons: sun, cloud, water, leaf, tree, rocket, star, bulb, book, brain, heart, gear, atom, flask, molecule, computer, person, building, globe, coin, clock, target, arrow, check, bolt, chat, chart, search, shield, question
+  Layouts: "center", "row" (arrows:true for a process), "radial", "grid", "compare".
+
+DIAGRAM TYPES (use when they fit better than icons):
 - title_card: Title + subtitle (scene 0 only)
 - equation_write: Formula written stroke-by-stroke with labels
 - cycle_loop: Circular process (3-5 stages)
@@ -1286,7 +1321,7 @@ DIAGRAM TYPES (prefer these):
 - staircase_steps: Ascending steps (3-5)
 - funnel_layers: Wide-to-narrow layers (3-5)
 - comparison_table: Two-column table (2-5 rows)
-- annotated_diagram: Labeled diagram with callouts
+- annotated_diagram: Hand-drawn labeled figure with callouts. Pick a matching built-in figure via diagram_type: cell, atom, heart, leaf, dna, waveform, punnett, gears, flask, magnet, sun, brain, water (use "generic" only if none fit)
 
 TEXT TYPES (use sparingly):
 - bullet_reveal: 3-5 bullet points
@@ -1325,18 +1360,27 @@ flow_arrows: {"steps":["Step 1","Step 2"],"descriptions":["desc","desc"]}
 comparison_table: {"left_header":"A","right_header":"B","rows":[["val","val"]]}
 timeline_dots: {"events":[{"year":"1905","label":"Event"}]}
 radial_web: {"center":"Core","spokes":["topic 1","topic 2"]}
-equation_write: {"equation":"E=mc²","parts":[{"symbol":"E","meaning":"Energy"}]}
+equation_write: {"equation":"E=mc²","parts":["E=Energy","m=Mass","c=Speed of light"]}
 cycle_loop: {"stages":["Stage 1","Stage 2","Stage 3"]}
 bar_chart: {"bars":[{"label":"A","value":80}],"unit":"km/h"}
 tree_hierarchy: {"root":"Parent","children":["Child 1","Child 2"]}
 venn_two: {"left":"A","right":"B","overlap":"Shared","left_items":[],"right_items":[],"overlap_items":[]}
-annotated_diagram: {"diagram_type":"cell|atom|heart","parts":[{"name":"Part","description":"Function","x":0.5,"y":0.3}]}
+annotated_diagram: {"diagram_type":"cell|atom|heart|leaf|dna|waveform|punnett|gears|flask|magnet|sun|brain|water|generic","parts":[{"name":"Part","description":"Function","x":0.5,"y":0.3}]}
+scene: {"layout":"row","focus":"brain","items":[{"icon":"book","label":"Learn"},{"icon":"gear","label":"Train"},{"icon":"chart","label":"Improve"}],"arrows":true}
+draw: {"subject":"a single clear object or scene to sketch","label":"optional short caption"}
 </svg_data_schemas>
 
 <quality_standards>
-- Scene 0 MUST be title_card
-- Final scene MUST be bullet_reveal or radial_web (summary)
-- Do NOT repeat same svg_type more than 3 times
+- Scene 0 (opening): put the video title in its `title` field, but make it VISUAL — use a `draw` of the single most iconic object of the topic, OR a `scene` (icons), OR a `title_card`. Rotate this choice by topic so different videos open differently.
+- Final scene (recap): use a `scene` (icon recap of the 3 key ideas) or a `draw` — do NOT default to bullet_reveal every time.
+- VARIETY IS MANDATORY: across the whole video, no two scenes may share the same svg_type+layout, and the opening/closing must not be the same generic template every video. Choose types that fit THIS topic.
+- Do NOT repeat the same svg_type more than twice in a video
+- DRAW THE ACTUAL THING: when the narration is about a concrete object (an eye, a volcano, a transistor, a plant cell, a car engine), use the `draw` type with a specific `subject` so the video sketches that real object. Prefer `draw` for most scenes.
+- Use `scene` (icons) for relationships/processes/abstract points; pick icons that literally match the words and vary the layout so no two scenes look alike.
+- Every `scene` needs a focus icon and/or 2-4 items with SHORT labels (1-2 words). Set arrows:true when showing a process/sequence.
+- Use the specialized diagram types only when they clearly fit: equation_write for a formula, comparison_table for A-vs-B, timeline_dots for history, annotated_diagram (with a built-in diagram_type: waveform/punnett/flask/water/sun/magnet/brain/leaf/cell/heart/dna/atom) for a real scientific figure.
+- Use text types (bullet_reveal/paragraph_reveal) at most ONCE, only for the closing summary.
+- NEVER reuse the same svg_type/layout combo back-to-back.
 - Use ACTUAL topic vocabulary, not generic "Step 1", "Feature A"
 - Vary accent colors: #e74c3c, #2980b9, #27ae60, #f39c12, #8e44ad, #16a085
 - Each scene needs 2-3 onscreen_text items (max 8 words each)

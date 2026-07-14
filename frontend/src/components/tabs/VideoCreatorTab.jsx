@@ -110,11 +110,17 @@ export default function VideoCreatorTab({ profile = null }) {
         enable_captions: true,
       })
       // result: { id, title, script_json, ... }
-      const scriptObj = typeof result.script_json === 'string'
-        ? JSON.parse(result.script_json)
-        : result.script_json
-      setScenes(scriptObj?.scenes || [])
-      setProjectTitle(scriptObj?.title || topic)
+      // script_json is stored as a bare scenes ARRAY, but older shapes wrapped it
+      // in an object { title, scenes }. Handle both so the review step lists scenes.
+      let scriptObj = result.script_json
+      if (typeof scriptObj === 'string') {
+        try { scriptObj = JSON.parse(scriptObj) } catch { scriptObj = [] }
+      }
+      const parsedScenes = Array.isArray(scriptObj)
+        ? scriptObj
+        : (scriptObj?.scenes || [])
+      setScenes(parsedScenes)
+      setProjectTitle(result.title || scriptObj?.title || topic)
       setVideoId(result.id)
       setStep(2)
     } catch (e) {

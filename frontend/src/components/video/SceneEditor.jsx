@@ -16,6 +16,11 @@ const SVG_TYPE_LABELS = {
   cycle_loop: '🔄 Cycle',
   funnel_layers: '🔽 Funnel',
   paragraph_reveal: '📝 Paragraph',
+  annotated_diagram: '🔬 Labeled Diagram',
+  illustration: '🖼️ Illustration',
+  scene: '🎨 Scene',
+  composition: '🎨 Scene',
+  draw: '✏️ Sketch',
 }
 
 export default function SceneEditor({ scene, index, onChange }) {
