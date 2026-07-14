@@ -56,8 +56,9 @@ _JS_SETUP = r"""
     var freeze = document.getElementById('__vr_freeze__');
     if (freeze) freeze.remove();
 
+    // Keep the drawing hand visible; we position it per-frame (not real-time).
     var pen = document.getElementById('pen');
-    if (pen) pen.style.display = 'none';
+    if (pen) { pen.style.display = ''; pen.style.transition = 'none'; pen.style.opacity = '0'; }
 
     window.__vi = [];
     document.querySelectorAll('[style*="animation:"]').forEach(function(el) {
@@ -81,6 +82,14 @@ _JS_SETUP = r"""
             if (name === 'fadeUp') {
                 el.style.transform = 'translateY(18px)';
             }
+        } else if (name === 'wipeReveal') {
+            el.style.clipPath = 'inset(0 100% 0 0)';
+            el.style.webkitClipPath = 'inset(0 100% 0 0)';
+        } else if (name === 'handSweep') {
+            el.style.opacity = '0';
+            var hx0 = parseFloat(el.getAttribute('data-x0') || '0');
+            var hy0 = parseFloat(el.getAttribute('data-y') || '0');
+            el.setAttribute('transform', 'translate(' + hx0 + ',' + hy0 + ')');
         }
     });
     void document.documentElement.getBoundingClientRect();
@@ -109,8 +118,42 @@ _JS_FRAME = r"""
             a.el.style.opacity = String(Math.min(1, p * 1.43));
             var s = p < 0.7 ? (0.5 + 0.58 * (p / 0.7)) : (1.08 - 0.08 * ((p - 0.7) / 0.3));
             a.el.style.transform = 'scale(' + s + ')';
+        } else if (a.name === 'wipeReveal') {
+            var inset = 'inset(0 ' + (100 * (1 - p)) + '% 0 0)';
+            a.el.style.clipPath = inset;
+            a.el.style.webkitClipPath = inset;
+        } else if (a.name === 'handSweep') {
+            var x0 = parseFloat(a.el.getAttribute('data-x0') || '0');
+            var x1 = parseFloat(a.el.getAttribute('data-x1') || '0');
+            var hy = parseFloat(a.el.getAttribute('data-y') || '0');
+            var hx = x0 + (x1 - x0) * p;
+            a.el.setAttribute('transform', 'translate(' + hx + ',' + hy + ')');
+            var op = 1;
+            if (raw <= 0.001 || raw >= 0.999) op = 0;
+            else if (p < 0.12) op = p / 0.12;
+            else if (p > 0.9) op = (1 - p) / 0.1;
+            a.el.style.opacity = String(op);
         }
     });
+
+    // Drive the drawing hand along the pen-hint timeline so each scene looks
+    // hand-drawn. Show it at the most recent hint whose stroke is still drawing.
+    var pen = document.getElementById('pen');
+    if (pen && window.__penHints && window.__penHints.length) {
+        var tS = tMs / 1000;
+        var active = null;
+        for (var k = 0; k < window.__penHints.length; k++) {
+            var hnt = window.__penHints[k];
+            if (hnt[2] <= tS) active = hnt; else break;
+        }
+        if (!active) {
+            pen.style.opacity = '0';
+        } else {
+            pen.style.transform = 'translate(' + (active[0] - 8) + 'px,' + (active[1] - 30) + 'px)';
+            var since = tS - active[2];
+            pen.style.opacity = since < 0.55 ? '0.92' : (since < 1.1 ? '0.3' : '0');
+        }
+    }
     void document.documentElement.getBoundingClientRect();
 }
 """
@@ -203,7 +246,6 @@ def _render_all_sync(
                 freeze_css = (
                     '<style id="__vr_freeze__">'
                     "*, *::before, *::after { animation-play-state: paused !important; }"
-                    "#pen { display: none !important; }"
                     "</style>"
                 )
                 patched = html_content.replace("</head>", freeze_css + "\n</head>", 1) \
@@ -308,7 +350,6 @@ def _render_sync(
     freeze_css = (
         '<style id="__vr_freeze__">'
         "*, *::before, *::after { animation-play-state: paused !important; }"
-        "#pen { display: none !important; }"
         "</style>"
     )
     if "</head>" in html_content:

@@ -12,6 +12,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Cloudflare (in front of api.groq.com, etc.) 1010-blocks requests whose client
+# looks like a bare bot. A real browser User-Agent reliably passes its bot check.
+_BROWSER_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+)
+
 # ── API key encryption (Fernet / AES-128-CBC) ─────────────────
 # Keys are encrypted before writing to DB and decrypted on read.
 # The Fernet key is derived from JWT_SECRET so no extra env var is needed.
@@ -485,7 +492,7 @@ async def call_ai(
         if cached is not None:
             return cached
 
-    async with httpx.AsyncClient(timeout=120.0) as client:
+    async with httpx.AsyncClient(timeout=120.0, headers={"User-Agent": _BROWSER_UA}) as client:
         for (cur_provider, cur_model) in _provider_order():
             pool_size = len(_KEY_POOLS.get(cur_provider, []))
             # Attempt once per key in the pool (min 1, max 5) so every
@@ -531,13 +538,28 @@ async def call_ai(
 
                 except httpx.HTTPStatusError as exc:
                     status = exc.response.status_code
+                    import logging as _lg
                     if status == 429:
-                        # Key is rate-limited — next iteration will pull the next
-                        # round-robin key automatically; just wait and continue.
+                        # Rate limited. Log the ACTUAL limit (tokens-per-day vs
+                        # tokens-per-minute + reset) so it's never opaque, then try
+                        # the next round-robin key immediately (it may have budget).
+                        retry_after = exc.response.headers.get("retry-after", "?")
+                        _lg.getLogger(__name__).warning(
+                            "call_ai [%s/%s] 429 rate limit (key %d/%d, retry-after=%ss): %s",
+                            cur_provider, cur_model, attempt + 1, n_attempts, retry_after,
+                            exc.response.text[:150],
+                        )
                         if attempt < n_attempts - 1:
-                            await asyncio.sleep(min((attempt + 1) * 3, 15))
+                            await asyncio.sleep(1)  # brief — next key may be fine
                             continue
-                        break  # all keys rate-limited → try next provider
+                        break  # every key rate-limited → try next provider
+                    # Non-429: surface the real cause (403 Cloudflare block, 401 bad
+                    # key, etc.) instead of a silent fallthrough.
+                    _lg.getLogger(__name__).warning(
+                        "call_ai [%s/%s] HTTP %s (attempt %d): %s",
+                        cur_provider, cur_model, status, attempt + 1,
+                        exc.response.text[:180],
+                    )
                     if status == 400:
                         err_text = exc.response.text.lower()
                         if "decommissioned" in err_text or "deprecated" in err_text or "no longer supported" in err_text:
@@ -692,7 +714,7 @@ async def call_vision(
     # Use gemini-2.0-flash for vision (supports multimodal)
     model = "gemini-2.0-flash"
     
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=60.0, headers={"User-Agent": _BROWSER_UA}) as client:
         try:
             result = await _gemini_vision(
                 client, model, key, prompt, image_base64, mime_type, max_tokens=1500

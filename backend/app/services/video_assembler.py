@@ -90,24 +90,100 @@ async def assemble_video(
 
             audio_path = os.path.join(out_dir, f"audio_{fidx:03d}.mp3")
             padded_path = os.path.join(out_dir, f"audio_padded_{fidx:03d}.mp3")
-            try:
-                if narration.strip():
-                    logger.info("  [%d/%d] TTS start (lang=%s)", fidx + 1, total_frames, narration_language)
-                    await generate_tts(narration, narration_language, audio_path)
-                    await pad_audio_to_duration(audio_path, duration_sec, padded_path)
-                    audio_files.append(padded_path)
-                    logger.info("  [%d/%d] TTS done (%d bytes)", fidx + 1, total_frames, os.path.getsize(padded_path))
-                else:
-                    logger.warning("  [%d/%d] No narration — using silence", fidx + 1, total_frames)
-                    await _generate_silence(duration_sec, padded_path)
-                    audio_files.append(padded_path)
-            except Exception as exc:
-                logger.warning("  [%d/%d] TTS failed: %s — using silence", fidx + 1, total_frames, exc)
+            if narration.strip():
+                # Retry TTS once — edge-tts occasionally drops a websocket under
+                # repeated back-to-back calls; a second try (which also falls back
+                # to gTTS internally) almost always succeeds. Only after both
+                # attempts fail do we fall back to silence for this scene.
+                tts_ok = False
+                last_tts_err = None
+                for tts_attempt in range(2):
+                    try:
+                        logger.info("  [%d/%d] TTS start (lang=%s, attempt %d)",
+                                    fidx + 1, total_frames, narration_language, tts_attempt + 1)
+                        await generate_tts(narration, narration_language, audio_path)
+                        await pad_audio_to_duration(audio_path, duration_sec, padded_path)
+                        audio_files.append(padded_path)
+                        logger.info("  [%d/%d] TTS done (%d bytes)",
+                                    fidx + 1, total_frames, os.path.getsize(padded_path))
+                        tts_ok = True
+                        break
+                    except Exception as exc:
+                        last_tts_err = exc
+                        logger.warning("  [%d/%d] TTS attempt %d failed: %s",
+                                       fidx + 1, total_frames, tts_attempt + 1, exc)
+                if not tts_ok:
+                    logger.error("  [%d/%d] TTS failed after retries: %s — using silence",
+                                 fidx + 1, total_frames, last_tts_err)
+                    try:
+                        await _generate_silence(duration_sec, padded_path)
+                        audio_files.append(padded_path)
+                    except Exception:
+                        audio_files.append(None)
+            else:
+                logger.warning("  [%d/%d] No narration — using silence", fidx + 1, total_frames)
                 try:
                     await _generate_silence(duration_sec, padded_path)
                     audio_files.append(padded_path)
                 except Exception:
                     audio_files.append(None)
+
+            # Optional raster hero images (free, no-key). OFF by default: generic
+            # image models produce clip-art that reads as a slideshow rather than
+            # a drawn whiteboard. The authentic look comes from the vector
+            # stroke-by-stroke renderer. Set VIDEO_ENABLE_AI_IMAGES=1 to opt in.
+            from app.services.svg_renderer import _SVG_NATIVE_DIAGRAMS
+            stype = svg_spec.get("type")
+            data = svg_spec.setdefault("data", {})
+            diagram_type = str(data.get("diagram_type", "")).strip().lower()
+            _images_on = os.getenv("VIDEO_ENABLE_AI_IMAGES", "0") == "1"
+            needs_image = _images_on and (
+                stype == "illustration"
+                or (stype == "annotated_diagram" and diagram_type not in _SVG_NATIVE_DIAGRAMS)
+            )
+            if needs_image and not data.get("image_data_uri"):
+                img_prompt = (data.get("prompt")
+                              or svg_spec.get("title")
+                              or narration[:80])
+                try:
+                    from app.services.image_gen import generate_illustration_data_uri
+                    uri = await generate_illustration_data_uri(
+                        img_prompt, style_variant, orientation, seed=fidx
+                    )
+                    if uri:
+                        data["image_data_uri"] = uri
+                        logger.info("  [%d/%d] hero image ready (~%d KB)",
+                                    fidx + 1, total_frames, len(uri) // 1024)
+                    else:
+                        logger.warning("  [%d/%d] hero image unavailable — SVG fallback",
+                                       fidx + 1, total_frames)
+                except Exception as exc:
+                    logger.warning("  [%d/%d] hero image gen error: %s — SVG fallback",
+                                   fidx + 1, total_frames, exc)
+
+            # `draw` scenes: sketch the ACTUAL subject. A free image model draws
+            # clean line-art, OpenCV vectorizes it to contours, and the renderer
+            # inks them stroke-by-stroke with the hand — recognizable + drawn, not
+            # a slide. On any failure the renderer falls back to the icon scene.
+            if svg_spec.get("type") in ("draw", "sketch"):
+                data = svg_spec.setdefault("data", {})
+                if not data.get("contours"):
+                    subject = (data.get("subject") or svg_spec.get("title") or narration[:60]).strip()
+                    try:
+                        from app.services.line_art import generate_line_art
+                        la = await generate_line_art(subject)
+                        if la and la.get("contours"):
+                            data["contours"] = la["contours"]
+                            data["cw"] = la["w"]
+                            data["ch"] = la["h"]
+                            logger.info("  [%d/%d] draw '%s' -> %d contours",
+                                        fidx + 1, total_frames, subject[:40], len(la["contours"]))
+                        else:
+                            logger.warning("  [%d/%d] draw '%s' line-art unavailable — composition fallback",
+                                           fidx + 1, total_frames, subject[:40])
+                    except Exception as exc:
+                        logger.warning("  [%d/%d] draw gen error: %s — composition fallback",
+                                       fidx + 1, total_frames, exc)
 
             html = generate_scene_html(svg_spec, style_variant, orientation)
             frame_render_inputs.append({
@@ -152,12 +228,27 @@ async def assemble_video(
 
         # ── Mix audio onto video ──────────────────────────────────────────
         valid_audio = [a for a in audio_files if a and os.path.exists(a)]
+        logger.info("=== VIDEO %s: %d/%d audio segments ready ===",
+                    video_id[:8], len(valid_audio), total_frames)
         if valid_audio:
             combined_audio = os.path.join(out_dir, "narration.mp3")
             await concat_audio_files(valid_audio, combined_audio)
             muxed_video = os.path.join(out_dir, f"{video_id}_muxed.mp4")
             await _mux_audio_video(final_video, combined_audio, muxed_video)
             os.replace(muxed_video, final_video)
+        else:
+            logger.error("=== VIDEO %s: NO audio segments — final video will be SILENT ===",
+                         video_id[:8])
+
+        # Verify the audio actually landed in the final file. This turns a silent
+        # video (the "audio not coming" symptom) into a loud, explicit log line
+        # instead of a mystery.
+        if not await _probe_has_audio(final_video):
+            logger.error("=== VIDEO %s: FINAL VIDEO HAS NO AUDIO STREAM after mux ===",
+                         video_id[:8])
+        else:
+            logger.info("=== VIDEO %s: audio stream confirmed in final video ===",
+                        video_id[:8])
 
         # ── Extract thumbnail ─────────────────────────────────────────────
         thumb_path = os.path.join(out_dir, "thumb.jpg")
@@ -251,13 +342,17 @@ def _update_frame_status(frame_id: int, status: str, path: str = "") -> None:
 
 
 async def _generate_silence(duration_sec: float, output_path: str) -> None:
-    """Generate a silent MP3 of the given duration."""
+    """Generate a silent MP3 of the given duration, in the canonical
+    44.1 kHz mono MP3 format so it concatenates cleanly with the TTS segments."""
     cmd = [
         _FFMPEG, "-y",
         "-f", "lavfi",
-        "-i", f"anullsrc=r=44100:cl=mono",
+        "-i", "anullsrc=r=44100:cl=mono",
         "-t", str(duration_sec),
-        "-q:a", "9",
+        "-ar", "44100",
+        "-ac", "1",
+        "-c:a", "libmp3lame",
+        "-b:a", "128k",
         output_path,
     ]
     await asyncio.to_thread(subprocess.run, cmd, capture_output=True)
@@ -300,6 +395,36 @@ async def _mux_audio_video(video_path: str, audio_path: str, output_path: str) -
     result = await asyncio.to_thread(subprocess.run, cmd, capture_output=True)
     if result.returncode != 0:
         raise RuntimeError(f"Mux failed: {result.stderr.decode()}")
+
+
+def _ffprobe_bin() -> str:
+    """Locate ffprobe next to the resolved ffmpeg binary (or on PATH)."""
+    probe = shutil.which("ffprobe")
+    if probe:
+        return probe
+    if _FFMPEG.lower().endswith("ffmpeg.exe"):
+        return _FFMPEG[:-len("ffmpeg.exe")] + "ffprobe.exe"
+    if _FFMPEG.lower().endswith("ffmpeg"):
+        return _FFMPEG[:-len("ffmpeg")] + "ffprobe"
+    return "ffprobe"
+
+
+async def _probe_has_audio(video_path: str) -> bool:
+    """Return True if the file contains at least one audio stream."""
+    if not os.path.exists(video_path):
+        return False
+    cmd = [
+        _ffprobe_bin(), "-v", "error",
+        "-select_streams", "a",
+        "-show_entries", "stream=codec_type",
+        "-of", "csv=p=0",
+        video_path,
+    ]
+    try:
+        result = await asyncio.to_thread(subprocess.run, cmd, capture_output=True)
+        return b"audio" in (result.stdout or b"")
+    except Exception:
+        return False
 
 
 async def _extract_thumbnail(video_path: str, thumb_path: str) -> None:

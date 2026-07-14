@@ -14,6 +14,12 @@ import tempfile
 
 logger = logging.getLogger(__name__)
 
+# Canonical audio format for every narration segment. All TTS/pad/silence output
+# is forced to this so concatenation never mixes sample rates (a mid-stream rate
+# change silently kills audio playback in browsers).
+_AUDIO_RATE = 44100
+_AUDIO_CHANNELS = 1
+
 # Resolve ffmpeg binary — cross-platform (Linux/Render + Windows dev)
 _FFMPEG = (
     shutil.which("ffmpeg")
@@ -327,12 +333,21 @@ async def concat_audio_files(audio_paths: list[str], output_path: str) -> str:
         list_file = f.name
 
     try:
+        # Re-encode (NOT -c copy) to a single uniform stream. The segments can
+        # arrive at different sample rates (edge-tts/gTTS = 24 kHz, silence
+        # fallback = 44.1 kHz); concatenating those with -c copy produces an MP3
+        # whose sample rate switches mid-stream, which many browsers' decoders
+        # stop playing at — the classic "video has no audio" symptom. Forcing a
+        # single 44.1 kHz mono encode guarantees a clean, universally-decodable track.
         cmd = [
             _FFMPEG, "-y",
             "-f", "concat",
             "-safe", "0",
             "-i", list_file,
-            "-c", "copy",
+            "-ar", str(_AUDIO_RATE),
+            "-ac", str(_AUDIO_CHANNELS),
+            "-c:a", "libmp3lame",
+            "-b:a", "128k",
             output_path,
         ]
         result = await asyncio.to_thread(subprocess.run, cmd, capture_output=True)
@@ -346,13 +361,17 @@ async def concat_audio_files(audio_paths: list[str], output_path: str) -> str:
 
 async def pad_audio_to_duration(audio_path: str, target_sec: float, output_path: str) -> str:
     """
-    Pad or trim an audio file to exactly target_sec seconds.
+    Pad or trim an audio file to exactly target_sec seconds, normalizing to the
+    canonical sample rate / channel count so every segment concatenates cleanly.
     """
     cmd = [
         _FFMPEG, "-y",
         "-i", audio_path,
         "-af", f"apad=whole_dur={target_sec}",
         "-t", str(target_sec),
+        "-ar", str(_AUDIO_RATE),
+        "-ac", str(_AUDIO_CHANNELS),
+        "-c:a", "libmp3lame",
         output_path,
     ]
     result = await asyncio.to_thread(subprocess.run, cmd, capture_output=True)
