@@ -28,6 +28,7 @@ import logging
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 
 logger = logging.getLogger(__name__)
@@ -206,12 +207,21 @@ def _render_all_sync(
             "playwright not installed. Run: pip install playwright && playwright install chromium"
         )
 
-    _IS_CLOUD = not os.path.exists("/Users")
-    # Always render at the native content size (1280×720 / 720×1280).
-    # The svg_renderer generates HTML at exactly these dimensions — using a
-    # smaller viewport clips content at the edges. OOM is no longer a risk
-    # because we now launch ONE Chromium for the whole video, not one per frame.
-    width, height = (1280, 720) if orientation == "horizontal" else (720, 1280)
+    # Reliable cloud detection: Render sets RENDER=true; otherwise treat Linux as
+    # the deploy target. (The old `not os.path.exists("/Users")` check wrongly
+    # flagged local Windows — which has no /Users — as cloud and downscaled it.)
+    _IS_CLOUD = os.getenv("RENDER", "").lower() in ("true", "1") or sys.platform.startswith("linux")
+    # Render viewport. On cloud (Render's 512 MB instances) a full 1280×720
+    # screenshot of a heavy SVG (e.g. a 100+ contour line-art frame) exhausts
+    # memory and the render hangs mid-frame — the video then sticks on
+    # "rendering" forever. So on cloud we render at 854×480 and let ffmpeg
+    # upscale to 1280×720 in the output (same approach as _render_sync). The SVG
+    # is authored in a viewBox that scales, so nothing is clipped.
+    if _IS_CLOUD:
+        width, height = (854, 480) if orientation == "horizontal" else (480, 854)
+    else:
+        width, height = (1280, 720) if orientation == "horizontal" else (720, 1280)
+    out_w, out_h = (1280, 720) if orientation == "horizontal" else (720, 1280)
 
     results: list[str | None] = []
 
@@ -259,6 +269,9 @@ def _render_all_sync(
 
                 try:
                     page = browser.new_page(viewport={"width": width, "height": height})
+                    # Bound every page op so a wedged frame fails fast (and is
+                    # logged) instead of silently crawling for minutes.
+                    page.set_default_timeout(20000)
                     try:
                         page.goto("file:///" + temp_html.replace("\\", "/"))
                         try:
@@ -281,7 +294,9 @@ def _render_all_sync(
                                 "-c:v", "libx264",
                                 "-preset", "fast",
                                 "-crf", "23",
-                                "-vf", "scale=1280:720",
+                                # Upscale the (possibly downscaled) cloud render
+                                # back to the target output size.
+                                "-vf", f"scale={out_w}:{out_h}:flags=lanczos",
                                 "-pix_fmt", "yuv420p",
                                 "-movflags", "+faststart",
                                 output_path,
@@ -294,7 +309,7 @@ def _render_all_sync(
                             for i in range(total_frames):
                                 t_ms = (i / _FPS) * 1000.0
                                 page.evaluate(_JS_FRAME, t_ms)
-                                png = page.screenshot(type="png")
+                                png = page.screenshot(type="png", timeout=20000)
                                 ffmpeg_proc.stdin.write(png)  # type: ignore[union-attr]
                         finally:
                             ffmpeg_proc.stdin.close()  # type: ignore[union-attr]
