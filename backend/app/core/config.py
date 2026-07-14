@@ -8,6 +8,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def _env_float(name: str, default: float) -> float:
+    """Parse a float env var, tolerating empty/invalid values instead of
+    crashing the whole app at import time (a blank R2_STORAGE_LIMIT_GB used to
+    raise ValueError here and take every endpoint down)."""
+    try:
+        raw = os.getenv(name, "")
+        return float(raw) if raw.strip() else default
+    except (TypeError, ValueError):
+        return default
+
+
 class Settings:
     """Application settings from environment variables."""
     
@@ -55,7 +66,7 @@ class Settings:
     R2_SECRET_ACCESS_KEY: str = os.getenv("R2_SECRET_ACCESS_KEY", "")
     R2_BUCKET_NAME: str = os.getenv("R2_BUCKET_NAME", "eduvyai")
     R2_PUBLIC_URL: str = os.getenv("R2_PUBLIC_URL", "")
-    R2_STORAGE_LIMIT_GB: float = float(os.getenv("R2_STORAGE_LIMIT_GB", "5"))
+    R2_STORAGE_LIMIT_GB: float = _env_float("R2_STORAGE_LIMIT_GB", 5.0)
     
     @property
     def r2_endpoint_url(self) -> str:
