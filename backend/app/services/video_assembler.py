@@ -198,8 +198,24 @@ async def assemble_video(
         # where each per-frame launch adds ~150MB that the OS hasn't yet reclaimed.
         logger.info("=== VIDEO %s: launching Chromium (once for all %d frames) ===",
                     video_id[:8], total_frames)
+        # Overall render budget: ~90s per frame, min 5 min, max 20 min. If the
+        # render wedges (e.g. Chromium thrashing on a memory-starved instance),
+        # fail the video with a clear error instead of leaving it stuck on
+        # "rendering" forever while the frontend polls indefinitely.
+        render_budget = min(1200, max(300, 90 * total_frames))
         try:
-            render_results = await render_all_frames_to_mp4(frame_render_inputs, out_dir, orientation)
+            render_results = await asyncio.wait_for(
+                render_all_frames_to_mp4(frame_render_inputs, out_dir, orientation),
+                timeout=render_budget,
+            )
+        except asyncio.TimeoutError:
+            logger.error("=== VIDEO %s: render exceeded %ds budget — aborting ===",
+                         video_id[:8], render_budget)
+            raise RuntimeError(
+                f"Rendering timed out after {render_budget}s. The server may be "
+                f"out of memory for video rendering — try a shorter video or a "
+                f"larger instance."
+            )
         except Exception as exc:
             logger.error("render_all_frames_to_mp4 failed: %s", exc)
             render_results = [None] * total_frames
