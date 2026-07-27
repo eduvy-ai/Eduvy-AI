@@ -10,6 +10,8 @@ const initialState: NotebookState = {
   sources: [],
   chatHistory: [],
   studioOutputs: [],
+  docCtx: '',
+  docName: '',
   isLoading: false,
   error: null,
 }
@@ -125,6 +127,10 @@ const notebookSlice = createSlice({
     clearChatLocal: (state) => {
       state.chatHistory = []
     },
+    setDocContext: (state, action: PayloadAction<{ docCtx: string; docName: string }>) => {
+      state.docCtx = action.payload.docCtx
+      state.docName = action.payload.docName
+    },
   },
   extraReducers: (builder) => {
     // Sources
@@ -170,5 +176,5 @@ const notebookSlice = createSlice({
   },
 })
 
-export const { clearError, addMessageLocal, clearChatLocal } = notebookSlice.actions
+export const { clearError, addMessageLocal, clearChatLocal, setDocContext } = notebookSlice.actions
 export default notebookSlice.reducer

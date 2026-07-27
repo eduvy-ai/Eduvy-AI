@@ -16,6 +16,9 @@ import LabsTabLegacy from '../../../components/tabs/LabsTab'
 const LabsPage: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth)
 
+  // Get document context from notebook Redux state (shared with NotebookPage)
+  const { docCtx, docName } = useSelector((state: RootState) => state.notebook)
+
   // Create addXp function (placeholder - XP is managed by backend)
   const addXp = async (_points: number) => {
     // XP is added via backend when actions complete
@@ -26,6 +29,8 @@ const LabsPage: React.FC = () => {
       profile={user}
       userId={user?.id || ''}
       addXp={addXp}
+      docCtx={docCtx}
+      docName={docName}
     />
   )
 }

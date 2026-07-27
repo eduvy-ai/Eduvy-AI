@@ -55,6 +55,8 @@ export interface NotebookState {
   sources: Source[]
   chatHistory: ChatMessage[]
   studioOutputs: StudioOutput[]
+  docCtx: string
+  docName: string
   isLoading: boolean
   error: string | null
 }

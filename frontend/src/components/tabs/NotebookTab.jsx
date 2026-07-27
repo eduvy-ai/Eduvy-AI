@@ -4,7 +4,7 @@ import { li } from '../../i18n/index.js'
 import {
   apiGetSources, apiSaveSource, apiDeleteSource,
   apiGetNotebookChat, apiSaveChatMessage, apiClearNotebookChat,
-  apiSaveStudioOutput, apiGetUploadStatus, apiReportViolation,
+  apiSaveStudioOutput, apiGetStudioOutputs, apiGetUploadStatus, apiReportViolation,
   apiExtractImageContent,
 } from '../../api.js'
 
@@ -12,16 +12,16 @@ import {
 const MAX_SOURCES = 15
 const MAX_VIOLATIONS = 5
 
-// ─── Studio output types ──────────────────────────────────────
+// ─── Studio output types (labels resolved via i18n inside component) ──
 const STUDIO_ITEMS = [
-  { key: "podcast",  icon: "🎙️", label: "Audio Overview",  desc: "AI hosts discuss your sources",        color: "#FFD166" },
-  { key: "guide",    icon: "📚", label: "Study Guide",      desc: "Structured notes from all sources",   color: "#00E5A0" },
-  { key: "brief",    icon: "📋", label: "Briefing Doc",     desc: "Concise executive summary",           color: "#7B9CFF" },
-  { key: "faq",      icon: "❓", label: "FAQ",              desc: "Key questions & answers",             color: "#FF6B35" },
-  { key: "timeline", icon: "📅", label: "Timeline",         desc: "Chronological events extracted",      color: "#FF6B6B" },
-  { key: "mindmap",  icon: "🗺️", label: "Mind Map",         desc: "Visual concept branches",             color: "#7B9CFF" },
-  { key: "quiz",     icon: "🎯", label: "Practice Quiz",    desc: "MCQs from your sources",              color: "#00E5A0" },
-  { key: "flashcards",icon: "🃏",label: "Flashcards",       desc: "Flip cards for revision",             color: "#FFD166" },
+  { key: "podcast",   icon: "🎙️", labelKey: "studioAudioOverview",  descKey: "studioAudioOverviewDesc",  color: "#FFD166" },
+  { key: "guide",     icon: "📚", labelKey: "studioStudyGuide",     descKey: "studioStudyGuideDesc",     color: "#00E5A0" },
+  { key: "brief",     icon: "📋", labelKey: "studioBriefingDoc",    descKey: "studioBriefingDocDesc",    color: "#7B9CFF" },
+  { key: "faq",       icon: "❓", labelKey: "studioFaq",            descKey: "studioFaqDesc",            color: "#FF6B35" },
+  { key: "timeline",  icon: "📅", labelKey: "studioTimeline",       descKey: "studioTimelineDesc",       color: "#FF6B6B" },
+  { key: "mindmap",   icon: "🗺️", labelKey: "studioMindMap",        descKey: "studioMindMapDesc",        color: "#7B9CFF" },
+  { key: "quiz",      icon: "🎯", labelKey: "studioPracticeQuiz",   descKey: "studioPracticeQuizDesc",   color: "#00E5A0" },
+  { key: "flashcards",icon: "🃏", labelKey: "studioFlashcards",     descKey: "studioFlashcardsDesc",     color: "#FFD166" },
 ]
 
 let _sourceIdCounter = 1
@@ -92,6 +92,9 @@ async function extractPdfText(file) {
 }
 
 export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx, docName, setDocName }) {
+
+  const lang = profile?.language || 'English'
+  const ui = li(lang)
 
   // ── View state ──────────────────────────────────────────────
   const [view, setView]       = useState("sources") // sources | chat | studio
@@ -242,6 +245,9 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
           content: r.content, summary: r.summary || '', icon: r.icon, addedAt: r.added_at,
         }))
         setSources(loaded)
+        // Advance ID counter past existing IDs to prevent collisions
+        const maxId = loaded.reduce((mx, s) => Math.max(mx, parseInt(s.id, 10) || 0), 0)
+        if (maxId >= _sourceIdCounter) _sourceIdCounter = maxId + 1
       })
       .catch(() => {})
       .finally(() => setSourcesLoaded(true))
@@ -256,6 +262,26 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
         setUploadBlocked(status.blocked || false)
         setBlockReason(status.block_reason || '')
         setViolations(status.violations || 0)
+      })
+      .catch(() => {})
+
+    // Load last studio output so it persists across reloads
+    apiGetStudioOutputs(userId)
+      .then(outputs => {
+        if (!outputs?.length) return
+        const last = outputs[0] // most recent (ordered by id DESC)
+        try {
+          const parsed = JSON.parse(last.output_json)
+          setStudioType(last.type)
+          if (last.type === 'podcast' && parsed?.exchanges?.length) setEpisode(parsed)
+          else if (last.type === 'mindmap' && parsed?.center) setMindMap(parsed)
+          else if (last.type === 'flashcards' && Array.isArray(parsed) && parsed.length) setCards(parsed)
+          else if (last.type === 'quiz' && parsed?.q) setQuizQ(parsed)
+          else setStudioOutput(typeof parsed === 'string' ? parsed : last.output_json)
+        } catch {
+          setStudioType(last.type)
+          setStudioOutput(last.output_json)
+        }
       })
       .catch(() => {})
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -279,36 +305,29 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
   }, [sources])
 
   // ── Violation warning messages ────────────────────────────────
-  const getViolationWarning = (remaining, lang) => {
+  const getViolationWarning = (remaining) => {
     const msgs = {
       English: `⚠️ This content is not allowed. ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining.`,
       Hindi: `⚠️ यह सामग्री अनुमत नहीं है। ${remaining} प्रयास बाकी।`,
+      Gujarati: `⚠️ આ સામગ્રી માન્ય નથી. ${remaining} પ્રયાસ બાકી.`,
       Marathi: `⚠️ हे कंटेंट अनुमत नाही. ${remaining} प्रयत्न बाकी.`,
+      Tamil: `⚠️ இந்த உள்ளடக்கம் அனுமதிக்கப்படவில்லை. ${remaining} முயற்சிகள் மீதம்.`,
+      Telugu: `⚠️ ఈ కంటెంట్ అనుమతించబడలేదు. ${remaining} ప్రయత్నాలు మిగిలి ఉన్నాయి.`,
+      Kannada: `⚠️ ಈ ವಿಷಯ ಅನುಮತಿಸಲಾಗಿಲ್ಲ. ${remaining} ಪ್ರಯತ್ನಗಳು ಉಳಿದಿವೆ.`,
+      Bengali: `⚠️ এই বিষয়বস্তু অনুমোদিত নয়। ${remaining} প্রচেষ্টা বাকি।`,
+      Punjabi: `⚠️ ਇਹ ਸਮੱਗਰੀ ਮਨਜ਼ੂਰ ਨਹੀਂ ਹੈ। ${remaining} ਕੋਸ਼ਿਸ਼ਾਂ ਬਾਕੀ।`,
+      Odia: `⚠️ ଏହି ବିଷୟବସ୍ତୁ ଅନୁମୋଦିତ ନୁହେଁ। ${remaining} ଚେଷ୍ଟା ବାକି।`,
+      Urdu: `⚠️ یہ مواد اجازت یافتہ نہیں ہے۔ ${remaining} کوششیں باقی۔`,
     }
     return msgs[lang] || msgs.English
   }
 
-  const getBlockedMessage = (lang) => {
-    const msgs = {
-      English: "🚫 Upload access blocked due to repeated violations. Contact support.",
-      Hindi: "🚫 बार-बार नियमों के उल्लंघन के कारण अपलोड अक्षम। सहायता से संपर्क करें।",
-      Marathi: "🚫 वारंवार उल्लंघनामुळे अपलोड बंद आहे. सहाय्यतेशी संपर्क साधा.",
-    }
-    return msgs[lang] || msgs.English
-  }
+  const getBlockedMessage = () => ui.blockedMsg
 
-  const getMaxSourcesMessage = (lang) => {
-    const msgs = {
-      English: `📚 You've reached the maximum ${MAX_SOURCES} sources. Delete some to add more.`,
-      Hindi: `📚 आपने अधिकतम ${MAX_SOURCES} स्रोत जोड़ लिए हैं। और जोड़ने के लिए कुछ हटाएं।`,
-      Marathi: `📚 तुम्ही जास्तीत जास्त ${MAX_SOURCES} स्रोत जोडले. आणखी जोडण्यासाठी काही हटवा.`,
-    }
-    return msgs[lang] || msgs.English
-  }
+  const getMaxSourcesMessage = () => `📚 ${ui.addSourceFirstAlert || 'You\'ve reached the maximum limit. Delete some to add more.'}`
 
   // ── Handle validation failure ─────────────────────────────────
   const handleValidationFailure = async (errorMsg) => {
-    const lang = profile?.language || 'English'
     
     // Report violation to backend
     try {
@@ -318,9 +337,9 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
       if (result.blocked) {
         setUploadBlocked(true)
         setBlockReason(result.block_reason)
-        setValidationError(getBlockedMessage(lang))
+        setValidationError(getBlockedMessage())
       } else {
-        setValidationError(getViolationWarning(result.remaining_attempts, lang))
+        setValidationError(getViolationWarning(result.remaining_attempts))
       }
     } catch {
       // Fallback: just show the error message
@@ -333,18 +352,17 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
     const file = e.target.files?.[0]
     if (!file) return
     setValidationError("") // Clear previous error
-    const lang = profile?.language || 'English'
     
     // Check if blocked
     if (uploadBlocked) {
-      setValidationError(getBlockedMessage(lang))
+      setValidationError(getBlockedMessage())
       e.target.value = ""
       return
     }
     
     // Check max sources limit
     if (sources.length >= MAX_SOURCES) {
-      setValidationError(getMaxSourcesMessage(lang))
+      setValidationError(getMaxSourcesMessage())
       e.target.value = ""
       return
     }
@@ -385,12 +403,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
         
         // Check if vision returned an error
         if (visionResult.content?.startsWith('⚠️')) {
-          const errorMsgs = {
-            English: "Could not read this image. Please try again later or upload a different image.",
-            Hindi: "इस इमेज को पढ़ नहीं पाया। बाद में फिर से कोशिश करें।",
-            Marathi: "हे चित्र वाचता आलं नाही. नंतर पुन्हा प्रयत्न करा.",
-          }
-          setValidationError(errorMsgs[lang] || errorMsgs.English)
+          setValidationError(ui.cantReadImage)
           setValidating(false)
           e.target.value = ""
           return
@@ -408,12 +421,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
         summary = visionResult.summary || ""
       } catch (err) {
         // Vision failed - show error, don't save broken source
-        const errorMsgs = {
-          English: "Could not process this image. Try a smaller or clearer image.",
-          Hindi: "इस इमेज को प्रोसेस नहीं कर पाया। छोटी या साफ इमेज अपलोड करें।",
-          Marathi: "हे चित्र प्रोसेस करता आलं नाही. लहान किंवा स्पष्ट चित्र अपलोड करा.",
-        }
-        setValidationError(errorMsgs[lang] || errorMsgs.English)
+        setValidationError(ui.cantProcessImage)
         setValidating(false)
         e.target.value = ""
         return
@@ -426,12 +434,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
       
       if (extractedText === null || extractedText.length < 20) {
         // Could not extract text - show simple message
-        const errorMsgs = {
-          English: "📕 Can't read this PDF! Try uploading a photo instead.",
-          Hindi: "📕 ये PDF नहीं पढ़ पाया! फोटो upload करो।",
-          Marathi: "📕 हे PDF वाचता आलं नाही! फोटो upload करा.",
-        }
-        setValidationError(errorMsgs[lang] || errorMsgs.English)
+        setValidationError(ui.cantReadPdf)
         setValidating(false)
         e.target.value = ""
         return
@@ -501,17 +504,16 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
   const addPastedText = async () => {
     if (!pasteText.trim()) return
     setValidationError("") // Clear previous error
-    const lang = profile?.language || 'English'
     
     // Check if blocked
     if (uploadBlocked) {
-      setValidationError(getBlockedMessage(lang))
+      setValidationError(getBlockedMessage())
       return
     }
     
     // Check max sources limit
     if (sources.length >= MAX_SOURCES) {
-      setValidationError(getMaxSourcesMessage(lang))
+      setValidationError(getMaxSourcesMessage())
       return
     }
     
@@ -552,17 +554,16 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
   const addUrl = async () => {
     if (!urlInput.trim()) return
     setValidationError("") // Clear previous error
-    const lang = profile?.language || 'English'
     
     // Check if blocked
     if (uploadBlocked) {
-      setValidationError(getBlockedMessage(lang))
+      setValidationError(getBlockedMessage())
       return
     }
     
     // Check max sources limit
     if (sources.length >= MAX_SOURCES) {
-      setValidationError(getMaxSourcesMessage(lang))
+      setValidationError(getMaxSourcesMessage())
       return
     }
     
@@ -623,7 +624,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
   // ── Chat ─────────────────────────────────────────────────────
   const sendChat = async () => {
     if (!chatInput.trim() || chatLoading) return
-    if (!sources.length) { setMessages(m => [...m, { role: "assistant", content: "⚠️ Add at least one source first." }]); return }    // Safety guard
+    if (!sources.length) { setMessages(m => [...m, { role: "assistant", content: `⚠️ ${ui.addSourceFirstAlert}` }]); return }    // Safety guard
     const safety = checkStudentQuery(chatInput.trim(), profile)
     if (safety.blocked) {
       setMessages(m => [...m, { role: "user", content: chatInput.trim() }, { role: "assistant", content: safety.message }])
@@ -655,7 +656,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
 
   // ── Studio generation ─────────────────────────────────────────
   const generateStudio = async (type) => {
-    if (!sources.length) { alert("Add at least one source first."); return }
+    if (!sources.length) { alert(ui.addSourceFirstAlert); return }
     stopPodcast()
     setStudioType(type); setStudioOutput(""); setStudioLoading(true)
     setEpisode(null); setMindMap(null); setCards([]); setQuizQ(null)
@@ -783,9 +784,9 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
       {/* ── Top sub-nav ── */}
       <div className="flex bg-app-card border-b border-app-border py-2 px-3 md:px-5 pb-0 gap-1 shrink-0">
         {[
-          { key: "sources", icon: "📚", label: `Sources (${sources.length})` },
-          { key: "chat",    icon: "💬", label: "Chat"    },
-          { key: "studio",  icon: "🎨", label: "Studio"  },
+          { key: "sources", icon: "📚", label: `${ui.sourcesTab} (${sources.length})` },
+          { key: "chat",    icon: "💬", label: ui.chatTab    },
+          { key: "studio",  icon: "🎨", label: ui.studioTab  },
         ].map(t => (
           <button
             key={t.key}
@@ -811,17 +812,16 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
               /* Loading state */
               <div className="flex flex-col items-center justify-center py-20">
                 <div className="w-9 h-9 border-[3px] border-app-green border-t-transparent rounded-full animate-spin mb-4" />
-                <div className="text-[13px] text-app-muted">Loading sources...</div>
+                <div className="text-[13px] text-app-muted">{ui.loadingSources}</div>
               </div>
             ) : sources.length === 0 ? (
               <div className="text-center py-10 px-5 text-app-muted">
                 <div className="text-5xl mb-3">📓</div>
                 <div className="text-[15px] font-bold text-app-text mb-1.5">
-                  Add your sources
+                  {ui.addYourSources}
                 </div>
                 <div className="text-[13px] leading-relaxed">
-                  Upload documents, paste text, or add URLs.<br />
-                  Then chat with them or generate outputs in Studio.
+                  {ui.sourcesEmptyDesc}
                 </div>
               </div>
             ) : (
@@ -857,14 +857,14 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                 className="primary-btn"
                 disabled={uploadBlocked || sources.length >= MAX_SOURCES}
               >
-                {addOpen ? "✕ Cancel" : "+ Add Source"}
+                {addOpen ? ui.cancelBtn : ui.addSourceBtn}
               </button>
               
               {/* Source count indicator */}
               <span className="text-xs text-gray-400">
-                {sources.length}/{MAX_SOURCES} sources
+                {sources.length}/{MAX_SOURCES} {ui.sourcesLabel}
                 {violations > 0 && !uploadBlocked && (
-                  <span className="text-yellow-400 ml-2">⚠️ {MAX_VIOLATIONS - violations} attempts left</span>
+                  <span className="text-yellow-400 ml-2">⚠️ {MAX_VIOLATIONS - violations} {ui.attemptsLeft}</span>
                 )}
               </span>
             </div>
@@ -903,13 +903,13 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                 {validating && (
                   <div className="bg-app-green/10 border border-app-green/30 rounded-xl py-2.5 px-3.5 text-[13px] text-app-green mb-3 flex items-center gap-2">
                     <span className="animate-spin">⏳</span>
-                    Checking content...
+                    {ui.checkingContent}
                   </div>
                 )}
                 
                 {/* Tabs */}
                 <div className="flex gap-1.5 mb-3.5">
-                  {[["file", "📄 File"], ["text", "📝 Text"], ["url", "🌐 URL"]].map(([k, l]) => (
+                  {[["file", ui.fileTab], ["text", ui.textTab], ["url", ui.urlTab]].map(([k, l]) => (
                     <button
                       key={k}
                       onClick={() => setAddTab(k)}
@@ -928,7 +928,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                 {addTab === "file" && (
                   <label className="block bg-app-green/5 border-2 border-dashed border-app-green/40 rounded-xl py-6 px-4 text-center cursor-pointer">
                     <div className="text-3xl mb-1.5">📂</div>
-                    <div className="text-[13px] text-app-green font-bold">Tap to upload</div>
+                    <div className="text-[13px] text-app-green font-bold">{ui.tapToUpload}</div>
                     <div className="text-[11px] text-app-muted mt-1">.txt .md .pdf .doc .docx .jpg .png</div>
                     <input type="file" accept=".txt,.md,.pdf,.doc,.docx,.jpg,.jpeg,.png" className="hidden" onChange={handleFile} />
                   </label>
@@ -937,16 +937,16 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                 {/* Text tab */}
                 {addTab === "text" && (
                   <div className="flex flex-col gap-2.5">
-                    <input className="tutor-input" placeholder="Source title (optional)" value={pasteTitle} onChange={e => setPasteTitle(e.target.value)} />
+                    <input className="tutor-input" placeholder={ui.sourceTitlePlaceholder} value={pasteTitle} onChange={e => setPasteTitle(e.target.value)} />
                     <textarea
                       className="tutor-input h-40 resize-y leading-relaxed"
-                      placeholder="Paste your notes, textbook content, or any text here…"
+                      placeholder={ui.pasteNotesPlaceholder}
                       value={pasteText}
                       onChange={e => setPasteText(e.target.value)}
                     />
                     <div className="text-[11px] text-app-muted text-right">{pasteText.length}/10000</div>
                     <button onClick={addPastedText} disabled={!pasteText.trim() || validating} className="primary-btn">
-                      {validating ? "Checking…" : "Add Text Source"}
+                      {validating ? ui.checkingBtn : ui.addTextSource}
                     </button>
                   </div>
                 )}
@@ -957,16 +957,16 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                     <input
                       className="tutor-input"
                       type="url"
-                      placeholder="https://... or YouTube URL"
+                      placeholder={ui.urlPlaceholder}
                       value={urlInput}
                       onChange={e => setUrlInput(e.target.value)}
                       onKeyDown={e => e.key === "Enter" && addUrl()}
                     />
                     <div className="text-[11px] text-app-muted leading-normal">
-                      💡 Works for most websites. For PDFs & paywalled sites, paste the text instead.
+                      {ui.urlTip}
                     </div>
                     <button onClick={addUrl} disabled={urlLoading || !urlInput.trim()} className="primary-btn">
-                      {urlLoading ? "Fetching…" : "Fetch & Add"}
+                      {urlLoading ? ui.fetchingBtn : ui.fetchAndAdd}
                     </button>
                   </div>
                 )}
@@ -982,7 +982,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
             {!sourcesLoaded ? (
               <div className="flex-1 flex flex-col items-center justify-center">
                 <div className="w-9 h-9 border-[3px] border-app-green border-t-transparent rounded-full animate-spin mb-4" />
-                <div className="text-[13px] text-app-muted">Loading chat...</div>
+                <div className="text-[13px] text-app-muted">{ui.loadingChat}</div>
               </div>
             ) : (
               <>
@@ -991,13 +991,13 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
               <div className="px-3.5 py-2.5 bg-app-card border-b border-app-border flex items-center gap-2 shrink-0">
                 {/* Source selector */}
                 <div className="flex-1 flex items-center gap-2">
-                  <span className="text-[11px] text-app-muted whitespace-nowrap">Ask from:</span>
+                  <span className="text-[11px] text-app-muted whitespace-nowrap">{ui.askFrom}</span>
                   <select
                     value={selectedSource || ""}
                     onChange={e => setSelectedSource(e.target.value || null)}
                     className="flex-1 bg-app-bg border border-app-border rounded-lg py-1.5 px-2.5 text-[12px] text-app-text font-[Sora,sans-serif] cursor-pointer"
                   >
-                    <option value="">📚 All Sources ({sources.length})</option>
+                    <option value="">{ui.allSources} ({sources.length})</option>
                     {sources.map(s => (
                       <option key={s.id} value={s.id}>
                         {s.icon} {s.name.slice(0, 30)}{s.name.length > 30 ? "…" : ""}
@@ -1012,7 +1012,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                     onClick={clearChat}
                     className="text-[11px] text-app-muted hover:text-red-400 px-2 py-1 rounded-lg border border-transparent hover:border-red-400/30 cursor-pointer font-[Sora,sans-serif] transition-colors"
                   >
-                    🗑️ Clear
+                    {ui.clearChat}
                   </button>
                 )}
               </div>
@@ -1021,19 +1021,19 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
             <div className="flex-1 overflow-y-auto p-3.5">
               {sources.length === 0 && (
                 <div className="bg-app-yellow/10 border border-app-yellow/30 rounded-xl py-3 px-3.5 text-[13px] text-app-yellow mb-3.5">
-                  ⚠️ Add sources first so I can answer from them.
+                  {ui.addSourcesFirstChat}
                 </div>
               )}
 
               {messages.length === 0 && sources.length > 0 && (
                 <div className="mb-3.5">
-                  <div className="text-xs text-app-muted mb-2">Suggested questions:</div>
+                  <div className="text-xs text-app-muted mb-2">{ui.suggestedQuestions}</div>
                   <div className="flex flex-col gap-1.5">
                     {[
-                      "What are the main topics covered in my sources?",
-                      "Summarize the key points from all sources",
-                      "What are the most important concepts I should know?",
-                      "Are there any contradictions between the sources?",
+                      ui.sugQ1,
+                      ui.sugQ2,
+                      ui.sugQ3,
+                      ui.sugQ4,
                     ].map(q => (
                       <button key={q} onClick={() => { setChatInput(q); }} className="bg-app-card border border-app-border rounded-[10px] py-2.5 px-3.5 text-app-text text-[13px] cursor-pointer text-left font-[Sora,sans-serif]">
                         {q}
@@ -1050,8 +1050,8 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                 {chatLoading && (
                   <div className="ai-bubble">
                     {selectedSource 
-                      ? `Searching "${sources.find(s => s.id === selectedSource)?.name?.slice(0, 20) || 'source'}"…`
-                      : "Searching sources…"
+                      ? `${ui.searchingSources} "${sources.find(s => s.id === selectedSource)?.name?.slice(0, 20) || 'source'}"…`
+                      : ui.searchingSources
                     }
                   </div>
                 )}
@@ -1064,8 +1064,8 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                 className="tutor-input flex-1 py-2.5 px-3.5"
                 type="text"
                 placeholder={selectedSource 
-                  ? `Ask about "${sources.find(s => s.id === selectedSource)?.name?.slice(0, 20) || 'source'}"…`
-                  : "Ask about your sources…"
+                  ? `${ui.askAboutSources.replace('...', '')}"${sources.find(s => s.id === selectedSource)?.name?.slice(0, 20) || 'source'}"…`
+                  : ui.askAboutSources
                 }
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}
@@ -1092,19 +1092,19 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
             {!sourcesLoaded ? (
               <div className="flex-1 flex flex-col items-center justify-center">
                 <div className="w-9 h-9 border-[3px] border-app-green border-t-transparent rounded-full animate-spin mb-4" />
-                <div className="text-[13px] text-app-muted">Loading studio...</div>
+                <div className="text-[13px] text-app-muted">{ui.loadingStudio}</div>
               </div>
             ) : sources.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center px-5">
                 <div className="text-5xl mb-3">🎨</div>
                 <div className="text-[15px] font-bold text-app-text mb-1.5">
-                  Studio is ready
+                  {ui.studioReady}
                 </div>
                 <div className="text-[13px] text-app-muted leading-relaxed mb-5">
-                  Add at least one source to start generating<br />study guides, podcasts, quizzes and more.
+                  {ui.studioReadyDesc}
                 </div>
                 <button onClick={() => setView("sources")} className="primary-btn">
-                  + Go to Sources
+                  {ui.goToSources}
                 </button>
               </div>
             ) : (
@@ -1112,13 +1112,13 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                 {/* Studio header with source filter */}
                 <div className="px-3.5 py-2.5 bg-app-card border-b border-app-border flex items-center gap-2 shrink-0">
                   <div className="flex-1 flex items-center gap-2">
-                    <span className="text-[11px] text-app-muted whitespace-nowrap">Generate from:</span>
+                    <span className="text-[11px] text-app-muted whitespace-nowrap">{ui.generateFrom}</span>
                     <select
                       value={selectedStudioSource || ""}
                       onChange={e => setSelectedStudioSource(e.target.value || null)}
                       className="flex-1 bg-app-bg border border-app-border rounded-lg py-1.5 px-2.5 text-[12px] text-app-text font-[Sora,sans-serif] cursor-pointer"
                     >
-                      <option value="">📚 All Sources ({sources.length})</option>
+                      <option value="">{ui.allSources} ({sources.length})</option>
                       {sources.map(s => (
                         <option key={s.id} value={s.id}>
                           {s.icon} {s.name.slice(0, 30)}{s.name.length > 30 ? "…" : ""}
@@ -1138,7 +1138,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                       }}
                       className="text-[11px] text-app-muted hover:text-red-400 px-2 py-1 rounded-lg border border-transparent hover:border-red-400/30 cursor-pointer font-[Sora,sans-serif] transition-colors"
                     >
-                      🗑️ Clear
+                      {ui.clearChat}
                     </button>
                   )}
                 </div>
@@ -1160,8 +1160,8 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                         >
                           {item.icon}
                         </div>
-                        <div className="text-[13px] font-bold text-app-text mb-0.5">{item.label}</div>
-                        <div className="text-[11px] text-app-muted">{item.desc}</div>
+                        <div className="text-[13px] font-bold text-app-text mb-0.5">{ui[item.labelKey]}</div>
+                        <div className="text-[11px] text-app-muted">{ui[item.descKey]}</div>
                       </button>
                     ))}
                   </div>
@@ -1174,9 +1174,9 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                       {STUDIO_ITEMS.find(i => i.key === studioType)?.icon ?? "⚙️"}
                     </div>
                     <div className="font-bold text-app-text mb-1">
-                      Generating {STUDIO_ITEMS.find(i => i.key === studioType)?.label}…
+                      {ui.generatingLabel} {ui[STUDIO_ITEMS.find(i => i.key === studioType)?.labelKey]}…
                     </div>
-                    <div className="text-xs">This may take 10–20 seconds</div>
+                    <div className="text-xs">{ui.genWait}</div>
                   </div>
                 )}
 
@@ -1189,19 +1189,19 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                     >
                       <div className="flex items-center justify-between mb-2.5">
                         <div className="text-xs font-bold" style={{ color: STUDIO_ITEMS.find(i => i.key === studioType)?.color ?? '#00E5A0' }}>
-                          {STUDIO_ITEMS.find(i => i.key === studioType)?.icon} {STUDIO_ITEMS.find(i => i.key === studioType)?.label}
+                          {STUDIO_ITEMS.find(i => i.key === studioType)?.icon} {ui[STUDIO_ITEMS.find(i => i.key === studioType)?.labelKey]}
                         </div>
                         <button
                           onClick={() => navigator.clipboard?.writeText(studioOutput)}
                           className="bg-transparent border border-app-border rounded-lg py-0.5 px-2.5 text-[11px] text-app-muted cursor-pointer font-[Sora,sans-serif]"
                         >
-                          📋 Copy
+                          {ui.copyBtn}
                         </button>
                       </div>
                       <p className="text-[13px] text-app-text leading-loose whitespace-pre-wrap m-0">{studioOutput}</p>
                     </div>
                     <button onClick={() => generateStudio(studioType)} className="ghost-btn">
-                      ↺ Regenerate
+                      {ui.regenerateBtn}
                     </button>
                   </div>
                 )}
@@ -1217,7 +1217,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
 
                       {/* Episode header */}
                       <div className="bg-app-yellow/15 border border-app-yellow/40 rounded-[14px] py-3.5 px-4 text-center">
-                        <div className="text-[11px] text-app-yellow font-bold mb-1">🎙️ AUDIO OVERVIEW</div>
+                        <div className="text-[11px] text-app-yellow font-bold mb-1">🎙️ {ui.podcastTitle}</div>
                         <div className="text-[15px] font-extrabold text-app-text">{episode.title}</div>
                         <div className="text-xs text-app-muted mt-1">
                           Priya & Aryan · {lineIdx + 1} / {episode.exchanges?.length}
@@ -1287,14 +1287,14 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                                 onClick={() => { autoplayRef.current = true; speakPodcastLine(lineIdx, episode.exchanges) }}
                                 className="primary-btn flex-[2]"
                               >
-                                ▶ {lineIdx === 0 ? 'Play All' : 'Resume'}
+                                {lineIdx === 0 ? ui.playAll : `▶ ${ui.resumeBtn}`}
                               </button>
                             ) : (
                               <button 
                                 onClick={stopPodcast} 
                                 className="flex-[2] py-3 px-[18px] rounded-[13px] border-none text-app-bg text-[13px] font-extrabold cursor-pointer font-[Sora,sans-serif] bg-gradient-to-br from-app-yellow to-[#e6b800]"
                               >
-                                ⏸ Pause
+                                {ui.pauseBtn}
                               </button>
                             )
                           )}
@@ -1302,7 +1302,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                             onClick={() => { stopPodcast(); setLineIdx(i => i + 1) }}
                             className="ghost-btn flex-1"
                           >
-                            Skip →
+                            {ui.skipBtn}
                           </button>
                         </div>
                       )}
@@ -1312,13 +1312,13 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                         <>
                           {episode.pts?.length > 0 && (
                             <div className="bg-app-green/10 border border-app-green/30 rounded-[14px] p-3.5">
-                              <div className="text-xs font-bold text-app-green mb-2">🎯 Key Takeaways</div>
+                              <div className="text-xs font-bold text-app-green mb-2">{ui.keyTakeaways}</div>
                               {episode.pts.map((p, i) => <div key={i} className="text-[13px] text-app-text py-0.5">{i + 1}. {p}</div>)}
                             </div>
                           )}
                           {episode.tip && (
                             <div className="bg-app-yellow/10 border border-app-yellow/30 rounded-[14px] p-3.5">
-                              <div className="text-xs font-bold text-app-yellow mb-1.5">📋 Exam Tip</div>
+                              <div className="text-xs font-bold text-app-yellow mb-1.5">{ui.examTip}</div>
                               <p className="text-[13px] text-app-text leading-relaxed m-0">{episode.tip}</p>
                             </div>
                           )}
@@ -1328,10 +1328,10 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                                 onClick={() => { setLineIdx(0); setTimeout(() => { autoplayRef.current = true; speakPodcastLine(0, episode.exchanges) }, 100) }}
                                 className="primary-btn flex-1"
                               >
-                                ▶ Play Again
+                                {ui.playAgain}
                               </button>
                             )}
-                            <button onClick={() => { stopPodcast(); setLineIdx(0) }} className="ghost-btn flex-1">↺ Restart</button>
+                            <button onClick={() => { stopPodcast(); setLineIdx(0) }} className="ghost-btn flex-1">{ui.restartBtn}</button>
                           </div>
                         </>
                       )}
@@ -1342,13 +1342,13 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                           onClick={stopPodcast} 
                           className="w-full py-3 px-[18px] rounded-[13px] border-none text-app-bg text-[13px] font-extrabold cursor-pointer font-[Sora,sans-serif] bg-gradient-to-br from-app-yellow to-[#e6b800]"
                         >
-                          ⏸ Pause
+                          {ui.pauseBtn}
                         </button>
                       )}
 
                       {!hasSpeech && (
                         <div className="text-[11px] text-app-muted text-center py-1">
-                          💡 Audio not supported in this browser. Read along above.
+                          {ui.audioNotSupported}
                         </div>
                       )}
                     </div>
@@ -1369,7 +1369,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                         ))}
                       </div>
                     ))}
-                    <button onClick={() => generateStudio("mindmap")} className="ghost-btn">↺ Regenerate</button>
+                    <button onClick={() => generateStudio("mindmap")} className="ghost-btn">{ui.regenerateBtn}</button>
                   </div>
                 )}
 
@@ -1402,7 +1402,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                     >
                       {!cardFlipped ? (
                         <>
-                          <div className="text-[11px] text-app-muted font-bold tracking-wider">TAP TO REVEAL ANSWER</div>
+                          <div className="text-[11px] text-app-muted font-bold tracking-wider">{ui.tapToReveal}</div>
                           <div className="text-[15px] font-bold text-app-text leading-normal">{cards[cardIdx]?.q}</div>
                           {cards[cardIdx]?.hint && (
                             <div className="text-xs text-app-muted bg-app-card2 rounded-lg py-1 px-2.5">
@@ -1412,7 +1412,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                         </>
                       ) : (
                         <>
-                          <div className="text-[11px] text-app-green font-bold tracking-wider">ANSWER</div>
+                          <div className="text-[11px] text-app-green font-bold tracking-wider">{ui.answerLabel}</div>
                           <div className="text-sm text-app-text leading-relaxed">{cards[cardIdx]?.a}</div>
                         </>
                       )}
@@ -1436,16 +1436,16 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                         onClick={() => { setCardIdx(i => Math.max(0, i - 1)); setCardFlipped(false) }}
                         disabled={cardIdx === 0}
                         className="ghost-btn flex-1"
-                      >← Prev</button>
+                      >{ui.prevBtn}</button>
                       <button
                         onClick={() => { setCardIdx(i => Math.min(cards.length - 1, i + 1)); setCardFlipped(false) }}
                         disabled={cardIdx === cards.length - 1}
                         className="primary-btn flex-1"
-                      >Next →</button>
+                      >{ui.nextBtn}</button>
                     </div>
                     {cardIdx === cards.length - 1 && (
                       <button onClick={() => { setCardIdx(0); setCardFlipped(false) }} className="ghost-btn w-full">
-                        ↺ Restart Deck
+                        {ui.restartDeck}
                       </button>
                     )}
                   </div>
@@ -1508,11 +1508,11 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                           }}
                         >
                           <div className="text-xs font-bold mb-1.5" style={{ color: quizSel === quizQ.c ? '#00E5A0' : '#FF6B6B' }}>
-                            {quizSel === quizQ.c ? "✅ Correct!" : `❌ Incorrect — Answer: ${quizQ.c}`}
+                            {quizSel === quizQ.c ? ui.correctAnswer : `${ui.incorrectAnswer} ${quizQ.c}`}
                           </div>
                           <p className="text-[13px] text-app-text leading-relaxed m-0">{quizQ.e}</p>
                         </div>
-                        <button onClick={() => generateStudio("quiz")} className="primary-btn">Next Question →</button>
+                        <button onClick={() => generateStudio("quiz")} className="primary-btn">{ui.nextQuestion}</button>
                       </>
                     )}
                   </div>

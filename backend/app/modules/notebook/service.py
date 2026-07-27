@@ -25,11 +25,11 @@ class NotebookService:
             # Try with summary column first
             try:
                 cur.execute(
-                    "SELECT id, name, type, content, summary, icon, added_at FROM notebook_sources WHERE user_id = %s ORDER BY added_at ASC",
+                    "SELECT id, name, type, content, summary, file_url, icon, added_at FROM notebook_sources WHERE user_id = %s ORDER BY added_at ASC",
                     (user_id,)
                 )
             except Exception:
-                # Summary column might not exist
+                # Summary/file_url columns might not exist
                 cur.execute(
                     "SELECT id, name, type, content, icon, added_at FROM notebook_sources WHERE user_id = %s ORDER BY added_at ASC",
                     (user_id,)
@@ -77,8 +77,10 @@ class NotebookService:
                 "DELETE FROM notebook_sources WHERE user_id = %s AND id = %s",
                 (user_id, source_id)
             )
+            if cur.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Source not found")
             conn.commit()
-            return {"deleted": True}
+            return {"ok": True, "deleted": True}
         finally:
             conn.close()
     
