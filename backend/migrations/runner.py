@@ -73,8 +73,8 @@ def parse_migration_file(filepath: Path) -> tuple:
     """Parse migration file into (version, name, up_sql, down_sql)."""
     content = filepath.read_text(encoding='utf-8')
     
-    # Extract version and name from filename: 001_create_users.sql
-    match = re.match(r'(\d+)_(.+)\.sql', filepath.name)
+    # Extract version and name from filename: 001_create_users.sql, 003b_fix.sql
+    match = re.match(r'(\d+[a-z]?)_(.+)\.sql', filepath.name)
     if not match:
         raise ValueError(f"Invalid migration filename: {filepath.name}")
     
@@ -162,6 +162,20 @@ def rollback_migration(version: str):
         conn.close()
 
 
+def _check_duplicate_versions(files: list):
+    """Abort if two migration files share the same version prefix."""
+    seen: dict[str, str] = {}
+    for f in files:
+        version = f.name.split('_')[0]
+        if version in seen:
+            print(f"\n❌ Duplicate migration version '{version}':")
+            print(f"   - {seen[version]}")
+            print(f"   - {f.name}")
+            print("Rename one file to use a unique version prefix.")
+            sys.exit(1)
+        seen[version] = f.name
+
+
 def cmd_migrate():
     """Apply all pending migrations."""
     print("\n🔄 Running migrations...")
@@ -169,6 +183,8 @@ def cmd_migrate():
     ensure_migrations_table()
     applied = get_applied_versions()
     files = get_migration_files()
+    
+    _check_duplicate_versions(files)
     
     pending = [f for f in files if f.name.split('_')[0] not in applied]
     
