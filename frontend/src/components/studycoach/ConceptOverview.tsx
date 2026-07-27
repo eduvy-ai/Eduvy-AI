@@ -6,6 +6,13 @@ interface ConceptOverviewProps {
   title: string
   difficulty: string
   overview: string
+  ui: Record<string, string>
+}
+
+const DIFFICULTY_KEYS: Record<string, string> = {
+  Beginner: 'beginner',
+  Intermediate: 'intermediate',
+  Advanced: 'advanced',
 }
 
 const difficultyColors: Record<string, string> = {
@@ -14,15 +21,16 @@ const difficultyColors: Record<string, string> = {
   Advanced: 'bg-red-500/20 text-red-400 border-red-500/30',
 }
 
-export default function ConceptOverview({ title, difficulty, overview }: ConceptOverviewProps) {
+export default function ConceptOverview({ title, difficulty, overview, ui }: ConceptOverviewProps) {
   const difficultyClass = difficultyColors[difficulty] || difficultyColors.Intermediate
+  const difficultyLabel = ui[DIFFICULTY_KEYS[difficulty] || 'intermediate'] || difficulty
 
   return (
     <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50">
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <h2 className="text-2xl font-bold text-white">{title}</h2>
         <span className={`px-3 py-1 rounded-full text-xs font-medium border ${difficultyClass}`}>
-          {difficulty}
+          {difficultyLabel}
         </span>
       </div>
       <div className="prose prose-invert prose-slate max-w-none">

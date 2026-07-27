@@ -15,19 +15,29 @@ interface Props {
   onClose: () => void
   /** User's preferred language */
   language?: string
+  /** UI translations */
+  ui: Record<string, string>
 }
 
-const SECTION_LABELS: Record<string, { icon: string; label: string }> = {
-  overview: { icon: '📖', label: 'Concept Overview' },
-  takeaways: { icon: '💡', label: 'Key Takeaways' },
-  example: { icon: '🌍', label: 'Real World Example' },
-  exam_notes: { icon: '📝', label: 'Exam Notes' },
+const SECTION_ICON: Record<string, string> = {
+  overview: '📖',
+  takeaways: '💡',
+  example: '🌍',
+  exam_notes: '📝',
+}
+
+const SECTION_LABEL_KEYS: Record<string, string> = {
+  overview: 'sectionOverview',
+  takeaways: 'sectionTakeaways',
+  example: 'sectionExample',
+  exam_notes: 'sectionExamNotes',
 }
 
 export const TeacherModePlayer: FC<Props> = ({
   studyCoachResponse,
   onClose,
   language = 'English',
+  ui,
 }) => {
   const [audioData, setAudioData] = useState<TeacherAudioResponse | null>(null)
   const [isGenerating, setIsGenerating] = useState(true)
@@ -217,7 +227,7 @@ export const TeacherModePlayer: FC<Props> = ({
             <span className="text-xl">🎓</span>
           </div>
           <div>
-            <h1 className="text-lg font-bold text-app-text">Teacher Mode</h1>
+            <h1 className="text-lg font-bold text-app-text">{ui.teacherModeTitle}</h1>
             <p className="text-xs text-app-muted">{studyCoachResponse.title}</p>
           </div>
         </div>
@@ -239,8 +249,8 @@ export const TeacherModePlayer: FC<Props> = ({
           {isGenerating && (
             <div className="flex flex-col items-center justify-center py-20 space-y-4">
               <div className="w-16 h-16 border-4 border-app-green/30 border-t-app-green rounded-full animate-spin" />
-              <p className="text-app-muted">Preparing your lesson...</p>
-              <p className="text-xs text-app-muted/60">Generating natural voice narration</p>
+              <p className="text-app-muted">{ui.preparingLesson}</p>
+              <p className="text-xs text-app-muted/60">{ui.generatingNarration}</p>
             </div>
           )}
 
@@ -252,7 +262,7 @@ export const TeacherModePlayer: FC<Props> = ({
                 onClick={onClose}
                 className="px-4 py-2 bg-app-red/20 hover:bg-app-red/30 rounded-lg text-app-red transition-colors"
               >
-                Go Back
+                {ui.goBack}
               </button>
             </div>
           )}
@@ -262,9 +272,9 @@ export const TeacherModePlayer: FC<Props> = ({
             <div className="space-y-6">
               {/* Section Label */}
               <div className="flex items-center gap-2">
-                <span className="text-2xl">{SECTION_LABELS[currentBeat.section]?.icon ?? '📚'}</span>
+                <span className="text-2xl">{SECTION_ICON[currentBeat.section] ?? '📚'}</span>
                 <span className="text-sm font-semibold text-app-green">
-                  {SECTION_LABELS[currentBeat.section]?.label ?? 'Learning'}
+                  {ui[SECTION_LABEL_KEYS[currentBeat.section]] ?? ui.sectionLearning}
                 </span>
               </div>
 

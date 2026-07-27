@@ -4,14 +4,15 @@
 
 interface KeyTakeawaysProps {
   takeaways: string[]
+  ui: Record<string, string>
 }
 
-export default function KeyTakeaways({ takeaways }: KeyTakeawaysProps) {
+export default function KeyTakeaways({ takeaways, ui }: KeyTakeawaysProps) {
   return (
     <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl p-6 border border-blue-500/20">
       <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
         <span className="text-2xl">💡</span>
-        Key Takeaways
+        {ui.keyTakeaways}
       </h3>
       <ul className="space-y-3">
         {takeaways.map((takeaway, index) => (

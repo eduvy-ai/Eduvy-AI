@@ -4,14 +4,15 @@
 
 interface ExamNotesProps {
   notes: string[]
+  ui: Record<string, string>
 }
 
-export default function ExamNotes({ notes }: ExamNotesProps) {
+export default function ExamNotes({ notes, ui }: ExamNotesProps) {
   return (
     <div className="bg-gradient-to-br from-orange-500/10 to-amber-500/10 rounded-2xl p-6 border border-orange-500/20">
       <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
         <span className="text-2xl">📝</span>
-        Exam Tips & Notes
+        {ui.examTipsNotes}
       </h3>
       <ul className="space-y-3">
         {notes.map((note, index) => (

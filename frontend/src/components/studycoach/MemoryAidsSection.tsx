@@ -5,9 +5,10 @@ import type { MemoryAids } from '../../modules/studycoach'
 
 interface MemoryAidsSectionProps {
   aids: MemoryAids
+  ui: Record<string, string>
 }
 
-export default function MemoryAidsSection({ aids }: MemoryAidsSectionProps) {
+export default function MemoryAidsSection({ aids, ui }: MemoryAidsSectionProps) {
   const hasMnemonics = aids.mnemonics && aids.mnemonics.length > 0
   const hasAcronyms = aids.acronyms && aids.acronyms.length > 0
   const hasPatterns = aids.patterns && aids.patterns.length > 0
@@ -20,14 +21,14 @@ export default function MemoryAidsSection({ aids }: MemoryAidsSectionProps) {
     <div className="bg-gradient-to-br from-cyan-500/10 to-teal-500/10 rounded-2xl p-6 border border-cyan-500/20">
       <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
         <span className="text-2xl">🧠</span>
-        Memory Aids
+        {ui.memoryAids}
       </h3>
 
       <div className="space-y-4">
         {/* Mnemonics */}
         {hasMnemonics && (
           <div>
-            <h4 className="text-sm font-medium text-cyan-400 mb-2">Mnemonics</h4>
+            <h4 className="text-sm font-medium text-cyan-400 mb-2">{ui.mnemonics}</h4>
             <ul className="space-y-2">
               {aids.mnemonics.map((mnemonic, index) => (
                 <li key={index} className="text-slate-300 text-sm flex items-start gap-2">
@@ -42,7 +43,7 @@ export default function MemoryAidsSection({ aids }: MemoryAidsSectionProps) {
         {/* Acronyms */}
         {hasAcronyms && (
           <div>
-            <h4 className="text-sm font-medium text-teal-400 mb-2">Acronyms</h4>
+            <h4 className="text-sm font-medium text-teal-400 mb-2">{ui.acronyms}</h4>
             <ul className="space-y-2">
               {aids.acronyms.map((acronym, index) => (
                 <li key={index} className="text-slate-300 text-sm flex items-start gap-2">
@@ -57,7 +58,7 @@ export default function MemoryAidsSection({ aids }: MemoryAidsSectionProps) {
         {/* Patterns */}
         {hasPatterns && (
           <div>
-            <h4 className="text-sm font-medium text-emerald-400 mb-2">Patterns</h4>
+            <h4 className="text-sm font-medium text-emerald-400 mb-2">{ui.patterns}</h4>
             <ul className="space-y-2">
               {aids.patterns.map((pattern, index) => (
                 <li key={index} className="text-slate-300 text-sm flex items-start gap-2">

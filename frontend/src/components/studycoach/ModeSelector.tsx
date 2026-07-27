@@ -1,11 +1,12 @@
 // ─── Mode Selector Component ───────────────────────────────────
 
 
-import { MODE_INFO, type StudyCoachMode } from '../../modules/studycoach'
+import { type StudyCoachMode } from '../../modules/studycoach'
 
 interface ModeSelectorProps {
   currentMode: StudyCoachMode
   onModeChange: (mode: StudyCoachMode) => void
+  ui: Record<string, string>
 }
 
 const modes: StudyCoachMode[] = [
@@ -16,11 +17,19 @@ const modes: StudyCoachMode[] = [
   'study_coach_revision',
 ]
 
-export default function ModeSelector({ currentMode, onModeChange }: ModeSelectorProps) {
+const MODE_KEYS: Record<StudyCoachMode, { labelKey: string; descKey: string; icon: string }> = {
+  study_coach:          { labelKey: 'modeStudyCoach',  descKey: 'modeStudyCoachDesc', icon: '📚' },
+  study_coach_eli10:    { labelKey: 'modeSimple',      descKey: 'modeSimpleDesc',     icon: '✨' },
+  study_coach_exam:     { labelKey: 'modeExam',        descKey: 'modeExamDesc',       icon: '📝' },
+  study_coach_coding:   { labelKey: 'modeCoding',      descKey: 'modeCodingDesc',     icon: '💻' },
+  study_coach_revision: { labelKey: 'modeRevision',    descKey: 'modeRevisionDesc',   icon: '⚡' },
+}
+
+export default function ModeSelector({ currentMode, onModeChange, ui }: ModeSelectorProps) {
   return (
     <div className="flex flex-wrap justify-center gap-2">
       {modes.map((mode) => {
-        const info = MODE_INFO[mode]
+        const keys = MODE_KEYS[mode]
         const isActive = mode === currentMode
         return (
           <button
@@ -34,10 +43,10 @@ export default function ModeSelector({ currentMode, onModeChange }: ModeSelector
                 : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white'
               }
             `}
-            title={info.description}
+            title={ui[keys.descKey]}
           >
-            <span>{info.icon}</span>
-            <span className="hidden sm:inline">{info.label}</span>
+            <span>{keys.icon}</span>
+            <span className="hidden sm:inline">{ui[keys.labelKey]}</span>
           </button>
         )
       })}

@@ -1,7 +1,7 @@
 // ─── Question Input Component ───────────────────────────────────
 
 import React, { useCallback, useState, useRef, useEffect } from 'react'
-import { MODE_INFO, type StudyCoachMode } from '../../modules/studycoach'
+import { type StudyCoachMode } from '../../modules/studycoach'
 
 interface QuestionInputProps {
   value: string
@@ -11,6 +11,7 @@ interface QuestionInputProps {
   placeholder?: string
   currentMode: StudyCoachMode
   onModeChange: (mode: StudyCoachMode) => void
+  ui: Record<string, string>
 }
 
 const modes: StudyCoachMode[] = [
@@ -31,6 +32,7 @@ export default function QuestionInput({
   placeholder = 'Ask me anything...',
   currentMode,
   onModeChange,
+  ui,
 }: QuestionInputProps) {
   const [showModeDropdown, setShowModeDropdown] = useState(false)
   const [openUpward, setOpenUpward] = useState(false)
@@ -73,7 +75,15 @@ export default function QuestionInput({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const currentModeInfo = MODE_INFO[currentMode]
+  const MODE_LABELS: Record<StudyCoachMode, { label: string; description: string; icon: string }> = {
+    study_coach: { label: ui.modeStudyCoach, description: ui.modeStudyCoachDesc, icon: '📚' },
+    study_coach_eli10: { label: ui.modeSimple, description: ui.modeSimpleDesc, icon: '✨' },
+    study_coach_exam: { label: ui.modeExam, description: ui.modeExamDesc, icon: '📝' },
+    study_coach_coding: { label: ui.modeCoding, description: ui.modeCodingDesc, icon: '💻' },
+    study_coach_revision: { label: ui.modeRevision, description: ui.modeRevisionDesc, icon: '⚡' },
+  }
+
+  const currentModeInfo = MODE_LABELS[currentMode]
 
   return (
     <div className="relative bg-app-card2 border border-app-border rounded-2xl">
@@ -127,7 +137,7 @@ export default function QuestionInput({
               `}
             >
               {modes.map((mode) => {
-                const info = MODE_INFO[mode]
+                const info = MODE_LABELS[mode]
                 const isActive = mode === currentMode
                 return (
                   <button

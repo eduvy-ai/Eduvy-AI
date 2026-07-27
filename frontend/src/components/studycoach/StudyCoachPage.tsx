@@ -1,8 +1,9 @@
 // ─── Study Coach Page ───────────────────────────────────────
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useStudyCoach } from '../../modules/studycoach'
 import { useAuth } from '../../modules/auth'
+import { li, getDisplayLang } from '../../shared.js'
 import QuestionInput from './QuestionInput'
 import ConceptOverview from './ConceptOverview'
 import KeyTakeaways from './KeyTakeaways'
@@ -26,6 +27,7 @@ export default function StudyCoachPage() {
 
   // Use user's medium (instruction language) for TTS
   const userLanguage = user?.language || 'English'
+  const ui = useMemo(() => li(getDisplayLang(user)), [user])
 
   const handleSubmit = useCallback(async () => {
     if (!question.trim()) return
@@ -43,10 +45,10 @@ export default function StudyCoachPage() {
         {/* Header */}
         <header className="text-center space-y-1">
           <h1 className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-app-green to-emerald-400 bg-clip-text text-transparent">
-            🎓 Study Coach
+            {ui.coachTitle}
           </h1>
           <p className="text-app-muted text-sm">
-            Your personal AI tutor — ask anything, learn everything
+            {ui.coachSubtitle}
           </p>
         </header>
 
@@ -56,9 +58,10 @@ export default function StudyCoachPage() {
           onChange={setQuestion}
           onSubmit={handleSubmit}
           isLoading={isLoading}
-          placeholder="Ask me anything..."
+          placeholder={ui.askPlaceholder}
           currentMode={mode}
           onModeChange={setMode}
+          ui={ui}
         />
 
         {/* Error Display */}
@@ -87,8 +90,7 @@ export default function StudyCoachPage() {
                 onClick={() => setShowTeacherMode(true)}
                 className="px-5 py-2 bg-gradient-to-r from-app-green to-emerald-500 hover:from-app-green/90 hover:to-emerald-500/90 rounded-full text-sm text-white font-semibold shadow-lg shadow-app-green/20 transition-all flex items-center gap-2"
               >
-                <span>▶</span>
-                Teacher Mode
+                {ui.teacherMode}
               </button>
               
               {/* New Question Button */}
@@ -96,7 +98,7 @@ export default function StudyCoachPage() {
                 onClick={handleNewQuestion}
                 className="px-5 py-2 bg-app-card2 border border-app-border hover:border-app-green/30 rounded-full text-sm text-app-muted hover:text-app-green transition-colors"
               >
-                + Ask New Question
+                {ui.askNewQuestion}
               </button>
             </div>
 
@@ -105,46 +107,47 @@ export default function StudyCoachPage() {
               title={response.title}
               difficulty={response.difficulty}
               overview={response.overview}
+              ui={ui}
             />
 
             {/* Key Takeaways */}
             {response.key_takeaways.length > 0 && (
-              <KeyTakeaways takeaways={response.key_takeaways} />
+              <KeyTakeaways takeaways={response.key_takeaways} ui={ui} />
             )}
 
             {/* Diagram */}
             {response.diagram && response.diagram.content && (
-              <DiagramViewer diagram={response.diagram} />
+              <DiagramViewer diagram={response.diagram} ui={ui} />
             )}
 
             {/* Real World Example */}
             {response.real_world_example && (
-              <RealWorldExample example={response.real_world_example} />
+              <RealWorldExample example={response.real_world_example} ui={ui} />
             )}
 
             {/* Code Examples (Coding Mode) */}
             {response.code_examples && response.code_examples.length > 0 && (
-              <CodeExamples examples={response.code_examples} />
+              <CodeExamples examples={response.code_examples} ui={ui} />
             )}
 
             {/* Memory Aids (Revision Mode) */}
             {response.memory_aids && (
-              <MemoryAidsSection aids={response.memory_aids} />
+              <MemoryAidsSection aids={response.memory_aids} ui={ui} />
             )}
 
             {/* Quiz */}
             {response.quiz.length > 0 && (
-              <QuizSection questions={response.quiz} />
+              <QuizSection questions={response.quiz} ui={ui} />
             )}
 
             {/* Flashcards */}
             {response.flashcards.length > 0 && (
-              <FlashcardSection flashcards={response.flashcards} />
+              <FlashcardSection flashcards={response.flashcards} ui={ui} />
             )}
 
             {/* Exam Notes */}
             {response.exam_notes.length > 0 && (
-              <ExamNotes notes={response.exam_notes} />
+              <ExamNotes notes={response.exam_notes} ui={ui} />
             )}
 
             {/* Related Topics & Next Topic */}
@@ -152,20 +155,21 @@ export default function StudyCoachPage() {
               {response.related_topics.length > 0 && (
                 <RelatedTopics topics={response.related_topics} onTopicClick={(topic) => {
                   setQuestion(topic)
-                  handleSubmit()
-                }} />
+                  ask({ question: topic })
+                }} ui={ui} />
               )}
               {response.next_topic && (
                 <NextTopic topic={response.next_topic} onExplore={() => {
                   setQuestion(response.next_topic)
-                }} />
+                  ask({ question: response.next_topic })
+                }} ui={ui} />
               )}
             </div>
 
             {/* Usage Info */}
             {response.usage && (
               <div className="text-center text-xs text-slate-500">
-                AI calls today: {response.usage.calls_today}/{response.usage.daily_limit}
+                {ui.aiCallsToday} {response.usage.calls_today}/{response.usage.daily_limit}
               </div>
             )}
           </div>
@@ -178,6 +182,7 @@ export default function StudyCoachPage() {
           studyCoachResponse={response}
           onClose={() => setShowTeacherMode(false)}
           language={userLanguage}
+          ui={ui}
         />
       )}
     </div>

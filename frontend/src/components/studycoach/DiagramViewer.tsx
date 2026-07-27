@@ -5,6 +5,7 @@ import type { DiagramData } from '../../modules/studycoach'
 
 interface DiagramViewerProps {
   diagram: DiagramData
+  ui?: Record<string, string>
 }
 
 /**
@@ -79,7 +80,7 @@ function createTextDiagram(content: string): string {
   return nodes.map((node, i) => `${i + 1}. ${node}`).join('\n↓\n')
 }
 
-export default function DiagramViewer({ diagram }: DiagramViewerProps) {
+export default function DiagramViewer({ diagram, ui }: DiagramViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [error, setError] = useState<string | null>(null)
   const [svgContent, setSvgContent] = useState<string | null>(null)
@@ -152,7 +153,7 @@ export default function DiagramViewer({ diagram }: DiagramViewerProps) {
     <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50">
       <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
         <span className="text-2xl">📊</span>
-        Visual Diagram
+        {ui?.visualDiagram ?? 'Visual Diagram'}
         <span className="text-xs text-slate-400 font-normal ml-2">({diagram.type})</span>
       </h3>
       

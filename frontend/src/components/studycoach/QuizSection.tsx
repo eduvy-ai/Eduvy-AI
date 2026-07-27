@@ -5,9 +5,10 @@ import type { QuizQuestion } from '../../modules/studycoach'
 
 interface QuizSectionProps {
   questions: QuizQuestion[]
+  ui: Record<string, string>
 }
 
-export default function QuizSection({ questions }: QuizSectionProps) {
+export default function QuizSection({ questions, ui }: QuizSectionProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null)
   const [showExplanation, setShowExplanation] = useState(false)
@@ -51,18 +52,18 @@ export default function QuizSection({ questions }: QuizSectionProps) {
     return (
       <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50">
         <div className="text-center space-y-4">
-          <h3 className="text-2xl font-bold text-white">Quiz Complete! 🎉</h3>
+          <h3 className="text-2xl font-bold text-white">{ui.quizComplete}</h3>
           <div className="text-6xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
             {percentage}%
           </div>
           <p className="text-slate-300">
-            You got {score} out of {questions.length} questions correct
+            {ui.quizScore.replace('{score}', String(score)).replace('{total}', String(questions.length))}
           </p>
           <button
             onClick={handleReset}
             className="px-6 py-2 bg-blue-500 hover:bg-blue-600 rounded-xl text-white font-medium transition-colors"
           >
-            Try Again
+            {ui.tryAgain}
           </button>
         </div>
       </div>
@@ -74,7 +75,7 @@ export default function QuizSection({ questions }: QuizSectionProps) {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-white flex items-center gap-2">
           <span className="text-2xl">❓</span>
-          Knowledge Check
+          {ui.knowledgeCheck}
         </h3>
         <span className="text-sm text-slate-400">
           {currentIndex + 1} / {questions.length}
@@ -137,7 +138,7 @@ export default function QuizSection({ questions }: QuizSectionProps) {
       {/* Explanation */}
       {showExplanation && (
         <div className="mt-6 p-4 bg-slate-700/30 rounded-xl border border-slate-600/30">
-          <p className="text-sm text-slate-400 mb-1">Explanation:</p>
+          <p className="text-sm text-slate-400 mb-1">{ui.explanation}</p>
           <p className="text-slate-300">{currentQuestion.explanation}</p>
         </div>
       )}
@@ -149,7 +150,7 @@ export default function QuizSection({ questions }: QuizSectionProps) {
             onClick={handleNext}
             className="px-6 py-2 bg-blue-500 hover:bg-blue-600 rounded-xl text-white font-medium transition-colors"
           >
-            {currentIndex < questions.length - 1 ? 'Next Question' : 'See Results'}
+            {currentIndex < questions.length - 1 ? ui.nextQuestion : ui.seeResults}
           </button>
         </div>
       )}

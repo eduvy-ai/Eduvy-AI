@@ -5,9 +5,10 @@ import type { Flashcard } from '../../modules/studycoach'
 
 interface FlashcardSectionProps {
   flashcards: Flashcard[]
+  ui: Record<string, string>
 }
 
-export default function FlashcardSection({ flashcards }: FlashcardSectionProps) {
+export default function FlashcardSection({ flashcards, ui }: FlashcardSectionProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
 
@@ -32,7 +33,7 @@ export default function FlashcardSection({ flashcards }: FlashcardSectionProps) 
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-white flex items-center gap-2">
           <span className="text-2xl">🃏</span>
-          Flashcards
+          {ui.flashcards}
         </h3>
         <span className="text-sm text-slate-400">
           {currentIndex + 1} / {flashcards.length}
@@ -90,7 +91,7 @@ export default function FlashcardSection({ flashcards }: FlashcardSectionProps) 
       </div>
 
       <p className="text-center text-xs text-slate-500 mt-3">
-        Click to flip
+        {ui.clickToFlip}
       </p>
 
       {/* Navigation */}

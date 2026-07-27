@@ -5,9 +5,10 @@ import type { CodeExample } from '../../modules/studycoach'
 
 interface CodeExamplesProps {
   examples: CodeExample[]
+  ui: Record<string, string>
 }
 
-export default function CodeExamples({ examples }: CodeExamplesProps) {
+export default function CodeExamples({ examples, ui }: CodeExamplesProps) {
   const [activeTab, setActiveTab] = useState(0)
   const [copied, setCopied] = useState(false)
 
@@ -27,7 +28,7 @@ export default function CodeExamples({ examples }: CodeExamplesProps) {
     <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50">
       <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
         <span className="text-2xl">💻</span>
-        Code Examples
+        {ui.codeExamples}
       </h3>
 
       {/* Tabs */}
@@ -59,7 +60,7 @@ export default function CodeExamples({ examples }: CodeExamplesProps) {
             onClick={handleCopy}
             className="text-xs text-slate-400 hover:text-white transition-colors"
           >
-            {copied ? '✓ Copied!' : 'Copy'}
+            {copied ? ui.copied : ui.copy}
           </button>
         </div>
         <pre className="bg-slate-900 p-4 rounded-b-xl overflow-x-auto">
@@ -72,7 +73,7 @@ export default function CodeExamples({ examples }: CodeExamplesProps) {
       {/* Explanation */}
       {currentExample.explanation && (
         <div className="mt-4 p-4 bg-slate-700/30 rounded-xl">
-          <p className="text-sm text-slate-400 mb-1">Explanation:</p>
+          <p className="text-sm text-slate-400 mb-1">{ui.explanation}</p>
           <p className="text-slate-300 text-sm">{currentExample.explanation}</p>
         </div>
       )}
