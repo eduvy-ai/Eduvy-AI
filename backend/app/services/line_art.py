@@ -33,9 +33,13 @@ _POLL = "https://image.pollinations.ai/prompt/"
 _RETRY_DELAYS = [0.0, 4.0, 9.0]
 
 
-def _prompt(subject: str) -> str:
+def _prompt(subject: str, context: str = "") -> str:
     subject = " ".join((subject or "").strip().split())[:160]
-    return (f"black and white line drawing of {subject}, bold clean black outlines "
+    # Include educational context to disambiguate (e.g. "Python" = programming, not snake)
+    ctx_hint = ""
+    if context:
+        ctx_hint = f" ({context.strip()[:60]})"
+    return (f"black and white line drawing of {subject}{ctx_hint}, bold clean black outlines "
             f"on a plain white background, coloring book style, thick even strokes, "
             f"simple, minimal, no shading, no grey, no color, centered, full view")
 
@@ -44,19 +48,19 @@ def _seed_for(subject: str) -> int:
     return int(hashlib.sha256(subject.strip().lower().encode()).hexdigest(), 16) % 90000 + 1
 
 
-async def _fetch_image(subject: str, timeout: float = 40.0) -> Optional[str]:
+async def _fetch_image(subject: str, timeout: float = 40.0, context: str = "") -> Optional[str]:
     """Download clean line-art for `subject`. Returns local PNG path or None."""
     try:
         import httpx
     except ImportError:
         return None
     seed = _seed_for(subject)
-    digest = hashlib.sha256(f"{_prompt(subject)}|{seed}".encode()).hexdigest()[:24]
+    digest = hashlib.sha256(f"{_prompt(subject, context)}|{seed}".encode()).hexdigest()[:24]
     path = os.path.join(_CACHE_DIR, f"{digest}.png")
     if os.path.exists(path) and os.path.getsize(path) > 2000:
         return path
 
-    url = _POLL + urllib.parse.quote(_prompt(subject), safe="") + "?" + urllib.parse.urlencode(
+    url = _POLL + urllib.parse.quote(_prompt(subject, context), safe="") + "?" + urllib.parse.urlencode(
         {"width": 768, "height": 576, "seed": seed, "nologo": "true", "model": "flux"})
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
@@ -117,15 +121,20 @@ def _vectorize(png: str) -> Optional[dict]:
     return {"w": int(w), "h": int(h), "contours": [p[2] for p in polys][:420]}
 
 
-async def generate_line_art(subject: str) -> Optional[dict]:
-    """Fetch + vectorize `subject`. Returns {"w","h","contours"} or None."""
+async def generate_line_art(subject: str, context: str = "") -> Optional[dict]:
+    """Fetch + vectorize `subject`. Returns {"w","h","contours"} or None.
+    
+    Args:
+        subject: The thing to draw (e.g. "a laptop showing code")
+        context: Educational context for disambiguation (e.g. "computer science programming")
+    """
     subject = (subject or "").strip()
     if not subject:
         return None
     key = subject.lower()
     if key in _MEM_CACHE:
         return _MEM_CACHE[key]
-    png = await _fetch_image(subject)
+    png = await _fetch_image(subject, context=context)
     if not png:
         return None
     data = await asyncio.to_thread(_vectorize, png)

@@ -43,6 +43,11 @@ function _authHeaders() {
   return token ? { 'Authorization': `Bearer ${token}` } : {}
 }
 
+function _adminAuthHeaders() {
+  const token = localStorage.getItem('eduvyai_admin_token')
+  return token ? { 'Authorization': `Bearer ${token}` } : {}
+}
+
 // ── Auth API ─────────────────────────────────────────────────
 
 export async function apiRegister({ email, password, name, standard, board, language, subjects, mobile, parent_mobile }) {
@@ -852,10 +857,11 @@ export async function apiVerifyPayment({ order_id, payment_id, signature, plan }
 
 // ── Video Creator ─────────────────────────────────────────────
 
-export async function apiVideoGenerate(data) {
+export async function apiVideoGenerate(data, { admin = false } = {}) {
+  const headers = admin ? _adminAuthHeaders() : _authHeaders()
   const res = await fetch(`${API_BASE_URL}/api/video/generate`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    headers: { 'Content-Type': 'application/json', ...headers },
     body: JSON.stringify(data),
     signal: AbortSignal.timeout(60000),
   })
@@ -864,9 +870,10 @@ export async function apiVideoGenerate(data) {
   return json
 }
 
-export async function apiVideoStatus(videoId) {
+export async function apiVideoStatus(videoId, { admin = false } = {}) {
+  const headers = admin ? _adminAuthHeaders() : _authHeaders()
   const res = await fetch(`${API_BASE_URL}/api/video/${encodeURIComponent(videoId)}/status`, {
-    headers: { ..._authHeaders() },
+    headers: { ...headers },
     signal: AbortSignal.timeout(10000),
   })
   const json = await safeJson(res)
@@ -874,9 +881,10 @@ export async function apiVideoStatus(videoId) {
   return json
 }
 
-export async function apiVideoLibrary({ limit = 20, offset = 0 } = {}) {
+export async function apiVideoLibrary({ limit = 20, offset = 0, admin = false } = {}) {
+  const headers = admin ? _adminAuthHeaders() : _authHeaders()
   const res = await fetch(`${API_BASE_URL}/api/video/library?limit=${limit}&offset=${offset}`, {
-    headers: { ..._authHeaders() },
+    headers: { ...headers },
     signal: AbortSignal.timeout(10000),
   })
   const json = await safeJson(res)
@@ -884,10 +892,11 @@ export async function apiVideoLibrary({ limit = 20, offset = 0 } = {}) {
   return json
 }
 
-export async function apiVideoDelete(videoId) {
+export async function apiVideoDelete(videoId, { admin = false } = {}) {
+  const headers = admin ? _adminAuthHeaders() : _authHeaders()
   const res = await fetch(`${API_BASE_URL}/api/video/${encodeURIComponent(videoId)}`, {
     method: 'DELETE',
-    headers: { ..._authHeaders() },
+    headers: { ...headers },
     signal: AbortSignal.timeout(10000),
   })
   if (!res.ok) {
@@ -897,10 +906,11 @@ export async function apiVideoDelete(videoId) {
   return true
 }
 
-export async function apiVideoShare(videoId) {
+export async function apiVideoShare(videoId, { admin = false } = {}) {
+  const headers = admin ? _adminAuthHeaders() : _authHeaders()
   const res = await fetch(`${API_BASE_URL}/api/video/${encodeURIComponent(videoId)}/share`, {
     method: 'POST',
-    headers: { ..._authHeaders() },
+    headers: { ...headers },
     signal: AbortSignal.timeout(10000),
   })
   const json = await safeJson(res)
@@ -911,6 +921,42 @@ export async function apiVideoShare(videoId) {
 export async function apiVideoPublic(shareToken) {
   const res = await fetch(`${API_BASE_URL}/api/video/shared/${encodeURIComponent(shareToken)}`, {
     signal: AbortSignal.timeout(10000),
+  })
+  const json = await safeJson(res)
+  if (!res.ok) throw new Error(json?.detail || `HTTP ${res.status}`)
+  return json
+}
+
+// Pipeline endpoints (admin-only, two-stage generation)
+export async function apiVideoPipelineGenerate(data) {
+  const res = await fetch(`${API_BASE_URL}/api/video/pipeline/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._adminAuthHeaders() },
+    body: JSON.stringify(data),
+    signal: AbortSignal.timeout(90000), // Longer timeout for two-stage
+  })
+  const json = await safeJson(res)
+  if (!res.ok) throw new Error(json?.detail || `HTTP ${res.status}`)
+  return json
+}
+
+export async function apiVideoLessonPlan(data) {
+  const res = await fetch(`${API_BASE_URL}/api/video/pipeline/lesson-plan`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._adminAuthHeaders() },
+    body: JSON.stringify(data),
+    signal: AbortSignal.timeout(30000),
+  })
+  const json = await safeJson(res)
+  if (!res.ok) throw new Error(json?.detail || `HTTP ${res.status}`)
+  return json
+}
+
+export async function apiVideoQuiz(videoId) {
+  const res = await fetch(`${API_BASE_URL}/api/video/${encodeURIComponent(videoId)}/quiz`, {
+    method: 'POST',
+    headers: { ..._adminAuthHeaders() },
+    signal: AbortSignal.timeout(30000),
   })
   const json = await safeJson(res)
   if (!res.ok) throw new Error(json?.detail || `HTTP ${res.status}`)

@@ -24,33 +24,37 @@ from typing import Any, Dict, List, Tuple
 _DASH = 4000
 
 # ── Style presets ─────────────────────────────────────────────────────────────
+# Color rules (from Excalidraw + D3 research):
+# - bg vs fg must have WCAG AA contrast (4.5:1 minimum)
+# - accent colors must be readable as text ON the background
+# - accent2 used for secondary elements (borders, labels) — lighter weight OK
 STYLE_CONFIGS = {
-    # White paper — red/blue pen marker
+    # White paper — dark red/blue pen (high contrast)
     "sketch_classic": {
         "bg": "#FAFAF8",
         "fg": "#1a1a2e",
         "accent":  "#c0392b",
-        "accent2": "#2471a3",
+        "accent2": "#1a5276",
         "font_family": "'Segoe Script', 'Comic Sans MS', cursive",
         "stroke_style": "sketch",
         "line_width": 2.5,
     },
-    # Chalkboard green — chalk drawing style
+    # Dark chalkboard — bright chalk colors (high contrast on dark)
     "sketch_dark": {
         "bg": "#1a2e1a",
-        "fg": "#e8f5e9",
-        "accent":  "#f9f9f9",
-        "accent2": "#ffe082",
+        "fg": "#f0fff0",
+        "accent":  "#ffd700",
+        "accent2": "#90ee90",
         "font_family": "'Segoe Script', 'Comic Sans MS', cursive",
         "stroke_style": "chalk",
         "line_width": 2,
     },
-    # Warm yellow paper — colourful markers
+    # Warm yellow paper — vivid markers (high contrast)
     "canvas_colorful": {
         "bg": "#fffde7",
         "fg": "#1a1a2e",
-        "accent":  "#8e44ad",
-        "accent2": "#27ae60",
+        "accent":  "#6a1b9a",
+        "accent2": "#1b5e20",
         "font_family": "'Segoe Script', 'Comic Sans MS', cursive",
         "stroke_style": "solid",
         "line_width": 2,
@@ -65,12 +69,12 @@ STYLE_CONFIGS = {
         "stroke_style": "solid",
         "line_width": 1.5,
     },
-    # Dark chalkboard
+    # Dark chalkboard — bright chalk on deep green (maximum contrast)
     "blackboard": {
-        "bg": "#111d11",
-        "fg": "#dff0d8",
-        "accent":  "#ffffff",
-        "accent2": "#ffeb3b",
+        "bg": "#0d1f0d",
+        "fg": "#ffffff",
+        "accent":  "#ffd700",
+        "accent2": "#7fff7f",
         "font_family": "'Segoe Script', 'Comic Sans MS', cursive",
         "stroke_style": "chalk",
         "line_width": 2,
@@ -212,8 +216,21 @@ def _draw_path(d_attr: str, fill: str, stroke: str,
 
 def _draw_text(x: float, y: float, text: str, size: float,
                fill: str, anchor: str, delay: float,
-               bold: bool = False, family: str = "") -> Tuple[str, PenHint]:
-    """Text that fades up into position."""
+               bold: bool = False, family: str = "",
+               max_width: float = 0) -> Tuple[str, PenHint]:
+    """Text that fades up into position. Truncates if exceeding max_width."""
+    # Truncate text to prevent overflow/cropping (from Excalidraw pattern)
+    # Approximate: each char at given size is ~0.55 * size pixels wide
+    if max_width > 0 and text:
+        approx_char_width = size * 0.55
+        max_chars = int(max_width / approx_char_width)
+        if len(text) > max_chars and max_chars > 3:
+            text = text[:max_chars - 1] + "…"
+    elif not max_width and text:
+        # Default safety: cap at 60 chars for standard 1280px viewport
+        if len(text) > 60:
+            text = text[:59] + "…"
+
     weight = 'font-weight="bold" ' if bold else ""
     fam    = f'font-family="{family}" ' if family else ""
     svg = (
@@ -283,6 +300,7 @@ def _wrap_html(svg_body: str, pen_hints: List[PenHint],
   }}
   .scene {{
     width: {w}px; height: {h}px; position: relative;
+    padding: 28px 36px;
   }}
   /* Corner bracket decorations */
   .c {{ position: absolute; width: 34px; height: 34px;
@@ -491,7 +509,7 @@ def _render_flow_arrows(title: str, data: Dict, style: Dict,
 
         if has_desc and i < len(descriptions):
             parts.append(
-                f'<text x="{cx}" y="{cy + 30}" font-size="13" fill="{style["fg"]}" '
+                f'<text x="{cx}" y="{cy + 30}" font-size="18" fill="{style["fg"]}" '
                 f'text-anchor="middle" opacity="0.78" '
                 f'style="animation:fadeIn 0.3s ease forwards {d+0.65:.2f}s;opacity:0">'
                 f'{_escape(str(descriptions[i])[:30])}</text>'
@@ -575,13 +593,13 @@ def _render_comparison_table(title: str, data: Dict, style: Dict,
         hints.append({"x": 80, "y": y, "t": d})
 
         parts.append(
-            f'<text x="{80 + col_w//2}" y="{y + row_h//2 + 7}" font-size="17" '
+            f'<text x="{80 + col_w//2}" y="{y + row_h//2 + 7}" font-size="18" '
             f'fill="{style["fg"]}" text-anchor="middle" '
             f'style="animation:fadeUp 0.38s ease forwards {d:.2f}s;opacity:0">'
             f'{_escape(l_val)}</text>'
         )
         parts.append(
-            f'<text x="{lhx + col_w//2}" y="{y + row_h//2 + 7}" font-size="17" '
+            f'<text x="{lhx + col_w//2}" y="{y + row_h//2 + 7}" font-size="18" '
             f'fill="{style["fg"]}" text-anchor="middle" '
             f'style="animation:fadeUp 0.38s ease forwards {d+0.1:.2f}s;opacity:0">'
             f'{_escape(r_val)}</text>'
@@ -742,7 +760,7 @@ def _render_equation_write(title: str, data: Dict, style: Dict,
                 f'{_escape(sym)}</text>'
             )
             parts.append(
-                f'<text x="{px}" y="{h//2 + 108}" font-size="13" fill="{style["fg"]}" '
+                f'<text x="{px}" y="{h//2 + 108}" font-size="18" fill="{style["fg"]}" '
                 f'text-anchor="middle" '
                 f'style="animation:fadeIn 0.3s ease forwards {d+0.5:.2f}s;opacity:0">'
                 f'{_escape(meaning[:20])}</text>'
@@ -832,21 +850,21 @@ def _render_venn_two(title: str, data: Dict, style: Dict,
 
     for i, it in enumerate(left_items[:3]):
         parts.append(
-            f'<text x="{cx - offset - r//2}" y="{cy + 8 + i*24}" font-size="14" '
+            f'<text x="{cx - offset - r//2}" y="{cy + 8 + i*24}" font-size="18" '
             f'fill="{style["fg"]}" text-anchor="middle" '
             f'style="animation:fadeIn 0.38s ease forwards {1.45+i*0.2:.2f}s;opacity:0">'
             f'{_escape(str(it))}</text>'
         )
     for i, it in enumerate(right_items[:3]):
         parts.append(
-            f'<text x="{cx + offset + r//2}" y="{cy + 8 + i*24}" font-size="14" '
+            f'<text x="{cx + offset + r//2}" y="{cy + 8 + i*24}" font-size="18" '
             f'fill="{style["fg"]}" text-anchor="middle" '
             f'style="animation:fadeIn 0.38s ease forwards {1.55+i*0.2:.2f}s;opacity:0">'
             f'{_escape(str(it))}</text>'
         )
     for i, it in enumerate(overlap_items[:3]):
         parts.append(
-            f'<text x="{cx}" y="{cy + 8 + i*24}" font-size="13" '
+            f'<text x="{cx}" y="{cy + 8 + i*24}" font-size="18" '
             f'fill="{style["fg"]}" text-anchor="middle" opacity="0.85" '
             f'style="animation:fadeIn 0.38s ease forwards {1.65+i*0.2:.2f}s;opacity:0">'
             f'{_escape(str(it))}</text>'
@@ -947,13 +965,13 @@ def _render_bar_chart(title: str, data: Dict, style: Dict,
         parts.append(s); hints.append(p)
 
         parts.append(
-            f'<text x="{bx + bar_w//2}" y="{base_y - bh - 8}" font-size="16" '
+            f'<text x="{bx + bar_w//2}" y="{base_y - bh - 8}" font-size="18" '
             f'fill="{style["accent"]}" text-anchor="middle" font-weight="bold" '
             f'style="animation:fadeUp 0.28s ease forwards {d+0.44:.2f}s;opacity:0">'
             f'{val}{unit}</text>'
         )
         parts.append(
-            f'<text x="{bx + bar_w//2}" y="{base_y + 22}" font-size="15" '
+            f'<text x="{bx + bar_w//2}" y="{base_y + 22}" font-size="18" '
             f'fill="{style["fg"]}" text-anchor="middle" '
             f'style="animation:fadeUp 0.28s ease forwards {d+0.54:.2f}s;opacity:0">'
             f'{_escape(str(label))}</text>'
@@ -1170,7 +1188,7 @@ def _render_annotated_diagram(title: str, data: Dict, style: Dict,
         )
         if desc:
             parts.append(
-                f'<text x="{lx + loff}" y="{ly + 16}" font-size="13" fill="{style["fg"]}" '
+                f'<text x="{lx + loff}" y="{ly + 16}" font-size="18" fill="{style["fg"]}" '
                 f'text-anchor="{anchor}" opacity="0.72" '
                 f'style="animation:fadeIn 0.35s ease forwards {d+0.55:.2f}s;opacity:0">'
                 f'{_escape(desc[:36])}</text>'
@@ -1315,7 +1333,7 @@ def _render_illustration(title: str, data: Dict, style: Dict,
             f'style="animation:fadeIn 0.25s ease forwards {d+0.24:.2f}s;opacity:0"/>'
         )
         parts.append(
-            f'<text x="{px + pill_w//2}" y="{py + 20}" font-size="16" fill="#1a1a2e" '
+            f'<text x="{px + pill_w//2}" y="{py + 20}" font-size="18" fill="#1a1a2e" '
             f'text-anchor="middle" font-weight="bold" '
             f'font-family="\'Caveat\',\'Patrick Hand\',cursive" '
             f'style="animation:fadeIn 0.25s ease forwards {d+0.34:.2f}s;opacity:0">'

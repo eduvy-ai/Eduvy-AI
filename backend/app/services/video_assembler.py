@@ -169,9 +169,11 @@ async def assemble_video(
                 data = svg_spec.setdefault("data", {})
                 if not data.get("contours"):
                     subject = (data.get("subject") or svg_spec.get("title") or narration[:60]).strip()
+                    # Pass educational context for disambiguation (e.g. "Python" = programming, not snake)
+                    edu_context = f"{svg_spec.get('title', '')} {narration[:80]}".strip()
                     try:
                         from app.services.line_art import generate_line_art
-                        la = await generate_line_art(subject)
+                        la = await generate_line_art(subject, context=edu_context)
                         if la and la.get("contours"):
                             data["contours"] = la["contours"]
                             data["cw"] = la["w"]

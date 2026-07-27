@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { API_BASE_URL } from '../../config'
 import {
   apiVideoGenerate,
+  apiVideoPipelineGenerate,
   apiVideoStatus,
   apiVideoLibrary,
   apiVideoDelete,
@@ -44,7 +45,7 @@ const TIMINGS = [
   { value: '4', label: '~4 minutes' },
 ]
 
-export default function VideoCreatorTab({ profile = null }) {
+export default function VideoCreatorTab({ profile = null, isAdmin = false, usePipeline = false }) {
   const [step, setStep] = useState(0)
 
   // Step 1 form
@@ -106,7 +107,7 @@ export default function VideoCreatorTab({ profile = null }) {
     setLoading(true)
     setError(null)
     try {
-      const result = await apiVideoGenerate({
+      const payload = {
         topic: topic.trim(),
         grade,
         subject: subject.trim() || 'General',
@@ -120,7 +121,12 @@ export default function VideoCreatorTab({ profile = null }) {
         bg_music: false,
         voice_instructions: '',
         enable_captions: true,
-      })
+      }
+
+      // Use pipeline endpoint when admin + pipeline mode enabled
+      const result = (isAdmin && usePipeline)
+        ? await apiVideoPipelineGenerate(payload)
+        : await apiVideoGenerate(payload, { admin: isAdmin })
       // result: { id, title, script_json, ... }
       // script_json is stored as a bare scenes ARRAY, but older shapes wrapped it
       // in an object { title, scenes }. Handle both so the review step lists scenes.
@@ -156,7 +162,7 @@ export default function VideoCreatorTab({ profile = null }) {
     if (pollRef.current) clearInterval(pollRef.current)
     pollRef.current = setInterval(async () => {
       try {
-        const status = await apiVideoStatus(videoId)
+        const status = await apiVideoStatus(videoId, { admin: isAdmin })
         const s = status.status
         setGenStatus(s)
 
@@ -198,7 +204,7 @@ export default function VideoCreatorTab({ profile = null }) {
     if (!videoId) return
     setShareLoading(true)
     try {
-      const res = await apiVideoShare(videoId)
+      const res = await apiVideoShare(videoId, { admin: isAdmin })
       setShareUrl(res.share_url || res.share_token)
     } catch (e) {
       setError(e.message)
@@ -212,7 +218,7 @@ export default function VideoCreatorTab({ profile = null }) {
   async function loadLibrary() {
     setLibraryLoading(true)
     try {
-      const res = await apiVideoLibrary()
+      const res = await apiVideoLibrary({ admin: isAdmin })
       setLibrary(res.videos || [])
     } catch {
       setLibrary([])
@@ -229,7 +235,7 @@ export default function VideoCreatorTab({ profile = null }) {
   async function handleDelete(vid) {
     if (!confirm('Delete this video?')) return
     try {
-      await apiVideoDelete(vid)
+      await apiVideoDelete(vid, { admin: isAdmin })
       setLibrary((prev) => prev.filter((v) => v.id !== vid))
     } catch (e) {
       setError(e.message)
