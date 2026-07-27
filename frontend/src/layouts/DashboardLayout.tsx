@@ -129,7 +129,7 @@ const DashboardLayout: React.FC = () => {
         <div className="flex flex-col gap-2 mt-5">
           <div className="flex gap-1.5">
             <div className="flex-1 bg-app-card2 rounded-[10px] py-1.5 px-2 text-xs font-bold text-app-yellow text-center border border-app-border">
-              ⚡ {xp} XP
+              ⚡ {xp} {ui.xpLabel || 'XP'}
             </div>
             <div className="flex-1 bg-app-card2 rounded-[10px] py-1.5 px-2 text-xs font-bold text-app-orange text-center border border-app-border">
               🔥 {streak}
@@ -202,7 +202,7 @@ const DashboardLayout: React.FC = () => {
       
       {/* ── Settings Modal ── */}
       {showSettings && (
-        <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center"><span className="text-white">Loading...</span></div>}>
+        <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center"><span className="text-white">{ui.loading || 'Loading...'}</span></div>}>
           <SettingsModal
             config={{}}
             savedKeys={{}}

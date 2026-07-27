@@ -20,7 +20,8 @@ async def create_challenge(
     return await MuqablaService.create_challenge(
         current_user,
         data.subject,
-        data.difficulty
+        data.difficulty,
+        data.opponent_id
     )
 
 

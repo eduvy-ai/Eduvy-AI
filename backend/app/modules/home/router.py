@@ -294,7 +294,7 @@ async def generate_daily_questions(
         raise
     except Exception as e:
         print(f"[DailyQ] Error: {e}")
-        raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="AI generation failed. Please try again.")
 
 
 # ── Daily Brief Prompt ────────────────────────────────────────────────
@@ -370,20 +370,20 @@ async def generate_daily_brief(
             )
             return GenerateBriefResponse(brief=response, saved=True)
         
-        # Fallback brief
-        fallback = f"""📚 आजचा फोकस: गणित - चतुर्भुज आणि त्यांचे गुणधर्म
+        # Fallback brief (English — universal fallback)
+        fallback = f"""📚 Today's Focus: Mathematics - Quadratic Equations and their properties
 
-🎯 परीक्षा टिप: आकृत्या काढताना फूट पट्टी वापरा आणि मापे स्पष्ट लिहा.
+🎯 Exam Tip: Always show your working steps clearly in board exams.
 
-💪 तू हे करू शकतोस! रोज थोडं थोडं शिकलास तर परीक्षेत नक्की यश मिळेल.
+💪 You can do it! Consistent daily practice leads to exam success.
 
-🌙 आज रात्री: त्रिकोणाचे क्षेत्रफळ सूत्र revision करा."""
+🌙 Tonight: Revise the area of triangle formula."""
         
         return GenerateBriefResponse(brief=fallback, saved=False)
         
     except Exception as e:
         print(f"[Brief] Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Brief generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Brief generation failed. Please try again.")
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -445,12 +445,12 @@ Keep it practical and achievable for a student."""
             )
             return StudyPlanResponse(plan=response, saved=True)
         
-        fallback = f"📚 {data.subject} साठी अभ्यास योजना तयार करता आली नाही. कृपया पुन्हा प्रयत्न करा."
+        fallback = f"📚 Could not generate a study plan for {data.subject}. Please try again."
         return StudyPlanResponse(plan=fallback, saved=False)
         
     except Exception as e:
         print(f"[StudyPlan] Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Study plan generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Study plan generation failed. Please try again.")
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -515,14 +515,15 @@ Return JSON array only:
 [{{"topic":"Topic Name","subject":"Subject","pct":85}}]
 
 pct = likelihood percentage (50-95). Be realistic based on actual exam patterns.
-Include a mix of subjects."""
+Include a mix of subjects.
+Write topic names in {data.language}."""
 
     try:
         response, _, _ = await call_ai(
             provider="groq",
             model="llama-3.3-70b-versatile",
             prompt=prompt,
-            system_prompt=f"You are an expert {data.board} exam analyst. Predict topics based on real patterns. Output ONLY valid JSON.",
+            system_prompt=f"You are an expert {data.board} exam analyst. Predict topics based on real patterns. Write topic names in {data.language}. Output ONLY valid JSON.",
             history=[],
             max_tokens=800
         )
@@ -558,7 +559,7 @@ Include a mix of subjects."""
         
     except Exception as e:
         print(f"[Oracle] Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Oracle generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Oracle generation failed. Please try again.")
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -587,7 +588,7 @@ Focus on what's important for {data.board} board exam."""
             provider="groq",
             model="llama-3.3-70b-versatile",
             prompt=prompt,
-            system_prompt=f"You are an expert {data.board} {data.standard} {data.subject} teacher. Explain clearly for exam preparation.",
+            system_prompt=f"You are an expert {data.board} {data.standard} {data.subject} teacher. Write in {data.language}. Explain clearly for exam preparation.",
             history=[],
             max_tokens=1000
         )
@@ -595,9 +596,9 @@ Focus on what's important for {data.board} board exam."""
         if response and not response.startswith("⚠️"):
             return DeepDiveResponse(content=response, saved=True)
         
-        fallback = f"📖 {data.topic} बद्दल माहिती तयार करता आली नाही. कृपया पुन्हा प्रयत्न करा."
+        fallback = f"📖 Could not generate deep dive for {data.topic}. Please try again."
         return DeepDiveResponse(content=fallback, saved=False)
         
     except Exception as e:
         print(f"[DeepDive] Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Deep dive generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Deep dive generation failed. Please try again.")

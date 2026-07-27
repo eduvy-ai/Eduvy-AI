@@ -180,7 +180,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
       }
     } catch (err) {
       console.error('Brief generation error:', err)
-      setBrief("आजचा brief तयार करण्यात त्रुटी आली. कृपया पुन्हा प्रयत्न करा.")
+      setBrief(ui.noPlanGenerated || "Could not generate brief. Please try again.")
     }
     
     setBriefLoading(false)
@@ -280,14 +280,14 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
         language: profile.language || 'English'
       })
       
-      setSubPlan(result?.plan || "No plan generated. Please try again.")
+      setSubPlan(result?.plan || ui.noPlanGenerated || "No plan generated. Please try again.")
       // Only award XP if freshly generated
       if (!result?.saved) {
         addXp(3)
       }
     } catch (err) {
       console.error('Study plan error:', err)
-      setSubPlan("अभ्यास योजना तयार करता आली नाही. कृपया पुन्हा प्रयत्न करा.")
+      setSubPlan(ui.noPlanGenerated || "No plan generated. Please try again.")
     }
     
     setSubLoading(false)
@@ -338,14 +338,14 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
         language: profile.language || 'English'
       })
       
-      setOracleDeep(result?.content || "माहिती तयार करता आली नाही.")
+      setOracleDeep(result?.content || ui.noPlanGenerated || "Could not generate content. Please try again.")
       // Only award XP if freshly generated
       if (!result?.saved) {
         addXp(3)
       }
     } catch (err) {
       console.error('Deep dive error:', err)
-      setOracleDeep("माहिती तयार करता आली नाही. कृपया पुन्हा प्रयत्न करा.")
+      setOracleDeep(ui.noPlanGenerated || "Could not generate content. Please try again.")
     }
     
     setDeepLoading(false)
@@ -406,7 +406,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
           {greeting}
         </div>
         <h2 className="text-[22px] font-black text-app-text m-0 mb-0.5">
-          {profile.name || "Student"} 👋
+          {profile.name || ui.student || "Student"} 👋
         </h2>
         <p className="text-xs text-app-muted m-0 mb-4">
           {profile.standard} &nbsp;·&nbsp; {profile.board} &nbsp;·&nbsp; {profile.language}
@@ -414,9 +414,9 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
 
         {/* Stats row */}
         <div className="flex gap-2">
-          <StatChip icon="⚡" value={`${xp} XP`} color={'#FFD166'} />
-          <StatChip icon="🔥" value={`${streak} day${streak !== 1 ? "s" : ""}`} color={'#FF6B35'} />
-          <StatChip icon="🧠" value={`${avgMastery}% avg`} color={masteryColor(avgMastery)} />
+          <StatChip icon="⚡" value={`${xp} ${ui.xpLabel || 'XP'}`} color={'#FFD166'} />
+          <StatChip icon="🔥" value={`${streak} ${ui.streakLabel || 'day streak'}`} color={'#FF6B35'} />
+          <StatChip icon="🧠" value={`${avgMastery}% ${ui.avgLabel || 'avg'}`} color={masteryColor(avgMastery)} />
         </div>
       </div>
 
@@ -617,13 +617,13 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
       </Section>
 
       {/* ── Exam Oracle ───────────────────────────────────── */}
-      <Section title="🔮 Exam Oracle">
+      <Section title={`🔮 ${ui.examOracle || 'Exam Oracle'}`}>
         <p className="text-xs text-app-muted mb-3">
-          AI predicts the most likely topics for your {profile.board} {profile.standard} exam
+          {ui.examOracleDesc || `AI predicts the most likely topics for your exam`} — {profile.board} {profile.standard}
         </p>
         {!oracleTopics.length ? (
           <button onClick={generateOracle} disabled={oracleLoading} className="primary-btn">
-            {oracleLoading ? "🔮 Predicting…" : "⚡ Predict This Year's Topics"}
+            {oracleLoading ? (ui.predicting || "🔮 Predicting…") : (ui.predictTopics || "⚡ Predict This Year's Topics")}
           </button>
         ) : (
           <>
@@ -662,7 +662,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
               disabled={oracleLoading}
               className="ghost-btn mt-2.5"
             >
-              {oracleLoading ? "Predicting…" : "↺ Re-predict"}
+              {oracleLoading ? (ui.predicting || "🔮 Predicting…") : (ui.rePredict || "↺ Re-predict")}
             </button>
           </>
         )}
@@ -670,11 +670,11 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
         {(deepLoading || oracleDeep) && (
           <div className="mt-3">
             {deepLoading
-              ? <LoadingDots label={`Deep diving into ${oracleSel?.topic}…`} />
+              ? <LoadingDots label={`${ui.deepDiving || 'Deep diving into'} ${oracleSel?.topic}…`} />
               : (
                 <div className="ai-card border-app-yellow/30">
                   <div className="text-xs font-bold text-app-yellow mb-1.5">
-                    🔮 Deep Dive — {oracleSel?.topic}
+                    {ui.deepDive || '🔮 Deep Dive —'} {oracleSel?.topic}
                   </div>
                   <p className="text-[13px] text-app-text leading-[1.8] whitespace-pre-wrap m-0">{oracleDeep}</p>
                 </div>

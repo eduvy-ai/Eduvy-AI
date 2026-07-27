@@ -115,12 +115,14 @@ class MuqablaService:
         }
     
     @staticmethod
-    async def create_challenge(user_id: str, subject: str, difficulty: str) -> Dict:
-        """Create a new battle challenge."""
+    async def create_challenge(user_id: str, subject: str, difficulty: str, opponent_id: str = None) -> Dict:
+        """Create a new battle challenge. If opponent_id is set, creates a direct challenge."""
         if difficulty not in ("Easy", "Medium", "Hard"):
             raise HTTPException(status_code=400, detail="difficulty must be Easy, Medium, or Hard")
         if not subject.strip():
             raise HTTPException(status_code=400, detail="subject is required")
+        if opponent_id and opponent_id == user_id:
+            raise HTTPException(status_code=400, detail="Cannot challenge yourself")
         
         conn = get_db()
         try:
@@ -131,15 +133,24 @@ class MuqablaService:
             questions = await _generate_questions(subject.strip(), info["standard"], difficulty)
             questions_json = json.dumps(questions)
             
+            # Look up opponent info for direct challenges
+            opp_info = None
+            if opponent_id:
+                opp_info = MuqablaService._get_user_info(cur, opponent_id)
+            
             cur.execute("""
                 INSERT INTO muqabla_battles
                   (challenger_id, challenger_name, challenger_school,
-                   subject, standard, difficulty, questions_json, status)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,'open')
+                   subject, standard, difficulty, questions_json, status,
+                   opponent_id, opponent_name, opponent_school)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,'open',%s,%s,%s)
                 RETURNING id
             """, (
                 user_id, info["name"], info.get("school", ""),
                 subject.strip(), info["standard"], difficulty, questions_json,
+                opponent_id if opp_info else None,
+                opp_info.get("name") if opp_info else None,
+                opp_info.get("school", "") if opp_info else None,
             ))
             battle_id = cur.fetchone()["id"]
             conn.commit()
