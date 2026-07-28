@@ -18,6 +18,7 @@ const LandingPage = lazy(() => import('../components/LandingPage'))
 const ParentDashboard = lazy(() => import('../components/ParentDashboard'))
 const AdminPanel = lazy(() => import('../components/admin'))
 const HelperPortal = lazy(() => import('../components/HelperPortal'))
+const SharedVideoPage = lazy(() => import('../components/video/SharedVideoPage'))
 
 // Module pages (Redux-connected)
 const HomePage = lazy(() => import('../modules/home/pages/HomePage'))
@@ -65,6 +66,9 @@ const AppRoutes: React.FC = () => {
 
         {/* Parent dashboard - public with PIN */}
         <Route path="/parent/:pin" element={<ParentDashboard />} />
+
+        {/* Shared video - public, no auth */}
+        <Route path="/share/video/:token" element={<SharedVideoPage />} />
 
         {/* Admin panel */}
         <Route path="/admin" element={<AdminPanel />} />

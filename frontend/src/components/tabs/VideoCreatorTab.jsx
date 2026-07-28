@@ -117,7 +117,7 @@ export default function VideoCreatorTab({ profile = null }) {
         orientation,
         pacing,
         timing,
-        bg_music: false,
+        bg_music: 'none',
         voice_instructions: '',
         enable_captions: true,
       })

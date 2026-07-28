@@ -1,7 +1,6 @@
 """
 Video Router — API endpoints for whiteboard video creation.
 """
-import asyncio
 import json
 from fastapi import APIRouter, Depends, Query, BackgroundTasks
 from fastapi.responses import FileResponse
@@ -32,8 +31,9 @@ async def generate_video(
     """
     project = await VideoService.start_generation(data, current_user)
 
-    # Kick off background rendering
-    async def _render_bg():
+    # Kick off background rendering (plain def → runs in threadpool, won't block event loop)
+    def _render_bg():
+        import asyncio
         from app.db.connection import get_db
         from app.services.video_assembler import assemble_video
         conn = get_db()
@@ -42,7 +42,8 @@ async def generate_video(
         finally:
             conn.close()
 
-        await assemble_video(
+        # Run the async pipeline in a new event loop (safe since we're in a thread)
+        asyncio.run(assemble_video(
             video_id=project["id"],
             user_id=current_user,
             frames=frames,
@@ -50,7 +51,7 @@ async def generate_video(
             orientation=data.orientation,
             narration_language=data.narration_language,
             enable_captions=data.enable_captions,
-        )
+        ))
 
     background_tasks.add_task(_render_bg)
     return project

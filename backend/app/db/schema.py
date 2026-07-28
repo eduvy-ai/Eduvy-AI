@@ -475,7 +475,7 @@ def create_all_tables():
             duration_sec        INTEGER DEFAULT 0,
             frame_count         INTEGER DEFAULT 0,
             voice_instructions  TEXT DEFAULT '',
-            bg_music            TEXT DEFAULT 'lofi',
+            bg_music            TEXT DEFAULT 'none',
             enable_captions     BOOLEAN DEFAULT TRUE,
             error_msg           TEXT DEFAULT '',
             created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -495,6 +495,8 @@ def create_all_tables():
             UNIQUE (video_id, frame_index)
         )
     """)
+
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_video_projects_user_id ON video_projects(user_id)")
 
     # ── Daily Content (Home page brief & daily question) ─────
     cur.execute("""

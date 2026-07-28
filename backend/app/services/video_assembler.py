@@ -14,11 +14,8 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-# Resolve ffmpeg binary — works even if PATH wasn't updated in the current process
-_FFMPEG = shutil.which("ffmpeg") or (
-    r"C:\Users\pradip.pawar\AppData\Local\Microsoft\WinGet\Packages"
-    r"\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe"
-)
+# Resolve ffmpeg binary — env var override → PATH lookup → fail gracefully
+_FFMPEG = os.getenv("FFMPEG_PATH") or shutil.which("ffmpeg") or "ffmpeg"
 
 # Filesystem root for generated videos (absolute path)
 VIDEOS_DIR = os.path.abspath(

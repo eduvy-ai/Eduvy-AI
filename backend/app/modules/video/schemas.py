@@ -18,7 +18,7 @@ class VideoGenerateRequest(BaseModel):
     orientation: str = Field(default="horizontal") # horizontal | vertical
     pacing: str = Field(default="normal")          # normal | fast
     timing: str = Field(default="2")               # minutes as string
-    bg_music: bool = Field(default=False)
+    bg_music: str = Field(default="none")
     voice_instructions: str = Field(default="")
     enable_captions: bool = Field(default=True)
 
