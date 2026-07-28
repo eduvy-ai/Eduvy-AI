@@ -264,7 +264,7 @@ def _save_project(project_data: Dict[str, Any], scenes: List[Dict[str, Any]]) ->
                 }),
             }
             q.insert_video_frame(conn, frame_data)
-        q.update_video_status(conn, project_data["id"], "queued", frame_count=len(scenes))
+        q.update_video_status(conn, project_data["id"], "script_ready", frame_count=len(scenes))
         return q.get_video_project(conn, project_data["id"], project_data["user_id"])
     finally:
         conn.close()
@@ -345,6 +345,55 @@ class VideoService:
             "enable_captions": request.enable_captions,
         }
         return await asyncio.to_thread(_save_project, project_data, scenes)
+
+    @staticmethod
+    async def update_scenes_and_queue(
+        video_id: str, user_id: str, scenes: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """
+        Replace frames with (possibly edited) scenes and set status to 'queued'.
+        Called after the user reviews/edits the AI-generated script.
+        """
+        def _update():
+            conn = get_db()
+            try:
+                project = q.get_video_project(conn, video_id, user_id)
+                if not project:
+                    raise VideoNotFoundException(video_id)
+                if project["status"] not in ("script_ready", "error"):
+                    raise HTTPException(
+                        status_code=409,
+                        detail=f"Cannot render: video status is '{project['status']}'"
+                    )
+                # Re-insert frames (ON CONFLICT updates existing rows)
+                for idx, scene in enumerate(scenes):
+                    frame_data = {
+                        "video_id": video_id,
+                        "frame_index": idx,
+                        "narration": scene.get("narration", ""),
+                        "svg_spec": json.dumps({
+                            "type": scene.get("svg_type", "bullet_reveal"),
+                            "title": scene.get("title", ""),
+                            "data": scene.get("svg_data", {}),
+                            "onscreen_text": scene.get("onscreen_text", []),
+                            "duration_sec": scene.get("duration_sec", 10),
+                            "accent": scene.get("accent", ""),
+                        }),
+                    }
+                    q.insert_video_frame(conn, frame_data)
+                # Update script_json + status
+                cur = conn.cursor()
+                cur.execute(
+                    "UPDATE video_projects SET script_json=%s, status='queued', frame_count=%s WHERE id=%s",
+                    (json.dumps(scenes), len(scenes), video_id),
+                )
+                conn.commit()
+                cur.close()
+                return q.get_video_project(conn, video_id, user_id)
+            finally:
+                conn.close()
+
+        return await asyncio.to_thread(_update)
 
     @staticmethod
     async def _call_ai_for_script(request: VideoGenerateRequest, plan: str) -> Dict[str, Any]:

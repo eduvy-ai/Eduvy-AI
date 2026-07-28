@@ -1,18 +1,17 @@
 ﻿import { useState, useRef, useEffect } from 'react'
 import { callAI, parseAIObject, parseAIArray, checkStudentQuery } from '../../shared.js'
-import { li } from '../../i18n/index.js'
 import { API_BASE_URL } from '../../config.ts'
 
 // ── Backend YouTube API (uses yt-dlp on server) ──────────────
 
 async function searchYouTube(query) {
   try {
-    const r = await fetch(`${API_BASE_URL}/youtube/search?q=${encodeURIComponent(query)}&limit=12`, {
+    const r = await fetch(`${API_BASE_URL}/api/youtube/search?q=${encodeURIComponent(query)}&limit=12`, {
       signal: AbortSignal.timeout(20000),
     })
     if (!r.ok) return []
     const data = await r.json()
-    return (data.items || []).map(i => ({
+    return (data.results || []).map(i => ({
       id: i.id || '',
       title: i.title || '',
       channel: i.channel || '',
@@ -31,12 +30,12 @@ async function searchYouTube(query) {
 async function smartSearchYouTube(query, maxDuration = 180) {
   try {
     const r = await fetch(
-      `${API_BASE_URL}/youtube/smart-search?q=${encodeURIComponent(query)}&limit=12&max_duration=${maxDuration}`,
+      `${API_BASE_URL}/api/youtube/smart-search?q=${encodeURIComponent(query)}&limit=12&max_duration=${maxDuration}`,
       { signal: AbortSignal.timeout(38000) }
     )
     if (!r.ok) return []
     const data = await r.json()
-    return (data.items || []).map(i => ({
+    return (data.results || []).map(i => ({
       id: i.id || '',
       title: i.title || '',
       channel: i.channel || '',
@@ -56,7 +55,7 @@ async function fetchEduReels(query) {
   // Combines creator-targeted (PhysicsWallah, Vedantu, Unacademy, etc.)
   // and concept-targeted queries. Returns portrait-format short videos.
   try {
-    const r = await fetch(`${API_BASE_URL}/youtube/edu-reels?q=${encodeURIComponent(query)}&limit=16`, {
+    const r = await fetch(`${API_BASE_URL}/api/youtube/edu-reels?q=${encodeURIComponent(query)}&limit=16`, {
       signal: AbortSignal.timeout(42000),
     })
     if (!r.ok) return []
@@ -75,7 +74,7 @@ async function fetchEduReels(query) {
 
 async function getVideoInfo(videoId) {
   try {
-    const r = await fetch(`${API_BASE_URL}/youtube/video/${videoId}`, {
+    const r = await fetch(`${API_BASE_URL}/api/youtube/video/${videoId}`, {
       signal: AbortSignal.timeout(30000),
     })
     if (!r.ok) return null

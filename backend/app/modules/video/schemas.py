@@ -23,6 +23,10 @@ class VideoGenerateRequest(BaseModel):
     enable_captions: bool = Field(default=True)
 
 
+class VideoRenderRequest(BaseModel):
+    scenes: List[Dict[str, Any]] = Field(..., min_length=1)
+
+
 class FrameRegenerateRequest(BaseModel):
     narration: Optional[str] = None
     svg_type: Optional[str] = None

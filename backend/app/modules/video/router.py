@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from app.core.dependencies import get_current_user
 from app.modules.video.schemas import (
     VideoGenerateRequest,
+    VideoRenderRequest,
     VideoStatusResponse,
     VideoLibraryResponse,
 )
@@ -21,15 +22,30 @@ router = APIRouter(prefix="/video", tags=["Video"])
 @router.post("/generate", status_code=202)
 async def generate_video(
     data: VideoGenerateRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """
+    Generate the AI script and save it.
+    Returns with status='script_ready'. The client should let the user
+    review/edit scenes, then call POST /video/{id}/render to start rendering.
+    """
+    project = await VideoService.start_generation(data, current_user)
+    return project
+
+
+@router.post("/{video_id}/render", status_code=202)
+async def render_video(
+    video_id: str,
+    body: VideoRenderRequest,
     background_tasks: BackgroundTasks,
     current_user: str = Depends(get_current_user),
 ):
     """
-    Start video generation.
-    Returns immediately with status='queued'.
-    Poll /video/{id}/status to track progress.
+    Accept (optionally edited) scenes and kick off background rendering.
     """
-    project = await VideoService.start_generation(data, current_user)
+    project = await VideoService.update_scenes_and_queue(
+        video_id, current_user, body.scenes
+    )
 
     # Kick off background rendering (plain def → runs in threadpool, won't block event loop)
     def _render_bg():
@@ -47,10 +63,10 @@ async def generate_video(
             video_id=project["id"],
             user_id=current_user,
             frames=frames,
-            style_variant=data.style_variant,
-            orientation=data.orientation,
-            narration_language=data.narration_language,
-            enable_captions=data.enable_captions,
+            style_variant=project.get("style_variant", "sketch_classic"),
+            orientation=project.get("orientation", "horizontal"),
+            narration_language=project.get("narration_language", "en"),
+            enable_captions=project.get("enable_captions", True),
         ))
 
     background_tasks.add_task(_render_bg)

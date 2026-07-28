@@ -5,6 +5,7 @@
 
 // Import i18n UI_STRINGS (comprehensive translations)
 import { UI_STRINGS as I18N_STRINGS, li as i18nLi } from './i18n/index.js'
+import { LANG_TO_SPEECH_CODE as _LANG_TO_SPEECH_CODE } from './i18n/languages.js'
 export const UI_STRINGS = I18N_STRINGS
 export const li = i18nLi
 
@@ -42,19 +43,8 @@ export const DEFAULT_A11Y = {
 }
 
 // Maps profile.language → BCP-47 code for Web Speech API (Indian locales)
-export const LANG_TO_SPEECH_CODE = {
-  English:  'en-IN',
-  Hindi:    'hi-IN',
-  Gujarati: 'gu-IN',
-  Tamil:    'ta-IN',
-  Telugu:   'te-IN',
-  Kannada:  'kn-IN',
-  Marathi:  'mr-IN',
-  Bengali:  'bn-IN',
-  Punjabi:  'pa-IN',
-  Odia:     'or-IN',
-  Urdu:     'ur-PK',
-}
+// Single source of truth in i18n/languages.js — re-exported here for convenience
+export const LANG_TO_SPEECH_CODE = _LANG_TO_SPEECH_CODE
 
 /**
  * Speaks text via browser SpeechSynthesis in the given BCP-47 lang code.

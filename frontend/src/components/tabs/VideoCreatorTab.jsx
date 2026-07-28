@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { API_BASE_URL } from '../../config'
 import {
   apiVideoGenerate,
+  apiVideoRender,
   apiVideoStatus,
   apiVideoLibrary,
   apiVideoDelete,
@@ -149,7 +150,13 @@ export default function VideoCreatorTab({ profile = null }) {
     setGenStatus('processing')
     setGenProgress(5)
     setStep(3)
-    _startPolling()
+    try {
+      await apiVideoRender(videoId, scenes)
+      _startPolling()
+    } catch (e) {
+      setGenError(e.message || 'Failed to start rendering.')
+      setGenStatus('error')
+    }
   }
 
   function _startPolling() {

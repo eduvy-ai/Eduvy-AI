@@ -16,6 +16,14 @@ import LearnTVTabLegacy from '../../../components/tabs/LearnTVTab'
 const LearnTVPage: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth)
 
+  if (!user) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#888' }}>
+        Loading...
+      </div>
+    )
+  }
+
   return (
     <LearnTVTabLegacy
       profile={user}

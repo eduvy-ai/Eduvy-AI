@@ -864,6 +864,18 @@ export async function apiVideoGenerate(data) {
   return json
 }
 
+export async function apiVideoRender(videoId, scenes) {
+  const res = await fetch(`${API_BASE_URL}/api/video/${encodeURIComponent(videoId)}/render`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ scenes }),
+    signal: AbortSignal.timeout(30000),
+  })
+  const json = await safeJson(res)
+  if (!res.ok) throw new Error(json?.detail || `HTTP ${res.status}`)
+  return json
+}
+
 export async function apiVideoStatus(videoId) {
   const res = await fetch(`${API_BASE_URL}/api/video/${encodeURIComponent(videoId)}/status`, {
     headers: { ..._authHeaders() },
