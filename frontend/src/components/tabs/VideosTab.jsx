@@ -1921,7 +1921,7 @@ export default function VideosTab({ profile, userId, addXp }) {
     )
     setAltExps(p => ({ ...p, [idx]: alt }))
     setShowAlt(true); setReExplaining(false)
-  }, [altExps, profile, stopSpeech])
+  }, [altExps, stopSpeech])
 
   const generate = async q => {
     const topic = (q || question).trim()
@@ -2079,7 +2079,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
         setError(res?.startsWith('⚠️') ? res : `⚠️ Could not parse lesson. ${preview ? 'The AI response did not return valid JSON. Try again or switch AI provider in Settings.' : 'Check Settings ? AI Provider.'}`)
       }
     } catch (e) {
-      setError(ui.pipelineFailed)
+      setError(ui.pipelineFailed || 'Generation pipeline failed. Please try again.')
     }
 
     setPipelineStage(0)
@@ -2622,7 +2622,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
                       <div style={{ fontSize:18 }}>{sc.visual?.split(' ')[0]||'🎬'}</div>
                       <div style={{ fontSize:8, fontWeight:700, color:acc }}>{ui.scene} {i+1}</div>
                       <div style={{ fontSize:7, color:COLORS.muted, textAlign:'center', width:'100%', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                        {sc.title?.length>9 ? sc.title.slice(0,8)+'�' : sc.title}
+                        {sc.title?.length>9 ? sc.title.slice(0,8)+'…' : sc.title}
                       </div>
                       {ans && <div style={{ fontSize:9 }}>{ans==='got'?'✅':'🔴'}</div>}
                     </button>

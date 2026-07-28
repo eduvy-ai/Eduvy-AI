@@ -2,7 +2,7 @@
 Video Module — Pydantic schemas (request/response models).
 """
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # ── Request models ────────────────────────────────────────────────────────────
@@ -21,6 +21,17 @@ class VideoGenerateRequest(BaseModel):
     bg_music: str = Field(default="none")
     voice_instructions: str = Field(default="")
     enable_captions: bool = Field(default=True)
+
+    @field_validator("timing")
+    @classmethod
+    def timing_must_be_numeric(cls, v: str) -> str:
+        try:
+            val = float(v)
+            if val <= 0 or val > 30:
+                raise ValueError
+        except (ValueError, TypeError):
+            raise ValueError("timing must be a numeric string between 0 and 30 (minutes)")
+        return v
 
 
 class VideoRenderRequest(BaseModel):

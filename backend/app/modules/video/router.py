@@ -78,8 +78,10 @@ async def render_video(
                     update_video_status(conn, project["id"], "error", error_msg=str(exc)[:500])
                 finally:
                     conn.close()
-            except Exception:
-                pass
+            except Exception as db_exc:
+                logging.getLogger(__name__).exception(
+                    "Failed to mark video %s as error after render failure: %s", project["id"], db_exc
+                )
 
     background_tasks.add_task(_render_bg)
     return project
