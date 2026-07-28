@@ -1066,3 +1066,41 @@ export async function apiGenerateDeepDive(context) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return safeJson(res)
 }
+
+// ── YouTube / LearnTV ─────────────────────────────────────────
+
+export async function apiYouTubeSearch(query, limit = 12) {
+  const res = await fetch(
+    `${API_BASE_URL}/api/youtube/search?q=${encodeURIComponent(query)}&limit=${limit}`,
+    { headers: _authHeaders(), signal: AbortSignal.timeout(20000) }
+  )
+  if (!res.ok) return { results: [] }
+  return safeJson(res)
+}
+
+export async function apiYouTubeSmartSearch(query, limit = 12, maxDuration = 180) {
+  const res = await fetch(
+    `${API_BASE_URL}/api/youtube/smart-search?q=${encodeURIComponent(query)}&limit=${limit}&max_duration=${maxDuration}`,
+    { headers: _authHeaders(), signal: AbortSignal.timeout(38000) }
+  )
+  if (!res.ok) return { results: [] }
+  return safeJson(res)
+}
+
+export async function apiYouTubeEduReels(query, limit = 16) {
+  const res = await fetch(
+    `${API_BASE_URL}/api/youtube/edu-reels?q=${encodeURIComponent(query)}&limit=${limit}`,
+    { headers: _authHeaders(), signal: AbortSignal.timeout(42000) }
+  )
+  if (!res.ok) return { items: [] }
+  return safeJson(res)
+}
+
+export async function apiYouTubeGetVideo(videoId) {
+  const res = await fetch(
+    `${API_BASE_URL}/api/youtube/video/${encodeURIComponent(videoId)}`,
+    { headers: _authHeaders(), signal: AbortSignal.timeout(30000) }
+  )
+  if (!res.ok) return null
+  return safeJson(res)
+}

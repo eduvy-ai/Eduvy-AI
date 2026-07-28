@@ -7,6 +7,7 @@ import { useAuth, useUser, usePlan, useXp, useStreak } from '../modules/auth/hoo
 import { PLANS, planHasTab, type TabKey } from '../shared/constants/plans'
 import { apiUpdateProfile } from '../api.js'
 import { li, getDisplayLang } from '../shared.js'
+import { isRTL } from '../i18n/index.js'
 
 // Lazy load SettingsModal (legacy JSX component)
 const SettingsModal = lazy(() => import('../components/SettingsModal.jsx'))
@@ -40,7 +41,9 @@ const DashboardLayout: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false)
   
   // Get UI translations based on display language preference
-  const ui = useMemo(() => li(getDisplayLang(user)), [user])
+  const lang = getDisplayLang(user)
+  const ui = useMemo(() => li(lang), [lang])
+  const rtl = isRTL(lang)
 
   // Filter nav items based on user's plan
   const navItems = ALL_NAV_ITEMS.filter(n => planHasTab(plan, n.key))
@@ -82,7 +85,7 @@ const DashboardLayout: React.FC = () => {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" dir={rtl ? 'rtl' : 'ltr'}>
       {/* ── Desktop Sidebar Nav ── */}
       <nav className="side-nav">
         {/* Logo */}

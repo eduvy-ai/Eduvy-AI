@@ -36,11 +36,10 @@ logger = logging.getLogger(__name__)
 _FFMPEG = (
     shutil.which("ffmpeg")
     or shutil.which("ffmpeg.exe")
-    or (
-        r"C:\Users\pradip.pawar\AppData\Local\Microsoft\WinGet\Packages"
-        r"\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe"
-    )
+    or os.environ.get("FFMPEG_PATH")
 )
+if not _FFMPEG:
+    logger.warning("ffmpeg not found on PATH or FFMPEG_PATH env var — video rendering will fail")
 
 _FPS = 5    # 5 fps — halves screenshot count vs 10fps; animation still smooth for educational content
             # At 10fps, each Playwright screenshot on 512MB Render took 0.5-1s → 5 min per video
