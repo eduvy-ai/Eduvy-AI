@@ -2,9 +2,11 @@
 // Educational videos player
 // Uses Redux for user data and delegates to existing UI
 
-import React from 'react'
-import { useSelector } from 'react-redux'
-import type { RootState } from '../../../redux/store'
+import React, { useCallback } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
+import type { RootState, AppDispatch } from '../../../redux/store'
+import { addXpLocal } from '../../auth/slice'
+import { apiAddXp } from '../../../api'
 
 // Import existing tab component
 // @ts-ignore - JSX component
@@ -14,17 +16,31 @@ import VideosTabLegacy from '../../../components/tabs/VideosTab'
  * VideosPage - Redux-connected wrapper for Videos feature
  */
 const VideosPage: React.FC = () => {
+  const dispatch = useDispatch<AppDispatch>()
   const { user } = useSelector((state: RootState) => state.auth)
 
-  // Create addXp function (placeholder - XP is managed by backend)
-  const addXp = async (_points: number) => {
-    // XP is added via backend when actions complete
+  const addXp = useCallback(async (points: number) => {
+    if (!user?.id || points <= 0) return
+    dispatch(addXpLocal(points))
+    try {
+      await apiAddXp(user.id, points)
+    } catch (err) {
+      console.warn('XP sync failed:', err)
+    }
+  }, [dispatch, user?.id])
+
+  if (!user) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#888' }}>
+        Loading...
+      </div>
+    )
   }
 
   return (
     <VideosTabLegacy
       profile={user}
-      userId={user?.id || ''}
+      userId={user.id}
       addXp={addXp}
     />
   )

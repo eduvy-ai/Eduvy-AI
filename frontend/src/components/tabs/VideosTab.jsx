@@ -1686,6 +1686,9 @@ function DiagramBoard({ type, elements, spec, accent, dark, dur }) {
 // ----------------------------------------------------------------
 export default function VideosTab({ profile, userId, addXp }) {
 
+  const lang = getDisplayLang(profile || { language: 'English' })
+  const ui = li(lang)
+
   const [question,      setQuestion]      = useState('')
   const [lesson,        setLesson]        = useState(null)
   const [loading,       setLoading]       = useState(false)
@@ -2076,7 +2079,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
         setError(res?.startsWith('⚠️') ? res : `⚠️ Could not parse lesson. ${preview ? 'The AI response did not return valid JSON. Try again or switch AI provider in Settings.' : 'Check Settings ? AI Provider.'}`)
       }
     } catch (e) {
-      setError('Generation pipeline failed. Please try again.')
+      setError(ui.pipelineFailed)
     }
 
     setPipelineStage(0)
@@ -2154,9 +2157,9 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
       <div style={{ padding:'10px 14px', flexShrink:0, background:COLORS.card, borderBottom:`1px solid ${COLORS.border}` }}>
         {/* Title */}
         <div style={{ marginBottom:9 }}>
-          <div style={{ fontSize:15, fontWeight:800, color:COLORS.text, fontFamily:'Sora,sans-serif' }}>🎬 AI Whiteboard Lessons</div>
+          <div style={{ fontSize:15, fontWeight:800, color:COLORS.text, fontFamily:'Sora,sans-serif' }}>{ui.aiWhiteboardLessons}</div>
           <div style={{ fontSize:11, color:COLORS.muted, marginTop:2, lineHeight:1.4 }}>
-            Ask any topic and watch an animated whiteboard lesson, narrated in your language.
+            {ui.whiteboardSubtitle}
           </div>
         </div>
         {/* Row 1: board style */}
@@ -2169,16 +2172,16 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
               fontWeight: boardStyle===k ? 700 : 500,
               color: boardStyle===k ? (k==='marker'?v.accent:'#fff') : COLORS.muted,
               cursor:'pointer', fontFamily:'Sora,sans-serif', transition:'all 0.2s',
-            }}>{v.label}</button>
+            }}>{k==='chalk'?ui.chalkStyle:k==='marker'?ui.markerStyle:ui.colorStyle}</button>
           ))}
         </div>
         {/* Row 2: difficulty level */}
         <div style={{ display:'flex', gap:6, marginBottom:8 }}>
           {[
-            { k:'foundation', icon:'🌱', label:'Foundation' },
-            { k:'standard',   icon:'📘', label:'Standard'   },
-            { k:'advanced',   icon:'🚀', label:'Advanced'   },
-          ].map(({ k, icon, label }) => (
+            { k:'foundation', label: ui.foundationLevel },
+            { k:'standard',   label: ui.standardLevel   },
+            { k:'advanced',   label: ui.advancedLevel   },
+          ].map(({ k, label }) => (
             <button key={k} onClick={() => setLevel(k)} style={{
               background: level===k ? (k==='foundation'?'#00E5A015':k==='standard'?'#7B9CFF15':'#FF6B3515') : 'transparent',
               border: `1px solid ${level===k ? (k==='foundation'?COLORS.green:k==='standard'?COLORS.blue:COLORS.orange) : COLORS.border}`,
@@ -2186,17 +2189,17 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
               fontWeight: level===k ? 700 : 500,
               color: level===k ? (k==='foundation'?COLORS.green:k==='standard'?COLORS.blue:COLORS.orange) : COLORS.muted,
               cursor:'pointer', fontFamily:'Sora,sans-serif', transition:'all 0.2s',
-            }}>{icon} {label}</button>
+            }}>{label}</button>
           ))}
           <div style={{ flex:1 }}/>
           <div style={{ fontSize:10, color:COLORS.muted, alignSelf:'center', textAlign:'right', lineHeight:1.3 }}>
-            {level==='foundation' ? 'First time learning' : level==='standard' ? 'Exam ready' : 'JEE / NEET level'}
+            {level==='foundation' ? ui.firstTimeLearning : level==='standard' ? ui.examReady : ui.jeeNeetLevel}
           </div>
         </div>
         {/* Row 3: search */}
         <div style={{ display:'flex', gap:8 }}>
           <input style={{ ...iStyle, flex:1 }}
-            placeholder="Ask anything… e.g. How does photosynthesis work?"
+            placeholder={ui.askAnything}
             value={question} onChange={e => setQuestion(e.target.value)}
             onKeyDown={e => e.key==='Enter' && generate()} />
           <button onClick={() => generate()} disabled={loading || !question.trim()}
@@ -2211,10 +2214,10 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
         {/* Loading � Golpo-style pipeline progress */}
         {loading && (() => {
           const STAGES = [
-            { icon:'🧠', label:'Understanding', desc:'Reading your topic deeply…' },
-            { icon:'🗺️', label:'Storyboard',    desc:'Planning which visuals fit each scene…' },
-            { icon:'✍️', label:'Scripting',     desc:'Writing the teaching script scene by scene…' },
-            { icon:'✅', label:'Ready',          desc:'Finalising your whiteboard lesson…' },
+            { icon:'🧠', label:ui.understanding, desc:ui.readingTopic },
+            { icon:'🗺️', label:ui.storyboard,    desc:ui.planningVisuals },
+            { icon:'✍️', label:ui.scripting,     desc:ui.writingScript },
+            { icon:'✅', label:ui.readyStage,          desc:ui.finalisingLesson },
           ]
           const stageIdx = Math.max(0, pipelineStage - 1) // 1-4 ? 0-3 index
           return (
@@ -2275,17 +2278,17 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
         {error && !loading && (
           <div style={{ margin:'14px', background:'#FF6B6B12', border:'1px solid #FF6B6B40', borderRadius:14, padding:'14px 16px' }}>
             <div style={{ fontSize:13, color:COLORS.red, fontWeight:700, marginBottom:4 }}>
-              {error?.startsWith('⚠️ Rate limit') ? '⏱ Rate limit reached' : error?.startsWith('⚠️ No API key') ? '🔑 API key missing' : '⚠️ Generation failed'}
+              {error?.startsWith('⚠️ Rate limit') ? ui.rateLimitReached : error?.startsWith('⚠️ No API key') ? ui.apiKeyMissing : ui.generationFailed}
             </div>
             <div style={{ fontSize:12, color:COLORS.text, lineHeight:1.5 }}>{error?.startsWith('⚠️') ? error.replace(/^⚠️ /,'') : error}</div>
-            <button onClick={() => setError('')} style={{ ...sBtn, marginTop:10, padding:'7px 14px', fontSize:12, width:'auto' }}>Dismiss</button>
+            <button onClick={() => setError('')} style={{ ...sBtn, marginTop:10, padding:'7px 14px', fontSize:12, width:'auto' }}>{ui.close}</button>
           </div>
         )}
 
         {/* Suggested topics */}
         {!lesson && !loading && !error && (
           <div style={{ padding:'14px' }}>
-            <div style={{ fontSize:11, color:COLORS.muted, fontWeight:700, letterSpacing:1, marginBottom:10 }}>POPULAR LESSONS</div>
+            <div style={{ fontSize:11, color:COLORS.muted, fontWeight:700, letterSpacing:1, marginBottom:10 }}>{ui.popularLessons}</div>
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               {getStarters(getDisplayLang(profile), 'videos').map(s => (
                 <button key={s.q} onClick={() => { setQuestion(s.q); generate(s.q) }} style={{
@@ -2502,13 +2505,13 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
                   <div style={{ fontSize:10, color:COLORS.muted, fontWeight:600,
                     background:`${COLORS.muted}12`, borderRadius:6, padding:'2px 8px',
                     display:'inline-flex', alignItems:'center', gap:4 }}>
-                    ? {cs.timing.total_sec}s scene
+                    ? {(ui.sceneTimeSec || '{sec}s scene').replace('{sec}', cs.timing.total_sec)}
                   </div>
                   {cs.narration_chunks?.length > 0 && (
                     <div style={{ fontSize:10, fontWeight:600,
                       background:`${sacc}12`, borderRadius:6, padding:'2px 8px',
                       display:'inline-flex', alignItems:'center', gap:4, color:sacc }}>
-                      {cs.narration_chunks.length} beats
+                      {(ui.beats || '{count} beats').replace('{count}', cs.narration_chunks.length)}
                     </div>
                   )}
                 </div>
@@ -2568,7 +2571,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
               {/* ? Alt explanation (Feature 3) */}
               {sceneAnswers[sceneIdx]==='confused' && showAlt && altExps[sceneIdx] && (
                 <div style={{ background:`${COLORS.yellow}10`, border:`1px solid ${COLORS.yellow}30`, borderRadius:14, padding:14, marginTop:14, animation:'sceneFade 0.3s ease-out' }}>
-                  <div style={{ fontSize:11, fontWeight:700, color:COLORS.yellow, marginBottom:8 }}>💡 Let me try a completely different approach�</div>
+                  <div style={{ fontSize:11, fontWeight:700, color:COLORS.yellow, marginBottom:8 }}>{ui.altApproach}</div>
                   <p style={{ fontSize:13, color:COLORS.text, lineHeight:1.85, margin:0 }}>{altExps[sceneIdx]}</p>
                 </div>
               )}
@@ -2580,30 +2583,30 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
                     onClick={() => { setSceneAnswers(p=>({...p,[sceneIdx]:'confused'})); reExplain(sceneIdx,cs) }}
                     disabled={reExplaining}
                     style={{ flex:1, background:'#FF6B6B12', border:'1px solid #FF6B6B40', borderRadius:12, padding:'11px 12px', fontSize:13, fontWeight:700, color:COLORS.red, cursor:'pointer', fontFamily:'Sora,sans-serif' }}
-                  >{reExplaining ? '? Thinking�' : '🤔 Confused'}</button>
+                  >{reExplaining ? ui.thinking : ui.confused}</button>
                   <button
                     onClick={() => { setSceneAnswers(p=>({...p,[sceneIdx]:'got'})); advanceScene() }}
                     style={{ flex:1, background:'#00E5A012', border:'1px solid #00E5A040', borderRadius:12, padding:'11px 12px', fontSize:13, fontWeight:800, color:COLORS.green, cursor:'pointer', fontFamily:'Sora,sans-serif' }}
-                  >? Got it!</button>
+                  >{ui.gotIt}</button>
                 </div>
               )}
 
               {!playing && sceneAnswers[sceneIdx]==='confused' && !reExplaining && (
                 <button onClick={advanceScene} style={{ ...pBtn, marginTop:12 }}>
-                  {sceneIdx<lesson.scenes.length-1 ? 'Continue ?' : 'See Summary ?'}
+                  {sceneIdx<lesson.scenes.length-1 ? ui.cont : ui.seeSummary}
                 </button>
               )}
 
               {!playing && !sceneAnswers[sceneIdx] && (
                 <div style={{ fontSize:11, color:COLORS.muted, textAlign:'center', marginTop:10 }}>
-                  ? Press play � auto-narrated lesson in {profile.language}
+                  {(ui.pressPlayNarration || 'Press play \u2192 auto-narrated lesson in {lang}').replace('{lang}', profile?.language || 'English')}
                 </div>
               )}
             </div>
 
             {/* ? Storyboard filmstrip � Golpo-style scene scrubber */}
             <div style={{ padding:'16px 14px 0' }}>
-              <div style={{ fontSize:10, color:COLORS.muted, fontWeight:700, letterSpacing:1, marginBottom:8 }}>STORYBOARD</div>
+              <div style={{ fontSize:10, color:COLORS.muted, fontWeight:700, letterSpacing:1, marginBottom:8 }}>{ui.storyboard}</div>
               <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:4 }}>
                 {lesson.scenes.map((sc,i) => {
                   const acc = (SCENE_PALETTE[boardStyle] || SCENE_PALETTE.color)[i % 10]
@@ -2617,7 +2620,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
                       cursor:'pointer', flexShrink:0, width:64, fontFamily:'Sora,sans-serif',
                     }}>
                       <div style={{ fontSize:18 }}>{sc.visual?.split(' ')[0]||'🎬'}</div>
-                      <div style={{ fontSize:8, fontWeight:700, color:acc }}>SCENE {i+1}</div>
+                      <div style={{ fontSize:8, fontWeight:700, color:acc }}>{ui.scene} {i+1}</div>
                       <div style={{ fontSize:7, color:COLORS.muted, textAlign:'center', width:'100%', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                         {sc.title?.length>9 ? sc.title.slice(0,8)+'�' : sc.title}
                       </div>
@@ -2650,28 +2653,28 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
               ))}
             </div>
             <div style={{ display:'flex', gap:16, fontSize:11, color:COLORS.muted }}>
-              <span>✅ Got it</span><span>🤔 Confused</span><span>⬜ Auto-played</span>
+              <span>{ui.gotItLabel}</span><span>{ui.confusedLabel}</span><span>{ui.autoPlayed}</span>
             </div>
 
             {/* ? Clarity score (Feature 5) */}
             <div style={{ background:`${clarityCol}10`, border:`1px solid ${clarityCol}30`, borderRadius:16, padding:'14px 16px' }}>
               <div style={{ display:'flex', alignItems:'center', gap:16 }}>
                 <div style={{ animation:'clarPop 0.5s ease-out' }}>
-                  <div style={{ fontSize:10, fontWeight:700, color:clarityCol, letterSpacing:1 }}>🧠 CLARITY SCORE</div>
+                  <div style={{ fontSize:10, fontWeight:700, color:clarityCol, letterSpacing:1 }}>{ui.clarityScore}</div>
                   <div style={{ fontSize:42, fontWeight:900, color:clarityCol, lineHeight:1 }}>{clarityPct}%</div>
                 </div>
                 <div style={{ flex:1, fontSize:13, color:COLORS.text, lineHeight:1.6 }}>
-                  {clarityPct>=80 ? 'Excellent! You understood this lesson well.' :
-                   clarityPct>=50 ? 'Good progress. A few scenes need review.' :
-                   'This topic needs more practice � re-watch confused scenes.'}
+                  {clarityPct>=80 ? ui.clarityExcellent :
+                   clarityPct>=50 ? ui.clarityGoodProgress :
+                   ui.clarityNeedsPractice}
                 </div>
               </div>
               {confusedIdxs.length>0 && (
                 <div style={{ marginTop:10 }}>
-                  <div style={{ fontSize:11, color:COLORS.muted, marginBottom:6 }}>RE-WATCH THESE:</div>
+                  <div style={{ fontSize:11, color:COLORS.muted, marginBottom:6 }}>{ui.rewatchThese}</div>
                   {confusedIdxs.map(i => (
                     <button key={i} onClick={() => goToScene(i)} style={{ display:'block', width:'100%', marginBottom:6, background:'#FF6B6B10', border:'1px solid #FF6B6B30', borderRadius:10, padding:'8px 12px', fontSize:12, color:COLORS.text, cursor:'pointer', textAlign:'left', fontFamily:'Sora,sans-serif', fontWeight:600 }}>
-                      ? Scene {i+1}: {lesson.scenes[i]?.title}
+                      ▶ {ui.scene} {i+1}: {lesson.scenes[i]?.title}
                     </button>
                   ))}
                 </div>
@@ -2680,7 +2683,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
 
             {lesson.keyPoints?.length>0 && (
               <div style={{ background:'#00E5A010', border:'1px solid #00E5A030', borderRadius:16, padding:'14px 16px' }}>
-                <div style={{ fontSize:12, fontWeight:700, color:COLORS.green, marginBottom:10 }}>🎯 KEY TAKEAWAYS</div>
+                <div style={{ fontSize:12, fontWeight:700, color:COLORS.green, marginBottom:10 }}>{ui.keyTakeaways}</div>
                 {lesson.keyPoints.map((p,i) => (
                   <div key={i} style={{ fontSize:13, color:COLORS.text, padding:'5px 0 5px 12px', borderLeft:'2px solid #00E5A040', marginBottom:5, lineHeight:1.5 }}>{p}</div>
                 ))}
@@ -2690,21 +2693,21 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
             {/* ? One-line takeaway (from Golpo pipeline) */}
             {lesson.oneLineTakeaway && (
               <div style={{ background:`linear-gradient(135deg, ${COLORS.green}14, ${COLORS.blue}10)`, border:`1px solid ${COLORS.green}30`, borderRadius:14, padding:'14px 16px', textAlign:'center' }}>
-                <div style={{ fontSize:11, fontWeight:700, color:COLORS.green, marginBottom:6, letterSpacing:1 }}>💬 TELL A FRIEND</div>
+                <div style={{ fontSize:11, fontWeight:700, color:COLORS.green, marginBottom:6, letterSpacing:1 }}>{ui.tellAFriend}</div>
                 <div style={{ fontSize:14, color:COLORS.text, lineHeight:1.6, fontStyle:'italic', fontWeight:600 }}>"{lesson.oneLineTakeaway}"</div>
               </div>
             )}
 
             {lesson.formula && (
               <div style={{ background:'#7B9CFF10', border:'1px solid #7B9CFF30', borderRadius:14, padding:'12px 16px', textAlign:'center' }}>
-                <div style={{ fontSize:11, fontWeight:700, color:COLORS.blue, marginBottom:6 }}>📐 KEY FORMULA</div>
+                <div style={{ fontSize:11, fontWeight:700, color:COLORS.blue, marginBottom:6 }}>{ui.keyFormula}</div>
                 <div style={{ fontSize:22, fontWeight:900, color:COLORS.text, letterSpacing:2, fontFamily:'monospace' }}>{lesson.formula}</div>
               </div>
             )}
 
             {lesson.practiceQ?.q && (
               <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                <div style={{ fontSize:12, fontWeight:700, color:COLORS.yellow }}>📝 PRACTICE QUESTION</div>
+                <div style={{ fontSize:12, fontWeight:700, color:COLORS.yellow }}>{ui.practiceQuestion}</div>
                 <div style={{ background:COLORS.card, border:`1px solid ${COLORS.border}`, borderRadius:14, padding:'14px 16px', fontSize:14, fontWeight:600, color:COLORS.text, lineHeight:1.6 }}>
                   {lesson.practiceQ.q}
                 </div>
@@ -2725,7 +2728,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
                 {quizSel && (
                   <div style={{ background:quizSel===lesson.practiceQ.answer?'#00E5A010':'#FF6B6B10', border:`1px solid ${quizSel===lesson.practiceQ.answer?'#00E5A030':'#FF6B6B30'}`, borderRadius:12, padding:14 }}>
                     <div style={{ fontSize:12, fontWeight:700, marginBottom:6, color:quizSel===lesson.practiceQ.answer?COLORS.green:COLORS.red }}>
-                      {quizSel===lesson.practiceQ.answer ? '? Correct!' : `? Incorrect � Answer: ${lesson.practiceQ.answer}`}
+                      {quizSel===lesson.practiceQ.answer ? ui.correct : (ui.incorrectAnswer || '\u2717 Incorrect \u2192 Answer: {answer}').replace('{answer}', lesson.practiceQ.answer)}
                     </div>
                     <p style={{ fontSize:13, color:COLORS.text, lineHeight:1.6, margin:0 }}>{lesson.practiceQ.explanation}</p>
                   </div>
@@ -2735,7 +2738,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
 
             {/* Rewatch filmstrip */}
             <div>
-              <div style={{ fontSize:11, color:COLORS.muted, fontWeight:700, marginBottom:8 }}>REWATCH A SCENE</div>
+              <div style={{ fontSize:11, color:COLORS.muted, fontWeight:700, marginBottom:8 }}>{ui.rewatchScene}</div>
               <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:4 }}>
                 {lesson.scenes.map((sc,i) => {
                   const acc = (SCENE_PALETTE[boardStyle] || SCENE_PALETTE.color)[i % 10]
@@ -2743,7 +2746,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
                   return (
                     <button key={i} onClick={() => goToScene(i)} style={{ background:acc+'10', border:`1.5px solid ${ans==='confused'?COLORS.red:ans==='got'?COLORS.green:acc+'40'}`, borderRadius:12, padding:'10px 10px', display:'flex', flexDirection:'column', alignItems:'center', gap:4, cursor:'pointer', flexShrink:0, width:70, fontFamily:'Sora,sans-serif' }}>
                       <div style={{ fontSize:22 }}>{sc.visual?.split(' ')[0]||'🎬'}</div>
-                      <div style={{ fontSize:8, fontWeight:700, color:acc }}>SCENE {i+1}</div>
+                      <div style={{ fontSize:8, fontWeight:700, color:acc }}>{ui.scene} {i+1}</div>
                       {ans && <div style={{ fontSize:9 }}>{ans==='got'?'✅':'🔴'}</div>}
                     </button>
                   )
@@ -2751,7 +2754,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
               </div>
             </div>
 
-            <button onClick={resetLesson} style={{ ...pBtn, marginTop:4 }}>🎬 Learn Something New</button>
+            <button onClick={resetLesson} style={{ ...pBtn, marginTop:4 }}>{ui.learnSomethingNew}</button>
           </div>
         )}
       </div>
