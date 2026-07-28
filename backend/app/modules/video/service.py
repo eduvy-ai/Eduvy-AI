@@ -248,22 +248,28 @@ def _save_project(project_data: Dict[str, Any], scenes: List[Dict[str, Any]]) ->
     conn = get_db()
     try:
         q.insert_video_project(conn, project_data)
-        for idx, scene in enumerate(scenes):
-            frame_data = {
-                "video_id": project_data["id"],
-                "frame_index": idx,
-                "narration": scene.get("narration", ""),
-                "svg_spec": json.dumps({
-                    "type": scene.get("svg_type", "bullet_reveal"),
-                    "title": scene.get("title", ""),
-                    "data": scene.get("svg_data", {}),
-                    "onscreen_text": scene.get("onscreen_text", []),
-                    "duration_sec": scene.get("duration_sec", 10),
-                    # Pass per-scene accent color and extra fields from AI
-                    "accent": scene.get("accent", ""),
-                }),
-            }
-            q.insert_video_frame(conn, frame_data)
+        try:
+            for idx, scene in enumerate(scenes):
+                frame_data = {
+                    "video_id": project_data["id"],
+                    "frame_index": idx,
+                    "narration": scene.get("narration", ""),
+                    "svg_spec": json.dumps({
+                        "type": scene.get("svg_type", "bullet_reveal"),
+                        "title": scene.get("title", ""),
+                        "data": scene.get("svg_data", {}),
+                        "onscreen_text": scene.get("onscreen_text", []),
+                        "duration_sec": scene.get("duration_sec", 10),
+                        # Pass per-scene accent color and extra fields from AI
+                        "accent": scene.get("accent", ""),
+                    }),
+                }
+                q.insert_video_frame(conn, frame_data)
+        except Exception as frame_err:
+            logger.error("Frame insert failed for video %s: %s", project_data["id"], frame_err)
+            q.update_video_status(conn, project_data["id"], "error",
+                                  error_msg=f"Frame save failed: {frame_err}")
+            raise VideoGenerationError(f"Failed to save video frames: {frame_err}")
         q.update_video_status(conn, project_data["id"], "script_ready", frame_count=len(scenes))
         return q.get_video_project(conn, project_data["id"], project_data["user_id"])
     finally:
@@ -381,6 +387,8 @@ class VideoService:
                         }),
                     }
                     q.insert_video_frame(conn, frame_data)
+                # Remove orphaned frames beyond the new scene count
+                q.delete_orphaned_frames(conn, video_id, len(scenes))
                 # Update script_json + status
                 cur = conn.cursor()
                 cur.execute(

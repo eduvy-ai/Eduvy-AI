@@ -222,12 +222,12 @@ async def assemble_video(
             result = render_results[idx] if idx < len(render_results) else None
             if result and os.path.exists(result):
                 frame_mp4s.append(result)
-                _update_frame_status(frame_id, "done", result)
+                await _update_frame_status(frame_id, "done", result)
                 logger.info("  [%d/%d] Frame MP4 done (%d bytes)", fidx + 1, total_frames, os.path.getsize(result))
             else:
                 logger.error("  [%d/%d] Frame render FAILED", fidx + 1, total_frames)
                 frame_mp4s.append(None)
-                _update_frame_status(frame_id, "error")
+                await _update_frame_status(frame_id, "error")
 
         # ── Concatenate all frame MP4s ────────────────────────────────────
         valid_frames_list = [f for f in frame_mp4s if f and os.path.exists(f)]
@@ -340,9 +340,16 @@ async def assemble_video(
             q.update_video_status(conn, video_id, "error", error_msg=str(exc))
         finally:
             conn.close()
+        # Clean up partial output to avoid unbounded disk growth
+        try:
+            if os.path.isdir(out_dir):
+                shutil.rmtree(out_dir, ignore_errors=True)
+                logger.info("Cleaned up partial output dir: %s", out_dir)
+        except Exception:
+            pass
 
 
-def _update_frame_status(frame_id: int, status: str, path: str = "") -> None:
+def _update_frame_status_sync(frame_id: int, status: str, path: str = "") -> None:
     from app.db.connection import get_db
     from app.modules.video.query import update_frame_status
     conn = get_db()
@@ -352,6 +359,10 @@ def _update_frame_status(frame_id: int, status: str, path: str = "") -> None:
         pass
     finally:
         conn.close()
+
+
+async def _update_frame_status(frame_id: int, status: str, path: str = "") -> None:
+    await asyncio.to_thread(_update_frame_status_sync, frame_id, status, path)
 
 
 async def _generate_silence(duration_sec: float, output_path: str) -> None:

@@ -27,9 +27,10 @@ def insert_video_project(conn, project: Dict[str, Any]) -> Dict[str, Any]:
         RETURNING *
     """, project)
     row = cur.fetchone()
+    desc = cur.description
     conn.commit()
     cur.close()
-    return _row_to_dict(row, cur.description if row else None, cur)
+    return _row_to_dict(row, desc if row else None, None)
 
 
 def get_video_project(conn, video_id: str, user_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
@@ -144,6 +145,19 @@ def count_frames_by_status(conn, video_id: str, status: str) -> int:
     count = cur.fetchone()["count"]
     cur.close()
     return count
+
+
+def delete_orphaned_frames(conn, video_id: str, max_index: int) -> int:
+    """Delete frames with frame_index >= max_index. Returns count deleted."""
+    cur = conn.cursor()
+    cur.execute(
+        "DELETE FROM video_frames WHERE video_id=%s AND frame_index >= %s",
+        (video_id, max_index)
+    )
+    deleted = cur.rowcount
+    conn.commit()
+    cur.close()
+    return deleted
 
 
 # ── Helper ────────────────────────────────────────────────────────────────────
