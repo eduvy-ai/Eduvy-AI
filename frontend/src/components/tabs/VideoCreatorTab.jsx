@@ -1,6 +1,6 @@
 // VideoCreatorTab.jsx — Golpo-style 5-step whiteboard video wizard
 import { useState, useEffect, useRef } from 'react'
-import { API_BASE_URL } from '../../config'
+import { API_BASE_URL } from '../../config.ts'
 import {
   apiVideoGenerate,
   apiVideoRender,
@@ -8,7 +8,8 @@ import {
   apiVideoLibrary,
   apiVideoDelete,
   apiVideoShare,
-} from '../../api'
+} from '../../api.js'
+import { li } from '../../i18n/index.js'
 import StylePicker from '../video/StylePicker'
 import SceneEditor from '../video/SceneEditor'
 import VideoPlayer from '../video/VideoPlayer'
@@ -47,6 +48,8 @@ const TIMINGS = [
 
 export default function VideoCreatorTab({ profile = null }) {
   const [step, setStep] = useState(0)
+  const lang = profile?.language || 'English'
+  const ui = li(lang)
 
   // Step 1 form
   const [topic, setTopic] = useState('')
@@ -96,7 +99,7 @@ export default function VideoCreatorTab({ profile = null }) {
   // ── Step 1 → 2 ───────────────────────────────────────────────
 
   function handleStep1Next() {
-    if (!topic.trim()) { setError('Please enter a topic.'); return }
+    if (!topic.trim()) { setError(ui.vcEnterTopic || 'Please enter a topic.'); return }
     setError(null)
     setStep(1)
   }
@@ -137,7 +140,7 @@ export default function VideoCreatorTab({ profile = null }) {
       setVideoId(result.id)
       setStep(2)
     } catch (e) {
-      setError(e.message || 'Failed to generate script. Please try again.')
+      setError(e.message || ui.vcScriptFailed || 'Failed to generate script. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -154,7 +157,7 @@ export default function VideoCreatorTab({ profile = null }) {
       await apiVideoRender(videoId, scenes)
       _startPolling()
     } catch (e) {
-      setGenError(e.message || 'Failed to start rendering.')
+      setGenError(e.message || ui.vcRenderStartFailed || 'Failed to start rendering.')
       setGenStatus('error')
     }
   }
@@ -235,7 +238,7 @@ export default function VideoCreatorTab({ profile = null }) {
   }
 
   async function handleDelete(vid) {
-    if (!confirm('Delete this video?')) return
+    if (!confirm(ui.vcDeleteConfirm || 'Delete this video?')) return
     try {
       await apiVideoDelete(vid)
       setLibrary((prev) => prev.filter((v) => v.id !== vid))
@@ -280,16 +283,16 @@ export default function VideoCreatorTab({ profile = null }) {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-app-text">🎥 Video Creator</h1>
+          <h1 className="text-2xl font-bold text-app-text">{ui.vcTitle || '🎥 Video Creator'}</h1>
           <p className="text-sm text-app-muted mt-0.5">
-            Create animated whiteboard explainer videos with AI
+            {ui.vcSubtitle || 'Create animated whiteboard explainer videos with AI'}
           </p>
         </div>
         <button
           onClick={toggleLibrary}
           className="text-sm px-3 py-1.5 rounded-lg bg-app-card2 text-app-text border border-app-border hover:bg-white/5 transition-colors"
         >
-          📁 My Videos
+          {ui.vcMyVideos || '📁 My Videos'}
         </button>
       </div>
 
@@ -306,6 +309,7 @@ export default function VideoCreatorTab({ profile = null }) {
             setStep(4)
             setShowLibrary(false)
           }}
+          ui={ui}
         />
       )}
 
@@ -331,6 +335,7 @@ export default function VideoCreatorTab({ profile = null }) {
             timing={timing} setTiming={setTiming}
             pacing={pacing} setPacing={setPacing}
             onNext={handleStep1Next}
+            ui={ui}
           />
         )}
 
@@ -341,7 +346,8 @@ export default function VideoCreatorTab({ profile = null }) {
             loading={loading}
             onBack={goBack}
             onNext={handleGenerateScript}
-            lang={profile?.language || narrLang}
+            lang={lang}
+            ui={ui}
           />
         )}
 
@@ -352,7 +358,8 @@ export default function VideoCreatorTab({ profile = null }) {
             onSceneChange={handleSceneChange}
             onBack={goBack}
             onNext={handleStartRender}
-            lang={profile?.language || narrLang}
+            lang={lang}
+            ui={ui}
           />
         )}
 
@@ -362,6 +369,7 @@ export default function VideoCreatorTab({ profile = null }) {
             progress={genProgress}
             error={genError}
             onRetry={() => { setGenError(null); setGenStatus('queued'); setStep(2); }}
+            ui={ui}
           />
         )}
 
@@ -372,6 +380,7 @@ export default function VideoCreatorTab({ profile = null }) {
             shareLoading={shareLoading}
             onShare={handleShare}
             onNewVideo={handleNewVideo}
+            ui={ui}
           />
         )}
       </div>
@@ -420,25 +429,25 @@ function Stepper({ current }) {
 
 function StepInput({ topic, setTopic, grade, setGrade, subject, setSubject,
   narrLang, setNarrLang, onscreenLang, setOnscreenLang,
-  timing, setTiming, pacing, setPacing, onNext }) {
+  timing, setTiming, pacing, setPacing, onNext, ui }) {
   return (
     <div className="bg-app-card border border-app-border rounded-2xl p-6 space-y-5">
-      <h2 className="text-lg font-bold text-app-text">What should the video explain?</h2>
+      <h2 className="text-lg font-bold text-app-text">{ui.vcWhatExplain || 'What should the video explain?'}</h2>
 
       <div>
-        <label className="label">Topic *</label>
+        <label className="label">{ui.vcTopic || 'Topic *'}</label>
         <textarea
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
           rows={3}
           className="input-base resize-none"
-          placeholder="e.g. Newton's three laws of motion with examples"
+          placeholder={ui.vcTopicPlaceholder || "e.g. Newton's three laws of motion with examples"}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="label">Grade</label>
+          <label className="label">{ui.vcGrade || 'Grade'}</label>
           <select
             value={grade}
             onChange={(e) => setGrade(e.target.value)}
@@ -448,12 +457,12 @@ function StepInput({ topic, setTopic, grade, setGrade, subject, setSubject,
           </select>
         </div>
         <div>
-          <label className="label">Subject</label>
+          <label className="label">{ui.vcSubject || 'Subject'}</label>
           <input
             type="text"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            placeholder="e.g. Physics"
+            placeholder={ui.vcSubjectPlaceholder || 'e.g. Physics'}
             className="input-base"
           />
         </div>
@@ -461,7 +470,7 @@ function StepInput({ topic, setTopic, grade, setGrade, subject, setSubject,
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="label">Narration Language</label>
+          <label className="label">{ui.vcNarrationLang || 'Narration Language'}</label>
           <select
             value={narrLang}
             onChange={(e) => setNarrLang(e.target.value)}
@@ -471,7 +480,7 @@ function StepInput({ topic, setTopic, grade, setGrade, subject, setSubject,
           </select>
         </div>
         <div>
-          <label className="label">On-screen Text Language</label>
+          <label className="label">{ui.vcOnscreenLang || 'On-screen Text Language'}</label>
           <select
             value={onscreenLang}
             onChange={(e) => setOnscreenLang(e.target.value)}
@@ -484,7 +493,7 @@ function StepInput({ topic, setTopic, grade, setGrade, subject, setSubject,
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="label">Video Length</label>
+          <label className="label">{ui.vcVideoLength || 'Video Length'}</label>
           <select
             value={timing}
             onChange={(e) => setTiming(e.target.value)}
@@ -494,20 +503,20 @@ function StepInput({ topic, setTopic, grade, setGrade, subject, setSubject,
           </select>
         </div>
         <div>
-          <label className="label">Pacing</label>
+          <label className="label">{ui.vcPacing || 'Pacing'}</label>
           <select
             value={pacing}
             onChange={(e) => setPacing(e.target.value)}
             className="input-base"
           >
-            <option value="normal">Normal</option>
-            <option value="fast">Fast</option>
+            <option value="normal">{ui.vcPacingNormal || 'Normal'}</option>
+            <option value="fast">{ui.vcPacingFast || 'Fast'}</option>
           </select>
         </div>
       </div>
 
       <button onClick={onNext} className="btn-primary">
-        Next: Choose Style →
+        {ui.vcNextStyle || 'Next: Choose Style →'}
       </button>
     </div>
   )
@@ -515,18 +524,18 @@ function StepInput({ topic, setTopic, grade, setGrade, subject, setSubject,
 
 // ── Step 2: Style ─────────────────────────────────────────────
 
-function StepStyle({ styleVariant, setStyleVariant, orientation, setOrientation, loading, onBack, onNext, lang = 'English' }) {
+function StepStyle({ styleVariant, setStyleVariant, orientation, setOrientation, loading, onBack, onNext, lang = 'English', ui }) {
   return (
     <div className="bg-app-card border border-app-border rounded-2xl p-6 space-y-5">
-      <h2 className="text-lg font-bold text-app-text">Choose a visual style</h2>
+      <h2 className="text-lg font-bold text-app-text">{ui.vcChooseStyle || 'Choose a visual style'}</h2>
 
       <StylePicker value={styleVariant} onChange={setStyleVariant} lang={lang} />
 
       <div>
-        <label className="label mb-2">Orientation</label>
+        <label className="label mb-2">{ui.vcOrientation || 'Orientation'}</label>
         <div className="flex gap-3">
-          {[{ val: 'horizontal', label: '⬛ Landscape (16:9)', desc: 'Best for desktop / YouTube' },
-            { val: 'vertical', label: '📱 Portrait (9:16)', desc: 'Best for Reels / Shorts' }].map((o) => (
+          {[{ val: 'horizontal', label: ui.vcLandscape || '⬛ Landscape (16:9)', desc: ui.vcLandscapeDesc || 'Best for desktop / YouTube' },
+            { val: 'vertical', label: ui.vcPortrait || '📱 Portrait (9:16)', desc: ui.vcPortraitDesc || 'Best for Reels / Shorts' }].map((o) => (
             <button
               key={o.val}
               onClick={() => setOrientation(o.val)}
@@ -548,14 +557,14 @@ function StepStyle({ styleVariant, setStyleVariant, orientation, setOrientation,
           onClick={onBack}
           className="flex-1 btn-secondary py-3"
         >
-          ← Back
+          {ui.vcBack || '← Back'}
         </button>
         <button
           onClick={onNext}
           disabled={loading}
           className="flex-[2] btn-primary disabled:opacity-60"
         >
-          {loading ? '✨ Generating script…' : 'Generate Script →'}
+          {loading ? (ui.vcGeneratingScript || '✨ Generating script…') : (ui.vcGenerateScript || 'Generate Script →')}
         </button>
       </div>
     </div>
@@ -564,14 +573,14 @@ function StepStyle({ styleVariant, setStyleVariant, orientation, setOrientation,
 
 // ── Step 3: Script review ────────────────────────────────────
 
-function StepScript({ title, scenes, onSceneChange, onBack, onNext, lang = 'English' }) {
+function StepScript({ title, scenes, onSceneChange, onBack, onNext, lang = 'English', ui }) {
   return (
     <div className="space-y-4">
       <div className="bg-app-card border border-app-border rounded-2xl p-5">
-        <h2 className="text-lg font-bold text-app-text mb-1">Review your script</h2>
+        <h2 className="text-lg font-bold text-app-text mb-1">{ui.vcReviewScript || 'Review your script'}</h2>
         {title && <p className="text-sm text-app-green font-medium">{title}</p>}
         <p className="text-xs text-app-muted mt-1">
-          {scenes.length} scenes · Edit narration if needed, then start rendering.
+          {scenes.length} {ui.vcScenesInfo || 'scenes · Edit narration if needed, then start rendering.'}
         </p>
       </div>
 
@@ -582,8 +591,8 @@ function StepScript({ title, scenes, onSceneChange, onBack, onNext, lang = 'Engl
       </div>
 
       <div className="flex gap-3 pt-2">
-        <button onClick={onBack} className="flex-1 btn-secondary py-3">← Back</button>
-        <button onClick={onNext} className="flex-[2] btn-primary">🎬 Start Rendering →</button>
+        <button onClick={onBack} className="flex-1 btn-secondary py-3">{ui.vcBack || '← Back'}</button>
+        <button onClick={onNext} className="flex-[2] btn-primary">{ui.vcStartRendering || '🎬 Start Rendering →'}</button>
       </div>
     </div>
   )
@@ -591,23 +600,23 @@ function StepScript({ title, scenes, onSceneChange, onBack, onNext, lang = 'Engl
 
 // ── Step 4: Generating ────────────────────────────────────────
 
-function StepGenerating({ status, progress, error, onRetry }) {
+function StepGenerating({ status, progress, error, onRetry, ui }) {
   const statusLabels = {
-    queued: 'In queue…',
-    processing: 'Rendering frames…',
-    rendering: 'Rendering frames…',
-    done: 'Finalizing…',
-    error: 'Something went wrong',
+    queued: ui.vcInQueue || 'In queue…',
+    processing: ui.vcRenderingFrames || 'Rendering frames…',
+    rendering: ui.vcRenderingFrames || 'Rendering frames…',
+    done: ui.vcFinalizing || 'Finalizing…',
+    error: ui.vcSomethingWrong || 'Something went wrong',
   }
   return (
     <div className="bg-app-card border border-app-border rounded-2xl p-8 text-center space-y-5">
       {error ? (
         <>
           <div className="text-4xl">😔</div>
-          <h2 className="text-lg font-bold text-app-red">Rendering failed</h2>
+          <h2 className="text-lg font-bold text-app-red">{ui.vcRenderFailed || 'Rendering failed'}</h2>
           <p className="text-sm text-app-muted">{error}</p>
           <button onClick={onRetry} className="btn-primary px-6 w-auto">
-            Try Again
+            {ui.vcTryAgain || 'Try Again'}
           </button>
         </>
       ) : (
@@ -617,7 +626,7 @@ function StepGenerating({ status, progress, error, onRetry }) {
             {statusLabels[status] || 'Processing…'}
           </h2>
           <p className="text-sm text-app-muted">
-            Your video is being generated. This usually takes 1–3 minutes.
+            {ui.vcGenerating || 'Your video is being generated. This usually takes 1–3 minutes.'}
           </p>
           <div className="w-full bg-app-card2 rounded-full h-3 overflow-hidden border border-app-border">
             <div
@@ -625,7 +634,7 @@ function StepGenerating({ status, progress, error, onRetry }) {
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="text-xs text-app-muted">{progress}% complete</p>
+          <p className="text-xs text-app-muted">{progress}% {ui.vcComplete || 'complete'}</p>
         </>
       )}
     </div>
@@ -634,7 +643,7 @@ function StepGenerating({ status, progress, error, onRetry }) {
 
 // ── Step 5: Done ──────────────────────────────────────────────
 
-function StepDone({ videoData, shareUrl, shareLoading, onShare, onNewVideo }) {
+function StepDone({ videoData, shareUrl, shareLoading, onShare, onNewVideo, ui }) {
   const videoUrl = mediaUrl(videoData?.file_path)
   const thumbUrl = mediaUrl(videoData?.thumb_path)
 
@@ -642,12 +651,12 @@ function StepDone({ videoData, shareUrl, shareLoading, onShare, onNewVideo }) {
     <div className="space-y-5">
       <div className="bg-app-card border border-app-border rounded-2xl p-5">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-app-text">🎉 Your video is ready!</h2>
+          <h2 className="text-lg font-bold text-app-text">{ui.vcVideoReady || '🎉 Your video is ready!'}</h2>
           <button
             onClick={onNewVideo}
             className="text-sm px-3 py-1.5 bg-app-green/15 text-app-green rounded-lg hover:bg-app-green/25 transition-colors border border-app-green/30"
           >
-            + New Video
+            {ui.vcNewVideo || '+ New Video'}
           </button>
         </div>
         {videoData?.title && (
@@ -667,11 +676,11 @@ function StepDone({ videoData, shareUrl, shareLoading, onShare, onNewVideo }) {
 
 // ── Library Panel ─────────────────────────────────────────────
 
-function LibraryPanel({ library, loading, onDelete, onPlay }) {
+function LibraryPanel({ library, loading, onDelete, onPlay, ui }) {
   if (loading) {
     return (
       <div className="mb-6 bg-app-card border border-app-border rounded-2xl p-5 text-sm text-app-muted">
-        Loading your videos…
+        {ui.vcLoadingVideos || 'Loading your videos…'}
       </div>
     )
   }
@@ -679,7 +688,7 @@ function LibraryPanel({ library, loading, onDelete, onPlay }) {
   if (!library.length) {
     return (
       <div className="mb-6 bg-app-card border border-app-border rounded-2xl p-5 text-sm text-app-muted text-center">
-        No videos yet. Create your first one!
+        {ui.vcNoVideosYet || 'No videos yet. Create your first one!'}
       </div>
     )
   }
@@ -687,7 +696,7 @@ function LibraryPanel({ library, loading, onDelete, onPlay }) {
   return (
     <div className="mb-6 bg-app-card border border-app-border rounded-2xl overflow-hidden">
       <div className="px-4 py-3 border-b border-app-border text-sm font-semibold text-app-text">
-        My Videos ({library.length})
+        {ui.vcMyVideosCount || 'My Videos'} ({library.length})
       </div>
       <div className="divide-y divide-app-border max-h-64 overflow-y-auto">
         {library.map((v) => (
