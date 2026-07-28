@@ -228,15 +228,17 @@ export default function LearnTVTab({ profile }) {
   const getBrief = async (video) => {
     if (videoBriefs[video.id]) { setExpandedId(video.id); return }
     setBriefLoading(video.id)
-    const res = await callAI(`Analyze this educational video:\nTitle: "${video.title}"\nChannel: ${video.channel}\nDuration: ${fmtDuration(video.duration)}`, "", [], 3, 1200, "learntv_brief")
-    const parsed = parseAIObject(res)
-    if (parsed) {
-      setVideoBriefs(prev => ({ ...prev, [video.id]: parsed }))
-    } else {
-      setVideoBriefs(prev => ({ ...prev, [video.id]: { brief: res, keyPoints: [], difficulty: '', bestFor: '' } }))
-    }
-    setBriefLoading(null)
-    setExpandedId(video.id)
+    try {
+      const res = await callAI(`Analyze this educational video:\nTitle: "${video.title}"\nChannel: ${video.channel}\nDuration: ${fmtDuration(video.duration)}`, "", [], 3, 1200, "learntv_brief")
+      const parsed = parseAIObject(res)
+      if (parsed) {
+        setVideoBriefs(prev => ({ ...prev, [video.id]: parsed }))
+      } else {
+        setVideoBriefs(prev => ({ ...prev, [video.id]: { brief: res, keyPoints: [], difficulty: '', bestFor: '' } }))
+      }
+      setExpandedId(video.id)
+    } catch { /* best-effort */ }
+    finally { setBriefLoading(null) }
   }
 
   // ── AI Smart Summaries for reels ─────────────────────────

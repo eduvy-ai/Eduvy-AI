@@ -302,6 +302,7 @@ export default function VideoCreatorTab({ profile = null }) {
           onPlay={(v) => {
             setVideoData(v)
             setVideoId(v.id)
+            setShareUrl('')
             setStep(4)
             setShowLibrary(false)
           }}
