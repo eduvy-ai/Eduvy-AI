@@ -20,14 +20,14 @@ BEGIN
         -- Migrate rows that aren't already in notebook_studio
         INSERT INTO notebook_studio (user_id, type, output_json, created_at)
         SELECT user_id, type,
-               COALESCE(content, '{}'),
-               created_at
+               COALESCE(output_json, '{}'),
+               created_at::timestamp
         FROM studio_outputs
         WHERE NOT EXISTS (
             SELECT 1 FROM notebook_studio ns
             WHERE ns.user_id = studio_outputs.user_id
               AND ns.type = studio_outputs.type
-              AND ns.created_at = studio_outputs.created_at
+              AND ns.created_at = studio_outputs.created_at::timestamp
         );
 
         DROP TABLE studio_outputs;
