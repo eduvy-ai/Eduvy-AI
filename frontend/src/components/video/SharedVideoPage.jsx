@@ -2,17 +2,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { apiVideoPublic } from '../../api.js'
-import { API_BASE_URL } from '../../config.ts'
 import { li } from '../../i18n/index.js'
 import { SUPPORTED_LANGS } from '../../i18n/languages.js'
+import { mediaUrl } from '../../shared/utils/helpers'
 import VideoPlayer from './VideoPlayer.jsx'
-
-function mediaUrl(path) {
-  if (!path) return null
-  const p = String(path).replace(/\\/g, '/')
-  if (/^https?:\/\//i.test(p)) return p
-  return `${API_BASE_URL}${p.startsWith('/') ? '' : '/'}${p}`
-}
 
 function detectLang() {
   const browserLang = (navigator.language || '').split('-')[0].toLowerCase()

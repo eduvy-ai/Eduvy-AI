@@ -1,6 +1,5 @@
 // VideoCreatorTab.jsx — Golpo-style 5-step whiteboard video wizard
 import { useState, useEffect, useRef } from 'react'
-import { API_BASE_URL } from '../../config.ts'
 import {
   apiVideoGenerate,
   apiVideoRender,
@@ -10,21 +9,10 @@ import {
   apiVideoShare,
 } from '../../api.js'
 import { li } from '../../i18n/index.js'
+import { mediaUrl } from '../../shared/utils/helpers'
 import StylePicker from '../video/StylePicker'
 import SceneEditor from '../video/SceneEditor'
 import VideoPlayer from '../video/VideoPlayer'
-
-// Build a usable media URL from a stored path. When videos are served from R2
-// the backend stores an ABSOLUTE url (https://…) — those must be used as-is.
-// Only relative paths (local /videos/… served by the API) get the API base
-// prepended. (Prepending the API base to an absolute R2 url produced a broken
-// "https://api…https://r2…" url — video/thumbnail failed to load in production.)
-function mediaUrl(path) {
-  if (!path) return null
-  const p = String(path).replace(/\\/g, '/')
-  if (/^https?:\/\//i.test(p)) return p
-  return `${API_BASE_URL}${p.startsWith('/') ? '' : '/'}${p}`
-}
 
 const STEPS = ['Input', 'Style', 'Script', 'Generating', 'Done']
 

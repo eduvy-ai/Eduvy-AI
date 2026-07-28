@@ -1,3 +1,5 @@
+import { API_BASE_URL } from '../../config';
+
 export const capitalize = (str: string): string => {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 };
@@ -30,4 +32,15 @@ export const isEmpty = (value: unknown): boolean => {
   if (Array.isArray(value) && value.length === 0) return true;
   if (typeof value === 'object' && Object.keys(value).length === 0) return true;
   return false;
+};
+
+/**
+ * Build a usable media URL from a stored path.
+ * Absolute URLs (R2) are returned as-is; relative paths get the API base prepended.
+ */
+export const mediaUrl = (path: string | null | undefined): string | null => {
+  if (!path) return null;
+  const p = String(path).replace(/\\/g, '/');
+  if (/^https?:\/\//i.test(p)) return p;
+  return `${API_BASE_URL}${p.startsWith('/') ? '' : '/'}${p}`;
 };
