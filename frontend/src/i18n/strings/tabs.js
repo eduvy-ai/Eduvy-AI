@@ -34,7 +34,7 @@ export const TABS = {
     Urdu:     "🎓 کوچ",
   },
 
-notebookTab: {
+  notebookTab: {
     English:  "📓 Notebook",
     Hindi:    "📓 नोटबुक",
     Gujarati: "📓 નોટબુક",

@@ -210,16 +210,18 @@ export default function LearnTVTab({ profile }) {
 
   // ── AI Brief for videos ────────────────────────────────────
   const generateBriefs = async (vids) => {
-    const titles = vids.map((v, i) => `${i + 1}. "${v.title}" by ${v.channel} (${fmtDuration(v.duration)})`).join('\n')
-    const res = await callAI(`Here are ${vids.length} educational videos:\n${titles}\n\nGenerate a student-friendly brief for each video.`, "", [], 3, 2000, "learntv_brief")
-    const parsed = parseAIArray(res)
-    if (parsed?.length) {
-      const newBriefs = { ...videoBriefs }
-      vids.forEach((v, i) => {
-        if (parsed[i]) newBriefs[v.id] = parsed[i]
-      })
-      setVideoBriefs(newBriefs)
-    }
+    try {
+      const titles = vids.map((v, i) => `${i + 1}. "${v.title}" by ${v.channel} (${fmtDuration(v.duration)})`).join('\n')
+      const res = await callAI(`Here are ${vids.length} educational videos:\n${titles}\n\nGenerate a student-friendly brief for each video.`, "", [], 3, 2000, "learntv_brief")
+      const parsed = parseAIArray(res)
+      if (parsed?.length) {
+        const newBriefs = { ...videoBriefs }
+        vids.forEach((v, i) => {
+          if (parsed[i]) newBriefs[v.id] = parsed[i]
+        })
+        setVideoBriefs(newBriefs)
+      }
+    } catch { /* best-effort — briefs are non-critical */ }
   }
 
   // ── Single video brief (on-demand) ────────────────────────

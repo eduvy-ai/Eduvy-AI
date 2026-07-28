@@ -206,7 +206,8 @@ export default function VideoCreatorTab({ profile = null }) {
     setShareLoading(true)
     try {
       const res = await apiVideoShare(videoId)
-      setShareUrl(res.share_url || res.share_token)
+      const url = res.share_url || res.share_token || ''
+      setShareUrl(url.startsWith('http') ? url : `${window.location.origin}${url}`)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -357,7 +358,7 @@ export default function VideoCreatorTab({ profile = null }) {
             status={genStatus}
             progress={genProgress}
             error={genError}
-            onRetry={handleNewVideo}
+            onRetry={() => { setGenError(null); setGenStatus('queued'); setStep(2); }}
           />
         )}
 
@@ -591,6 +592,7 @@ function StepGenerating({ status, progress, error, onRetry }) {
   const statusLabels = {
     queued: 'In queue…',
     processing: 'Rendering frames…',
+    rendering: 'Rendering frames…',
     done: 'Finalizing…',
     error: 'Something went wrong',
   }

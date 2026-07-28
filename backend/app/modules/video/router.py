@@ -49,25 +49,37 @@ async def render_video(
 
     # Kick off background rendering (plain def → runs in threadpool, won't block event loop)
     def _render_bg():
-        import asyncio
+        import asyncio, logging
         from app.db.connection import get_db
         from app.services.video_assembler import assemble_video
-        conn = get_db()
+        from app.modules.video.query import update_video_status
         try:
-            frames = get_video_frames(conn, project["id"])
-        finally:
-            conn.close()
+            conn = get_db()
+            try:
+                frames = get_video_frames(conn, project["id"])
+            finally:
+                conn.close()
 
-        # Run the async pipeline in a new event loop (safe since we're in a thread)
-        asyncio.run(assemble_video(
-            video_id=project["id"],
-            user_id=current_user,
-            frames=frames,
-            style_variant=project.get("style_variant", "sketch_classic"),
-            orientation=project.get("orientation", "horizontal"),
-            narration_language=project.get("narration_language", "en"),
-            enable_captions=project.get("enable_captions", True),
-        ))
+            # Run the async pipeline in a new event loop (safe since we're in a thread)
+            asyncio.run(assemble_video(
+                video_id=project["id"],
+                user_id=current_user,
+                frames=frames,
+                style_variant=project.get("style_variant", "sketch_classic"),
+                orientation=project.get("orientation", "horizontal"),
+                narration_language=project.get("narration_language", "en"),
+                enable_captions=project.get("enable_captions", True),
+            ))
+        except Exception as exc:
+            logging.getLogger(__name__).error("Background render failed for %s: %s", project["id"], exc)
+            try:
+                conn = get_db()
+                try:
+                    update_video_status(conn, project["id"], "error", error_msg=str(exc)[:500])
+                finally:
+                    conn.close()
+            except Exception:
+                pass
 
     background_tasks.add_task(_render_bg)
     return project

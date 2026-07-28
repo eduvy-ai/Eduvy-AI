@@ -2,7 +2,15 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { apiVideoPublic } from '../../api.js'
+import { API_BASE_URL } from '../../config.ts'
 import VideoPlayer from './VideoPlayer.jsx'
+
+function mediaUrl(path) {
+  if (!path) return null
+  const p = String(path).replace(/\\/g, '/')
+  if (/^https?:\/\//i.test(p)) return p
+  return `${API_BASE_URL}${p.startsWith('/') ? '' : '/'}${p}`
+}
 
 export default function SharedVideoPage() {
   const { token } = useParams()
@@ -36,9 +44,8 @@ export default function SharedVideoPage() {
     )
   }
 
-  const videoUrl = video.file_path
-    ? (video.file_path.startsWith('http') ? video.file_path : `${window.location.origin}${video.file_path}`)
-    : null
+  const videoUrl = mediaUrl(video.file_path)
+  const thumbUrl = mediaUrl(video.thumb_path)
 
   return (
     <div className="min-h-screen bg-[#04040e] flex flex-col items-center justify-center p-4">
@@ -48,7 +55,7 @@ export default function SharedVideoPage() {
         </h1>
         <VideoPlayer
           videoUrl={videoUrl}
-          thumbUrl={video.thumb_path || null}
+          thumbUrl={thumbUrl}
           title={video.title}
           shareUrl={window.location.href}
         />
