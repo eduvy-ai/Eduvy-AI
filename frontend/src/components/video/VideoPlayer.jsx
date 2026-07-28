@@ -14,7 +14,7 @@ export default function VideoPlayer({ videoUrl, thumbUrl, title, shareUrl, onSha
       setTimeout(() => setCopied(false), 2500)
     } catch {
       // Fallback: prompt user to copy manually
-      window.prompt(ui.copy || 'Copy', shareUrl)
+      window.prompt(ui.videoCopy || 'Copy', shareUrl)
     }
   }
 
@@ -75,7 +75,7 @@ export default function VideoPlayer({ videoUrl, thumbUrl, title, shareUrl, onSha
               onClick={handleCopy}
               className="px-3 py-2 text-xs bg-app-card2 border border-app-border text-app-text rounded-lg hover:bg-white/10 transition-colors shrink-0"
             >
-              {copied ? (ui.copied || '✓ Copied') : (ui.copy || 'Copy')}
+              {copied ? (ui.videoCopied || '✓ Copied') : (ui.videoCopy || 'Copy')}
             </button>
           </div>
         )}

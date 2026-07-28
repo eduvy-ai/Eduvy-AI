@@ -80,7 +80,7 @@ def list_user_videos(conn, user_id: str, limit: int = 20, offset: int = 0) -> Li
 
 def count_user_videos(conn, user_id: str) -> int:
     cur = conn.cursor()
-    cur.execute("SELECT COUNT(*) AS count FROM video_projects WHERE user_id=%s", (user_id,))
+    cur.execute("SELECT COUNT(*) AS count FROM video_projects WHERE user_id=%s AND status != 'error'", (user_id,))
     count = cur.fetchone()["count"]
     cur.close()
     return count

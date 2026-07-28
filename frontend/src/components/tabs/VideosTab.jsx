@@ -7,7 +7,7 @@ import { apiGetDraft, apiSaveDraft } from '../../api.js'
 const LANG_VOICE = {
   English:'en-IN', Hindi:'hi-IN', Gujarati:'gu-IN', Marathi:'mr-IN',
   Tamil:'ta-IN', Telugu:'te-IN', Kannada:'kn-IN', Bengali:'bn-IN',
-  Punjabi:'pa-IN', Odia:'or-IN', Urdu:'ur-IN',
+  Punjabi:'pa-IN', Odia:'or-IN', Urdu:'ur-PK',
 }
 
 // -- Pick the best TTS voice for a language ------------------
@@ -2728,7 +2728,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
                 {quizSel && (
                   <div style={{ background:quizSel===lesson.practiceQ.answer?'#00E5A010':'#FF6B6B10', border:`1px solid ${quizSel===lesson.practiceQ.answer?'#00E5A030':'#FF6B6B30'}`, borderRadius:12, padding:14 }}>
                     <div style={{ fontSize:12, fontWeight:700, marginBottom:6, color:quizSel===lesson.practiceQ.answer?COLORS.green:COLORS.red }}>
-                      {quizSel===lesson.practiceQ.answer ? ui.correct : (ui.incorrectAnswer || '\u2717 Incorrect \u2192 Answer: {answer}').replace('{answer}', lesson.practiceQ.answer)}
+                      {quizSel===lesson.practiceQ.answer ? ui.videoCorrect : (ui.incorrectAnswer || '\u2717 Incorrect \u2192 Answer: {answer}').replace('{answer}', lesson.practiceQ.answer)}
                     </div>
                     <p style={{ fontSize:13, color:COLORS.text, lineHeight:1.6, margin:0 }}>{lesson.practiceQ.explanation}</p>
                   </div>

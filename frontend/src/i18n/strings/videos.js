@@ -262,7 +262,7 @@ export const VIDEOS = {
     Urdu:     "🔗 شیئر لنک حاصل کریں",
   },
 
-  copied: {
+  videoCopied: {
     English:  "✓ Copied",
     Hindi:    "✓ कॉपी हुआ",
     Gujarati: "✓ કૉપી થયું",
@@ -276,7 +276,7 @@ export const VIDEOS = {
     Urdu:     "✓ کاپی ہوگیا",
   },
 
-  copy: {
+  videoCopy: {
     English:  "Copy",
     Hindi:    "कॉपी",
     Gujarati: "કૉપી",
@@ -978,7 +978,7 @@ export const VIDEOS = {
     Urdu:     "📝 مشق سوال",
   },
 
-  correct: {
+  videoCorrect: {
     English:  "✓ Correct!",
     Hindi:    "✓ सही!",
     Gujarati: "✓ સાચું!",

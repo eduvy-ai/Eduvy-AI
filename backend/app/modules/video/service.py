@@ -284,7 +284,7 @@ class VideoService:
         # Check R2 storage limit before starting video generation
         from app.services.r2_storage import is_r2_configured, get_r2_storage_stats
         if is_r2_configured():
-            stats = get_r2_storage_stats()
+            stats = await asyncio.to_thread(get_r2_storage_stats)
             if stats["is_limit_reached"]:
                 raise HTTPException(
                     status_code=507,
@@ -595,6 +595,8 @@ class VideoService:
                 project = q.get_video_project(conn, video_id, user_id)
                 if not project:
                     return None
+                if project.get("status") != "done":
+                    raise HTTPException(status_code=400, detail="Video is not ready for sharing")
                 if project.get("share_token"):
                     return project["share_token"]
                 token = secrets.token_urlsafe(16)
