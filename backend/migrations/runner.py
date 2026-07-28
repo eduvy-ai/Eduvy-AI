@@ -39,14 +39,15 @@ def _get_conn():
     Uses a single connection (no pool) with generous timeouts
     appropriate for DDL operations.
     """
-    host = os.getenv("DB_HOST", "")
+    host = os.getenv("DB_HOST", "") or ""
     if host:
+        port_str = os.getenv("DB_PORT", "") or "5432"
         params = {
             "host":     host,
-            "port":     int(os.getenv("DB_PORT", "5432")),
+            "port":     int(port_str),
             "user":     os.getenv("DB_USER", ""),
             "password": os.getenv("DB_PASS", ""),
-            "dbname":   os.getenv("DB_NAME", "eduvyai"),
+            "dbname":   os.getenv("DB_NAME", "") or "eduvyai",
         }
         params = {k: v for k, v in params.items() if v not in ("", None)}
     else:
@@ -235,10 +236,18 @@ def cmd_migrate():
     """Apply all pending migrations."""
     print("\n🔄 Running migrations...")
     
-    ensure_migrations_table()
+    try:
+        ensure_migrations_table()
+    except Exception as e:
+        print(f"\n❌ Failed to connect to database: {e}")
+        sys.exit(1)
+
     applied = get_applied_versions()
     files = get_migration_files()
     
+    if applied:
+        print(f"Already applied: {sorted(applied)}")
+
     _check_duplicate_versions(files)
     
     pending = [f for f in files if f.name.split('_')[0] not in applied]
@@ -247,10 +256,18 @@ def cmd_migrate():
         print("✅ No pending migrations")
         return
     
-    print(f"Found {len(pending)} pending migration(s)\n")
+    print(f"Found {len(pending)} pending migration(s):")
+    for f in pending:
+        print(f"  → {f.name}")
+    print()
     
     for filepath in pending:
-        apply_migration(filepath)
+        try:
+            apply_migration(filepath)
+        except Exception as e:
+            print(f"\n❌ Migration failed: {filepath.name}")
+            print(f"   Error: {e}")
+            sys.exit(1)
     
     print(f"\n✅ Applied {len(pending)} migration(s)")
 
