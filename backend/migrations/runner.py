@@ -21,11 +21,66 @@ import glob
 import re
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse, quote, urlunparse
+
+import psycopg2
+import psycopg2.extras
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.db.connection import get_db
+
+def _get_conn():
+    """
+    Create a direct psycopg2 connection for migrations.
+    Uses a single connection (no pool) with generous timeouts
+    appropriate for DDL operations.
+    """
+    host = os.getenv("DB_HOST", "")
+    if host:
+        params = {
+            "host":     host,
+            "port":     int(os.getenv("DB_PORT", "5432")),
+            "user":     os.getenv("DB_USER", ""),
+            "password": os.getenv("DB_PASS", ""),
+            "dbname":   os.getenv("DB_NAME", "eduvyai"),
+        }
+        params = {k: v for k, v in params.items() if v not in ("", None)}
+    else:
+        url = os.getenv("DATABASE_URL", "")
+        if not url:
+            raise RuntimeError(
+                "Database not configured. Set DATABASE_URL or "
+                "DB_HOST / DB_USER / DB_PASS / DB_NAME in .env"
+            )
+        if url.startswith("postgresql+"):
+            url = "postgresql" + url[url.index("://"):]
+        parsed = urlparse(url)
+        if parsed.password:
+            encoded_pw = quote(parsed.password, safe="")
+            if encoded_pw != parsed.password:
+                userinfo = f"{parsed.username}:{encoded_pw}"
+                host_part = parsed.hostname or ""
+                if parsed.port:
+                    host_part += f":{parsed.port}"
+                netloc = f"{userinfo}@{host_part}"
+                url = urlunparse((
+                    parsed.scheme, netloc, parsed.path,
+                    parsed.params, parsed.query, parsed.fragment,
+                ))
+        params = {"dsn": url}
+
+    params["connect_timeout"] = 30
+    # No statement_timeout for migrations — DDL may need to wait for locks
+    params["options"] = "-c statement_timeout=300000"  # 5 minutes
+
+    return psycopg2.connect(
+        cursor_factory=psycopg2.extras.RealDictCursor,
+        **params,
+    )
 
 
 MIGRATIONS_DIR = Path(__file__).parent / "versions"
@@ -33,7 +88,7 @@ MIGRATIONS_DIR = Path(__file__).parent / "versions"
 
 def ensure_migrations_table():
     """Create schema_migrations table if not exists."""
-    conn = get_db()
+    conn = _get_conn()
     try:
         cur = conn.cursor()
         cur.execute("""
@@ -50,7 +105,7 @@ def ensure_migrations_table():
 
 def get_applied_versions() -> set:
     """Get set of already-applied migration versions."""
-    conn = get_db()
+    conn = _get_conn()
     try:
         cur = conn.cursor()
         cur.execute("SELECT version FROM schema_migrations ORDER BY version")
@@ -101,7 +156,7 @@ def apply_migration(filepath: Path):
     
     print(f"  Applying {version}_{name}...")
     
-    conn = get_db()
+    conn = _get_conn()
     try:
         cur = conn.cursor()
         
@@ -146,7 +201,7 @@ def rollback_migration(version: str):
     
     print(f"  Rolling back {version}_{name}...")
     
-    conn = get_db()
+    conn = _get_conn()
     try:
         cur = conn.cursor()
         cur.execute(down_sql)
@@ -258,7 +313,7 @@ def cmd_rollback():
     
     ensure_migrations_table()
     
-    conn = get_db()
+    conn = _get_conn()
     try:
         cur = conn.cursor()
         cur.execute("SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1")

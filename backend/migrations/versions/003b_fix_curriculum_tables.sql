@@ -12,7 +12,8 @@ BEGIN
     -- Old schema: id SERIAL (integer), name TEXT UNIQUE — rebuild it
     IF EXISTS (
         SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'boards'
+        WHERE table_schema = 'public'
+          AND table_name = 'boards'
           AND column_name = 'id'
           AND data_type IN ('integer', 'bigint')
     ) THEN
@@ -35,7 +36,8 @@ DO $$
 BEGIN
     IF EXISTS (
         SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'standards'
+        WHERE table_schema = 'public'
+          AND table_name = 'standards'
           AND column_name = 'id'
           AND data_type IN ('integer', 'bigint')
     ) THEN
@@ -59,7 +61,8 @@ DO $$
 BEGIN
     IF EXISTS (
         SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'mediums'
+        WHERE table_schema = 'public'
+          AND table_name = 'mediums'
           AND column_name = 'id'
           AND data_type IN ('integer', 'bigint')
     ) THEN
