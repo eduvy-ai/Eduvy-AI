@@ -8,8 +8,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'backend/migrations/**'
-      - 'backend/app/db/schema.py'
+      - 'backend/migrations/versions/**'
   workflow_dispatch:
     inputs:
       action:
