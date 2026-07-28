@@ -341,6 +341,7 @@ export default function VideoCreatorTab({ profile = null }) {
             loading={loading}
             onBack={goBack}
             onNext={handleGenerateScript}
+            lang={profile?.language || narrLang}
           />
         )}
 
@@ -351,6 +352,7 @@ export default function VideoCreatorTab({ profile = null }) {
             onSceneChange={handleSceneChange}
             onBack={goBack}
             onNext={handleStartRender}
+            lang={profile?.language || narrLang}
           />
         )}
 
@@ -513,12 +515,12 @@ function StepInput({ topic, setTopic, grade, setGrade, subject, setSubject,
 
 // ── Step 2: Style ─────────────────────────────────────────────
 
-function StepStyle({ styleVariant, setStyleVariant, orientation, setOrientation, loading, onBack, onNext }) {
+function StepStyle({ styleVariant, setStyleVariant, orientation, setOrientation, loading, onBack, onNext, lang = 'English' }) {
   return (
     <div className="bg-app-card border border-app-border rounded-2xl p-6 space-y-5">
       <h2 className="text-lg font-bold text-app-text">Choose a visual style</h2>
 
-      <StylePicker value={styleVariant} onChange={setStyleVariant} />
+      <StylePicker value={styleVariant} onChange={setStyleVariant} lang={lang} />
 
       <div>
         <label className="label mb-2">Orientation</label>
@@ -562,7 +564,7 @@ function StepStyle({ styleVariant, setStyleVariant, orientation, setOrientation,
 
 // ── Step 3: Script review ────────────────────────────────────
 
-function StepScript({ title, scenes, onSceneChange, onBack, onNext }) {
+function StepScript({ title, scenes, onSceneChange, onBack, onNext, lang = 'English' }) {
   return (
     <div className="space-y-4">
       <div className="bg-app-card border border-app-border rounded-2xl p-5">
@@ -575,7 +577,7 @@ function StepScript({ title, scenes, onSceneChange, onBack, onNext }) {
 
       <div className="space-y-2">
         {scenes.map((scene, i) => (
-          <SceneEditor key={i} scene={scene} index={i} onChange={onSceneChange} />
+          <SceneEditor key={i} scene={scene} index={i} onChange={onSceneChange} lang={lang} />
         ))}
       </div>
 

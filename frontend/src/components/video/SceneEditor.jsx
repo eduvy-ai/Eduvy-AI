@@ -1,32 +1,35 @@
 // SceneEditor.jsx — Editable scene card in Step 3 of Video Creator
 import { useState } from 'react'
+import { li } from '../../i18n/index.js'
 
-const SVG_TYPE_LABELS = {
-  title_card: '🎬 Title',
-  bullet_reveal: '📋 Bullet List',
-  flow_arrows: '➡️ Flow Chart',
-  comparison_table: '📊 Comparison',
-  timeline_dots: '🕐 Timeline',
-  radial_web: '🕸️ Radial Web',
-  equation_write: '✏️ Equation',
-  staircase_steps: '🪜 Steps',
-  venn_two: '⭕ Venn',
-  tree_hierarchy: '🌳 Hierarchy',
-  bar_chart: '📈 Bar Chart',
-  cycle_loop: '🔄 Cycle',
-  funnel_layers: '🔽 Funnel',
-  paragraph_reveal: '📝 Paragraph',
-  annotated_diagram: '🔬 Labeled Diagram',
-  illustration: '🖼️ Illustration',
-  scene: '🎨 Scene',
-  composition: '🎨 Scene',
-  draw: '✏️ Sketch',
+const SVG_TYPE_KEYS = {
+  title_card: 'svgTitleCard',
+  bullet_reveal: 'svgBulletReveal',
+  flow_arrows: 'svgFlowArrows',
+  comparison_table: 'svgComparisonTable',
+  timeline_dots: 'svgTimelineDots',
+  radial_web: 'svgRadialWeb',
+  equation_write: 'svgEquationWrite',
+  staircase_steps: 'svgStaircaseSteps',
+  venn_two: 'svgVennTwo',
+  tree_hierarchy: 'svgTreeHierarchy',
+  bar_chart: 'svgBarChart',
+  cycle_loop: 'svgCycleLoop',
+  funnel_layers: 'svgFunnelLayers',
+  paragraph_reveal: 'svgParagraphReveal',
+  annotated_diagram: 'svgAnnotatedDiagram',
+  illustration: 'svgIllustration',
+  scene: 'svgScene',
+  composition: 'svgScene',
+  draw: 'svgDraw',
 }
 
-export default function SceneEditor({ scene, index, onChange }) {
+export default function SceneEditor({ scene, index, onChange, lang = 'English' }) {
   const [expanded, setExpanded] = useState(index === 0)
+  const ui = li(lang)
 
-  const label = SVG_TYPE_LABELS[scene.svg_type] || scene.svg_type
+  const typeKey = SVG_TYPE_KEYS[scene.svg_type]
+  const label = (typeKey && ui[typeKey]) || scene.svg_type
 
   return (
     <div className="bg-app-card border border-app-border rounded-xl overflow-hidden">
@@ -50,18 +53,18 @@ export default function SceneEditor({ scene, index, onChange }) {
       {expanded && (
         <div className="px-4 pb-4 border-t border-app-border">
           <label className="label mt-3 mb-1">
-            Narration script
+            {ui.narrationScript || 'Narration script'}
           </label>
           <textarea
             value={scene.narration}
             onChange={(e) => onChange(index, { ...scene, narration: e.target.value })}
             rows={3}
             className="input-base resize-y"
-            placeholder="What the narrator will say for this scene…"
+            placeholder={ui.narrationPlaceholder || 'What the narrator will say for this scene…'}
           />
           {scene.onscreen_text && (
             <div className="mt-2 text-xs text-app-muted">
-              <span className="font-medium">On-screen text: </span>
+              <span className="font-medium">{ui.onScreenText || 'On-screen text: '}</span>
               <span className="italic">{scene.onscreen_text}</span>
             </div>
           )}
