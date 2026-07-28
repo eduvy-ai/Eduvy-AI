@@ -9,6 +9,7 @@ on:
     branches: [main]
     paths:
       - 'backend/migrations/versions/**'
+      - 'backend/app/db/schema.py'
   workflow_dispatch:
     inputs:
       action:
