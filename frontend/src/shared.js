@@ -92,6 +92,7 @@ export function isSpeaking() {
 
 /**
  * Start voice input using native speech recognition (Capacitor) or Web Speech API fallback.
+ * On Android, shows the native Google "Speak now" popup dialog.
  * @param {string} langCode - BCP-47 e.g. 'hi-IN'
  * @returns {Promise<string>}
  */
@@ -100,15 +101,20 @@ export async function startVoiceInput(langCode = 'en-IN') {
     const { SpeechRecognition } = await import('@capacitor-community/speech-recognition')
     const { available } = await SpeechRecognition.available()
     if (available) {
-      await SpeechRecognition.requestPermissions()
-      const result = await SpeechRecognition.start({ language: langCode, popup: false, partialResults: false })
-      await SpeechRecognition.stop()
+      const permStatus = await SpeechRecognition.requestPermissions()
+      if (permStatus.speechRecognition === 'denied') throw new Error('Permission denied')
+      const result = await SpeechRecognition.start({
+        language: langCode,
+        maxResults: 3,
+        popup: true,
+        partialResults: false,
+      })
       const text = result?.matches?.[0] || ''
       if (!text) throw new Error('No speech detected')
       return text
     }
   } catch (e) {
-    if (e?.message === 'No speech detected') throw e
+    if (e?.message === 'No speech detected' || e?.message === 'Permission denied') throw e
     // Fall through to web fallback
   }
   // Web Speech API fallback

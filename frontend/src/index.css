@@ -531,26 +531,28 @@ body.font-xlarge { font-size: 20px; }
 }
 .tts-btn:hover { border-color: #00E5A0; color: #00E5A0; }
 
-/* Microphone button */
+/* Microphone button — modern app style */
 .mic-btn {
-  background: transparent;
-  border: 2px solid #7B9CFF;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  background: rgba(123,156,255,0.1);
+  border: none;
+  border-radius: 12px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   color: #7B9CFF;
-  font-size: 18px;
-  font-family: 'Sora', sans-serif;
-  transition: background 0.2s, border-color 0.2s;
+  font-size: 0;
+  transition: background 0.2s, transform 0.1s;
   flex-shrink: 0;
 }
+.mic-btn:active {
+  transform: scale(0.92);
+  background: rgba(123,156,255,0.2);
+}
 .mic-btn.recording {
-  background: rgba(255,107,107,0.2);
-  border-color: #FF6B6B;
+  background: rgba(255,107,107,0.15);
   color: #FF6B6B;
   animation: mic-pulse 1s ease-in-out infinite;
 }

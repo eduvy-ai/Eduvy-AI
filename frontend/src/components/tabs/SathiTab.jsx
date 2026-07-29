@@ -1126,7 +1126,7 @@ You are Gyaani, a confused but curious Class ${(profile?.standard || 'Class 10')
                   const text = await startVoiceInput(LANG_TO_SPEECH_CODE[profile?.language] || 'en-IN')
                   if (text) setInput(prev => prev ? prev + ' ' + text : text)
                 } catch {}
-              }} className="mic-btn shrink-0">🎤</button>
+              }} className="mic-btn shrink-0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="1" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
               <button type="submit" disabled={!input.trim() || sending}
                 className="border-none rounded-[14px] px-4 text-[18px] font-black flex-shrink-0"
                 style={{ background: input.trim() ? `linear-gradient(135deg,#00E5A0,#33cc88)` : '#0b0b1c', color: input.trim() ? '#04040e' : '#6868a0', cursor: input.trim() ? 'pointer' : 'default' }}>➤</button>
