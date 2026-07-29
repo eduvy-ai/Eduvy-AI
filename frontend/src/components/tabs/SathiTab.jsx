@@ -60,7 +60,7 @@ function Bubble({ msg, isMine, memberName }) {
     <div className="flex gap-2 my-1"
       style={{ flexDirection: isMine ? 'row-reverse' : 'row', alignItems: 'flex-end' }}>
       {!isMine && <Avatar name={isAIPeer ? 'AI' : (memberName || msg.display_name)} size={28} isAI={isAIPeer} />}
-      <div className="max-w-[72%] flex flex-col gap-0.5"
+      <div className="max-w-[85%] sm:max-w-[72%] flex flex-col gap-0.5"
         style={{ alignItems: isMine ? 'flex-end' : 'flex-start' }}>
         {!isMine && (
           <span className="text-[10.5px] text-app-muted font-semibold ml-1">

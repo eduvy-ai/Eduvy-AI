@@ -405,7 +405,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
         <div className="text-[13px] text-app-muted mb-1">
           {greeting}
         </div>
-        <h2 className="text-[22px] font-black text-app-text m-0 mb-0.5">
+        <h2 className="text-lg sm:text-[22px] font-black text-app-text m-0 mb-0.5">
           {profile.name || ui.student || "Student"} 👋
         </h2>
         <p className="text-xs text-app-muted m-0 mb-4">
@@ -422,7 +422,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
 
       {/* ── Quick Actions ─────────────────────────────────── */}
       <Section title={`⚡ ${ui.quickActions || 'Quick Actions'}`}>
-        <div className="grid grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
           {QUICK_ACTION_KEYS.map(btn => (
             <button
               key={btn.labelKey}

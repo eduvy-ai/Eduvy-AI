@@ -204,7 +204,7 @@ export default function LandingPage() {
 
           {/* Headline */}
           <div>
-            <h1 className="text-[clamp(34px,5.5vw,64px)] font-black leading-[1.08] tracking-tight m-0">
+            <h1 className="text-[clamp(26px,5.5vw,64px)] font-black leading-[1.08] tracking-tight m-0">
               India's Smartest<br />
               <span className="text-app-green">AI Tutor</span>
             </h1>
@@ -217,7 +217,7 @@ export default function LandingPage() {
           {/* Animated language */}
           <div className="bg-app-card border border-app-border rounded-xl py-3 px-7 inline-flex items-center gap-2.5">
             <span className="text-sm text-app-muted font-medium">Responding in</span>
-            <span className="text-lg font-extrabold text-app-green min-w-[110px] inline-block transition-opacity duration-300">
+            <span className="text-lg font-extrabold text-app-green min-w-[90px] sm:min-w-[110px] inline-block transition-opacity duration-300">
               {LANGS[langIdx]}
             </span>
           </div>
@@ -386,7 +386,7 @@ export default function LandingPage() {
           </p>
           <button 
             onClick={() => navigate('/auth')} 
-            className="bg-gradient-to-br from-app-green to-emerald-400 border-none rounded-xl py-4 px-[52px] text-app-bg text-base font-black cursor-pointer shadow-[0_0_30px_rgba(0,229,160,0.27)]"
+            className="bg-gradient-to-br from-app-green to-emerald-400 border-none rounded-xl py-4 px-[52px] text-app-bg text-base font-black cursor-pointer shadow-[0_0_30px_rgba(0,229,160,0.27)] max-sm:px-6"
           >
             Create Free Account 🚀
           </button>

@@ -241,7 +241,7 @@ const Register: React.FC = () => {
               </div>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button type="button" variant="secondary" onClick={() => setStep(1)} size="lg">
                 ← Back
               </Button>

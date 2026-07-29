@@ -503,9 +503,9 @@ export default function LearnTVTab({ profile }) {
                 const isExpanded = expandedId === v.id
                 return (
                   <div key={v.id} className={cardCls}>
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
                       {/* Thumbnail / Player */}
-                      <div className="w-40 min-w-[160px] flex-shrink-0">
+                      <div className="w-full sm:w-40 sm:min-w-[160px] flex-shrink-0">
                         {playingId === v.id ? (
                           <div className="relative pt-[56.25%] rounded-lg overflow-hidden">
                             <iframe
@@ -701,7 +701,7 @@ export default function LearnTVTab({ profile }) {
                 </span>
                 <span className="text-[10px] text-app-muted">Tap any card to play</span>
               </div>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3.5">
+              <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
                 {reelsFeed.map(v => {
                   const brief = reelBriefs[v.id]
                   const isPlaying = reelPlayId === v.id
@@ -743,7 +743,7 @@ export default function LearnTVTab({ profile }) {
                             <div className="absolute bottom-2 right-2 bg-black/[0.72] rounded-md px-1.5 py-0.5 text-[9px] font-bold text-white">{fmtDuration(v.duration)}</div>
                           )}
                           {/* Channel badge */}
-                          <div className="absolute bottom-2 left-2 bg-app-green/[0.8] rounded-md px-1.5 py-0.5 text-[8px] font-bold text-app-bg max-w-[65%] overflow-hidden text-ellipsis whitespace-nowrap">{v.channel}</div>
+                          <div className="absolute bottom-2 left-2 bg-app-green/[0.8] rounded-md px-1.5 py-0.5 text-[8px] font-bold text-app-bg max-w-[65%] overflow-hidden text-ellipsis truncate">{v.channel}</div>
                         </div>
                       )}
 

@@ -88,7 +88,7 @@ export default function UpgradePlanModal({ profile, onClose, onUpgraded }) {
       className="fixed inset-0 bg-black/80 z-[1000] flex items-end justify-center"
       onClick={e => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full max-w-[480px] bg-[#0e0e20] rounded-t-[20px] border border-app-border max-h-[92vh] overflow-y-auto pb-7">
+      <div className="w-full max-w-[480px] bg-[#0e0e20] rounded-t-[20px] border border-app-border max-h-[92vh] overflow-y-auto pb-[max(1.75rem,env(safe-area-inset-bottom))]">
         <div className="flex justify-center py-3 pb-1">
           <div className="w-9 h-1 rounded-sm bg-white/10" />
         </div>

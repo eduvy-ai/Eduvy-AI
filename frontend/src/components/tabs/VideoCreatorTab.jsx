@@ -433,7 +433,7 @@ function StepInput({ topic, setTopic, grade, setGrade, subject, setSubject,
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="label">{ui.vcGrade || 'Grade'}</label>
           <select
@@ -456,7 +456,7 @@ function StepInput({ topic, setTopic, grade, setGrade, subject, setSubject,
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="label">{ui.vcNarrationLang || 'Narration Language'}</label>
           <select
@@ -479,7 +479,7 @@ function StepInput({ topic, setTopic, grade, setGrade, subject, setSubject,
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="label">{ui.vcVideoLength || 'Video Length'}</label>
           <select

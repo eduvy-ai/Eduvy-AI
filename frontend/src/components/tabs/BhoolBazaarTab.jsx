@@ -184,7 +184,7 @@ In 1-2 short sentences, explain WHY a student would make this mistake and what c
 
   return (
     <div className="fixed inset-0 bg-black/55 z-[200] flex items-end justify-center" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="bg-app-card w-full max-w-[600px] rounded-t-[20px] px-5 pt-6 pb-8 max-h-[90vh] overflow-y-auto">
+      <div className="bg-app-card w-full max-w-[600px] rounded-t-[20px] px-5 pt-6 pb-[max(2rem,env(safe-area-inset-bottom))] max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-5">
           <h2 className="text-app-text m-0 text-lg font-extrabold">📝 Save a Bhool</h2>
           <button onClick={onClose} className="bg-transparent border-none text-app-muted text-2xl cursor-pointer hover:text-app-text">×</button>

@@ -84,7 +84,7 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
   return (
     <>
     <div className="fixed inset-0 bg-black/75 z-[999] flex items-end justify-center" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="w-full max-w-[480px] bg-[#0e0e20] rounded-t-[20px] border border-app-border max-h-[92vh] overflow-y-auto pb-6">
+      <div className="w-full max-w-[480px] bg-[#0e0e20] rounded-t-[20px] border border-app-border max-h-[92vh] overflow-y-auto pb-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         {/* Handle */}
         <div className="flex justify-center py-3 pb-1">
           <div className="w-9 h-1 rounded-sm bg-white/10" />
@@ -360,7 +360,7 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                   ) : (
                     <>
                       <div className="flex items-baseline gap-1.5 mb-2.5">
-                        <span className="text-[32px] font-black" style={{ color: barColor }}>{used}</span>
+                        <span className="text-2xl sm:text-[32px] font-black" style={{ color: barColor }}>{used}</span>
                         <span className="text-sm text-app-muted">/ {limit === Infinity ? '∞' : limit} calls</span>
                       </div>
                       <div className="h-2 rounded bg-app-card2 overflow-hidden mb-2">
