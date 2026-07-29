@@ -44,7 +44,7 @@ export default function EssayLab({ profile, addXp, onBack }) {
   }
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-130px)]">
+    <div className="flex flex-col min-h-full">
       {/* Header */}
       <div className="bg-app-card border-b border-app-border px-4 py-3 flex items-center gap-2.5 shrink-0">
         <button onClick={onBack} className="bg-transparent border-none text-app-muted text-[13px] cursor-pointer p-0">← Back</button>
@@ -76,7 +76,7 @@ export default function EssayLab({ profile, addXp, onBack }) {
           </label>
           <textarea
             className="w-full bg-app-card2 border border-white/[0.08] rounded-xl py-3 px-3.5 text-app-text text-[13px] outline-none resize-y leading-relaxed"
-            style={{ height: 200 }}
+            style={{ minHeight: 140, height: '34vh', maxHeight: '45vh' }}
             placeholder={`Start writing your ${type.toLowerCase()} here…`}
             value={writing}
             onChange={e => setWriting(e.target.value)}

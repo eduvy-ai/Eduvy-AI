@@ -131,7 +131,7 @@ export default function QuestionInput({
           {showModeDropdown && (
             <div 
               className={`
-                absolute left-0 w-56 bg-app-card border border-app-border rounded-xl shadow-2xl z-[100]
+                absolute left-0 w-[min(14rem,calc(100vw-2rem))] bg-app-card border border-app-border rounded-xl shadow-2xl z-[100]
                 max-h-64 overflow-y-auto
                 ${openUpward ? 'bottom-full mb-2' : 'top-full mt-2'}
               `}

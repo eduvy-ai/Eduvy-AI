@@ -1059,7 +1059,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
               </div>
             </div>
 
-            <div className="py-2.5 px-3.5 bg-app-card border-t border-app-border flex gap-2 shrink-0">
+            <div className="py-2.5 px-3.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] bg-app-card border-t border-app-border flex gap-2 shrink-0">
               <input
                 className="tutor-input flex-1 py-2.5 px-3.5"
                 type="text"
@@ -1146,7 +1146,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                 <div className="flex-1 overflow-y-auto p-3.5">
                 {/* ── Output type grid (shown when no active type) ── */}
                 {!studioType && (
-                  <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3.5">
                     {STUDIO_ITEMS.map(item => (
                       <button
                         key={item.key}

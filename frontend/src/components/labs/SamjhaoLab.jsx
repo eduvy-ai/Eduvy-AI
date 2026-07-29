@@ -66,7 +66,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
   }
 
   if (phase === "setup") return (
-    <div className="flex flex-col min-h-[calc(100vh-130px)]">
+    <div className="flex flex-col min-h-full">
       <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
         <button onClick={onBack} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Back</button>
         <div>
@@ -124,7 +124,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
   )
 
   if (phase === "explain") return (
-    <div className="flex flex-col min-h-[calc(100vh-130px)]">
+    <div className="flex flex-col min-h-full">
       <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
         <button onClick={reset} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Back</button>
         <div>
@@ -166,7 +166,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
     const overall = score?.overall ?? 0
     const overallColor = overall >= 75 ? "#00E5A0" : overall >= 50 ? "#FFD166" : "#FF6B6B"
     return (
-      <div className="flex flex-col min-h-[calc(100vh-130px)]">
+      <div className="flex flex-col min-h-full">
         <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
           <button onClick={reset} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Try Again</button>
           <div className="font-extrabold text-base text-app-text">🔬 Feynman Score</div>
@@ -229,7 +229,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
               <div className="text-[13px] text-app-text leading-relaxed">{score.gapLesson}</div>
             </div>
           )}
-          <div className="flex gap-3 mt-2">
+          <div className="flex flex-col sm:flex-row gap-3 mt-2">
             <button onClick={reset}
               className="flex-1 bg-transparent border border-app-border text-app-text text-[13px] font-semibold rounded-xl py-3 cursor-pointer hover:bg-white/[0.03] active:scale-[0.99] transition-all">
               🔄 Try Again

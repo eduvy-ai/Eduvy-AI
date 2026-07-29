@@ -66,7 +66,7 @@ export default function MentalLab({ profile, addXp, onBack }) {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-130px)]">
+    <div className="flex flex-col h-full flex-1 min-h-0">
       {/* Header */}
       <div className="bg-app-card border-b border-app-border px-4 py-3 flex items-center gap-2.5 shrink-0">
         <button onClick={onBack} className="bg-transparent border-none text-app-muted text-[13px] cursor-pointer p-0">← Back</button>
@@ -114,7 +114,7 @@ export default function MentalLab({ profile, addXp, onBack }) {
       </div>
 
       {/* Input */}
-      <div className="px-3.5 py-2.5 bg-app-card border-t border-app-border flex gap-2 shrink-0">
+      <div className="px-3.5 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] bg-app-card border-t border-app-border flex gap-2 shrink-0">
         <input
           className="flex-1 bg-app-card2 border border-white/[0.08] rounded-xl py-2.5 px-3.5 text-app-text text-[13px] outline-none"
           type="text"

@@ -59,7 +59,7 @@ export default function FlashcardSection({ flashcards, ui }: FlashcardSectionPro
 
       {/* Card */}
       <div
-        className="relative h-48 cursor-pointer perspective-1000"
+        className="relative min-h-[12rem] cursor-pointer perspective-1000"
         onClick={() => setIsFlipped(!isFlipped)}
       >
         <div
@@ -77,7 +77,7 @@ export default function FlashcardSection({ flashcards, ui }: FlashcardSectionPro
             className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-xl border border-blue-500/30 flex items-center justify-center p-6 backface-hidden"
             style={{ backfaceVisibility: 'hidden' }}
           >
-            <p className="text-xl text-white text-center font-medium">{currentCard.front}</p>
+            <p className="text-base sm:text-xl text-white text-center font-medium">{currentCard.front}</p>
           </div>
 
           {/* Back */}
@@ -95,7 +95,7 @@ export default function FlashcardSection({ flashcards, ui }: FlashcardSectionPro
       </p>
 
       {/* Navigation */}
-      <div className="flex justify-between mt-4">
+      <div className="flex flex-col sm:flex-row justify-between mt-4 gap-2">
         <button
           onClick={handlePrev}
           disabled={currentIndex === 0}

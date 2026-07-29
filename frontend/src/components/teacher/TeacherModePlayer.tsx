@@ -219,7 +219,7 @@ export const TeacherModePlayer: FC<Props> = ({
   const beatRelativeTimeMs = currentTimeMs - beatStartTimeMs
 
   return (
-    <div className="fixed inset-0 z-50 bg-app-bg flex flex-col">
+    <div className="fixed inset-0 z-50 bg-app-bg flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       {/* Header */}
       <header className="flex items-center justify-between p-4 border-b border-app-border bg-app-card">
         <div className="flex items-center gap-3">

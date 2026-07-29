@@ -129,7 +129,7 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
   const accuracyColor = accuracy >= 70 ? "#00E5A0" : accuracy >= 40 ? "#FFD166" : "#FF6B6B"
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-130px)]">
+    <div className="flex flex-col min-h-full">
       {/* Header */}
       <div className="bg-app-card border-b border-app-border px-4 py-3 flex items-center gap-2.5 shrink-0">
         <button onClick={onBack} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Back</button>

@@ -2253,7 +2253,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
                 })}
               </div>
               {/* Connecting bar */}
-              <div style={{ width:220, height:3, background:COLORS.border, borderRadius:4, margin:'0 auto 18px', position:'relative', overflow:'hidden' }}>
+              <div style={{ width:'min(92vw, 320px)', height:3, background:COLORS.border, borderRadius:4, margin:'0 auto 18px', position:'relative', overflow:'hidden' }}>
                 <div style={{
                   position:'absolute', left:0, top:0, height:'100%',
                   width: `${(stageIdx / (STAGES.length-1)) * 100}%`,
@@ -2404,7 +2404,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
                 }}/>
 
                 {/* ? THE SELF-DRAWING DIAGRAM */}
-                <div style={{ width:'100%', maxWidth:310, position:'relative', zIndex:1 }} key={`diag-${sceneKey}`}>
+                <div style={{ width:'100%', maxWidth:'100%', position:'relative', zIndex:1 }} key={`diag-${sceneKey}`}>
                   <DiagramBoard type={cs.visual_type} elements={cs.draw_elements} spec={cs.diagram_spec} accent={sacc} dark={bs.dark} dur={cs?.timing?.total_sec || 12} />
                 </div>
 

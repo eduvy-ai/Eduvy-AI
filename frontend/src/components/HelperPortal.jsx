@@ -135,7 +135,7 @@ export default function HelperPortal() {
             {/* Send note */}
             <div>
               <p className="text-app-muted text-[11px] font-bold tracking-[0.05em] mb-1.5">SEND ENCOURAGEMENT NOTE</p>
-              <div className="flex gap-2 items-start">
+              <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-start">
                 <textarea
                   value={noteText[s.id] || ''}
                   onChange={e => setNoteText(n => ({ ...n, [s.id]: e.target.value }))}
@@ -147,7 +147,7 @@ export default function HelperPortal() {
                 <button
                   onClick={() => sendNote(s.id)}
                   disabled={sending[s.id] || !noteText[s.id]?.trim()}
-                  className={`shrink-0 rounded-[10px] px-[18px] py-2.5 text-[13px] font-extrabold border-none cursor-pointer transition-all duration-150 ${
+                  className={`shrink-0 w-full sm:w-auto rounded-[10px] px-[18px] py-2.5 text-[13px] font-extrabold border-none cursor-pointer transition-all duration-150 ${
                     sending[s.id] || !noteText[s.id]?.trim()
                       ? 'bg-app-card2 text-app-muted cursor-not-allowed'
                       : 'bg-gradient-to-br from-app-green to-emerald-400 text-app-bg hover:opacity-90 active:scale-95'

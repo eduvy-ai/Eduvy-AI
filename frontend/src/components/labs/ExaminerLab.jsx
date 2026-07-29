@@ -89,7 +89,7 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
   }
 
   if (phase === "setup") return (
-    <div className="flex flex-col min-h-[calc(100vh-130px)]">
+    <div className="flex flex-col min-h-full">
       <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
         <button onClick={onBack} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Back</button>
         <div>
@@ -108,7 +108,7 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
         </div>
         <div className="mb-5">
           <div className="text-[13px] font-bold text-app-muted mb-2.5 uppercase tracking-wide">Select Question Type</div>
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {MARK_OPTIONS.map(opt => (
               <button key={opt.marks} onClick={() => setSelMarks(opt.marks)}
                 className={`rounded-2xl p-3 cursor-pointer text-left transition-all active:scale-[0.98] border-[1.5px] ${selMarks === opt.marks ? 'bg-app-green/10 border-app-green/40' : 'bg-app-card2 border-app-border'}`}>
@@ -138,7 +138,7 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
   )
 
   if (phase === "question") return (
-    <div className="flex flex-col min-h-[calc(100vh-130px)]">
+    <div className="flex flex-col min-h-full">
       <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
         <button onClick={reset} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Back</button>
         <div>
@@ -192,7 +192,7 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
     const pct     = Math.round((awarded / total) * 100)
     const mainColor = pct >= 80 ? "#00E5A0" : pct >= 55 ? "#FFD166" : "#FF6B6B"
     return (
-      <div className="flex flex-col min-h-[calc(100vh-130px)]">
+      <div className="flex flex-col min-h-full">
         <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
           <button onClick={reset} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Try Again</button>
           <div className="font-extrabold text-base text-app-text">📋 Examiner's Report</div>
