@@ -39,16 +39,17 @@ class BhoolService:
             cur = conn.cursor()
             
             coins = BHOOL_COINS_PER_PUBLISH if is_published else 0
-            image_url = kwargs.get("image_url", "")
+            image_url = ""
+            card_id = str(uuid.uuid4())
             
             cur.execute("""
                 INSERT INTO bhool_cards 
-                (user_id, subject, standard, question,
+                (id, user_id, subject, standard, question,
                  wrong_answer, correct_answer, why_wrong, is_published, bhool_coins, image_url)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING *
             """, (
-                user_id, subject, standard,
+                card_id, user_id, subject, standard,
                 question, wrong_answer, correct_answer, why_wrong, is_published, coins, image_url
             ))
             conn.commit()

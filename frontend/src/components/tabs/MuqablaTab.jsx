@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useRef, useCallback } from 'react'
 import { li } from '../../i18n/index.js'
+import { getDisplayLang } from '../../shared.js'
 import {
   apiCreateMuqablaChallenge, apiJoinMuqabalaBattle,
   apiSubmitMuqablaAnswers, apiGetMuqabalaBattle,
@@ -14,10 +15,10 @@ const SUBJECTS = [
   'Economics', 'Computer', 'Sanskrit',
 ]
 
-const VIEWS = [
-  { key: 'arena',   label: '⚔️ Arena',     title: 'Battle Arena' },
-  { key: 'board',   label: '🏆 Rankings',  title: 'Leaderboard'  },
-  { key: 'history', label: '📜 History',   title: 'Past Battles' },
+const getViews = (ui) => [
+  { key: 'arena',   label: ui.arenaSubTab || '⚔️ Arena',     title: ui.battleArena },
+  { key: 'board',   label: ui.rankingsSubTab || '🏆 Rankings',  title: ui.leaderboard  },
+  { key: 'history', label: ui.historySubTab || '📜 History',   title: ui.couldNotLoadHistory },
 ]
 
 const DIFF_COLORS = { Easy: '#00E5A0', Medium: '#FFD166', Hard: '#FF6B6B' }
@@ -32,14 +33,14 @@ function Badge({ text, color }) {
   )
 }
 
-function StatusBadge({ status, isChallenger }) {
+function StatusBadge({ status, isChallenger, ui }) {
   const map = {
-    open:             { label: '⏳ Open',           color: '#FFD166' },
-    active:           { label: '⚡ Active',          color: '#7B9CFF'   },
-    challenger_done:  { label: isChallenger ? '✅ Waiting for opponent' : '⚡ Your Turn!', color: isChallenger ? '#00E5A0' : '#FF6B35' },
-    completed:        { label: '✅ Done',            color: '#00E5A0'  },
-    expired:          { label: '⏰ Expired',         color: '#6868a0'  },
-    declined:         { label: '❌ Declined',        color: '#FF6B6B'    },
+    open:             { label: ui.statusOpen,       color: '#FFD166' },
+    active:           { label: ui.statusActive,     color: '#7B9CFF'   },
+    challenger_done:  { label: isChallenger ? ui.statusWaitingOpponent : ui.statusYourTurn, color: isChallenger ? '#00E5A0' : '#FF6B35' },
+    completed:        { label: ui.statusDone,        color: '#00E5A0'  },
+    expired:          { label: ui.statusExpired,     color: '#6868a0'  },
+    declined:         { label: ui.statusDeclined,    color: '#FF6B6B'    },
   }
   const { label = status, color = '#6868a0' } = map[status] || {}
   return <Badge text={label} color={color} />
@@ -58,7 +59,7 @@ function Avatar({ name = '?', size = 36 }) {
 }
 
 // ── BattleCard — list view ─────────────────────────────────────
-function BattleCard({ battle, onAction, myId }) {
+function BattleCard({ battle, onAction, myId, ui }) {
   const isChallenger = battle.challenger_id === myId
   const opponent = isChallenger
     ? (battle.opponent_name || '— waiting —')
@@ -73,10 +74,10 @@ function BattleCard({ battle, onAction, myId }) {
       <div className="flex items-center gap-3 mb-2.5">
         <Avatar name={opponent} />
         <div className="flex-1 min-w-0">
-          <div className="font-bold text-app-text text-[15px]">{isChallenger ? 'vs ' : 'from '}{opponent}</div>
+          <div className="font-bold text-app-text text-[15px]">{isChallenger ? ui.vs : ui.from}{opponent}</div>
           {opponentSchool && <div className="text-app-muted text-[12px]">{opponentSchool}</div>}
         </div>
-        <StatusBadge status={battle.status} isChallenger={isChallenger} />
+        <StatusBadge status={battle.status} isChallenger={isChallenger} ui={ui} />
       </div>
 
       <div className="flex gap-2 flex-wrap mb-2.5">
@@ -87,10 +88,10 @@ function BattleCard({ battle, onAction, myId }) {
 
       {battle.status === 'completed' && (
         <div className="bg-app-card2 rounded-xl px-3 py-2 flex gap-4 mb-2.5 text-[13px]">
-          <span className="text-app-text">You: <strong className="text-app-green">{isChallenger ? battle.challenger_score : battle.opponent_score}</strong></span>
-          <span className="text-app-text">Opp: <strong className="text-app-red">{isChallenger ? battle.opponent_score : battle.challenger_score}</strong></span>
+          <span className="text-app-text">{ui.youLabel}<strong className="text-app-green">{isChallenger ? battle.challenger_score : battle.opponent_score}</strong></span>
+          <span className="text-app-text">{ui.oppLabel}<strong className="text-app-red">{isChallenger ? battle.opponent_score : battle.challenger_score}</strong></span>
           <span style={{ color: battle.winner_id === myId ? '#FFD166' : battle.winner_id === 'draw' ? '#6868a0' : '#FF6B6B' }}>
-            {battle.winner_id === myId ? '🏆 You Won!' : battle.winner_id === 'draw' ? '🤝 Draw' : '💀 Lost'}
+            {battle.winner_id === myId ? ui.youWonShort : battle.winner_id === 'draw' ? ui.drawResult : ui.lost}
           </span>
         </div>
       )}
@@ -99,19 +100,19 @@ function BattleCard({ battle, onAction, myId }) {
         {(canJoin || myTurn) && (
           <button onClick={() => onAction('answer', battle)}
             className="bg-gradient-to-br from-app-orange to-[#ff4e00] text-white border-none rounded-xl px-4 py-2 text-[13px] font-extrabold cursor-pointer active:scale-95 transition-all">
-            {canJoin ? '⚔️ Accept & Fight!' : '⚔️ Answer Now!'}
+            {canJoin ? ui.acceptFight : ui.answerNow}
           </button>
         )}
         {(isChallenger && battle.status === 'open' && battle.challenger_score === null) && (
           <button onClick={() => onAction('answer', battle)}
             className="bg-app-blue/15 border border-app-blue/30 text-app-blue rounded-xl px-4 py-2 text-[13px] cursor-pointer active:scale-95 transition-all">
-            ▶ Answer First
+            {ui.answerFirst}
           </button>
         )}
         {battle.status === 'completed' && (
           <button onClick={() => onAction('results', battle)}
             className="bg-app-card2 border border-app-border text-app-text rounded-xl px-3.5 py-2 text-[13px] cursor-pointer active:scale-95 transition-all">
-            📊 Results
+            {ui.resultsBtn}
           </button>
         )}
       </div>
@@ -120,7 +121,7 @@ function BattleCard({ battle, onAction, myId }) {
 }
 
 // ── Create Challenge Modal ─────────────────────────────────────
-function CreateChallengeModal({ profile, onClose, onCreated }) {
+function CreateChallengeModal({ profile, onClose, onCreated, ui }) {
   const [subject,    setSubject]    = useState(profile.subjects?.[0] || 'Mathematics')
   const [difficulty, setDifficulty] = useState('Medium')
   const [creating,   setCreating]   = useState(false)
@@ -132,7 +133,7 @@ function CreateChallengeModal({ profile, onClose, onCreated }) {
       const res = await apiCreateMuqablaChallenge({ subject, difficulty })
       onCreated(res.id)
     } catch {
-      setErr('Failed to create battle. Try again.')
+      setErr(ui.failedCreateBattle)
     } finally {
       setCreating(false)
     }
@@ -142,17 +143,17 @@ function CreateChallengeModal({ profile, onClose, onCreated }) {
     <div className="fixed inset-0 bg-black/60 z-[200] flex items-end justify-center" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="bg-app-card w-full max-w-[520px] rounded-t-[20px] px-5 pt-6 pb-9">
         <div className="flex justify-between items-center mb-5">
-          <h2 className="text-app-text m-0 text-lg font-extrabold">⚔️ New Battle</h2>
+          <h2 className="text-app-text m-0 text-lg font-extrabold">{ui.newBattleTitle}</h2>
           <button onClick={onClose} className="bg-transparent border-none text-app-muted text-2xl cursor-pointer hover:text-app-text">×</button>
         </div>
 
-        <label className="text-app-muted text-[12px] block mb-1">SUBJECT</label>
+        <label className="text-app-muted text-[12px] block mb-1">{ui.subjectLabel}</label>
         <select value={subject} onChange={e => setSubject(e.target.value)}
           className="w-full mb-4 bg-app-card2 border border-app-border text-app-text rounded-xl px-3 py-2.5 text-sm box-border outline-none cursor-pointer">
           {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
 
-        <label className="text-app-muted text-[12px] block mb-2">DIFFICULTY</label>
+        <label className="text-app-muted text-[12px] block mb-2">{ui.difficultyLabel}</label>
         <div className="flex gap-2.5 mb-5">
           {['Easy', 'Medium', 'Hard'].map(d => (
             <button key={d} onClick={() => setDifficulty(d)}
@@ -167,16 +168,13 @@ function CreateChallengeModal({ profile, onClose, onCreated }) {
           ))}
         </div>
 
-        <div className="bg-app-card2 rounded-xl px-3.5 py-2.5 mb-5 text-app-muted text-[13px]">
-          📋 AI will generate <strong className="text-app-text">5 questions</strong> for this battle.
-          Answer them first, then wait for an opponent to join!
-        </div>
+        <div className="bg-app-card2 rounded-xl px-3.5 py-2.5 mb-5 text-app-muted text-[13px]" dangerouslySetInnerHTML={{ __html: ui.aiBattleInfo }} />
 
         {err && <p className="text-app-red text-[13px] mb-3">{err}</p>}
 
         <button onClick={handleCreate} disabled={creating}
           className={`w-full border-none rounded-2xl py-3.5 text-base font-extrabold cursor-pointer disabled:opacity-60 active:scale-[0.99] transition-all ${creating ? 'bg-app-card2 text-app-muted cursor-not-allowed' : 'bg-gradient-to-br from-app-orange to-[#ff4e00] text-white'}`}>
-          {creating ? '✨ Generating Questions…' : '⚔️ Create Battle'}
+          {creating ? ui.generatingQuestions : ui.createBattle}
         </button>
       </div>
     </div>
@@ -184,7 +182,7 @@ function CreateChallengeModal({ profile, onClose, onCreated }) {
 }
 
 // ── Quiz Screen (answering questions) ─────────────────────────
-function QuizScreen({ battle, onDone, userId }) {
+function QuizScreen({ battle, onDone, userId, ui }) {
   const [answers,    setAnswers]    = useState([])
   const [current,   setCurrent]    = useState(0)
   const [selected,  setSelected]   = useState(null)
@@ -222,7 +220,7 @@ function QuizScreen({ battle, onDone, userId }) {
       })
       setResult(res)
     } catch {
-      setErr('Could not submit answers. Try again.')
+      setErr(ui.couldNotSubmit)
       setSubmitting(false)
     }
   }
@@ -242,26 +240,26 @@ function QuizScreen({ battle, onDone, userId }) {
           {waiting ? (
             <>
               <div className="text-[56px] mb-3">⏳</div>
-              <h2 className="text-app-yellow mb-2">Waiting for Opponent!</h2>
+              <h2 className="text-app-yellow mb-2">{ui.waitingOpponentResult}</h2>
               <p className="text-app-muted text-sm">
-                Your score: <strong className="text-app-green">{result.score}/{questions.length}</strong>
-                <br />You'll get XP when the battle completes.
+                {ui.yourScore}: <strong className="text-app-green">{result.score}/{questions.length}</strong>
+                <br />{ui.waitingXpNote}
               </p>
             </>
           ) : won ? (
             <>
               <div className="text-[56px] mb-3">🏆</div>
-              <h2 className="text-app-yellow mb-2">You Won!</h2>
+              <h2 className="text-app-yellow mb-2">{ui.youWonShort}</h2>
             </>
           ) : draw ? (
             <>
               <div className="text-[56px] mb-3">🤝</div>
-              <h2 className="text-app-blue mb-2">Draw!</h2>
+              <h2 className="text-app-blue mb-2">{ui.drawResult}!</h2>
             </>
           ) : (
             <>
               <div className="text-[56px] mb-3">💪</div>
-              <h2 className="text-app-text mb-2">Good Fight!</h2>
+              <h2 className="text-app-text mb-2">{ui.goodFight}</h2>
             </>
           )}
 
@@ -276,7 +274,7 @@ function QuizScreen({ battle, onDone, userId }) {
                 <div className="text-app-red text-[22px] font-extrabold">{oppScore ?? result.challenger_score}/{result.total || questions.length}</div>
               </div>
               <div>
-                <div className="text-app-muted text-[12px]">XP Earned</div>
+                <div className="text-app-muted text-[12px]">{ui.xpEarned}</div>
                 <div className="text-app-yellow text-[22px] font-extrabold">+{result.xp_earned || 0}</div>
               </div>
             </div>
@@ -301,7 +299,7 @@ function QuizScreen({ battle, onDone, userId }) {
 
           <button onClick={onDone}
             className="w-full bg-app-orange text-white border-none rounded-2xl py-3 text-[15px] font-extrabold cursor-pointer active:scale-[0.99] transition-all">
-            Back to Arena
+            {ui.backToArena}
           </button>
         </div>
       </div>
@@ -312,7 +310,7 @@ function QuizScreen({ battle, onDone, userId }) {
     return (
       <div className="fixed inset-0 bg-app-bg z-[200] flex items-center justify-center flex-col">
         <div className="text-[48px] mb-4">⚡</div>
-        <p className="text-app-text text-base">Submitting your answers…</p>
+        <p className="text-app-text text-base">{ui.submittingAnswers}</p>
         {err && <p className="text-app-red text-sm">{err}</p>}
       </div>
     )
@@ -325,7 +323,7 @@ function QuizScreen({ battle, onDone, userId }) {
       {/* Header */}
       <div className="mb-5">
         <div className="flex justify-between mb-2">
-          <span className="text-app-muted text-[13px]">Question {current + 1} of {questions.length}</span>
+          <span className="text-app-muted text-[13px]">{ui.questionOf.replace('{current}', current + 1).replace('{total}', questions.length)}</span>
           <span className="text-app-orange font-bold text-[13px]">⚔️ {battle.subject} — {battle.difficulty}</span>
         </div>
         <div className="bg-app-card2 rounded h-1">
@@ -358,7 +356,7 @@ function QuizScreen({ battle, onDone, userId }) {
 }
 
 // ── Leaderboard view ───────────────────────────────────────────
-function LeaderboardView({ myId }) {
+function LeaderboardView({ myId, ui }) {
   const [tab,     setTab]    = useState('students')
   const [students, setStudents] = useState([])
   const [schools,  setSchools]  = useState([])
@@ -385,16 +383,16 @@ function LeaderboardView({ myId }) {
         {['students','schools'].map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-1.5 rounded-full border text-[13px] cursor-pointer capitalize transition-all ${tab === t ? 'bg-app-yellow/15 border-app-yellow text-app-yellow' : 'bg-app-card2 border-app-border text-app-muted hover:bg-white/[0.03]'}`}>
-            {t === 'students' ? '👤 Students' : '🏫 Schools'}
+            {t === 'students' ? ui.studentsTab : ui.schoolsTab}
           </button>
         ))}
       </div>
 
-      {loading && <p className="text-app-muted text-center py-6">Loading…</p>}
+      {loading && <p className="text-app-muted text-center py-6">{ui.loading}</p>}
 
       {tab === 'students' && !loading && (
         students.length === 0
-          ? <EmptyMsg icon="🏆" text="No battles this week yet. Be the first!" />
+          ? <EmptyMsg icon="🏆" text={ui.noBattlesWeek} />
           : students.map(s => (
             <div key={s.id} className={`border rounded-2xl px-4 py-3 mb-2 flex items-center gap-3 ${s.is_me ? 'bg-app-yellow/5 border-app-yellow/35' : 'bg-app-card border-app-border'}`}>
               <span className="text-lg min-w-[30px] text-center" style={{ color: s.rank === 1 ? '#FFD166' : s.rank === 2 ? '#aaa' : s.rank === 3 ? '#cd7f32' : '#6868a0' }}>
@@ -402,12 +400,12 @@ function LeaderboardView({ myId }) {
               </span>
               <Avatar name={s.name} size={36} />
               <div className="flex-1">
-                <div className={`font-bold text-sm ${s.is_me ? 'text-app-yellow' : 'text-app-text'}`}>{s.name} {s.is_me && '(You)'}</div>
+                <div className={`font-bold text-sm ${s.is_me ? 'text-app-yellow' : 'text-app-text'}`}>{s.name} {s.is_me && ui.youBracket}</div>
                 <div className="text-app-muted text-[11px]">{s.standard} {s.school ? `· ${s.school}` : ''}</div>
               </div>
               <div className="text-right">
-                <div className="text-app-green font-extrabold text-base">{s.wins} wins</div>
-                <div className="text-app-muted text-[11px]">{s.total_battles} battles</div>
+                <div className="text-app-green font-extrabold text-base">{s.wins} {ui.wins}</div>
+                <div className="text-app-muted text-[11px]">{s.total_battles} {ui.battles}</div>
               </div>
             </div>
           ))
@@ -415,7 +413,7 @@ function LeaderboardView({ myId }) {
 
       {tab === 'schools' && !loading && (
         schools.length === 0
-          ? <EmptyMsg icon="🏫" text="Add your school name in Settings to join the school leaderboard!" />
+          ? <EmptyMsg icon="🏫" text={ui.addSchoolLeaderboard} />
           : schools.map(s => (
             <div key={s.school} className={`border rounded-2xl px-4 py-3 mb-2 flex items-center gap-3 ${s.is_mine ? 'bg-app-blue/5 border-app-blue/35' : 'bg-app-card border-app-border'}`}>
               <span className="text-xl min-w-[30px] text-center" style={{ color: s.rank === 1 ? '#FFD166' : s.rank === 2 ? '#aaa' : s.rank === 3 ? '#cd7f32' : '#6868a0' }}>
@@ -423,11 +421,11 @@ function LeaderboardView({ myId }) {
               </span>
               <div className="text-[28px]">🏫</div>
               <div className="flex-1">
-                <div className={`font-bold text-sm ${s.is_mine ? 'text-app-blue' : 'text-app-text'}`}>{s.school} {s.is_mine && '(Yours)'}</div>
-                <div className="text-app-muted text-[11px]">{s.member_count} students</div>
+                <div className={`font-bold text-sm ${s.is_mine ? 'text-app-blue' : 'text-app-text'}`}>{s.school} {s.is_mine && ui.yoursBracket}</div>
+                <div className="text-app-muted text-[11px]">{s.member_count} {ui.studentsCount}</div>
               </div>
               <div className="text-right">
-                <div className="text-app-green font-extrabold text-base">{s.total_wins || 0} wins</div>
+                <div className="text-app-green font-extrabold text-base">{s.total_wins || 0} {ui.wins}</div>
                 <div className="text-app-muted text-[11px]">XP {s.total_xp || 0}</div>
               </div>
             </div>
@@ -448,6 +446,8 @@ function EmptyMsg({ icon, text }) {
 
 // ── Main Tab ───────────────────────────────────────────────────
 export default function MuqablaTab({ profile, userId }) {
+  const ui = li(getDisplayLang(profile))
+  const VIEWS = getViews(ui)
   const [view,      setView]      = useState('arena')
   const [openBattles, setOpen]    = useState([])
   const [pending,   setPending]   = useState([])
@@ -473,7 +473,7 @@ export default function MuqablaTab({ profile, userId }) {
       setPending(pendR.battles || [])
       setActive(actR.battles || [])
     } catch {
-      setErr('Could not load battles.')
+      setErr(ui.couldNotLoadBattles)
     } finally {
       setLoading(false)
     }
@@ -485,7 +485,7 @@ export default function MuqablaTab({ profile, userId }) {
       const r = await apiGetMuqabalaHistory()
       setHistory(r.battles || [])
     } catch {
-      setErr('Could not load history.')
+      setErr(ui.couldNotLoadHistory)
     } finally {
       setLoading(false)
     }
@@ -515,7 +515,7 @@ export default function MuqablaTab({ profile, userId }) {
         }
         setQuizBattle(fullBattle)
       } catch {
-        setErr('Could not load battle questions.')
+        setErr(ui.couldNotLoadQuestions)
       } finally {
         setLoading(false)
       }
@@ -552,13 +552,13 @@ export default function MuqablaTab({ profile, userId }) {
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-app-text m-0 text-[22px] font-extrabold">⚔️ Battle Arena</h1>
-          <p className="text-app-muted text-[13px] mt-1 mb-0">Student vs Student Battles</p>
+          <h1 className="text-app-text m-0 text-[22px] font-extrabold">{ui.battleArena}</h1>
+          <p className="text-app-muted text-[13px] mt-1 mb-0">{ui.studentVsStudent}</p>
         </div>
         {view === 'arena' && (
           <button onClick={() => setShowCreate(true)}
             className="bg-gradient-to-br from-app-orange to-[#ff4e00] text-white border-none rounded-2xl px-4 py-2.5 text-sm font-extrabold cursor-pointer shadow-[0_4px_20px_rgba(255,107,53,0.27)] active:scale-95 transition-all">
-            + Battle
+            {ui.newBattle}
           </button>
         )}
       </div>
@@ -585,65 +585,65 @@ export default function MuqablaTab({ profile, userId }) {
         <>
           {pending.length > 0 && (
             <div className="mb-5">
-              <h3 className="text-app-orange text-sm mb-2.5">🔥 Your Turn! ({pending.length})</h3>
-              {pending.map(b => <BattleCard key={b.id} battle={b} onAction={handleAction} myId={myId} />)}
+              <h3 className="text-app-orange text-sm mb-2.5">{ui.yourTurn} ({pending.length})</h3>
+              {pending.map(b => <BattleCard key={b.id} battle={b} onAction={handleAction} myId={myId} ui={ui} />)}
             </div>
           )}
 
           {active.filter(b => b.is_challenger && b.status === 'open' && b.challenger_score === null).length > 0 && (
             <div className="mb-5">
-              <h3 className="text-app-yellow text-sm mb-2.5">▶ Answer First</h3>
+              <h3 className="text-app-yellow text-sm mb-2.5">{ui.answerFirst}</h3>
               {active.filter(b => b.is_challenger && b.status === 'open' && b.challenger_score === null).map(b => (
-                <BattleCard key={b.id} battle={b} onAction={handleAction} myId={myId} />
+                <BattleCard key={b.id} battle={b} onAction={handleAction} myId={myId} ui={ui} />
               ))}
             </div>
           )}
 
           {active.filter(b => b.is_challenger && ['active','challenger_done'].includes(b.status)).length > 0 && (
             <div className="mb-5">
-              <h3 className="text-app-muted text-sm mb-2.5">⏳ Waiting for Opponent</h3>
+              <h3 className="text-app-muted text-sm mb-2.5">{ui.waitingForOpponent}</h3>
               {active.filter(b => b.is_challenger && ['active','challenger_done'].includes(b.status)).map(b => (
-                <BattleCard key={b.id} battle={b} onAction={handleAction} myId={myId} />
+                <BattleCard key={b.id} battle={b} onAction={handleAction} myId={myId} ui={ui} />
               ))}
             </div>
           )}
 
           {openBattles.length > 0 && (
             <div>
-              <h3 className="text-app-blue text-sm mb-2.5">🌐 Open Challenges ({openBattles.length})</h3>
-              {openBattles.map(b => <BattleCard key={b.id} battle={b} onAction={handleAction} myId={myId} />)}
+              <h3 className="text-app-blue text-sm mb-2.5">{ui.openChallenges} ({openBattles.length})</h3>
+              {openBattles.map(b => <BattleCard key={b.id} battle={b} onAction={handleAction} myId={myId} ui={ui} />)}
             </div>
           )}
 
           {pending.length === 0 && active.length === 0 && openBattles.length === 0 && (
-            <EmptyMsg icon="⚔️" text="No battles yet. Create one and challenge the arena!" />
+            <EmptyMsg icon="⚔️" text={ui.noBattlesArena} />
           )}
 
           {!profile.school && (
             <div className="bg-app-blue/5 border border-app-blue/20 rounded-2xl px-4 py-3 mt-5 text-app-muted text-[13px]">
-              🏫 Add your school name in <strong className="text-app-blue">Settings → Profile</strong> to join the School Leaderboard!
+              {ui.addSchoolTip}
             </div>
           )}
         </>
       )}
 
       {/* ── Leaderboard ── */}
-      {view === 'board' && !loading && <LeaderboardView myId={myId} />}
+      {view === 'board' && !loading && <LeaderboardView myId={myId} ui={ui} />}
 
       {/* ── History ── */}
       {view === 'history' && !loading && (
         history.length === 0
-          ? <EmptyMsg icon="📜" text="No completed battles yet." />
-          : history.map(b => <BattleCard key={b.id} battle={b} onAction={handleAction} myId={myId} />)
+          ? <EmptyMsg icon="📜" text={ui.noCompletedBattles} />
+          : history.map(b => <BattleCard key={b.id} battle={b} onAction={handleAction} myId={myId} ui={ui} />)
       )}
 
       {/* ── Modals ── */}
       {showCreate && (
-        <CreateChallengeModal profile={profile} onClose={() => setShowCreate(false)} onCreated={onChallengeCreated} />
+        <CreateChallengeModal profile={profile} onClose={() => setShowCreate(false)} onCreated={onChallengeCreated} ui={ui} />
       )}
 
       {quizBattle && !quizBattle.showResultsOnly && (
-        <QuizScreen battle={quizBattle} onDone={onQuizDone} userId={myId} />
+        <QuizScreen battle={quizBattle} onDone={onQuizDone} userId={myId} ui={ui} />
       )}
 
       {quizBattle?.showResultsOnly && (
@@ -653,17 +653,17 @@ export default function MuqablaTab({ profile, userId }) {
               {quizBattle.winner_id === myId ? '🏆' : quizBattle.winner_id === 'draw' ? '🤝' : '💪'}
             </div>
             <h2 className="mb-4" style={{ color: quizBattle.winner_id === myId ? '#FFD166' : quizBattle.winner_id === 'draw' ? '#7B9CFF' : '#eeeeff' }}>
-              {quizBattle.winner_id === myId ? 'You Won!' : quizBattle.winner_id === 'draw' ? 'Draw!' : quizBattle.status === 'waiting_for_opponent' ? 'Waiting for Opponent' : 'Good Fight!'}
+              {quizBattle.winner_id === myId ? ui.youWonShort : quizBattle.winner_id === 'draw' ? ui.drawResult : quizBattle.status === 'waiting_for_opponent' ? ui.waitingForOpponent : ui.goodFight}
             </h2>
             <div className="bg-app-card2 rounded-2xl p-4 mb-5 flex justify-around">
               <div>
-                <div className="text-app-muted text-[12px]">Your Score</div>
+                <div className="text-app-muted text-[12px]">{ui.yourScore}</div>
                 <div className="text-app-green text-[22px] font-extrabold">
                   {quizBattle.challenger_id === myId ? quizBattle.challenger_score : quizBattle.opponent_score ?? '?'}/{quizBattle.total_questions ?? '?'}
                 </div>
               </div>
               <div>
-                <div className="text-app-muted text-[12px]">Opponent</div>
+                <div className="text-app-muted text-[12px]">{ui.opponentScore}</div>
                 <div className="text-app-red text-[22px] font-extrabold">
                   {quizBattle.challenger_id === myId ? quizBattle.opponent_score ?? '?' : quizBattle.challenger_score ?? '?'}/{quizBattle.total_questions ?? '?'}
                 </div>
@@ -671,7 +671,7 @@ export default function MuqablaTab({ profile, userId }) {
             </div>
             <button onClick={() => setQuizBattle(null)}
               className="w-full bg-app-orange text-white border-none rounded-2xl py-3 text-[15px] font-extrabold cursor-pointer active:scale-[0.99] transition-all">
-              Back to Arena
+              {ui.backToArena}
             </button>
           </div>
         </div>

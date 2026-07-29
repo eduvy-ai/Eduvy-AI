@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from 'react'
-import { callAI, checkStudentQuery } from '../../shared.js'
+import { callAI, checkStudentQuery, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import { getDeviceId, apiGetDraft, apiSaveDraft } from '../../api.js'
 
@@ -7,9 +7,10 @@ const TYPES = ["Essay", "Letter", "Paragraph", "Answer"]
 
 export default function EssayLab({ profile, addXp, onBack }) {
   const deviceId = getDeviceId()
-  const [type, setType]         = useState("Essay")
+  const ui = li(getDisplayLang(profile))
+  const TYPES = [ui.essayType, ui.letterType, ui.paragraphType, ui.answerType]
+  const [type, setType]         = useState(TYPES[0])
   const [writing, setWriting]   = useState("")
-  const [feedback, setFeedback] = useState("")
   const [loading, setLoading]   = useState(false)
 
   useEffect(() => {
@@ -26,7 +27,7 @@ export default function EssayLab({ profile, addXp, onBack }) {
 
   const grade = async () => {
     if (!writing.trim() || writing.trim().length < 30) {
-      alert("Please write at least 30 characters before grading.")
+      alert(ui.writeAtLeast30)
       return
     }
     const safety = checkStudentQuery(writing, profile)
@@ -47,8 +48,8 @@ export default function EssayLab({ profile, addXp, onBack }) {
     <div className="flex flex-col h-full min-h-0">
       {/* Header */}
       <div className="bg-app-card border-b border-app-border px-4 py-3 flex items-center gap-2.5 shrink-0">
-        <button onClick={onBack} className="bg-transparent border-none text-app-muted text-[13px] cursor-pointer p-0">← Back</button>
-        <span className="text-[15px] font-extrabold text-app-text">✍️ Essay Grader</span>
+        <button onClick={onBack} className="bg-transparent border-none text-app-muted text-[13px] cursor-pointer p-0">{ui.backBtn}</button>
+        <span className="text-[15px] font-extrabold text-app-text">{ui.essayGrader}</span>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 pb-6">
@@ -72,7 +73,7 @@ export default function EssayLab({ profile, addXp, onBack }) {
         {/* Textarea */}
         <div className="mb-3.5">
           <label className="block text-xs text-app-muted font-semibold mb-2">
-            WRITE YOUR {type.toUpperCase()} BELOW
+            {ui.writeYourBelow} {type.toUpperCase()} {ui.below}
           </label>
           <textarea
             className="w-full bg-app-card2 border border-white/[0.08] rounded-xl py-3 px-3.5 text-app-text text-[13px] outline-none resize-y leading-relaxed"
@@ -81,7 +82,7 @@ export default function EssayLab({ profile, addXp, onBack }) {
             value={writing}
             onChange={e => setWriting(e.target.value)}
           />
-          <div className="text-[11px] text-app-muted mt-1 text-right">{writing.length} characters</div>
+          <div className="text-[11px] text-app-muted mt-1 text-right">{writing.length} {ui.characters}</div>
         </div>
 
         <button
@@ -89,12 +90,12 @@ export default function EssayLab({ profile, addXp, onBack }) {
           disabled={loading || writing.trim().length < 30}
           className="w-full py-3 px-4 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 text-app-bg text-[13px] font-extrabold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
         >
-          {loading ? "Grading…" : "🎓 Grade My Writing"}
+          {loading ? ui.grading : ui.gradeMyWriting}
         </button>
 
         {feedback && (
           <div className="mt-4 bg-app-card border border-app-border rounded-[14px] p-4">
-            <div className="text-xs text-app-blue font-bold mb-2.5">📋 Examiner's Feedback</div>
+            <div className="text-xs text-app-blue font-bold mb-2.5">{ui.examinersFeedback}</div>
             <p className="text-[13px] text-app-text leading-[1.8] whitespace-pre-wrap m-0">{feedback}</p>
           </div>
         )}
@@ -104,7 +105,7 @@ export default function EssayLab({ profile, addXp, onBack }) {
             onClick={() => { setWriting(""); setFeedback("") }}
             className="w-full mt-3 py-3 px-4 rounded-xl bg-transparent border border-white/[0.08] text-app-text text-[13px] font-semibold cursor-pointer hover:bg-white/[0.03] transition-all"
           >
-            ✍️ Write New
+            {ui.writeNew}
           </button>
         )}
       </div>

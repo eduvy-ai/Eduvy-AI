@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { callAI, parseAIObject } from '../../shared.js'
+import { callAI, parseAIObject, getDisplayLang } from '../../shared.js'
+import { li } from '../../i18n/index.js'
 
 // ── Mark options ──────────────────────────────────────────────
 const MARK_OPTIONS = [
@@ -12,13 +13,14 @@ const MARK_OPTIONS = [
 function MarksBadge({ awarded, total }) {
   const pct = Math.round((awarded / total) * 100)
   const color = pct >= 80 ? "#00E5A0" : pct >= 55 ? "#FFD166" : "#FF6B6B"
+  const ui = li('English') // MarksBadge doesn't receive profile, use English for static labels
   return (
     <div className="text-center py-6">
       <div className="inline-flex flex-col items-center rounded-3xl px-8 py-4.5 border-2"
         style={{ background: `${color}12`, borderColor: `${color}50` }}>
         <div className="text-[42px] font-black leading-none" style={{ color }}>{awarded}/{total}</div>
         <div className="text-[13px] font-bold mt-1" style={{ color }}>
-          {pct >= 80 ? "🎉 Excellent!" : pct >= 55 ? "👍 Good" : "📚 Needs Work"}
+          {pct >= 80 ? ui.excellent : pct >= 55 ? ui.good : ui.needsWork}
         </div>
         <div className="w-[140px] h-1.5 rounded-full mt-2.5 overflow-hidden" style={{ background: `${color}20` }}>
           <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
@@ -30,6 +32,13 @@ function MarksBadge({ awarded, total }) {
 }
 
 export default function ExaminerLab({ profile, addXp, onBack }) {
+  const ui = li(getDisplayLang(profile))
+  const MARK_OPTIONS = [
+    { marks: 1, label: ui.mark1,  desc: ui.markDesc1 },
+    { marks: 2, label: ui.mark2,  desc: ui.markDesc2 },
+    { marks: 3, label: ui.mark3,  desc: ui.markDesc3 },
+    { marks: 5, label: ui.mark5,  desc: ui.markDesc5 },
+  ]
   const [phase, setPhase]           = useState("setup")   // setup | question | result
   const [selMarks, setSelMarks]     = useState(3)
   const [topicInput, setTopicInput] = useState("")
@@ -54,7 +63,7 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
       setQData(parsed)
       setPhase("question")
     } else {
-      setErr("Could not generate question. Please try again.")
+      setErr(ui.couldNotGenerate)
     }
     setLoading(false)
   }
@@ -78,7 +87,7 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
       const xp = Math.round(((parsed.awarded || 0) / (parsed.total || 1)) * 15) + 3
       addXp(xp)
     } else {
-      setErr("Grading failed. Please try again.")
+      setErr(ui.gradingFailed)
     }
     setLoading(false)
   }
@@ -91,15 +100,15 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
   if (phase === "setup") return (
     <div className="flex flex-col h-full min-h-0">
       <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
-        <button onClick={onBack} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Back</button>
+        <button onClick={onBack} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">{ui.backBtn}</button>
         <div>
-          <div className="font-extrabold text-base text-app-text">🎯 Marks Hunter</div>
-          <div className="text-[11px] text-app-muted">Board Examiner Practice</div>
+          <div className="font-extrabold text-base text-app-text">{ui.marksHunterTitle}</div>
+          <div className="text-[11px] text-app-muted">{ui.boardExaminerPractice}</div>
         </div>
       </div>
       <div className="p-4 pb-6 flex-1 overflow-y-auto">
         <div className="bg-app-green/[0.05] border border-app-green/20 rounded-2xl p-4 mb-5">
-          <div className="text-[15px] font-extrabold text-app-green mb-1.5">How it works</div>
+          <div className="text-[15px] font-extrabold text-app-green mb-1.5">{ui.howItWorks}</div>
           <div className="text-[13px] text-app-text leading-[1.7]">
             AI generates a real <strong>{profile.board} board exam question</strong>.
             You write your answer. AI grades it <em>exactly</em> like a real board examiner — showing
@@ -107,7 +116,7 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
           </div>
         </div>
         <div className="mb-5">
-          <div className="text-[13px] font-bold text-app-muted mb-2.5 uppercase tracking-wide">Select Question Type</div>
+          <div className="text-[13px] font-bold text-app-muted mb-2.5 uppercase tracking-wide">{ui.selectQuestionType}</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {MARK_OPTIONS.map(opt => (
               <button key={opt.marks} onClick={() => setSelMarks(opt.marks)}
@@ -119,19 +128,19 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
           </div>
         </div>
         <div className="mb-5">
-          <div className="text-[13px] font-bold text-app-muted mb-2 uppercase tracking-wide">Topic (optional)</div>
+          <div className="text-[13px] font-bold text-app-muted mb-2 uppercase tracking-wide">{ui.topicOptional}</div>
           <input
             value={topicInput}
             onChange={e => setTopicInput(e.target.value)}
-            placeholder="e.g. Photosynthesis, French Revolution, Quadratic Equations…"
+            placeholder={ui.topicPlaceholder}
             className="w-full bg-app-card2 border border-app-border rounded-xl px-3.5 py-3 text-sm text-app-text outline-none focus:border-app-green/40 transition-colors placeholder:text-app-muted box-border"
           />
-          <div className="text-[11px] text-app-muted mt-1.5">Leave blank for a random topic from your syllabus</div>
+          <div className="text-[11px] text-app-muted mt-1.5">{ui.randomTopicHint}</div>
         </div>
         {err && <div className="text-app-red text-[13px] mb-2.5">{err}</div>}
         <button onClick={generateQuestion} disabled={loading}
           className="w-full bg-gradient-to-r from-app-green to-[#00c48a] text-app-bg text-[15px] font-bold rounded-2xl py-3.5 cursor-pointer disabled:opacity-50 active:scale-[0.99] transition-all">
-          {loading ? "⏳ Generating question…" : "📝 Generate Board Question"}
+          {loading ? ui.generatingQuestion : ui.generateBoardQuestion}
         </button>
       </div>
     </div>
@@ -140,9 +149,9 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
   if (phase === "question") return (
     <div className="flex flex-col h-full min-h-0">
       <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
-        <button onClick={reset} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Back</button>
+        <button onClick={reset} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">{ui.backBtn}</button>
         <div>
-          <div className="font-extrabold text-base text-app-text">🎯 Marks Hunter</div>
+          <div className="font-extrabold text-base text-app-text">{ui.marksHunterTitle}</div>
           <div className="text-[11px] text-app-muted">{qData?.subject} · {qData?.marks} Mark{qData?.marks > 1 ? "s" : ""}</div>
         </div>
       </div>
@@ -158,15 +167,15 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
         {!showHint ? (
           <button onClick={() => setShowHint(true)}
             className="bg-transparent border border-app-border text-app-muted text-xs rounded-xl px-3.5 py-2 cursor-pointer mb-3.5 hover:bg-white/[0.03] active:scale-95 transition-all">
-            💡 Show Hint
+            {ui.showHint}
           </button>
         ) : (
           <div className="bg-app-yellow/[0.05] border border-app-yellow/20 rounded-2xl p-4 mb-3.5">
-            <div className="text-xs font-bold text-app-yellow mb-1">💡 Hint</div>
+            <div className="text-xs font-bold text-app-yellow mb-1">{ui.hintLabel}</div>
             <div className="text-[13px] text-app-text">{qData?.hint}</div>
           </div>
         )}
-        <div className="text-[13px] font-bold text-app-muted mb-2 uppercase tracking-wide">Your Answer</div>
+        <div className="text-[13px] font-bold text-app-muted mb-2 uppercase tracking-wide">{ui.yourAnswer}</div>
         <textarea
           value={answer}
           onChange={e => setAnswer(e.target.value)}
@@ -175,12 +184,12 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
           className="w-full bg-app-card2 border border-app-border rounded-2xl p-3.5 text-sm text-app-text outline-none resize-y leading-[1.7] box-border focus:border-app-green/40 transition-colors placeholder:text-app-muted"
         />
         <div className="text-[11px] text-app-muted text-right mb-3.5">
-          {answer.trim().split(/\s+/).filter(Boolean).length} words
+          {answer.trim().split(/\s+/).filter(Boolean).length} {ui.words}
         </div>
         {err && <div className="text-app-red text-[13px] mb-2.5">{err}</div>}
         <button onClick={gradeAnswer} disabled={loading}
           className="w-full bg-gradient-to-r from-app-green to-[#00c48a] text-app-bg text-[15px] font-bold rounded-2xl py-3.5 cursor-pointer disabled:opacity-50 active:scale-[0.99] transition-all">
-          {loading ? "⏳ Grading your answer…" : "🎯 Submit for Grading"}
+          {loading ? ui.gradingAnswer : ui.submitForGrading}
         </button>
       </div>
     </div>
@@ -194,8 +203,8 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
     return (
       <div className="flex flex-col h-full min-h-0">
         <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
-          <button onClick={reset} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Try Again</button>
-          <div className="font-extrabold text-base text-app-text">📋 Examiner's Report</div>
+          <button onClick={reset} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">{ui.tryAgainBtn}</button>
+          <div className="font-extrabold text-base text-app-text">{ui.examinersReport}</div>
         </div>
         <div className="p-4 pb-6 flex-1 overflow-y-auto">
           <MarksBadge awarded={awarded} total={total} />

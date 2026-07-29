@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { BOARDS, LANGS, PLANS, getDisplayLang } from '../shared.js'
 import { apiGetParentPin, apiCreateParentPin, apiRevokeParentPin, apiGetMyReferralCode } from '../api.js'
 import { li } from '../i18n/index.js'
+import { APP_URL } from '../config'
 import UpgradePlanModal from './UpgradePlanModal.jsx'
 
 const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
@@ -218,12 +219,12 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                         <div className="text-app-muted text-[10px] mb-0.5">{ui.parentLink}</div>
                         <div className="font-mono text-base font-black text-app-yellow tracking-[3px]">{parentPin}</div>
                         <div className="text-app-muted text-[10px] mt-0.5">
-                          {window.location.origin}/parent/{parentPin}
+                          {APP_URL}/parent/{parentPin}
                         </div>
                       </div>
                       <button
                         onClick={() => {
-                          navigator.clipboard?.writeText(`${window.location.origin}/parent/${parentPin}`)
+                          navigator.clipboard?.writeText(`${APP_URL}/parent/${parentPin}`)
                           setPinCopied(true)
                           setTimeout(() => setPinCopied(false), 2000)
                         }}

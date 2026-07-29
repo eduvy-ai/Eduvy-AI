@@ -6,6 +6,7 @@
 // Import i18n UI_STRINGS (comprehensive translations)
 import { UI_STRINGS as I18N_STRINGS, li as i18nLi } from './i18n/index.js'
 import { LANG_TO_SPEECH_CODE as _LANG_TO_SPEECH_CODE } from './i18n/languages.js'
+import { API_BASE_URL } from './config'
 export const UI_STRINGS = I18N_STRINGS
 export const li = i18nLi
 
@@ -512,7 +513,7 @@ export async function callAI(prompt, systemPrompt, history = [], retries = 3, ma
 
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      const res = await fetch("/api/ai/chat", {
+      const res = await fetch(`${API_BASE_URL}/api/ai/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

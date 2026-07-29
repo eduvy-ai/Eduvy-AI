@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { callAI, LANG_RULES } from '../../shared.js'
+import { callAI, LANG_RULES, getDisplayLang } from '../../shared.js'
+import { li } from '../../i18n/index.js'
 import {
   apiCreateBhoolCard, apiGetMyBhoolCards, apiUpdateBhoolCard, apiDeleteBhoolCard,
   apiGetBhoolMarketplace, apiGetBhoolTop,
@@ -7,22 +8,22 @@ import {
   apiGetMyBhoolCollections,
 } from '../../api.js'
 
-const TABS = [
-  { key: 'feed',       label: '🌐 Bazaar',    title: 'Mistake Marketplace' },
-  { key: 'mine',       label: '📋 My Bhools',  title: 'My Mistake Cards' },
-  { key: 'saved',      label: '🔖 Saved',       title: 'My Collection' },
-  { key: 'top',        label: '🏆 Top Bhools',  title: 'Weekly Top Mistakes' },
+const getTabs = (ui) => [
+  { key: 'feed',       label: `🌐 ${ui.bazaar}`,    title: ui.bazaar },
+  { key: 'mine',       label: `📋 ${ui.myBhools}`,  title: ui.myBhools },
+  { key: 'saved',      label: `🔖 ${ui.collected}`,  title: ui.collected },
+  { key: 'top',        label: `🏆 ${ui.insights}`,   title: ui.insights },
 ]
 
 const SUBJECTS = ['Mathematics', 'Science', 'English', 'Social Science', 'Hindi',
                   'Physics', 'Chemistry', 'Biology', 'History', 'Geography',
                   'Economics', 'Computer', 'Sanskrit']
 
-const EMOJI_REACTIONS = [
-  { key: 'same',    label: '😅 Same!',    title: 'Me too!' },
-  { key: 'clever',  label: '🧠 Clever',   title: 'Clever mistake' },
-  { key: 'tricky',  label: '🤔 Tricky',   title: 'Tricky question' },
-  { key: 'lol',     label: '😂 Lol',      title: 'Hilarious mistake' },
+const getEmojiReactions = (ui) => [
+  { key: 'same',    label: ui.emojiSame,    title: ui.meeToo },
+  { key: 'clever',  label: ui.emojiClever,  title: ui.emojiClever },
+  { key: 'tricky',  label: ui.emojiTricky,  title: ui.emojiTricky },
+  { key: 'lol',     label: ui.emojiLol,     title: ui.emojiLol },
 ]
 
 // ── Small helpers ─────────────────────────────────────────────
@@ -44,10 +45,11 @@ function BhoolCoins({ count }) {
 }
 
 // ── Mistake Card (read-only) ──────────────────────────────────
-function MistakeCard({ card, isMine = false, onCollect, onReact, onPublish, onDelete }) {
+function MistakeCard({ card, isMine = false, onCollect, onReact, onPublish, onDelete, ui }) {
   const [showAnswer, setShowAnswer] = useState(false)
   const [reacting, setReacting] = useState(false)
   const [collecting, setCollecting] = useState(false)
+  const EMOJI_REACTIONS = getEmojiReactions(ui)
 
   return (
     <div className="bg-app-card border border-app-border rounded-2xl p-4 mb-3">
@@ -55,10 +57,10 @@ function MistakeCard({ card, isMine = false, onCollect, onReact, onPublish, onDe
       <div className="flex items-center gap-2 mb-2.5 flex-wrap">
         <span className="bg-app-blue/15 border border-app-blue/30 text-app-blue text-[11px] rounded-xl px-2 py-0.5">{card.subject}</span>
         <span className="bg-app-muted/15 text-app-muted text-[11px] rounded-xl px-2 py-0.5">{card.standard || card.author_standard}</span>
-        {!isMine && <span className="text-app-muted text-[11px] ml-auto">by {card.author_name}</span>}
+        {!isMine && <span className="text-app-muted text-[11px] ml-auto">{ui.byAuthor} {card.author_name}</span>}
         {isMine && (
           <span className={`ml-auto text-[11px] ${card.is_published ? 'text-app-green' : 'text-app-muted'}`}>
-            {card.is_published ? '✅ Published' : '🔒 Draft'}
+            {card.is_published ? ui.published : ui.draft}
           </span>
         )}
       </div>
@@ -66,18 +68,18 @@ function MistakeCard({ card, isMine = false, onCollect, onReact, onPublish, onDe
       <p className="text-app-text text-sm mb-2 font-semibold">❓ {card.question}</p>
 
       <div className="bg-app-red/10 border border-app-red/30 rounded-xl px-3 py-2 mb-2">
-        <span className="text-app-red text-xs font-bold">❌ I answered: </span>
+        <span className="text-app-red text-xs font-bold">{ui.iAnswered}</span>
         <span className="text-app-text text-[13px]">{card.wrong_answer}</span>
       </div>
 
       {!showAnswer ? (
         <button onClick={() => setShowAnswer(true)}
           className="bg-app-green/15 border border-app-green/30 text-app-green rounded-xl px-3.5 py-1.5 text-[13px] cursor-pointer mb-2 hover:bg-app-green/20 active:scale-95 transition-all">
-          👁 Reveal Correct Answer
+          {ui.revealCorrectAnswer}
         </button>
       ) : (
         <div className="bg-app-green/10 border border-app-green/30 rounded-xl px-3 py-2 mb-2">
-          <span className="text-app-green text-xs font-bold">✅ Correct: </span>
+          <span className="text-app-green text-xs font-bold">{ui.correctLabel}</span>
           <span className="text-app-text text-[13px]">{card.correct_answer}</span>
           {card.why_wrong && <p className="text-app-muted text-xs mt-1.5">💡 {card.why_wrong}</p>}
         </div>
@@ -105,14 +107,14 @@ function MistakeCard({ card, isMine = false, onCollect, onReact, onPublish, onDe
           <button disabled={collecting || card.is_collected}
             onClick={async () => { setCollecting(true); try { await onCollect(card.id) } finally { setCollecting(false) } }}
             className={`ml-auto rounded-2xl px-3 py-1 text-xs cursor-pointer border transition-all ${card.is_collected ? 'bg-app-green/15 border-app-green/30 text-app-green' : 'bg-app-blue/15 border-app-blue/30 text-app-blue hover:bg-app-blue/20'} disabled:opacity-60`}>
-            {card.is_collected ? '✅ Saved' : '🔖 Collect +10 XP'}
+            {card.is_collected ? ui.savedLabel : ui.collectXp}
           </button>
         )}
 
         {isMine && !card.is_published && (
           <button onClick={() => onPublish(card.id)}
             className="ml-auto bg-app-orange/15 border border-app-orange/30 text-app-orange rounded-2xl px-3 py-1 text-xs cursor-pointer hover:bg-app-orange/20 active:scale-95 transition-all">
-            🌐 Publish
+            {ui.publishBtn}
           </button>
         )}
         {isMine && (
@@ -127,7 +129,7 @@ function MistakeCard({ card, isMine = false, onCollect, onReact, onPublish, onDe
 }
 
 // ── Add Bhool Modal ───────────────────────────────────────────
-function AddBhoolModal({ profile, onClose, onSaved }) {
+function AddBhoolModal({ profile, onClose, onSaved, ui }) {
   const [subject, setSubject]         = useState(profile.subjects?.[0] || 'Mathematics')
   const [question, setQuestion]       = useState('')
   const [wrongAns, setWrongAns]       = useState('')
@@ -151,7 +153,7 @@ In 1-2 short sentences, explain WHY a student would make this mistake and what c
       const explanation = await callAI([{ role: 'user', content: prompt }])
       setWhyWrong(explanation.trim())
     } catch {
-      setErr('AI explanation failed. Write it yourself!')
+      setErr(ui.aiExplainFailed)
     } finally {
       setAiLoading(false)
     }
@@ -159,7 +161,7 @@ In 1-2 short sentences, explain WHY a student would make this mistake and what c
 
   async function handleSave() {
     if (!question.trim() || !wrongAns.trim() || !correctAns.trim()) {
-      setErr('Please fill Question, Wrong Answer and Correct Answer.')
+      setErr(ui.fillRequired)
       return
     }
     setSaving(true); setErr('')
@@ -174,7 +176,7 @@ In 1-2 short sentences, explain WHY a student would make this mistake and what c
       })
       onSaved()
     } catch (e) {
-      setErr('Could not save. Try again.')
+      setErr(ui.couldNotSave)
     } finally {
       setSaving(false)
     }
@@ -186,53 +188,53 @@ In 1-2 short sentences, explain WHY a student would make this mistake and what c
     <div className="fixed inset-0 bg-black/55 z-[200] flex items-end justify-center" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="bg-app-card w-full max-w-[600px] rounded-t-[20px] px-5 pt-6 pb-[max(2rem,env(safe-area-inset-bottom))] max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-5">
-          <h2 className="text-app-text m-0 text-lg font-extrabold">📝 Save a Bhool</h2>
+          <h2 className="text-app-text m-0 text-lg font-extrabold">{ui.saveBhoolTitle}</h2>
           <button onClick={onClose} className="bg-transparent border-none text-app-muted text-2xl cursor-pointer hover:text-app-text">×</button>
         </div>
 
         <div className="mb-3">
-          <label className="text-app-muted text-xs block mb-1">Subject</label>
+          <label className="text-app-muted text-xs block mb-1">{ui.subjectLabel}</label>
           <select value={subject} onChange={e => setSubject(e.target.value)} className={`${inputCls} cursor-pointer`}>
             {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
 
         <div className="mb-3">
-          <label className="text-app-muted text-xs block mb-1">Question / Topic</label>
-          <textarea className={inputCls} value={question} onChange={e => setQuestion(e.target.value)} placeholder="What was the question?" rows={2} />
+          <label className="text-app-muted text-xs block mb-1">{ui.questionTopic}</label>
+          <textarea className={inputCls} value={question} onChange={e => setQuestion(e.target.value)} placeholder={ui.questionPlaceholder} rows={2} />
         </div>
 
         <div className="mb-3">
-          <label className="text-app-muted text-xs block mb-1">My Wrong Answer ❌</label>
-          <textarea className={inputCls} value={wrongAns} onChange={e => setWrongAns(e.target.value)} placeholder="What answer did you give (incorrectly)?" rows={2} />
+          <label className="text-app-muted text-xs block mb-1">{ui.myWrongAnswer}</label>
+          <textarea className={inputCls} value={wrongAns} onChange={e => setWrongAns(e.target.value)} placeholder={ui.wrongAnswerPlaceholder} rows={2} />
         </div>
 
         <div className="mb-3">
-          <label className="text-app-muted text-xs block mb-1">Correct Answer ✅</label>
-          <textarea className={inputCls} value={correctAns} onChange={e => setCorrectAns(e.target.value)} placeholder="What is the right answer?" rows={2} />
+          <label className="text-app-muted text-xs block mb-1">{ui.correctAnswerLabel}</label>
+          <textarea className={inputCls} value={correctAns} onChange={e => setCorrectAns(e.target.value)} placeholder={ui.correctAnswerPlaceholder} rows={2} />
         </div>
 
         <div className="mb-4">
           <div className="flex items-center justify-between mb-1">
-            <label className="text-app-muted text-xs">Why did I get it wrong? 💡</label>
+            <label className="text-app-muted text-xs">{ui.whyWrongLabel}</label>
             <button onClick={handleAIExplain} disabled={aiLoading || !question || !wrongAns || !correctAns}
               className="bg-app-blue/15 border border-app-blue/30 text-app-blue rounded-xl px-2.5 py-1 text-xs cursor-pointer disabled:opacity-50 hover:bg-app-blue/20 active:scale-95 transition-all">
-              {aiLoading ? '✨ Thinking…' : '✨ AI Explain'}
+              {aiLoading ? ui.aiThinking : ui.aiExplain}
             </button>
           </div>
-          <textarea className={inputCls} value={whyWrong} onChange={e => setWhyWrong(e.target.value)} placeholder="Optional: explain your misconception…" rows={2} />
+          <textarea className={inputCls} value={whyWrong} onChange={e => setWhyWrong(e.target.value)} placeholder={ui.whyWrongPlaceholder} rows={2} />
         </div>
 
         <button onClick={() => setPublish(p => !p)}
           className={`w-full mb-4 rounded-xl py-2.5 text-sm cursor-pointer border transition-all ${publish ? 'bg-app-green/15 border-app-green text-app-green' : 'bg-app-card2 border-app-border text-app-muted hover:bg-white/[0.03]'}`}>
-          {publish ? '🌐 Will be published to Bazaar' : '🔒 Keep private (can publish later)'}
+          {publish ? ui.publishToBazaar : ui.keepPrivate}
         </button>
 
         {err && <p className="text-app-red text-[13px] mb-3">{err}</p>}
 
         <button onClick={handleSave} disabled={saving}
           className="w-full bg-app-orange text-white border-none rounded-2xl py-3.5 text-base font-extrabold cursor-pointer disabled:opacity-60 active:scale-[0.99] transition-all">
-          {saving ? 'Saving…' : '💾 Save Bhool'}
+          {saving ? ui.savingBtn : ui.saveBhoolBtn}
         </button>
       </div>
     </div>
@@ -240,7 +242,7 @@ In 1-2 short sentences, explain WHY a student would make this mistake and what c
 }
 
 // ── Publish confirm modal ─────────────────────────────────────
-function PublishConfirmModal({ card, onClose, onPublished }) {
+function PublishConfirmModal({ card, onClose, onPublished, ui }) {
   const [publishing, setPublishing] = useState(false)
 
   async function handlePublish() {
@@ -257,17 +259,17 @@ function PublishConfirmModal({ card, onClose, onPublished }) {
     <div className="fixed inset-0 bg-black/55 z-[200] flex items-center justify-center p-5" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="bg-app-card rounded-[20px] px-6 py-7 max-w-[420px] w-full text-center">
         <div className="text-[48px] mb-3">🌐</div>
-        <h2 className="text-app-text mb-2 text-lg font-extrabold">Share Your Bhool?</h2>
+        <h2 className="text-app-text mb-2 text-lg font-extrabold">{ui.shareYourBhool}</h2>
         <p className="text-app-muted text-sm mb-5">
-          Publishing lets other students learn from your mistake — and earns you <strong className="text-app-orange">🪙 5 Bhool Coins!</strong>
+          {ui.publishHelpsOthers} <strong className="text-app-orange">{ui.bhoolCoins}</strong>
         </p>
         <button onClick={handlePublish} disabled={publishing}
           className="w-full bg-app-orange text-white border-none rounded-2xl py-3 text-base font-extrabold cursor-pointer mb-2.5 disabled:opacity-60 active:scale-[0.99] transition-all">
-          {publishing ? 'Publishing…' : '🌐 Yes, Publish!'}
+          {publishing ? ui.publishingBtn : ui.yesPublish}
         </button>
         <button onClick={onClose}
           className="w-full bg-transparent border border-app-border text-app-muted rounded-2xl py-2.5 text-sm cursor-pointer hover:bg-white/[0.03] active:scale-[0.99] transition-all">
-          Keep Private
+          {ui.keepPrivate}
         </button>
       </div>
     </div>
@@ -276,6 +278,8 @@ function PublishConfirmModal({ card, onClose, onPublished }) {
 
 // ── Main Tab ──────────────────────────────────────────────────
 export default function BhoolBazaarTab({ profile, addXp }) {
+  const ui = li(getDisplayLang(profile))
+  const TABS = getTabs(ui)
   const [activeTab, setActiveTab]         = useState('feed')
   const [feedCards, setFeedCards]         = useState([])
   const [myCards, setMyCards]             = useState([])
@@ -311,7 +315,7 @@ export default function BhoolBazaarTab({ profile, addXp }) {
       }
       setHasMore(res.cards.length === LIMIT)
     } catch {
-      setErr('Could not load Bazaar. Try again.')
+      setErr(ui.couldNotLoadBazaar)
     } finally {
       setLoading(false)
     }
@@ -323,7 +327,7 @@ export default function BhoolBazaarTab({ profile, addXp }) {
       const res = await apiGetMyBhoolCards()
       setMyCards(res.cards || [])
     } catch {
-      setErr('Could not load your cards.')
+      setErr(ui.couldNotLoadCards)
     } finally {
       setLoading(false)
     }
@@ -335,7 +339,7 @@ export default function BhoolBazaarTab({ profile, addXp }) {
       const res = await apiGetMyBhoolCollections()
       setSavedCards(res.cards || [])
     } catch {
-      setErr('Could not load saved cards.')
+      setErr(ui.couldNotLoadSaved)
     } finally {
       setLoading(false)
     }
@@ -347,7 +351,7 @@ export default function BhoolBazaarTab({ profile, addXp }) {
       const res = await apiGetBhoolTop()
       setTopCards(res.top || [])
     } catch {
-      setErr('Could not load top cards.')
+      setErr(ui.couldNotLoadTop)
     } finally {
       setLoading(false)
     }
@@ -389,7 +393,7 @@ export default function BhoolBazaarTab({ profile, addXp }) {
   }
 
   async function handleDelete(cardId) {
-    if (!window.confirm('Delete this bhool card?')) return
+    if (!window.confirm(ui.deleteConfirm)) return
     try {
       await apiDeleteBhoolCard(cardId)
       setMyCards(prev => prev.filter(c => c.id !== cardId))
@@ -415,12 +419,12 @@ export default function BhoolBazaarTab({ profile, addXp }) {
       <div className="mb-5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-app-text m-0 text-[22px] font-extrabold">📛 Mistake Cards</h1>
-            <p className="text-app-muted text-[13px] mt-1 mb-0">Turn mistakes into learning assets</p>
+            <h1 className="text-app-text m-0 text-[22px] font-extrabold">{ui.mistakeCards}</h1>
+            <p className="text-app-muted text-[13px] mt-1 mb-0">{ui.turnMistakesIntoAssets}</p>
           </div>
           <button onClick={() => setShowAddModal(true)}
             className="bg-gradient-to-br from-app-orange to-[#ff4e00] text-white border-none rounded-2xl px-4 py-2.5 text-sm font-extrabold cursor-pointer shadow-[0_4px_20px_rgba(255,107,53,0.27)] active:scale-95 transition-all">
-            + New Bhool
+            {ui.newBhool}
           </button>
         </div>
       </div>
@@ -439,14 +443,14 @@ export default function BhoolBazaarTab({ profile, addXp }) {
         <div className="flex gap-2 mb-4 flex-wrap">
           <select value={filterSubject} onChange={e => setFilterSubject(e.target.value)}
             className="bg-app-card2 border border-app-border text-app-text rounded-xl px-3 py-1.5 text-[13px] cursor-pointer outline-none">
-            <option value="">All Subjects</option>
+            <option value="">{ui.allSubjects}</option>
             {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           <select value={filterSort} onChange={e => setFilterSort(e.target.value)}
             className="bg-app-card2 border border-app-border text-app-text rounded-xl px-3 py-1.5 text-[13px] cursor-pointer outline-none">
-            <option value="recent">🕐 Recent</option>
-            <option value="coins">🪙 Most Coins</option>
-            <option value="collected">🔖 Most Saved</option>
+            <option value="recent">{ui.sortRecent}</option>
+            <option value="coins">{ui.sortCoins}</option>
+            <option value="collected">{ui.sortSaved}</option>
           </select>
         </div>
       )}
@@ -458,16 +462,16 @@ export default function BhoolBazaarTab({ profile, addXp }) {
 
       {/* Empty states */}
       {!loading && activeTab === 'feed'  && feedCards.length  === 0 && (
-        <EmptyState icon="🌐" title="Bazaar is empty" subtitle="Be the first to publish a mistake!" />
+        <EmptyState icon="🌐" title={ui.bazaarEmpty} subtitle={ui.bazaarEmpty} />
       )}
       {!loading && activeTab === 'mine'  && myCards.length    === 0 && (
-        <EmptyState icon="📋" title="No bhool cards yet" subtitle='Tap "+ New Bhool" to save your first mistake.' />
+        <EmptyState icon="📋" title={ui.noBhoolCards} subtitle={ui.tapNewBhool} />
       )}
       {!loading && activeTab === 'saved' && savedCards.length === 0 && (
-        <EmptyState icon="🔖" title="Nothing saved yet" subtitle="Visit the Bazaar and collect cards from other students." />
+        <EmptyState icon="🔖" title={ui.nothingSaved} subtitle={ui.visitBazaarCollect} />
       )}
       {!loading && activeTab === 'top'   && topCards.length   === 0 && (
-        <EmptyState icon="🏆" title="No top cards this week" subtitle="More students need to publish their mistakes!" />
+        <EmptyState icon="🏆" title={ui.noTopCardsWeek} subtitle={ui.moreStudentsNeeded} />
       )}
 
       {/* Cards */}
@@ -476,6 +480,7 @@ export default function BhoolBazaarTab({ profile, addXp }) {
           key={card.id} card={card}
           onCollect={handleCollect}
           onReact={handleReact}
+          ui={ui}
           lang={profile.language}
         />
       ))}
@@ -485,6 +490,7 @@ export default function BhoolBazaarTab({ profile, addXp }) {
           key={card.id} card={card} isMine
           onPublish={handlePublish}
           onDelete={handleDelete}
+          ui={ui}
           lang={profile.language}
         />
       ))}
@@ -493,28 +499,30 @@ export default function BhoolBazaarTab({ profile, addXp }) {
         <MistakeCard
           key={card.id} card={card}
           onCollect={() => {}} onReact={handleReact}
+          ui={ui}
           lang={profile.language}
         />
       ))}
 
-      {activeTab === 'top' && <TopList cards={topCards} />}
+      {activeTab === 'top' && <TopList cards={topCards} ui={ui} />}
 
       {/* Load more */}
       {activeTab === 'feed' && hasMore && !loading && feedCards.length > 0 && (
         <button onClick={() => loadFeed(false)}
           className="w-full mt-2 bg-app-card2 border border-app-border text-app-text rounded-2xl py-3 text-sm cursor-pointer hover:bg-white/[0.04] active:scale-[0.99] transition-all">
-          Load More
+          {ui.loadMore}
         </button>
       )}
 
       {loading && (
-        <div className="text-center text-app-muted py-6 text-sm">Loading…</div>
+        <div className="text-center text-app-muted py-6 text-sm">{ui.loading}</div>
       )}
 
       {/* Modals */}
       {showAddModal && (
         <AddBhoolModal
           profile={profile}
+          ui={ui}
           onClose={() => setShowAddModal(false)}
           onSaved={() => {
             setShowAddModal(false)
@@ -526,6 +534,7 @@ export default function BhoolBazaarTab({ profile, addXp }) {
       {publishCard && (
         <PublishConfirmModal
           card={publishCard}
+          ui={ui}
           onClose={() => setPublishCard(null)}
           onPublished={onPublished}
         />
@@ -546,7 +555,7 @@ function EmptyState({ icon, title, subtitle }) {
 }
 
 // ── Top Cards leaderboard ──────────────────────────────────────
-function TopList({ cards }) {
+function TopList({ cards, ui }) {
   // Group by subject
   const bySubject = {}
   for (const c of cards) {
@@ -569,7 +578,7 @@ function TopList({ cards }) {
               </span>
               <div className="flex-1 min-w-0">
                 <p className="text-app-text text-[13px] m-0 mb-1 font-semibold">{c.question}</p>
-                <p className="text-app-muted text-[12px] m-0">by {c.author_name} · 🔖 {c.collect_count} saved · <BhoolCoins count={c.bhool_coins || 0} /></p>
+                <p className="text-app-muted text-[12px] m-0">{ui.byAuthor} {c.author_name} · 🔖 {c.collect_count} {ui.savedCount} · <BhoolCoins count={c.bhool_coins || 0} /></p>
               </div>
             </div>
           ))}
