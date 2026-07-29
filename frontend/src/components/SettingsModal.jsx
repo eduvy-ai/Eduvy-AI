@@ -84,7 +84,7 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
   return (
     <>
     <div className="fixed inset-0 bg-black/75 z-[999] flex items-end justify-center" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="w-full max-w-[480px] bg-[#0e0e20] rounded-t-[20px] border border-app-border max-h-[92vh] overflow-y-auto pb-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+      <div className="w-full max-w-[480px] bg-[#0e0e20] rounded-t-[20px] border border-app-border max-h-[92dvh] overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         {/* Handle */}
         <div className="flex justify-center py-3 pb-1">
           <div className="w-9 h-1 rounded-sm bg-white/10" />

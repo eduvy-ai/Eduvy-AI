@@ -237,7 +237,7 @@ function QuizScreen({ battle, onDone, userId }) {
     const waiting = result.status === 'waiting_for_opponent'
 
     return (
-      <div className="fixed inset-0 bg-app-bg z-[100] flex items-center justify-center p-5 flex-col overflow-y-auto">
+      <div className="fixed inset-0 bg-app-bg z-[200] flex items-center justify-center p-5 flex-col overflow-y-auto">
         <div className="bg-app-card rounded-3xl px-6 py-8 max-w-[420px] w-full text-center">
           {waiting ? (
             <>
@@ -310,7 +310,7 @@ function QuizScreen({ battle, onDone, userId }) {
 
   if (submitting) {
     return (
-      <div className="fixed inset-0 bg-app-bg z-[100] flex items-center justify-center flex-col">
+      <div className="fixed inset-0 bg-app-bg z-[200] flex items-center justify-center flex-col">
         <div className="text-[48px] mb-4">⚡</div>
         <p className="text-app-text text-base">Submitting your answers…</p>
         {err && <p className="text-app-red text-sm">{err}</p>}
@@ -321,7 +321,7 @@ function QuizScreen({ battle, onDone, userId }) {
   // Question screen
   const progress = ((current) / questions.length) * 100
   return (
-    <div className="fixed inset-0 bg-app-bg z-[100] flex flex-col px-4 py-5 max-w-[600px] mx-auto overflow-y-auto">
+    <div className="fixed inset-0 bg-app-bg z-[200] flex flex-col px-4 py-5 max-w-[600px] mx-auto overflow-y-auto">
       {/* Header */}
       <div className="mb-5">
         <div className="flex justify-between mb-2">
@@ -647,7 +647,7 @@ export default function MuqablaTab({ profile, userId }) {
       )}
 
       {quizBattle?.showResultsOnly && (
-        <div className="fixed inset-0 bg-app-bg z-[100] flex items-center justify-center p-5 flex-col overflow-y-auto">
+        <div className="fixed inset-0 bg-app-bg z-[200] flex items-center justify-center p-5 flex-col overflow-y-auto">
           <div className="bg-app-card rounded-3xl px-6 py-8 max-w-[420px] w-full text-center">
             <div className="text-[48px] mb-3">
               {quizBattle.winner_id === myId ? '🏆' : quizBattle.winner_id === 'draw' ? '🤝' : '💪'}

@@ -88,7 +88,7 @@ export default function AuthScreen({ onAuth }) {
   }
 
   return (
-    <div className="min-h-screen bg-app-bg flex items-center justify-center p-4 font-sans">
+    <div className="min-h-screen bg-app-bg flex items-start justify-center overflow-y-auto p-4 pt-8 font-sans">
       <div className="w-full max-w-[420px]">
         {/* Logo */}
         <div className="text-center mb-8">

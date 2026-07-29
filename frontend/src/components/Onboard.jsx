@@ -151,7 +151,7 @@ export default function Onboard({ onComplete }) {
   const ui = li(language)
 
   return (
-    <div className="w-full max-w-[480px] min-h-screen bg-app-bg flex flex-col">
+    <div className="w-full max-w-[480px] mx-auto min-h-screen bg-app-bg flex flex-col">
       {/* Progress bar */}
       <div className="h-[3px] bg-white/10 w-full">
         <div 

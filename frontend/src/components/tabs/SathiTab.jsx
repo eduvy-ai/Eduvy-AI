@@ -1032,14 +1032,14 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
   // ---------------------------------------------------------
   // RENDER: loading
   if (loading) return (
-    <div className="tab-content flex items-center justify-center min-h-[300px]">
+    <div className="flex items-center justify-center min-h-[300px]">
       <div className="w-9 h-9 border-[3px] border-app-green border-t-transparent rounded-full animate-spin" />
     </div>
   )
 
   // RENDER: no squad
   if (!squad) return (
-    <div className="tab-content">
+    <div className="overflow-y-auto">
       <NoSquadScreen onMatch={handleMatch} matching={matching} />
     </div>
   )
@@ -1048,7 +1048,7 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
   const memberMap = Object.fromEntries(members.map(m => [m.user_id, m]))
 
   return (
-    <div className="tab-content flex flex-col h-full p-0">
+    <div className="flex flex-col h-full min-h-0">
 
       {/* -- Header -- */}
       <div className="px-4 py-2.5 border-b border-app-border bg-app-card flex items-center justify-between flex-shrink-0">

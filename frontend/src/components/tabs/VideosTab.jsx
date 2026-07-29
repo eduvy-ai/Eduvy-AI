@@ -2209,7 +2209,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
         </div>
       </div>
 
-      <div style={{ flex:1, overflowY:'auto' }}>
+      <div style={{ flex:1, overflowY:'auto', paddingBottom:16 }}>
 
         {/* Loading � Golpo-style pipeline progress */}
         {loading && (() => {

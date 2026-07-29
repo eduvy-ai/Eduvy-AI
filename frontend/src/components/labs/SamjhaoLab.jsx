@@ -66,7 +66,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
   }
 
   if (phase === "setup") return (
-    <div className="flex flex-col min-h-full">
+    <div className="flex flex-col h-full min-h-0">
       <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
         <button onClick={onBack} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Back</button>
         <div>
@@ -74,7 +74,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
           <div className="text-[11px] text-app-muted">Feynman Technique Score</div>
         </div>
       </div>
-      <div className="p-4 flex-1">
+      <div className="p-4 pb-6 flex-1 overflow-y-auto">
         <div className="bg-app-blue/[0.05] border border-app-blue/20 rounded-2xl p-4 mb-5">
           <div className="text-sm font-extrabold text-app-blue mb-2">The Feynman Technique</div>
           <div className="text-[13px] text-app-text leading-[1.7]">
@@ -124,7 +124,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
   )
 
   if (phase === "explain") return (
-    <div className="flex flex-col min-h-full">
+    <div className="flex flex-col h-full min-h-0">
       <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
         <button onClick={reset} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Back</button>
         <div>
@@ -132,7 +132,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
           <div className="text-[11px] text-app-muted">{concept}</div>
         </div>
       </div>
-      <div className="p-4 flex-1">
+      <div className="p-4 pb-6 flex-1 overflow-y-auto">
         <div className="bg-app-blue/[0.05] border border-app-blue/25 rounded-2xl p-4 mb-4">
           <div className="text-sm font-bold text-app-blue mb-1.5">
             📢 Explain: <span className="text-app-text">{concept}</span>
@@ -166,12 +166,12 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
     const overall = score?.overall ?? 0
     const overallColor = overall >= 75 ? "#00E5A0" : overall >= 50 ? "#FFD166" : "#FF6B6B"
     return (
-      <div className="flex flex-col min-h-full">
+      <div className="flex flex-col h-full min-h-0">
         <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
           <button onClick={reset} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Try Again</button>
           <div className="font-extrabold text-base text-app-text">🔬 Feynman Score</div>
         </div>
-        <div className="p-4 flex-1 overflow-y-auto">
+        <div className="p-4 pb-6 flex-1 overflow-y-auto">
           <div className="text-center py-5">
             <div className="inline-flex flex-col items-center rounded-3xl px-7 py-4 border-2"
               style={{ background: `${overallColor}12`, borderColor: `${overallColor}50` }}>

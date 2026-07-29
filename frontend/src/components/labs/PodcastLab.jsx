@@ -181,14 +181,14 @@ export default function PodcastLab({ profile, addXp, docCtx, docName, onBack }) 
   const hostColor = h => h === "Priya" ? "#FF6B35" : "#7B9CFF"
 
   return (
-    <div className="flex flex-col min-h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Header */}
       <div className="bg-app-card border-b border-app-border px-4 py-3 flex items-center gap-2.5 shrink-0">
         <button onClick={onBack} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">? Back</button>
         <span className="text-[15px] font-extrabold text-app-text">??? AI Podcast Studio</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 pb-6">
         {!episode && (
           <>
             <div className="mb-3.5">

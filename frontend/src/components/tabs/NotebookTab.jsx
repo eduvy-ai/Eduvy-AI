@@ -791,7 +791,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
           <button
             key={t.key}
             onClick={() => setView(t.key)}
-            className={`bg-transparent border-none py-1.5 px-3.5 pb-2 text-[13px] cursor-pointer font-[Sora,sans-serif] shrink-0 border-b-2 ${
+            className={`bg-transparent border-none py-2.5 px-3.5 pb-2.5 text-[13px] cursor-pointer font-[Sora,sans-serif] shrink-0 border-b-2 ${
               view === t.key
                 ? 'border-app-green font-bold text-app-green'
                 : 'border-transparent font-medium text-app-muted'

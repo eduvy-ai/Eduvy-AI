@@ -44,14 +44,14 @@ export default function EssayLab({ profile, addXp, onBack }) {
   }
 
   return (
-    <div className="flex flex-col min-h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Header */}
       <div className="bg-app-card border-b border-app-border px-4 py-3 flex items-center gap-2.5 shrink-0">
         <button onClick={onBack} className="bg-transparent border-none text-app-muted text-[13px] cursor-pointer p-0">← Back</button>
         <span className="text-[15px] font-extrabold text-app-text">✍️ Essay Grader</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 pb-6">
         {/* Writing type tabs */}
         <div className="flex bg-app-card rounded-xl p-1 mb-4 border border-app-border gap-0.5">
           {TYPES.map(t => (
