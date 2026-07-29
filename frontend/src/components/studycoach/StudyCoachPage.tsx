@@ -40,7 +40,7 @@ export default function StudyCoachPage() {
   }, [clear])
 
   return (
-    <div className="bg-app-bg text-app-text p-4 md:p-6">
+    <div className="bg-app-bg text-app-text p-4 pb-20 md:p-6 md:pb-20">
       <div className="max-w-4xl mx-auto space-y-5">
         {/* Header */}
         <header className="text-center space-y-1">

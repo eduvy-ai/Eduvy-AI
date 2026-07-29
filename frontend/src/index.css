@@ -190,6 +190,7 @@ input, textarea, select { outline: none; border: none; }
   width: 100%;
   height: 100vh;
   height: 100dvh; /* dvh accounts for iOS Safari browser chrome */
+  height: var(--app-height, 100dvh); /* JS-measured height for Android WebView */
   display: flex;
   flex-direction: column;
   background: #04040e;
@@ -263,6 +264,7 @@ input, textarea, select { outline: none; border: none; }
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
   scroll-behavior: smooth;
+  scroll-padding-bottom: 80px;
   scrollbar-width: none;
 }
 .tab-content::-webkit-scrollbar { display: none; }
@@ -283,6 +285,7 @@ input, textarea, select { outline: none; border: none; }
     flex-direction: row;
     height: 100vh;
     height: 100dvh;
+    height: var(--app-height, 100dvh);
   }
 
   /* Hide bottom nav, show sidebar */

@@ -51,6 +51,16 @@ if (Capacitor.isNativePlatform()) {
   }).catch(() => {})
 }
 
+// ── Viewport height fix for Android WebView ──────────────────
+// On Android (especially gesture-nav devices), 100vh can over-report
+// by ~48px. This sets a CSS variable to the actual visible height.
+function setAppHeight() {
+  document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`)
+}
+setAppHeight()
+window.addEventListener('resize', setAppHeight)
+window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 100))
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Provider store={store}>

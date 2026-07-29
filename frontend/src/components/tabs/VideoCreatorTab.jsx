@@ -267,7 +267,7 @@ export default function VideoCreatorTab({ profile = null }) {
   // ────────────────────────────────────────────────────────────
 
   return (
-    <div className="bg-app-bg px-4 md:px-6 lg:px-8 py-6">
+    <div className="bg-app-bg px-4 md:px-6 lg:px-8 py-6 pb-20">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

@@ -782,7 +782,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
     <div className="flex flex-col h-full min-h-0">
 
       {/* ── Top sub-nav ── */}
-      <div className="flex bg-app-card border-b border-app-border py-2 px-3 md:px-5 pb-0 gap-1 shrink-0">
+      <div className="flex bg-app-card border-b border-app-border py-2 px-3 md:px-5 pb-0 gap-1 shrink-0 overflow-x-auto min-h-[40px]">
         {[
           { key: "sources", icon: "📚", label: `${ui.sourcesTab} (${sources.length})` },
           { key: "chat",    icon: "💬", label: ui.chatTab    },
