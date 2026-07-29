@@ -959,8 +959,19 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                               setAddOpen(false)
                               setValidating(false)
                             }
+                          } else {
+                            // Web fallback: trigger file input with camera capture
+                            const input = document.createElement('input')
+                            input.type = 'file'
+                            input.accept = 'image/*'
+                            input.capture = 'environment'
+                            input.onchange = (e) => handleFile(e)
+                            input.click()
                           }
-                        } catch {}
+                        } catch (err) {
+                          setValidationError('Camera not available. Please use the file upload instead.')
+                          setValidating(false)
+                        }
                       }}
                       className="w-full bg-app-blue/10 border border-app-blue/30 text-app-blue text-[13px] font-bold rounded-xl py-3 cursor-pointer hover:bg-app-blue/20 transition-colors"
                     >

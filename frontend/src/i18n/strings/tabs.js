@@ -118,9 +118,9 @@ export const TABS = {
     Urdu:     "🔍 دریافت",
   },
 
-  // Brand tabs — brand names are NOT translated (project rule #14)
+  // Brand tabs — show descriptive English labels, keep brand names in Indian languages
   sathiTab: {
-    English:  "🤝 Sathi",
+    English:  "🤝 Study Squads",
     Hindi:    "🤝 साथी",
     Gujarati: "🤝 સાથી",
     Marathi:  "🤝 साथी",
@@ -134,7 +134,7 @@ export const TABS = {
   },
 
   bhoolTab: {
-    English:  "📛 Bhool",
+    English:  "📛 Mistakes",
     Hindi:    "📛 भूल",
     Gujarati: "📛 ભૂલ",
     Marathi:  "📛 चुका",
@@ -148,7 +148,7 @@ export const TABS = {
   },
 
   muqablaTab: {
-    English:  "⚔️ Muqabla",
+    English:  "⚔️ Battles",
     Hindi:    "⚔️ मुक़ाबला",
     Gujarati: "⚔️ મુકાબલો",
     Marathi:  "⚔️ स्पर्धा",

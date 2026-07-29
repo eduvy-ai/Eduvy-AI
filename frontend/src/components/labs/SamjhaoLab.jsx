@@ -70,7 +70,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
       <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
         <button onClick={onBack} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Back</button>
         <div>
-          <div className="font-extrabold text-base text-app-text">🧪 Samjhao Mode</div>
+          <div className="font-extrabold text-base text-app-text">🧪 Explain Mode</div>
           <div className="text-[11px] text-app-muted">Feynman Technique Score</div>
         </div>
       </div>
@@ -128,7 +128,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
       <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
         <button onClick={reset} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Back</button>
         <div>
-          <div className="font-extrabold text-base text-app-text">🧪 Samjhao Mode</div>
+          <div className="font-extrabold text-base text-app-text">🧪 Explain Mode</div>
           <div className="text-[11px] text-app-muted">{concept}</div>
         </div>
       </div>

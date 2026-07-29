@@ -415,7 +415,7 @@ export default function BhoolBazaarTab({ profile, addXp }) {
       <div className="mb-5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-app-text m-0 text-[22px] font-extrabold">📛 Bhool Bazaar</h1>
+            <h1 className="text-app-text m-0 text-[22px] font-extrabold">📛 Mistake Cards</h1>
             <p className="text-app-muted text-[13px] mt-1 mb-0">Turn mistakes into learning assets</p>
           </div>
           <button onClick={() => setShowAddModal(true)}

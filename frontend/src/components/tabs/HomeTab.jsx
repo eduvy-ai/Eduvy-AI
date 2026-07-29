@@ -454,7 +454,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
 
       {/* ── Bhool Curve Memory Health ─────────────────────── */}
       {bhoolDue > 0 && (
-        <Section title={`🧠 ${ui.memoryHealth || 'Memory Health — Bhool Curve'}`}>
+        <Section title={`🧠 ${ui.memoryHealth || 'Memory Health — Spaced Review'}`}>
           <p className="text-xs text-app-muted mb-3">
             {ui.basedOnScience || 'Based on spaced repetition science — these concepts need review before you forget them'}
           </p>
@@ -695,21 +695,21 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
                 {lastTab === 'notebook' && '📖'}
                 {lastTab === 'videos' && '🎬'}
                 {lastTab === 'labs' && '🧪'}
-                {lastTab === 'sathi' && '👥'}
-                {lastTab === 'bhool' && '🧠'}
-                {lastTab === 'muqabla' && '⚔️'}
-                {!['notebook','videos','labs','sathi','bhool','muqabla'].includes(lastTab) && '📌'}
+                {lastTab === 'squads' && '👥'}
+                {lastTab === 'mistakes' && '🧠'}
+                {lastTab === 'battles' && '⚔️'}
+                {!['notebook','videos','labs','squads','mistakes','battles'].includes(lastTab) && '📌'}
               </span>
               <div>
                 <div className="text-[13px] font-bold text-app-text">
                   {lastTab === 'notebook' && (ui.notebookTab?.replace(/^📓\s*/, '') || 'Notebook')}
                   {lastTab === 'videos' && (ui.videosTab?.replace(/^🎬\s*/, '') || 'Videos')}
                   {lastTab === 'labs' && (ui.labsTab?.replace(/^🧪\s*/, '') || 'Labs')}
-                  {lastTab === 'sathi' && (ui.sathiTab?.replace(/^🤝\s*/, '') || 'Companion')}
-                  {lastTab === 'bhool' && (ui.bhoolTab?.replace(/^📛\s*/, '') || 'Mistakes')}
-                  {lastTab === 'muqabla' && (ui.muqablaTab?.replace(/^⚔️\s*/, '') || 'Battle')}
+                  {lastTab === 'squads' && (ui.sathiTab?.replace(/^🤝\s*/, '') || 'Study Squads')}
+                  {lastTab === 'mistakes' && (ui.bhoolTab?.replace(/^📛\s*/, '') || 'Mistakes')}
+                  {lastTab === 'battles' && (ui.muqablaTab?.replace(/^⚔️\s*/, '') || 'Battles')}
                   {lastTab === 'learntv' && (ui.learntvTab?.replace(/^📺\s*/, '') || 'Learn TV')}
-                  {!['notebook','videos','labs','sathi','bhool','muqabla','learntv'].includes(lastTab) && lastTab}
+                  {!['notebook','videos','labs','squads','mistakes','battles','learntv'].includes(lastTab) && lastTab}
                 </div>
                 <div className="text-[11px] text-app-muted">{ui.pickUpWhereLeftOff || 'Pick up where you left off'}</div>
               </div>
@@ -726,7 +726,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
             {pendingBattles.slice(0, 3).map((battle, i) => (
               <button
                 key={battle.id || i}
-                onClick={() => setTab('muqabla')}
+                onClick={() => setTab('battles')}
                 className="w-full rounded-xl py-3 px-3.5 flex items-center gap-3 cursor-pointer font-[Sora,sans-serif] text-left border bg-app-red/10 border-app-red/30"
               >
                 <span className="text-lg">⚔️</span>
@@ -749,7 +749,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
       {mySquad && (
         <Section title={`👥 ${ui.yourSquad || 'Your Squad'}`}>
           <button
-            onClick={() => setTab('sathi')}
+            onClick={() => setTab('squads')}
             className="w-full rounded-[14px] py-3.5 px-4 flex items-center justify-between cursor-pointer font-[Sora,sans-serif] border bg-gradient-to-r from-app-green/10 to-app-blue/10 border-app-green/30 hover:border-app-green/50 transition-colors"
           >
             <div className="flex items-center gap-3">

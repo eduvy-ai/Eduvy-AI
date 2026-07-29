@@ -552,7 +552,7 @@ export default function MuqablaTab({ profile, userId }) {
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-app-text m-0 text-[22px] font-extrabold">⚔️ Muqabla</h1>
+          <h1 className="text-app-text m-0 text-[22px] font-extrabold">⚔️ Battle Arena</h1>
           <p className="text-app-muted text-[13px] mt-1 mb-0">Student vs Student Battles</p>
         </div>
         {view === 'arena' && (

@@ -260,10 +260,10 @@ export default function ParentDashboard() {
           </Card>
         )}
 
-        {/* ── Bhool + Muqabla stats side by side ── */}
+        {/* ── Mistakes + Battles stats side by side ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Card>
-            <SectionTitle icon="📛" title="Bhool Bazaar" />
+            <SectionTitle icon="📛" title="Mistake Cards" />
             <div className="flex flex-col gap-2">
               <div className="flex justify-between">
                 <span className="text-app-muted text-[13px]">Cards saved</span>
@@ -285,7 +285,7 @@ export default function ParentDashboard() {
           </Card>
 
           <Card>
-            <SectionTitle icon="⚔️" title="Muqabla" />
+            <SectionTitle icon="⚔️" title="Battles" />
             <div className="flex flex-col gap-2">
               <div className="flex justify-between">
                 <span className="text-app-muted text-[13px]">Battles</span>

@@ -19,9 +19,9 @@ const ALL_NAV_ITEMS: { key: TabKey; labelKey: string }[] = [
   { key: 'notebook', labelKey: 'notebookTab' },
   { key: 'videos', labelKey: 'videosTab' },
   { key: 'learntv', labelKey: 'learntvTab' },
-  { key: 'sathi', labelKey: 'sathiTab' },
-  { key: 'bhool', labelKey: 'bhoolTab' },
-  { key: 'muqabla', labelKey: 'muqablaTab' },
+  { key: 'squads', labelKey: 'sathiTab' },
+  { key: 'mistakes', labelKey: 'bhoolTab' },
+  { key: 'battles', labelKey: 'muqablaTab' },
   { key: 'labs', labelKey: 'labsTab' },
   { key: 'videocreator', labelKey: 'videoCreatorTab' },
 ]

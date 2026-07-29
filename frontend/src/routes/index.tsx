@@ -94,9 +94,9 @@ const AppRoutes: React.FC = () => {
           <Route path="notebook" element={<NotebookPage />} />
           <Route path="videos" element={<VideosPage />} />
           <Route path="learntv" element={<LearnTVPage />} />
-          <Route path="sathi" element={<SathiPage />} />
-          <Route path="bhool" element={<BhoolPage />} />
-          <Route path="muqabla" element={<MuqablaPage />} />
+          <Route path="squads" element={<SathiPage />} />
+          <Route path="mistakes" element={<BhoolPage />} />
+          <Route path="battles" element={<MuqablaPage />} />
           <Route path="labs" element={<LabsPage />} />
           <Route path="videocreator" element={<VideoCreatorPage />} />
           <Route path="coach" element={<StudyCoachPage />} />
