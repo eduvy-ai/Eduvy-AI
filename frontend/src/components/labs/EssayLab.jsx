@@ -51,7 +51,7 @@ export default function EssayLab({ profile, addXp, onBack }) {
         <span className="text-[15px] font-extrabold text-app-text">✍️ Essay Grader</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 pb-6">
+      <div className="flex-1 overflow-y-auto p-4 pb-20">
         {/* Writing type tabs */}
         <div className="flex bg-app-card rounded-xl p-1 mb-4 border border-app-border gap-0.5">
           {TYPES.map(t => (

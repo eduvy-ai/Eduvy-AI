@@ -398,7 +398,7 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
         </div>
       ) : (
         <>
-          <div className="flex-1 overflow-y-auto px-4 py-5">
+          <div className="flex-1 overflow-y-auto px-4 py-5 pb-20">
             <div className="text-[12px] font-bold text-app-muted mb-2 tracking-[0.04em]">YOUR DOUBT</div>
             <textarea
               value={newQ}
@@ -451,7 +451,7 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
       </div>
 
       {/* Answers list */}
-      <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col gap-2.5">
+      <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col gap-2.5 pb-20">
         {answers.length === 0 ? (
           <div className="text-center px-5 py-10">
             <div className="text-[40px] mb-2.5">??</div>
@@ -560,7 +560,7 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto px-3 py-2.5">
+      <div className="flex-1 overflow-y-auto px-3 py-2.5 pb-20">
         {loading ? (
           <div className="text-center mt-[60px]">
             <div className="w-8 h-8 border-[3px] border-app-blue border-t-transparent rounded-full animate-spin mx-auto" />
@@ -687,7 +687,7 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
   const v = verdict ? DAILY_VERDICT[verdict.verdict] : null
 
   return (
-    <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-4 pb-6">
+    <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-4 pb-20">
       {/* Header */}
       <div className="bg-app-yellow/[0.06] border border-app-yellow/20 rounded-2xl px-4 py-3.5 mb-4">
         <div className="text-[11px] font-extrabold text-app-yellow tracking-[0.06em] mb-1.5">?? DAILY CONCEPT � {today.toUpperCase()}</div>
@@ -1094,7 +1094,7 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
         {/* CHAT */}
         {activePanel === 'chat' && (
           <>
-            <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col">
+            <div className="flex-1 overflow-y-auto px-3.5 py-3 pb-4 flex flex-col">
               {messages.length === 0 && (
         <div className="text-center text-app-muted text-[13px] mt-10">
                   <div className="text-[40px] mb-2.5">??</div>
@@ -1117,8 +1117,8 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
                 <div className="text-[10.5px] text-app-muted mt-1">Squad's been quiet � Owl can spark discussion</div>
               </div>
             )}
-            <form onSubmit={sendMessage} className="px-3 pb-3 pt-2.5 border-t border-app-border flex gap-2 flex-shrink-0 bg-app-bg">
-              <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} placeholder="Message your squad�"
+            <form onSubmit={sendMessage} className="px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2.5 border-t border-app-border flex gap-2 flex-shrink-0 bg-app-bg">
+              <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} placeholder="Message your squad…"
                 className="flex-1 bg-app-card border border-app-border rounded-[14px] px-3.5 py-2.5 text-app-text text-[14px] outline-none" />
               <button type="button" onClick={async () => {
                 try {

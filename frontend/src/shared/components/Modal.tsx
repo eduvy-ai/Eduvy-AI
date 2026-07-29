@@ -52,7 +52,7 @@ const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
@@ -61,7 +61,7 @@ const Modal: React.FC<ModalProps> = ({
 
       {/* Modal Content */}
       <div
-        className={`relative bg-app-card rounded-2xl border border-app-border w-full ${sizeClasses[size]} max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200`}
+        className={`relative bg-app-card rounded-2xl border border-app-border w-full ${sizeClasses[size]} max-h-[85dvh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200`}
       >
         {/* Header */}
         {(title || showCloseButton) && (
