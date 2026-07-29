@@ -175,11 +175,21 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                       )}
                     </div>
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         const shareText = `Join VidyAI — AI tutor in your language! Use my code ${referral.code} to get +200 XP bonus. ${window.location.origin}`
-                        if (navigator.share) {
-                          navigator.share({ title: 'Join VidyAI', text: shareText }).catch(() => {})
-                        } else {
+                        try {
+                          const { Capacitor } = await import('@capacitor/core')
+                          if (Capacitor.isNativePlatform()) {
+                            const { Share } = await import('@capacitor/share')
+                            await Share.share({ title: 'Join VidyAI', text: shareText })
+                          } else if (navigator.share) {
+                            await navigator.share({ title: 'Join VidyAI', text: shareText })
+                          } else {
+                            navigator.clipboard?.writeText(shareText)
+                            setRefCopied(true)
+                            setTimeout(() => setRefCopied(false), 2000)
+                          }
+                        } catch {
                           navigator.clipboard?.writeText(shareText)
                           setRefCopied(true)
                           setTimeout(() => setRefCopied(false), 2000)

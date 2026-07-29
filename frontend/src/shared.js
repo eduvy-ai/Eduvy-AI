@@ -91,17 +91,31 @@ export function isSpeaking() {
 }
 
 /**
- * Start voice input and return a promise that resolves with the transcript string.
- * Rejects with an Error if the browser doesn't support speech recognition
- * or if the user denies microphone access.
+ * Start voice input using native speech recognition (Capacitor) or Web Speech API fallback.
  * @param {string} langCode - BCP-47 e.g. 'hi-IN'
  * @returns {Promise<string>}
  */
-export function startVoiceInput(langCode = 'en-IN') {
+export async function startVoiceInput(langCode = 'en-IN') {
+  try {
+    const { SpeechRecognition } = await import('@capacitor-community/speech-recognition')
+    const { available } = await SpeechRecognition.available()
+    if (available) {
+      await SpeechRecognition.requestPermissions()
+      const result = await SpeechRecognition.start({ language: langCode, popup: false, partialResults: false })
+      await SpeechRecognition.stop()
+      const text = result?.matches?.[0] || ''
+      if (!text) throw new Error('No speech detected')
+      return text
+    }
+  } catch (e) {
+    if (e?.message === 'No speech detected') throw e
+    // Fall through to web fallback
+  }
+  // Web Speech API fallback
   return new Promise((resolve, reject) => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SR) {
-      reject(new Error('Voice input is not supported in this browser'))
+      reject(new Error('Voice input is not supported'))
       return
     }
     const rec = new SR()

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { callAI, checkStudentQuery } from '../../shared.js'
+import { callAI, checkStudentQuery, startVoiceInput, LANG_TO_SPEECH_CODE } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import { getStarters, getDisplayLang } from '../../shared.js'
 import { getDeviceId, apiGetSession, apiSaveToSession } from '../../api.js'
@@ -123,6 +123,16 @@ export default function MentalLab({ profile, addXp, onBack }) {
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === "Enter" && sendMessage()}
         />
+        <button
+          onClick={async () => {
+            try {
+              const text = await startVoiceInput(LANG_TO_SPEECH_CODE[profile?.language] || 'en-IN')
+              if (text) setInput(prev => prev ? prev + ' ' + text : text)
+            } catch {}
+          }}
+          className="mic-btn shrink-0"
+          title="Voice input"
+        >🎤</button>
         <button
           onClick={() => sendMessage()}
           disabled={loading || !input.trim()}

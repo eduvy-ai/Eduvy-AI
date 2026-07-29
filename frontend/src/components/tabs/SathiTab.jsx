@@ -1120,6 +1120,13 @@ You are Gyaani, a confused but curious Class ${(profile?.standard || 'Class 10')
             <form onSubmit={sendMessage} className="px-3 pb-3 pt-2.5 border-t border-app-border flex gap-2 flex-shrink-0 bg-app-bg">
               <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} placeholder="Message your squad…"
                 className="flex-1 bg-app-card border border-app-border rounded-[14px] px-3.5 py-2.5 text-app-text text-[14px] outline-none" />
+              <button type="button" onClick={async () => {
+                try {
+                  const { startVoiceInput, LANG_TO_SPEECH_CODE } = await import('../../shared.js')
+                  const text = await startVoiceInput(LANG_TO_SPEECH_CODE[profile?.language] || 'en-IN')
+                  if (text) setInput(prev => prev ? prev + ' ' + text : text)
+                } catch {}
+              }} className="mic-btn shrink-0">🎤</button>
               <button type="submit" disabled={!input.trim() || sending}
                 className="border-none rounded-[14px] px-4 text-[18px] font-black flex-shrink-0"
                 style={{ background: input.trim() ? `linear-gradient(135deg,#00E5A0,#33cc88)` : '#0b0b1c', color: input.trim() ? '#04040e' : '#6868a0', cursor: input.trim() ? 'pointer' : 'default' }}>➤</button>

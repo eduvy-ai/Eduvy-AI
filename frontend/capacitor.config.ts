@@ -12,6 +12,14 @@ const config: CapacitorConfig = {
     CapacitorHttp: {
       enabled: true,
     },
+    StatusBar: {
+      backgroundColor: '#04040e',
+      style: 'DARK',
+    },
+    SplashScreen: {
+      launchAutoHide: true,
+      androidScaleType: 'CENTER_CROP',
+    },
   },
 };
 

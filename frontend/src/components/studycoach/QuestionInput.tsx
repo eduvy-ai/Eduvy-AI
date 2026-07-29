@@ -171,6 +171,20 @@ export default function QuestionInput({
           )}
         </div>
 
+        {/* Mic Button */}
+        <button
+          onClick={async () => {
+            try {
+              const { startVoiceInput } = await import('../../shared.js')
+              const text = await startVoiceInput('en-IN')
+              if (text) onChange(value ? value + ' ' + text : text)
+            } catch {}
+          }}
+          className="mic-btn shrink-0"
+          title="Voice input"
+          type="button"
+        >🎤</button>
+
         {/* Send Button */}
         <button
           onClick={onSubmit}

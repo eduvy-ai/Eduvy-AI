@@ -66,6 +66,10 @@ const DashboardLayout: React.FC = () => {
 
   const setTab = (key: TabKey) => {
     navigate(`/app/${key}`)
+    // Haptic feedback on tab switch (native only)
+    import('@capacitor/haptics').then(({ Haptics, ImpactStyle }) => {
+      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {})
+    }).catch(() => {})
   }
   
   const handleLogout = () => {

@@ -926,12 +926,47 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
 
                 {/* File tab */}
                 {addTab === "file" && (
-                  <label className="block bg-app-green/5 border-2 border-dashed border-app-green/40 rounded-xl py-6 px-4 text-center cursor-pointer">
-                    <div className="text-3xl mb-1.5">📂</div>
-                    <div className="text-[13px] text-app-green font-bold">{ui.tapToUpload}</div>
-                    <div className="text-[11px] text-app-muted mt-1">.txt .md .pdf .doc .docx .jpg .png</div>
-                    <input type="file" accept=".txt,.md,.pdf,.doc,.docx,.jpg,.jpeg,.png" className="hidden" onChange={handleFile} />
-                  </label>
+                  <div className="flex flex-col gap-2.5">
+                    <label className="block bg-app-green/5 border-2 border-dashed border-app-green/40 rounded-xl py-6 px-4 text-center cursor-pointer">
+                      <div className="text-3xl mb-1.5">📂</div>
+                      <div className="text-[13px] text-app-green font-bold">{ui.tapToUpload}</div>
+                      <div className="text-[11px] text-app-muted mt-1">.txt .md .pdf .doc .docx .jpg .png</div>
+                      <input type="file" accept=".txt,.md,.pdf,.doc,.docx,.jpg,.jpeg,.png" className="hidden" onChange={handleFile} />
+                    </label>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const { Capacitor } = await import('@capacitor/core')
+                          if (Capacitor.isNativePlatform()) {
+                            const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera')
+                            const photo = await Camera.getPhoto({
+                              resultType: CameraResultType.Base64,
+                              source: CameraSource.Camera,
+                              quality: 85,
+                            })
+                            if (photo.base64String) {
+                              setValidating(true)
+                              const mimeType = `image/${photo.format || 'jpeg'}`
+                              const visionResult = await apiExtractImageContent(photo.base64String, mimeType, '', lang)
+                              if (visionResult.content?.startsWith('⚠️') || !visionResult.is_educational) {
+                                setValidationError(ui.cantReadImage || 'Could not read this image')
+                                setValidating(false)
+                                return
+                              }
+                              const src = { id: newId(), name: `Photo_${Date.now()}.${photo.format || 'jpg'}`, type: 'file', content: visionResult.content || '', summary: visionResult.summary || '', icon: '🖼️', addedAt: Date.now() }
+                              setSources(p => [...p, src])
+                              apiSaveSource(userId, src).catch(() => {})
+                              setAddOpen(false)
+                              setValidating(false)
+                            }
+                          }
+                        } catch {}
+                      }}
+                      className="w-full bg-app-blue/10 border border-app-blue/30 text-app-blue text-[13px] font-bold rounded-xl py-3 cursor-pointer hover:bg-app-blue/20 transition-colors"
+                    >
+                      📷 Take Photo
+                    </button>
+                  </div>
                 )}
 
                 {/* Text tab */}
@@ -1071,6 +1106,16 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                 onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && sendChat()}
               />
+              <button
+                onClick={async () => {
+                  try {
+                    const { startVoiceInput, LANG_TO_SPEECH_CODE } = await import('../../shared.js')
+                    const text = await startVoiceInput(LANG_TO_SPEECH_CODE[profile?.language] || 'en-IN')
+                    if (text) setChatInput(prev => prev ? prev + ' ' + text : text)
+                  } catch {}
+                }}
+                className="mic-btn shrink-0"
+              >🎤</button>
               <button
                 onClick={sendChat}
                 disabled={chatLoading || !chatInput.trim()}
