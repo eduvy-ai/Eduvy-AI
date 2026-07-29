@@ -6,6 +6,7 @@ import { FC, useState, useRef, useEffect, useCallback } from 'react'
 import { KaraokeText } from './KaraokeText'
 import { BeatControls } from './BeatControls'
 import { studyCoachApi } from '../../modules/studycoach/api'
+import { fetchAudioBlobUrl } from '../../shared/utils/helpers'
 import type { TeacherAudioResponse, TeacherBeat, StudyCoachResponse } from '../../modules/studycoach/types'
 
 interface Props {
@@ -142,9 +143,20 @@ export const TeacherModePlayer: FC<Props> = ({
   // Update audio source when beat changes
   useEffect(() => {
     if (currentBeat && audioRef.current) {
-      audioRef.current.src = currentBeat.audio_url
-      audioRef.current.playbackRate = playbackSpeed
-      audioRef.current.load()
+      // Fetch audio as blob to bypass WebView cross-origin restrictions
+      fetchAudioBlobUrl(currentBeat.audio_url)
+        .then(blobUrl => {
+          if (audioRef.current) {
+            // Revoke previous blob URL to avoid memory leaks
+            if (audioRef.current.src.startsWith('blob:')) {
+              URL.revokeObjectURL(audioRef.current.src)
+            }
+            audioRef.current.src = blobUrl
+            audioRef.current.playbackRate = playbackSpeed
+            audioRef.current.load()
+          }
+        })
+        .catch(err => setError(`Failed to load audio: ${err.message}`))
     }
   }, [currentBeat?.id, playbackSpeed])
 
@@ -300,7 +312,6 @@ export const TeacherModePlayer: FC<Props> = ({
                 }}
                 onCanPlay={() => console.log('Audio ready:', currentBeat?.audio_url)}
                 preload="auto"
-                crossOrigin="anonymous"
               />
             </div>
           )}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { callAI, parseAIObject, checkStudentQuery } from '../../shared.js'
 import { getDeviceId, apiGetDraft, apiSaveDraft } from '../../api.js'
+import { Capacitor } from '@capacitor/core'
 
 const LANG_VOICE = {
   English:'en-IN', Hindi:'hi-IN', Gujarati:'gu-IN', Marathi:'mr-IN',
@@ -38,17 +39,60 @@ export default function PodcastLab({ profile, addXp, docCtx, docName, onBack }) 
   const [error, setError]           = useState("")
   const [autoPlaying, setAutoPlaying] = useState(false)
   const [isSpeaking, setIsSpeaking]   = useState(false)
-  const ttsOK = typeof window !== 'undefined' && 'speechSynthesis' in window
+  const ttsOK = typeof window !== 'undefined' && ('speechSynthesis' in window || Capacitor.isNativePlatform())
+
+  // Helper to cancel TTS on both native and web
+  const cancelTTS = () => {
+    if (Capacitor.isNativePlatform()) {
+      import('@capacitor-community/text-to-speech').then(({ TextToSpeech }) => TextToSpeech.stop()).catch(() => {})
+    } else if (window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+    }
+  }
 
   // Stop speech on unmount
-  useEffect(() => () => { if (ttsOK) window.speechSynthesis.cancel() }, [])
+  useEffect(() => () => {
+    if (Capacitor.isNativePlatform()) {
+      import('@capacitor-community/text-to-speech').then(({ TextToSpeech }) => TextToSpeech.stop()).catch(() => {})
+    } else if (window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+    }
+  }, [])
 
   // Auto-play: speak current exchange, then advance
   useEffect(() => {
     if (!autoPlaying || !episode || !ttsOK) return
     const ex = episode.exchanges[lineIdx]
     if (!ex) { setAutoPlaying(false); return }
-    const doSpeak = () => {
+
+    let cancelled = false
+
+    const doSpeakNative = async () => {
+      try {
+        const { TextToSpeech } = await import('@capacitor-community/text-to-speech')
+        await TextToSpeech.stop()
+        setIsSpeaking(true)
+        await TextToSpeech.speak({
+          text: ex.t,
+          lang: LANG_VOICE[profile.language] || 'en-IN',
+          rate: 0.9,
+          pitch: ex.h === 'Priya' ? 1.1 : 0.85,
+          volume: 1.0,
+        })
+        if (cancelled) return
+        setIsSpeaking(false)
+        if (lineIdx < episode.exchanges.length - 1) {
+          setLineIdx(i => i + 1)
+        } else {
+          setAutoPlaying(false)
+        }
+      } catch {
+        setIsSpeaking(false)
+        setAutoPlaying(false)
+      }
+    }
+
+    const doSpeakWeb = () => {
       window.speechSynthesis.cancel()
       const utter = new SpeechSynthesisUtterance(ex.t)
       const voice = pickVoice(profile.language)
@@ -68,12 +112,24 @@ export default function PodcastLab({ profile, addXp, docCtx, docName, onBack }) 
       utter.onerror = () => { setIsSpeaking(false); setAutoPlaying(false) }
       window.speechSynthesis.speak(utter)
     }
-    if (window.speechSynthesis.getVoices().length === 0) {
-      window.speechSynthesis.onvoiceschanged = doSpeak
+
+    if (Capacitor.isNativePlatform()) {
+      doSpeakNative()
     } else {
-      doSpeak()
+      if (window.speechSynthesis.getVoices().length === 0) {
+        window.speechSynthesis.onvoiceschanged = doSpeakWeb
+      } else {
+        doSpeakWeb()
+      }
     }
-    return () => { window.speechSynthesis.cancel() }
+    return () => {
+      cancelled = true
+      if (Capacitor.isNativePlatform()) {
+        import('@capacitor-community/text-to-speech').then(({ TextToSpeech }) => TextToSpeech.stop()).catch(() => {})
+      } else {
+        window.speechSynthesis.cancel()
+      }
+    }
   }, [lineIdx, autoPlaying, episode])
 
   // Load last episode on mount
@@ -175,7 +231,7 @@ export default function PodcastLab({ profile, addXp, docCtx, docName, onBack }) 
                 Priya & Aryan � {episode.exchanges?.length} exchanges
                 {ttsOK && (
                   <button
-                    onClick={() => { if (autoPlaying) { window.speechSynthesis.cancel(); setAutoPlaying(false); setIsSpeaking(false) } else { setAutoPlaying(true) } }}
+                    onClick={() => { if (autoPlaying) { cancelTTS(); setAutoPlaying(false); setIsSpeaking(false) } else { setAutoPlaying(true) } }}
                     style={{ background: autoPlaying ? 'rgba(255,209,102,0.13)' : 'rgba(0,229,160,0.13)', border: `1px solid ${autoPlaying ? 'rgba(255,209,102,0.27)' : 'rgba(0,229,160,0.27)'}`, color: autoPlaying ? '#FFD166' : '#00E5A0' }}
                     className="rounded-2xl px-2.5 py-1 text-[11px] font-bold cursor-pointer font-[Sora,sans-serif]"
                   >{autoPlaying ? (isSpeaking ? '? Pause' : '?') : '?? Play'}</button>
@@ -201,7 +257,7 @@ export default function PodcastLab({ profile, addXp, docCtx, docName, onBack }) 
             </div>
 
             {lineIdx < episode.exchanges.length - 1 ? (
-              <button onClick={() => { window.speechSynthesis.cancel(); setIsSpeaking(false); setLineIdx(i => i + 1) }}
+              <button onClick={() => { cancelTTS(); setIsSpeaking(false); setLineIdx(i => i + 1) }}
                 className="w-full bg-gradient-to-r from-app-green to-[#33cc88] text-app-bg text-[13px] font-extrabold rounded-xl py-3 cursor-pointer active:scale-[0.99] transition-all">
                 {autoPlaying ? '? Skip' : 'Continue ?'}
               </button>
@@ -219,7 +275,7 @@ export default function PodcastLab({ profile, addXp, docCtx, docName, onBack }) 
                     <p className="text-[13px] text-app-text leading-relaxed">{episode.tip}</p>
                   </div>
                 )}
-                <button onClick={() => { window.speechSynthesis?.cancel(); setAutoPlaying(false); setIsSpeaking(false); setEpisode(null); setTopicInput(""); setLineIdx(0) }}
+                <button onClick={() => { cancelTTS(); setAutoPlaying(false); setIsSpeaking(false); setEpisode(null); setTopicInput(""); setLineIdx(0) }}
                   className="w-full bg-transparent border border-app-border text-app-text text-[13px] font-semibold rounded-xl py-3 cursor-pointer hover:bg-white/[0.03] active:scale-[0.99] transition-all">
                   ??? New Episode
                 </button>

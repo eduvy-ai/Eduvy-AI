@@ -44,3 +44,17 @@ export const mediaUrl = (path: string | null | undefined): string | null => {
   if (/^https?:\/\//i.test(p)) return p;
   return `${API_BASE_URL}${p.startsWith('/') ? '' : '/'}${p}`;
 };
+
+/**
+ * Fetch an audio file and return a blob URL that can be used with <audio> elements.
+ * Uses fetch() which goes through Capacitor's native HTTP plugin on mobile,
+ * bypassing WebView cross-origin restrictions on <audio>/<video> elements.
+ */
+export const fetchAudioBlobUrl = async (url: string): Promise<string> => {
+  const resolved = mediaUrl(url);
+  if (!resolved) throw new Error('Invalid audio URL');
+  const response = await fetch(resolved);
+  if (!response.ok) throw new Error(`Audio fetch failed: ${response.status}`);
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
+};

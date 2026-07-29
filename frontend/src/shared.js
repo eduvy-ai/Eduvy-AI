@@ -47,24 +47,42 @@ export const DEFAULT_A11Y = {
 export const LANG_TO_SPEECH_CODE = _LANG_TO_SPEECH_CODE
 
 /**
- * Speaks text via browser SpeechSynthesis in the given BCP-47 lang code.
+ * Speaks text using native TTS (Capacitor) or browser SpeechSynthesis as fallback.
  * Always cancels any ongoing speech first to avoid overlap.
  * @param {string} text
  * @param {string} langCode - BCP-47 e.g. 'hi-IN' (use LANG_TO_SPEECH_CODE)
  * @param {number} speed - rate multiplier (0.5–2.0)
  */
-export function speakText(text, langCode = 'en-IN', speed = 1.0) {
-  if (!window.speechSynthesis || !text) return
-  window.speechSynthesis.cancel()
-  const utt = new SpeechSynthesisUtterance(text)
-  utt.lang  = langCode
-  utt.rate  = Math.max(0.5, Math.min(2.0, speed))
-  window.speechSynthesis.speak(utt)
+export async function speakText(text, langCode = 'en-IN', speed = 1.0) {
+  if (!text) return
+  try {
+    const { TextToSpeech } = await import('@capacitor-community/text-to-speech')
+    await TextToSpeech.stop()
+    await TextToSpeech.speak({
+      text,
+      lang: langCode,
+      rate: Math.max(0.5, Math.min(2.0, speed)),
+      volume: 1.0,
+    })
+  } catch {
+    // Fallback to Web Speech API
+    if (!window.speechSynthesis) return
+    window.speechSynthesis.cancel()
+    const utt = new SpeechSynthesisUtterance(text)
+    utt.lang = langCode
+    utt.rate = Math.max(0.5, Math.min(2.0, speed))
+    window.speechSynthesis.speak(utt)
+  }
 }
 
 /** Stop any ongoing TTS speech. */
-export function stopSpeaking() {
-  if (window.speechSynthesis) window.speechSynthesis.cancel()
+export async function stopSpeaking() {
+  try {
+    const { TextToSpeech } = await import('@capacitor-community/text-to-speech')
+    await TextToSpeech.stop()
+  } catch {
+    if (window.speechSynthesis) window.speechSynthesis.cancel()
+  }
 }
 
 /** Returns true if TTS is currently speaking. */
