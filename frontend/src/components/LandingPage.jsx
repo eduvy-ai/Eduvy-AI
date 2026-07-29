@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Capacitor } from '@capacitor/core'
 import { getAuthToken, apiGetMe } from '../api.js'
 
 const FEATURES = [
@@ -119,6 +120,20 @@ export default function LandingPage() {
   // ── Auto-redirect logged-in users ───────────────────────────
   useEffect(() => {
     async function check() {
+      // In the native APK, skip landing page entirely — go straight to auth
+      if (Capacitor.isNativePlatform()) {
+        const token = getAuthToken()
+        if (token) {
+          try {
+            const data = await apiGetMe()
+            if (data) { navigate('/app/home', { replace: true }); return }
+          } catch { /* expired */ }
+        }
+        navigate('/auth', { replace: true })
+        return
+      }
+
+      // Web: check if already logged in
       const token = getAuthToken()
       if (token) {
         try {

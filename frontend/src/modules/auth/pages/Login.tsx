@@ -116,6 +116,13 @@ const Login: React.FC = () => {
             Create account
           </Link>
         </div>
+
+        {/* Pricing Link */}
+        <div className="text-center">
+          <Link to="/#pricing" className="text-xs text-app-muted no-underline hover:text-app-green transition-colors">
+            View Pricing Plans →
+          </Link>
+        </div>
       </form>
     </AuthLayout>
   )

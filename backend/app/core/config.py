@@ -45,7 +45,7 @@ class Settings:
     # ── CORS ──────────────────────────────────────────────────
     CORS_ORIGINS: str = os.getenv(
         "CORS_ORIGINS",
-        "http://localhost:5173,http://localhost:5174,http://localhost:5175,https://eduvy-ai.vercel.app,https://www.eduvy.co.in,https://eduvy.co.in"
+        "http://localhost:5173,http://localhost:5174,http://localhost:5175,https://eduvy-ai.vercel.app,https://www.eduvy.co.in,https://eduvy.co.in,https://localhost,capacitor://localhost,http://localhost"
     )
     
     # ── Environment ───────────────────────────────────────────
