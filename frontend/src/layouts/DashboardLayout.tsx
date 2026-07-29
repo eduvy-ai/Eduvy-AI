@@ -1,7 +1,7 @@
 // ─── Dashboard Layout ─────────────────────────────────────────
 // Main app shell with navigation sidebar and bottom nav
 
-import React, { useState, lazy, Suspense, useMemo } from 'react'
+import React, { useState, useEffect, lazy, Suspense, useMemo } from 'react'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { useAuth, useUser, usePlan, useXp, useStreak } from '../modules/auth/hooks'
 import { PLANS, planHasTab, type TabKey } from '../shared/constants/plans'
@@ -36,6 +36,22 @@ const DashboardLayout: React.FC = () => {
   const { plan } = usePlan()
   const { xp } = useXp()
   const { streak } = useStreak()
+  
+  // Lock body scroll when dashboard is active (prevents Android WebView viewport issues)
+  useEffect(() => {
+    const html = document.documentElement
+    const body = document.body
+    html.style.overflow = 'hidden'
+    html.style.height = '100%'
+    body.style.overflow = 'hidden'
+    body.style.height = '100%'
+    return () => {
+      html.style.overflow = ''
+      html.style.height = ''
+      body.style.overflow = ''
+      body.style.height = ''
+    }
+  }, [])
   
   // Settings modal state
   const [showSettings, setShowSettings] = useState(false)
