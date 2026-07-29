@@ -119,9 +119,14 @@ const Login: React.FC = () => {
 
         {/* Pricing Link */}
         <div className="text-center">
-          <Link to="/#pricing" className="text-xs text-app-muted no-underline hover:text-app-green transition-colors">
+          <a
+            href="https://eduvy.co.in/#pricing"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-app-muted no-underline hover:text-app-green transition-colors"
+          >
             View Pricing Plans →
-          </Link>
+          </a>
         </div>
       </form>
     </AuthLayout>

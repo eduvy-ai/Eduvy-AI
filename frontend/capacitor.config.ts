@@ -8,6 +8,11 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
     allowNavigation: ['eduvyai-api.onrender.com'],
   },
+  plugins: {
+    CapacitorHttp: {
+      enabled: true,
+    },
+  },
 };
 
 export default config;
