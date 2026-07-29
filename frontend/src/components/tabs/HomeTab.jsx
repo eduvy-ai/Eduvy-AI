@@ -355,7 +355,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
   const ui = li(getDisplayLang(profile))
 
   return (
-    <div className="py-4 px-4 md:px-6 lg:px-8 pb-20">
+    <div className="py-4 px-4 md:px-6 lg:px-8 pb-6">
 
       {/* ── Mood Check (fresh each day) ───────────────────── */}
       {!mood ? (

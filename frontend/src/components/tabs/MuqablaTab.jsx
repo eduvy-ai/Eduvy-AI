@@ -548,7 +548,7 @@ export default function MuqablaTab({ profile, userId }) {
   const pendingCount = pending.length
 
   return (
-    <div className="h-full overflow-y-auto px-4 md:px-6 lg:px-8 pt-4 pb-20">
+    <div className="h-full overflow-y-auto px-4 md:px-6 lg:px-8 pt-4 pb-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>

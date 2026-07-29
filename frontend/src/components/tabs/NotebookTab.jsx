@@ -803,7 +803,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
       </div>
 
       {/* ── Content area ── */}
-      <div className="flex-1 overflow-y-auto min-h-0 pb-20">
+      <div className="flex-1 overflow-y-auto min-h-0 pb-4">
 
         {/* ════ SOURCES VIEW ════ */}
         {view === "sources" && (

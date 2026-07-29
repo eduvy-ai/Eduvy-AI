@@ -188,7 +188,7 @@ export default function PodcastLab({ profile, addXp, docCtx, docName, onBack }) 
         <span className="text-[15px] font-extrabold text-app-text">??? AI Podcast Studio</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 pb-20">
+      <div className="flex-1 overflow-y-auto p-4 pb-6">
         {!episode && (
           <>
             <div className="mb-3.5">

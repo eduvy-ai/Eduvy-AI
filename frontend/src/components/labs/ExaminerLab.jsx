@@ -97,7 +97,7 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
           <div className="text-[11px] text-app-muted">Board Examiner Practice</div>
         </div>
       </div>
-      <div className="p-4 pb-20 flex-1 overflow-y-auto">
+      <div className="p-4 pb-6 flex-1 overflow-y-auto">
         <div className="bg-app-green/[0.05] border border-app-green/20 rounded-2xl p-4 mb-5">
           <div className="text-[15px] font-extrabold text-app-green mb-1.5">How it works</div>
           <div className="text-[13px] text-app-text leading-[1.7]">
@@ -146,7 +146,7 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
           <div className="text-[11px] text-app-muted">{qData?.subject} · {qData?.marks} Mark{qData?.marks > 1 ? "s" : ""}</div>
         </div>
       </div>
-      <div className="p-4 pb-20 flex-1 overflow-y-auto">
+      <div className="p-4 pb-6 flex-1 overflow-y-auto">
         <div className="bg-app-blue/[0.05] border-[1.5px] border-app-blue/30 rounded-2xl p-4 mb-3.5">
           <div className="flex items-center gap-2 mb-2.5">
             <span className="text-[11px] font-bold text-app-blue bg-app-blue/15 rounded-md px-2 py-0.5">{qData?.subject}</span>
@@ -197,7 +197,7 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
           <button onClick={reset} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Try Again</button>
           <div className="font-extrabold text-base text-app-text">📋 Examiner's Report</div>
         </div>
-        <div className="p-4 pb-20 flex-1 overflow-y-auto">
+        <div className="p-4 pb-6 flex-1 overflow-y-auto">
           <MarksBadge awarded={awarded} total={total} />
           <div className="bg-app-blue/[0.04] border border-app-blue/15 rounded-2xl p-4 mb-3.5">
             <div className="text-[11px] font-bold text-app-blue mb-1">QUESTION</div>
