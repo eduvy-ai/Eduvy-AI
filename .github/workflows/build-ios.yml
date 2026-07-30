@@ -32,11 +32,18 @@ jobs:
         working-directory: frontend
         run: npx cap sync ios
 
+      - name: Resolve Swift packages
+        working-directory: frontend/ios/App
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project App.xcodeproj \
+            -scheme App
+
       - name: Build iOS app for Simulator
         working-directory: frontend/ios/App
         run: |
           xcodebuild build \
-            -workspace App.xcworkspace \
+            -project App.xcodeproj \
             -scheme App \
             -configuration Debug \
             -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
