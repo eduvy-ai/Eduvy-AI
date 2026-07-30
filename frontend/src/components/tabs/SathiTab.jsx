@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { callAI, LANG_RULES } from '../../shared.js'
+import { callAI, LANG_RULES, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import {
   apiGetMySquad, apiMatchSquad,
@@ -88,7 +88,7 @@ function Bubble({ msg, isMine, memberName }) {
 }
 
 // -- Challenge banner ------------------------------------------
-function ChallengeBanner({ challenge, onSubmit, onDismiss }) {
+function ChallengeBanner({ challenge, onSubmit, onDismiss, ui }) {
   const [text, setText] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
@@ -118,19 +118,19 @@ function ChallengeBanner({ challenge, onSubmit, onDismiss }) {
       <div className="flex justify-between items-start mb-2">
         <div>
           <div className="text-[11px] font-extrabold text-app-yellow tracking-[0.06em] mb-0.5">
-            ?? YOUR CHALLENGE � 50 Teaching XP
+            ?? YOUR CHALLENGE  50 Teaching XP
           </div>
           <div className="text-[14px] font-bold text-app-text">
             Explain: <span className="text-app-yellow">{challenge.concept}</span>
           </div>
           <div className="text-[11px] text-app-muted mt-0.5">{challenge.subject}</div>
         </div>
-        <button onClick={onDismiss} className="bg-transparent border-none cursor-pointer text-app-muted text-[18px] px-1">�</button>
+        <button onClick={onDismiss} className="bg-transparent border-none cursor-pointer text-app-muted text-[18px] px-1"></button>
       </div>
       <textarea
         value={text}
         onChange={e => setText(e.target.value)}
-        placeholder="Explain this concept to your squad in simple words�"
+        placeholder={ui.challengePlaceholder}
         rows={3}
         className="w-full bg-app-card2 border border-app-border rounded-[10px] px-2.5 py-2 text-app-text text-[13px] resize-y outline-none box-border"
       />
@@ -144,7 +144,7 @@ function ChallengeBanner({ challenge, onSubmit, onDismiss }) {
           cursor: text.trim() ? 'pointer' : 'default',
         }}
       >
-        {submitting ? 'Submitting�' : 'Submit Explanation ??'}
+        {submitting ? 'Submitting' : 'Submit Explanation ??'}
       </button>
     </div>
   )
@@ -159,7 +159,7 @@ function MembersStrip({ members, currentUserId }) {
           <Avatar name={m.name} size={36} online={m.online} />
           <span className="text-[10px] max-w-[50px] overflow-hidden text-ellipsis whitespace-nowrap"
             style={{ color: m.user_id === currentUserId ? '#00E5A0' : '#6868a0', fontWeight: m.user_id === currentUserId ? 800 : 500 }}
-          >{m.user_id === currentUserId ? 'You' : m.name.split(' ')[0]}</span>
+          >{m.user_id === currentUserId ? ui.youLabel : m.name.split(' ')[0]}</span>
           <span className="text-[9px] font-bold"
             style={{ color: m.role === 'teacher' ? '#FFD166' : '#6868a0' }}
           >{m.role === 'teacher' ? '? teacher' : '?? learner'}</span>
@@ -170,11 +170,11 @@ function MembersStrip({ members, currentUserId }) {
 }
 
 // -- No-squad landing screen -----------------------------------
-function NoSquadScreen({ onMatch, matching }) {
+function NoSquadScreen({ onMatch, matching, ui }) {
   const steps = [
-    { icon: '??', title: 'AI reads your mastery', desc: 'Looks at your quiz history to find your weak & strong subjects' },
-    { icon: '??', title: 'Finds your complement', desc: 'Matches you with students whose strengths fill your gaps' },
-    { icon: '??', title: 'Teach & learn together', desc: 'Complete challenges, earn Teaching XP, and grow together' },
+    { icon: '??', title: ui.step1Title, desc: ui.step1Desc },
+    { icon: '??', title: ui.step2Title, desc: ui.step2Desc },
+    { icon: '??', title: ui.step3Title, desc: ui.step3Desc },
   ]
   return (
     <div className="flex flex-col items-center px-4 py-8 gap-7">
@@ -182,10 +182,10 @@ function NoSquadScreen({ onMatch, matching }) {
       <div className="text-center">
         <div className="text-[56px] mb-3">??</div>
         <h2 className="text-[22px] font-black m-0 mb-2 tracking-tight">
-          <span className="text-app-green">Study Squads</span>
+          <span className="text-app-green">{ui.studySquadsTitle}</span>
         </h2>
         <p className="text-[14px] text-app-muted m-0 leading-[1.6] max-w-[320px]">
-          AI matches you with students who have <strong className="text-app-text">complementary strengths</strong> � you teach what you know, learn what you don't.
+          AI matches you with students who have <strong className="text-app-text">complementary strengths</strong>  you teach what you know, learn what you don't.
         </p>
       </div>
 
@@ -206,9 +206,9 @@ function NoSquadScreen({ onMatch, matching }) {
       <div className="bg-app-yellow/[0.06] border border-app-yellow/20 rounded-[14px] px-4 py-3 w-full max-w-[380px] flex gap-3 items-center">
         <span className="text-[28px]">??</span>
         <div>
-          <div className="text-[13px] font-extrabold text-app-yellow">Teaching XP</div>
+          <div className="text-[13px] font-extrabold text-app-yellow">{ui.teachingXpTitle}</div>
           <div className="text-[12px] text-app-muted leading-[1.5]">
-            Earn <strong className="text-app-yellow">50 XP</strong> every time you successfully explain a concept to your squad � more than answering quizzes!
+            Earn <strong className="text-app-yellow">50 XP</strong> every time you successfully explain a concept to your squad  more than answering quizzes!
           </div>
         </div>
       </div>
@@ -225,22 +225,22 @@ function NoSquadScreen({ onMatch, matching }) {
         }}
       >
         {matching
-          ? <><span className="w-[18px] h-[18px] border-[3px] border-app-green border-t-transparent rounded-full animate-spin inline-block" /> Finding your squad�</>
+          ? <><span className="w-[18px] h-[18px] border-[3px] border-app-green border-t-transparent rounded-full animate-spin inline-block" /> Finding your squad</>
           : '?? Find My Study Squad'}
       </button>
       <p className="text-[11px] text-app-muted -mt-4 text-center">
-        Squads are based on your quiz mastery scores
+        {ui.masteryNote}
       </p>
     </div>
   )
 }
 
 // -- Sub-tab nav bar -------------------------------------------
-function SubNav({ active, onChange }) {
+function SubNav({ active, onChange, ui }) {
   const tabs = [
-    { key: 'chat',   icon: '??', label: 'Chat'   },
-    { key: 'doubts', icon: '?', label: 'Doubts'  },
-    { key: 'daily',  icon: '??', label: 'Daily'   },
+    { key: 'chat',   icon: '??', label: ui.subNavChat   },
+    { key: 'doubts', icon: '?', label: ui.subNavDoubts  },
+    { key: 'daily',  icon: '??', label: ui.subNavDaily   },
   ]
   return (
     <div className="flex border-b border-app-border bg-app-card flex-shrink-0">
@@ -267,7 +267,7 @@ const VERDICT_COLORS = {
   incorrect: { bg: '#FF6B6B20', border: '#FF6B6B60', text: '#FF6B6B', label: '? Incorrect' },
 }
 
-function DoubtsPanel({ squadId, userId, profileName, profile }) {
+function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
   const [doubts,      setDoubts]      = useState([])
   const [loading,     setLoading]     = useState(true)
   const [view,        setView]        = useState('list')   // list | post | answers
@@ -330,7 +330,7 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
       const wordCount = newAns.trim().split(/\s+/).length
       const canVerify = profile?.plan && profile.plan !== 'free' && wordCount >= 15
       if (canVerify && result?.id) {
-        // fire-and-forget � don't block the UI
+        // fire-and-forget  don't block the UI
         runAIVerdict(result.id, openDoubt.question, openDoubt.subject, newAns.trim())
       }
     } catch (err) { alert(err.message) }
@@ -352,7 +352,7 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
       // Refresh answers to show the badge
       const d = await apiGetDoubtAnswers(squadId, openDoubt.id)
       setAnswers(d.answers || [])
-    } catch { /* best-effort � never break UI */ }
+    } catch { /* best-effort  never break UI */ }
   }
 
   const handleUpvote = async (answer) => {
@@ -373,11 +373,11 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
       {/* Header */}
       <div className="px-4 py-3 border-b border-app-border bg-app-card flex-shrink-0 flex items-center gap-2.5">
         <button onClick={() => setView('list')} className="bg-transparent border-none text-app-muted text-[20px] cursor-pointer leading-none">?</button>
-        <span className="text-[15px] font-extrabold text-app-text flex-1">? Post a Doubt</span>
+        <span className="text-[15px] font-extrabold text-app-text flex-1">? {ui.postADoubt}</span>
         {quota && (
           <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-[20px]"
             style={{ background: atLimit ? '#FF6B6B20' : '#00E5A020', color: atLimit ? '#FF6B6B' : '#00E5A0' }}>
-            {atLimit ? 'Limit reached' : `${quota.remaining} left today`}
+            {atLimit ? ui.limitReached : `${quota.remaining} left today`}
           </span>
         )}
       </div>
@@ -385,25 +385,25 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
       {atLimit ? (
         <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 text-center">
           <div className="text-[48px] mb-3">??</div>
-          <div className="text-[16px] font-extrabold text-app-text mb-2">Daily limit reached</div>
+          <div className="text-[16px] font-extrabold text-app-text mb-2">{ui.dailyLimitReached}</div>
           <div className="text-[13px] text-app-muted leading-[1.7]">
             You've used all <strong className="text-app-text">{quota.limit}</strong> doubts for today on the <strong className="text-app-blue">{quota.plan}</strong> plan.<br />
-            Come back tomorrow � or upgrade for more!
+            Come back tomorrow  or upgrade for more!
           </div>
           {quota.plan !== 'premium' && (
             <div className="mt-5 text-[11px] text-app-muted">
-              Free: 2/day � Basic: 5/day � Pro: 15/day � Premium: unlimited
+              Free: 2/day  Basic: 5/day  Pro: 15/day  Premium: unlimited
             </div>
           )}
         </div>
       ) : (
         <>
           <div className="flex-1 overflow-y-auto px-4 py-5 pb-4">
-            <div className="text-[12px] font-bold text-app-muted mb-2 tracking-[0.04em]">YOUR DOUBT</div>
+            <div className="text-[12px] font-bold text-app-muted mb-2 tracking-[0.04em]">{ui.yourDoubt}</div>
             <textarea
               value={newQ}
               onChange={e => setNewQ(e.target.value)}
-              placeholder="What are you stuck on? Write your doubt clearly so your squad can help�"
+              placeholder="What are you stuck on? Write your doubt clearly so your squad can help"
               rows={5}
               autoFocus
               className="w-full bg-app-card rounded-[14px] px-3.5 py-3 text-app-text text-[14px] resize-none leading-[1.6] outline-none box-border"
@@ -414,9 +414,9 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
             </div>
             <div className="bg-app-card2 rounded-[12px] px-3.5 py-3 mt-4 text-[12px] text-app-muted leading-[1.7]">
               ?? <strong className="text-app-text">Tips for a good doubt:</strong><br />
-              � Be specific � "I don't understand step 3 of�"<br />
-              � Mention what you already tried<br />
-              � Add the topic or chapter name
+               Be specific  "I don't understand step 3 of"<br />
+               Mention what you already tried<br />
+               Add the topic or chapter name
             </div>
           </div>
           <div className="px-4 pt-3 pb-4 border-t border-app-border bg-app-bg flex-shrink-0">
@@ -429,7 +429,7 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
                 color: newQ.trim() ? '#fff' : '#6868a0',
                 cursor: newQ.trim() ? 'pointer' : 'default',
               }}
-            >{posting ? 'Posting�' : '?? Post to Squad'}</button>
+            >{posting ? ui.submitting : ui.postToSquad}</button>
           </div>
         </>
       )}
@@ -445,7 +445,7 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
         <div className="flex-1">
           <div className="text-[13.5px] font-bold text-app-text leading-[1.4]">{openDoubt?.question}</div>
           <div className="text-[11px] text-app-muted mt-0.5">
-            Asked by <strong className="text-app-blue">{openDoubt?.display_name}</strong> � {openDoubt?.subject}
+            Asked by <strong className="text-app-blue">{openDoubt?.display_name}</strong>  {openDoubt?.subject}
           </div>
         </div>
       </div>
@@ -455,8 +455,8 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
         {answers.length === 0 ? (
           <div className="text-center px-5 py-10">
             <div className="text-[40px] mb-2.5">??</div>
-            <div className="text-[14px] font-bold text-app-text mb-1.5">No answers yet</div>
-            <div className="text-[12px] text-app-muted">Be the first squadmate to help out!</div>
+            <div className="text-[14px] font-bold text-app-text mb-1.5">{ui.noAnswersYet}</div>
+            <div className="text-[12px] text-app-muted">{ui.beFirstToHelp}</div>
           </div>
         ) : answers.map((a, idx) => (
           <div key={a.id}
@@ -511,13 +511,13 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
 
       {/* Write answer bar */}
       <div className="px-3 pt-2.5 pb-3.5 border-t border-app-border bg-app-bg flex-shrink-0">
-        <div className="text-[11px] font-bold text-app-muted mb-1.5">WRITE YOUR ANSWER</div>
+        <div className="text-[11px] font-bold text-app-muted mb-1.5">{ui.writeYourAnswer}</div>
         <div className="flex gap-2">
           <input
             value={newAns}
             onChange={e => setNewAns(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleAnswer()}
-            placeholder="Help your squadmate�"
+            placeholder="Help your squadmate"
             className="flex-1 bg-app-card rounded-[12px] px-3.5 py-3 text-app-text text-[13.5px] outline-none"
             style={{ border: `1.5px solid ${newAns.trim() ? '#7B9CFF' : 'rgba(255,255,255,0.03)'}` }}
           />
@@ -526,7 +526,7 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
             disabled={!newAns.trim() || ansPosting}
             className="border-none rounded-[12px] px-4 font-extrabold text-[13px] flex-shrink-0"
             style={{ background: newAns.trim() ? `linear-gradient(135deg,#7B9CFF,#5577ee)` : '#0b0b1c', color: newAns.trim() ? '#fff' : '#6868a0', cursor: newAns.trim() ? 'pointer' : 'default' }}
-          >{ansPosting ? '�' : 'Send'}</button>
+          >{ansPosting ? ui.submitting : ui.sendBtn}</button>
         </div>
       </div>
     </div>
@@ -538,12 +538,12 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
       {/* Header with Ask button */}
       <div className="px-3.5 py-3 border-b border-app-border bg-app-card flex-shrink-0 flex justify-between items-center">
         <div>
-          <div className="text-[14px] font-extrabold text-app-text">? Doubts Board</div>
+          <div className="text-[14px] font-extrabold text-app-text">? {ui.doubtsBoard}</div>
           <div className="text-[11px] text-app-muted mt-0.5">
             {doubts.length} doubt{doubts.length !== 1 ? 's' : ''}
             {quota && (
               <span className="ml-2 font-bold" style={{ color: atLimit ? '#FF6B6B' : '#00E5A0' }}>
-                � {atLimit ? '0 left' : `${quota.remaining}/${quota.limit} left today`}
+                 {atLimit ? '0 left' : `${quota.remaining}/${quota.limit} left today`}
               </span>
             )}
           </div>
@@ -568,9 +568,9 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
         ) : doubts.length === 0 ? (
           <div className="text-center px-6 py-12">
             <div className="text-[48px] mb-3">??</div>
-            <div className="text-[16px] font-extrabold text-app-text mb-2">No doubts yet!</div>
+            <div className="text-[16px] font-extrabold text-app-text mb-2">{ui.noDoubtsYet}</div>
             <div className="text-[13px] text-app-muted mb-6 leading-[1.6]">
-              Stuck on something? Post your doubt and your squadmates will help.
+              {ui.stuckPostDoubt}
             </div>
             <button onClick={() => setView('post')} className="bg-gradient-to-br from-app-blue to-['#5577ee'] border-none rounded-[14px] px-8 py-3.5 text-white font-extrabold text-[14px] cursor-pointer">? Post First Doubt</button>
           </div>
@@ -594,9 +594,9 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
             </div>
             <div className="text-[11px] text-app-muted mt-1.5 flex gap-2">
               <span>{d.display_name}</span>
-              <span>�</span>
+              <span></span>
               <span className="text-app-blue">{d.subject}</span>
-              <span>�</span>
+              <span></span>
               <span>{d.answer_count} answer{d.answer_count !== 1 ? 's' : ''}</span>
             </div>
           </button>
@@ -613,7 +613,7 @@ const DAILY_VERDICT = {
   incorrect: { bg: `#FF6B6B15`,    border: `#FF6B6B40`,    text: '#FF6B6B',    icon: '?',  label: 'Needs more accuracy.',    xp:  5 },
 }
 
-function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
+function DailyPanel({ squadId, userId, profileName, addXp, profile, ui }) {
   const [data,       setData]       = useState(null)
   const [loading,    setLoading]    = useState(true)
   const [text,       setText]       = useState('')
@@ -690,9 +690,9 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
     <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-4 pb-4">
       {/* Header */}
       <div className="bg-app-yellow/[0.06] border border-app-yellow/20 rounded-2xl px-4 py-3.5 mb-4">
-        <div className="text-[11px] font-extrabold text-app-yellow tracking-[0.06em] mb-1.5">?? DAILY CONCEPT � {today.toUpperCase()}</div>
+        <div className="text-[11px] font-extrabold text-app-yellow tracking-[0.06em] mb-1.5">?? {ui.dailyConceptHeader}  {today.toUpperCase()}</div>
         <div className="text-[18px] font-black text-app-text">{data?.concept}</div>
-        <div className="text-[12px] text-app-muted mt-1">{data?.subject} � Explain in your own words � AI grades your answer</div>
+        <div className="text-[12px] text-app-muted mt-1">{data?.subject}  {ui.explainInOwnWords}  {ui.explainInOwnWords}</div>
       </div>
 
       {/* AI Reviewing spinner */}
@@ -700,8 +700,8 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
         <div className="bg-app-card border border-app-border rounded-[14px] p-4 mb-4 flex items-center gap-3">
           <div className="w-[22px] h-[22px] border-[3px] border-app-blue border-t-transparent rounded-full animate-spin flex-shrink-0" />
           <div>
-            <div className="text-[13px] font-bold text-app-text">AI is reviewing your explanation�</div>
-            <div className="text-[11px] text-app-muted mt-0.5">XP will be based on accuracy</div>
+            <div className="text-[13px] font-bold text-app-text">{ui.aiReviewing}</div>
+            <div className="text-[11px] text-app-muted mt-0.5">{ui.xpBasedOnAccuracy}</div>
           </div>
         </div>
       )}
@@ -720,10 +720,10 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
         </div>
       )}
 
-      {/* Already submitted � show their explanation */}
+      {/* Already submitted  show their explanation */}
       {done && data?.my_explanation && (
         <div className="border border-app-green/20 rounded-[14px] px-3.5 py-3 mb-4" style={{ background: '#00E5A008' }}>
-          <div className="text-[11px] font-extrabold text-app-green mb-1.5">? YOUR EXPLANATION</div>
+          <div className="text-[11px] font-extrabold text-app-green mb-1.5">? {ui.yourExplanation}</div>
           <div className="text-[13.5px] text-app-text leading-[1.6]">{data.my_explanation.explanation}</div>
         </div>
       )}
@@ -732,12 +732,12 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
       {!done && !reviewing && (
         <div className="mb-4">
           <textarea value={text} onChange={e => setText(e.target.value)}
-            placeholder={`Explain "${data?.concept}" in simple words�`}
+            placeholder={`Explain "${data?.concept}" in simple words`}
             rows={4}
             className="w-full bg-app-card rounded-[14px] px-3.5 py-3 text-app-text text-[13.5px] resize-none leading-[1.55] box-border outline-none"
             style={{ border: `1.5px solid ${wordCount >= 10 ? '#FFD166' : 'rgba(255,255,255,0.03)'}` }} />
           <div className="flex justify-between items-center mt-1.5">
-            <span className="text-[11px]" style={{ color: wordCount >= 10 ? '#00E5A0' : '#6868a0' }}>{wordCount}/10 words minimum</span>
+            <span className="text-[11px]" style={{ color: wordCount >= 10 ? '#00E5A0' : '#6868a0' }}>{wordCount}/10 {ui.wordsMinimum}</span>
             <span className="text-[11px] text-app-muted">AI grades: ?30 / ??15 / ?5 XP</span>
           </div>
           <button onClick={handleSubmit} disabled={submitting || wordCount < 10}
@@ -747,17 +747,17 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
               color: wordCount >= 10 ? '#04040e' : '#6868a0',
               cursor: wordCount >= 10 ? 'pointer' : 'default',
             }}>
-            {submitting && !reviewing ? 'Submitting�' : '?? Submit for AI Review'}
+            {submitting && !reviewing ? 'Submitting' : '?? Submit for AI Review'}
           </button>
         </div>
       )}
 
       {/* Squad explanations */}
       <div className="text-[12px] font-extrabold text-app-muted tracking-[0.05em] mb-2.5">
-        SQUAD'S EXPLANATIONS ({data?.explanations?.length || 0})
+        {ui.squadExplanations} ({data?.explanations?.length || 0})
       </div>
       {(!data?.explanations || data.explanations.length === 0) ? (
-        <div className="text-center text-app-muted text-[13px] py-5">No one has explained yet today. Be the first! ??</div>
+        <div className="text-center text-app-muted text-[13px] py-5">{ui.noOneExplainedYet} ??</div>
       ) : data.explanations.map(ex => {
         const ev = ex.ai_verdict ? DAILY_VERDICT[ex.ai_verdict] : null
         return (
@@ -784,6 +784,7 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
 
 // -- Main SathiTab ---------------------------------------------
 export default function SathiTab({ profile, userId, addXp }) {
+  const ui = li(getDisplayLang(profile))
   const [loading,        setLoading]        = useState(true)
   const [squad,          setSquad]          = useState(null)      // full squad object
   const [matching,       setMatching]       = useState(false)
@@ -844,9 +845,9 @@ export default function SathiTab({ profile, userId, addXp }) {
       pollMessages(squad.id)
     }, POLL_MS)
     return () => clearInterval(pollTimer.current)
-  }, [squad?.id])  // eslint-disable-line � uses lastMsgIdRef to avoid stale closures
+  }, [squad?.id])  // eslint-disable-line  uses lastMsgIdRef to avoid stale closures
 
-  // -- Silence tick � forces re-render every 15s so AI Peer button can appear --
+  // -- Silence tick  forces re-render every 15s so AI Peer button can appear --
   useEffect(() => {
     if (!squad) return
     const t = setInterval(() => setSilenceTick(n => n + 1), 15000)
@@ -950,7 +951,7 @@ export default function SathiTab({ profile, userId, addXp }) {
     try {
       await apiSendSquadMessage(squad.id, content, profile?.name || 'Student')
       setSilentSince(Date.now())
-    } catch { /* message might have sent � poll will sync */ }
+    } catch { /* message might have sent  poll will sync */ }
     finally { setSending(false) }
   }
 
@@ -967,7 +968,7 @@ export default function SathiTab({ profile, userId, addXp }) {
 
       const lang = profile?.language || 'English'
       const langRule = LANG_RULES[lang] || LANG_RULES['English']
-      const sysPrompt = `?? LANGUAGE RULE � MANDATORY � NEVER BREAK:
+      const sysPrompt = `?? LANGUAGE RULE  MANDATORY  NEVER BREAK:
 ${langRule}
 YOU MUST write your ENTIRE response in ${lang} ONLY.
 NEVER mix languages.
@@ -1001,8 +1002,8 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
   // -- Submit challenge ---------------------------------------
   const handleSubmitChallenge = async (explanation) => {
     if (!challenge) return null
-    // Don�t clear challenge/banner here � let ChallengeBanner show the
-    // �Challenge complete!� feedback for 2.5s then call onDismiss.
+    // Dont clear challenge/banner here  let ChallengeBanner show the
+    // Challenge complete! feedback for 2.5s then call onDismiss.
     const res = await apiSubmitChallenge(squad.id, challenge.id, explanation)
     if (res?.completed && res?.xp_awarded && addXp) {
       addXp(res.xp_awarded)
@@ -1012,7 +1013,7 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
 
   // -- Leave squad --------------------------------------------
   const handleLeave = async () => {
-    if (!squad || !window.confirm('Leave this squad? You can find a new one anytime.')) return
+    if (!squad || !window.confirm('${ui.leaveConfirm}')) return
     setLeaving(true)
     try {
       await apiLeaveSquad(squad.id)
@@ -1040,7 +1041,7 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
   // RENDER: no squad
   if (!squad) return (
     <div className="overflow-y-auto">
-      <NoSquadScreen onMatch={handleMatch} matching={matching} />
+      <NoSquadScreen onMatch={handleMatch} matching={matching} ui={ui} />
     </div>
   )
 
@@ -1058,16 +1059,16 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
           </div>
           <div className="text-[11px] text-app-muted mt-0.5 flex gap-2 items-center">
             <span><span className="text-app-blue font-bold">{squad.focus_subject}</span></span>
-            <span>�</span>
-            <span>{members.filter(m => m.online).length}/{members.length} online</span>
-            {squadStreak > 0 && <><span>�</span><span className="text-app-orange font-bold">?? {squadStreak}d streak</span></>}
+            <span></span>
+            <span>{members.filter(m => m.online).length}/{members.length} {ui.onlineLabel}</span>
+            {squadStreak > 0 && <><span></span><span className="text-app-orange font-bold">?? {squadStreak}{ui.streakSuffix}</span></>}
           </div>
         </div>
         <div className="flex gap-1.5">
           <button onClick={handleCreateChallenge} title="Get a teach-this challenge"
             className="bg-app-yellow/[0.08] border border-app-yellow/25 rounded-[10px] px-2.5 py-1.5 text-[13px] cursor-pointer text-app-yellow font-bold">??</button>
           <button onClick={handleLeave} disabled={leaving}
-            className="bg-app-red/[0.08] border border-app-red/25 rounded-[10px] px-2.5 py-1.5 text-[11px] cursor-pointer text-app-red font-bold">Leave</button>
+            className="bg-app-red/[0.08] border border-app-red/25 rounded-[10px] px-2.5 py-1.5 text-[11px] cursor-pointer text-app-red font-bold">{ui.leaveBtn}</button>
         </div>
       </div>
 
@@ -1075,7 +1076,7 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
       <MembersStrip members={members} currentUserId={userId} />
 
       {/* -- Sub-tab nav -- */}
-      <SubNav active={activePanel} onChange={setActivePanel} />
+      <SubNav active={activePanel} onChange={setActivePanel} ui={ui} />
 
       {/* -- Challenge banner (chat tab only) -- */}
       {activePanel === 'chat' && showChallenge && challenge && (
@@ -1084,6 +1085,7 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
             challenge={challenge}
             onSubmit={handleSubmitChallenge}
             onDismiss={() => { setShowChallenge(false); setChallenge(null) }}
+            ui={ui}
           />
         </div>
       )}
@@ -1098,7 +1100,7 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
               {messages.length === 0 && (
         <div className="text-center text-app-muted text-[13px] mt-10">
                   <div className="text-[40px] mb-2.5">??</div>
-                  Say hi to your squad!
+                  {ui.sayHiToSquad}
                 </div>
               )}
               {messages.map(m => (
@@ -1111,14 +1113,14 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
                 <button onClick={invokeAIPeer} disabled={aiPeerLoading}
                   className="bg-app-blue/[0.08] border border-app-blue/25 rounded-[20px] px-4 py-1.5 text-[12px] font-bold cursor-pointer text-app-blue inline-flex items-center gap-1.5">
                   {aiPeerLoading
-                    ? <><span className="w-3 h-3 border-2 border-app-blue border-t-transparent rounded-full animate-spin inline-block" /> Owl is thinking�</>
+                    ? <><span className="w-3 h-3 border-2 border-app-blue border-t-transparent rounded-full animate-spin inline-block" /> Owl is thinking</>
                     : '?? Ask Owl (AI Study Peer)'}
                 </button>
-                <div className="text-[10.5px] text-app-muted mt-1">Squad's been quiet � Owl can spark discussion</div>
+                <div className="text-[10.5px] text-app-muted mt-1">Squad's been quiet  Owl can spark discussion</div>
               </div>
             )}
             <form onSubmit={sendMessage} className="px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2.5 border-t border-app-border flex gap-2 flex-shrink-0 bg-app-bg">
-              <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} placeholder="Message your squad…"
+              <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} placeholder={ui.chatPlaceholder}
                 className="flex-1 bg-app-card border border-app-border rounded-[14px] px-3.5 py-2.5 text-app-text text-[14px] outline-none" />
               <button type="button" onClick={async () => {
                 try {
@@ -1136,12 +1138,12 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
 
         {/* DOUBTS */}
         {activePanel === 'doubts' && (
-          <DoubtsPanel squadId={squad.id} userId={userId} profileName={profile?.name} profile={profile} />
+          <DoubtsPanel squadId={squad.id} userId={userId} profileName={profile?.name} profile={profile} ui={ui} />
         )}
 
         {/* DAILY */}
         {activePanel === 'daily' && (
-          <DailyPanel squadId={squad.id} userId={userId} profileName={profile?.name} addXp={addXp} profile={profile} />
+          <DailyPanel squadId={squad.id} userId={userId} profileName={profile?.name} addXp={addXp} profile={profile} ui={ui} />
         )}
 
       </div>

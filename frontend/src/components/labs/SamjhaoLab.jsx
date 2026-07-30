@@ -34,7 +34,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
 
   const scoreExplanation = async () => {
     if (explanation.trim().split(/\s+/).length < 10) {
-      setErr("Please write at least 10 words — explain it as if teaching someone!")
+      setErr(ui.writeAtLeast10Words)
       return
     }
     setErr("")
@@ -51,7 +51,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
       if (subject) updateBhool(subject, concept, correct)
       addXp(Math.round((parsed.overall || 0) / 10) + 2)
     } else {
-      setErr("Could not score your explanation. Please try again.")
+      setErr(ui.couldNotScore)
     }
     setLoading(false)
   }

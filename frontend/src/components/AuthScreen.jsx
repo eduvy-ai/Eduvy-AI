@@ -32,7 +32,7 @@ export default function AuthScreen({ onAuth }) {
 
   // ── Login ──
   const doLogin = async () => {
-    if (!email.trim() || !password) { setError('Enter email and password'); return }
+    if (!email.trim() || !password) { setError(ui.enterEmailPassword); return }
     setError('')
     setLoading(true)
     try {
@@ -41,9 +41,9 @@ export default function AuthScreen({ onAuth }) {
       onAuth(profile)
     } catch (e) {
       if (e.name === 'TimeoutError' || e.name === 'AbortError') {
-        setError('Server is starting up, please try again in a moment.')
+        setError(ui.serverStarting)
       } else {
-        setError(e.message || 'Login failed')
+        setError(e.message || ui.loginFailed)
       }
     }
     setLoading(false)
@@ -51,9 +51,9 @@ export default function AuthScreen({ onAuth }) {
 
   // ── Register step 1 → step 2 ──
   const goStep2 = () => {
-    if (!name.trim()) { setError('Enter your name'); return }
-    if (!email.trim() || !email.includes('@')) { setError('Enter a valid email'); return }
-    if (password.length < 6) { setError('Password must be at least 6 characters'); return }
+    if (!name.trim()) { setError(ui.enterName); return }
+    if (!email.trim() || !email.includes('@')) { setError(ui.validEmail); return }
+    if (password.length < 6) { setError(ui.passwordMinLength); return }
     setError('')
     setSubs([...allSubs]) // auto-select all subjects
     setRegStep(2)
@@ -79,9 +79,9 @@ export default function AuthScreen({ onAuth }) {
       onAuth(profile)
     } catch (e) {
       if (e.name === 'TimeoutError' || e.name === 'AbortError') {
-        setError('Server is starting up, please try again in a moment.')
+        setError(ui.serverStarting)
       } else {
-        setError(e.message || 'Registration failed')
+        setError(e.message || ui.registerFailed)
       }
     }
     setLoading(false)
