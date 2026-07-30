@@ -8,41 +8,9 @@ import { PLANS, planHasTab, type TabKey } from '../shared/constants/plans'
 import { apiUpdateProfile } from '../api.js'
 import { li, getDisplayLang } from '../shared.js'
 import { isRTL } from '../i18n/index.js'
-import {
-  House,
-  MagicWand,
-  NotePencil,
-  PlayCircle,
-  MonitorPlay,
-  UsersThree,
-  Warning,
-  Sword,
-  Flask,
-  FilmSlate,
-  GearSix,
-  SignOut,
-  Lightning,
-  Fire,
-  GraduationCap,
-} from '@phosphor-icons/react'
-import type { IconWeight } from '@phosphor-icons/react'
 
 // Lazy load SettingsModal (legacy JSX component)
 const SettingsModal = lazy(() => import('../components/SettingsModal.jsx'))
-
-// Icon mapping: tabKey -> Phosphor Icon component
-const TAB_ICONS: Record<string, React.ComponentType<any>> = {
-  home:         House,
-  coach:        MagicWand,
-  notebook:     NotePencil,
-  videos:       PlayCircle,
-  learntv:      MonitorPlay,
-  squads:       UsersThree,
-  mistakes:     Warning,
-  battles:      Sword,
-  labs:         Flask,
-  videocreator: FilmSlate,
-}
 
 // Navigation items with i18n label keys (not actual labels)
 const ALL_NAV_ITEMS: { key: TabKey; labelKey: string }[] = [
@@ -97,18 +65,19 @@ const DashboardLayout: React.FC = () => {
   const navItems = ALL_NAV_ITEMS.filter(n => planHasTab(plan, n.key))
   const planInfo = PLANS[plan] || PLANS.free
   
-  // Helper to get translated label (strip leading emoji from i18n strings)
-  const getLabel = (labelKey: string) => {
+  // Helper to get translated label (removes emoji for sidebar, keeps for mobile)
+  const getLabel = (labelKey: string, withIcon = false) => {
     const translated = ui[labelKey] || labelKey
-    return translated.replace(/^[\u{1F300}-\u{1F9FF}]\uFE0F?\s*/u, '').replace(/^[⚔️]\s*/u, '')
+    if (withIcon) return translated
+    // Remove leading emoji for desktop sidebar (first 2-3 chars if emoji)
+    return translated.replace(/^[\u{1F300}-\u{1F9FF}]\s*/u, '')
   }
   
-  // Render Phosphor icon for a tab (filled when active, regular when inactive)
-  const renderIcon = (key: string, isActive: boolean, size = 22) => {
-    const IconComponent = TAB_ICONS[key]
-    if (!IconComponent) return null
-    const weight: IconWeight = isActive ? 'fill' : 'regular'
-    return <IconComponent size={size} weight={weight} />
+  // Helper to get icon from translated string
+  const getIcon = (labelKey: string) => {
+    const translated = ui[labelKey] || ''
+    const match = translated.match(/^([\u{1F300}-\u{1F9FF}])/u)
+    return match ? match[1] : '📱'
   }
 
   const setTab = (key: TabKey) => {
@@ -141,7 +110,7 @@ const DashboardLayout: React.FC = () => {
       <nav className="side-nav">
         {/* Logo */}
         <div className="flex items-center gap-2.5 mb-4 px-2">
-          <GraduationCap size={26} weight="duotone" className="text-app-green" />
+          <span className="text-[26px]">🎓</span>
           <span className="font-black text-lg text-app-green tracking-tight">Eduvy-AI</span>
         </div>
 
@@ -171,7 +140,7 @@ const DashboardLayout: React.FC = () => {
                   : 'bg-transparent border-transparent hover:bg-white/[0.04] hover:border-white/[0.05]'
               }`}
             >
-              <span className="w-6 flex items-center justify-center">{renderIcon(n.key, tab === n.key, 20)}</span>
+              <span className="text-xl w-6 text-center">{getIcon(n.labelKey)}</span>
               <span className={`text-sm ${tab === n.key ? 'font-bold text-app-green' : 'font-medium text-app-text'}`}>
                 {getLabel(n.labelKey)}
               </span>
@@ -182,11 +151,11 @@ const DashboardLayout: React.FC = () => {
         {/* Stats & Settings */}
         <div className="flex flex-col gap-2 mt-5">
           <div className="flex gap-1.5">
-            <div className="flex-1 bg-app-card2 rounded-[10px] py-1.5 px-2 text-xs font-bold text-app-yellow text-center border border-app-border flex items-center justify-center gap-1">
-              <Lightning size={14} weight="fill" /> {xp} {ui.xpLabel || 'XP'}
+            <div className="flex-1 bg-app-card2 rounded-[10px] py-1.5 px-2 text-xs font-bold text-app-yellow text-center border border-app-border">
+              ⚡ {xp} {ui.xpLabel || 'XP'}
             </div>
-            <div className="flex-1 bg-app-card2 rounded-[10px] py-1.5 px-2 text-xs font-bold text-app-orange text-center border border-app-border flex items-center justify-center gap-1">
-              <Fire size={14} weight="fill" /> {streak}
+            <div className="flex-1 bg-app-card2 rounded-[10px] py-1.5 px-2 text-xs font-bold text-app-orange text-center border border-app-border">
+              🔥 {streak}
             </div>
           </div>
 
@@ -207,7 +176,7 @@ const DashboardLayout: React.FC = () => {
             onClick={() => setShowSettings(true)}
             className="rounded-xl py-2.5 px-3 flex items-center gap-2 cursor-pointer font-[Sora,sans-serif] w-full border bg-app-card2 border-app-border hover:border-app-green/30 active:scale-[0.97] transition-all duration-150"
           >
-            <GearSix size={18} className="text-app-text" />
+            <span className="text-base">⚙️</span>
             <span className="text-sm font-medium text-app-text">{ui.settings || 'Settings'}</span>
           </button>
           
@@ -216,7 +185,7 @@ const DashboardLayout: React.FC = () => {
             onClick={handleLogout}
             className="rounded-xl py-2.5 px-3 flex items-center gap-2 cursor-pointer font-[Sora,sans-serif] w-full border bg-app-red/10 border-app-red/30 hover:bg-app-red/20 active:scale-[0.97] transition-all duration-150"
           >
-            <SignOut size={18} className="text-app-red" />
+            <span className="text-base">🚪</span>
             <span className="text-sm font-medium text-app-red">{ui.logout || 'Logout'}</span>
           </button>
         </div>
@@ -240,7 +209,7 @@ const DashboardLayout: React.FC = () => {
               tab === n.key ? 'text-app-green nav-active' : 'text-app-muted'
             }`}
           >
-            <span className="leading-none">{renderIcon(n.key, tab === n.key, 22)}</span>
+            <span className="text-[22px] leading-none">{getIcon(n.labelKey)}</span>
             <span className={`text-[10px] leading-tight mt-0.5 max-w-[56px] text-center truncate ${tab === n.key ? 'font-bold' : 'font-medium'}`}>{getLabel(n.labelKey)}</span>
           </button>
         ))}
@@ -249,7 +218,7 @@ const DashboardLayout: React.FC = () => {
           onClick={() => setShowSettings(true)}
           className="flex-shrink-0 min-w-[64px] h-14 flex flex-col items-center justify-center gap-0.5 py-0 px-1 bg-transparent border-none cursor-pointer text-app-muted"
         >
-          <GearSix size={22} />
+          <span className="text-[22px] leading-none">⚙️</span>
           <span className="text-[10px] font-medium leading-tight mt-0.5">{ui.more || 'More'}</span>
         </button>
       </nav>
