@@ -124,7 +124,7 @@ function BattleCard({ battle, onAction, myId, ui }) {
 
 // ── Create Challenge Modal ─────────────────────────────────────
 function CreateChallengeModal({ profile, onClose, onCreated, ui }) {
-  const [subject,    setSubject]    = useState(profile.subjects?.[0] || 'Mathematics')
+  const [subject,    setSubject]    = useState(profile?.subjects?.[0] || 'Mathematics')
   const [difficulty, setDifficulty] = useState('Medium')
   const [creating,   setCreating]   = useState(false)
   const [err,        setErr]        = useState('')
@@ -626,7 +626,7 @@ export default function MuqablaTab({ profile, userId }) {
             <EmptyMsg icon={Sword} text={ui.noBattlesArena} />
           )}
 
-          {!profile.school && (
+          {!profile?.school && (
             <div className="bg-app-blue/5 border border-app-blue/20 rounded-2xl px-4 py-3 mt-5 text-app-muted text-[13px]">
               {ui.addSchoolTip}
             </div>
