@@ -28,6 +28,7 @@ const SathiPage: React.FC = () => {
   }
 
   // Pass through to legacy component
+  if (!user) return null
   return (
     <SathiTabLegacy
       profile={user}

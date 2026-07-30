@@ -40,6 +40,7 @@ const NotebookPage: React.FC = () => {
   }
 
   // Pass through to legacy component
+  if (!user) return null
   return (
     <NotebookTabLegacy
       profile={user}

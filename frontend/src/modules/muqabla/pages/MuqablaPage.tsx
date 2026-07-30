@@ -23,6 +23,7 @@ const MuqablaPage: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth)
 
   // Pass through to legacy component
+  if (!user) return null
   return (
     <MuqablaTabLegacy
       profile={user}
