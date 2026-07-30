@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BOARDS, LANGS, SUBS } from '../shared.js'
 import { apiLogin, apiRegister, setAuthToken } from '../api.js'
 import { li } from '../i18n/index.js'
+import { GraduationCap, Eye, EyeSlash } from '@phosphor-icons/react'
 
 const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
 
@@ -92,7 +93,7 @@ export default function AuthScreen({ onAuth }) {
       <div className="w-full max-w-[420px]">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="text-[42px] mb-2">🎓</div>
+          <div className="mb-2 flex justify-center"><GraduationCap size={42} weight="duotone" className="text-app-green" /></div>
           <div className="text-2xl font-extrabold text-app-text">Eduvy-AI</div>
           <div className="text-sm text-app-muted mt-1">{ui.tagline}</div>
         </div>
@@ -145,9 +146,9 @@ export default function AuthScreen({ onAuth }) {
                   />
                   <button
                     onClick={() => setShowPw(p => !p)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-app-muted text-base"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-app-muted"
                   >
-                    {showPw ? '🙈' : '👁️'}
+                    {showPw ? <EyeSlash size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>
@@ -215,9 +216,9 @@ export default function AuthScreen({ onAuth }) {
                   />
                   <button
                     onClick={() => setShowPw(p => !p)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-app-muted text-base"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-app-muted"
                   >
-                    {showPw ? '🙈' : '👁️'}
+                    {showPw ? <EyeSlash size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>

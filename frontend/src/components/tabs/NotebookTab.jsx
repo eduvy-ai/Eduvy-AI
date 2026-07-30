@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { COLORS, callAI, parseAIArray, parseAIObject, SUBS, checkStudentQuery, validateSourceContent, checkContentRelevance, generateSmartSummary, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
+import { Microphone, Books, ClipboardText, Question, CalendarBlank, MapTrifold, Target, Cards, Warning } from '@phosphor-icons/react'
 import {
   apiGetSources, apiSaveSource, apiDeleteSource,
   apiGetNotebookChat, apiSaveChatMessage, apiClearNotebookChat,
@@ -13,15 +14,26 @@ const MAX_SOURCES = 15
 const MAX_VIOLATIONS = 5
 
 // ─── Studio output types (labels resolved via i18n inside component) ──
+const STUDIO_ICONS = {
+  podcast: Microphone,
+  guide: Books,
+  brief: ClipboardText,
+  faq: Question,
+  timeline: CalendarBlank,
+  mindmap: MapTrifold,
+  quiz: Target,
+  flashcards: Cards,
+}
+
 const STUDIO_ITEMS = [
-  { key: "podcast",   icon: "🎙️", labelKey: "studioAudioOverview",  descKey: "studioAudioOverviewDesc",  color: "#FFD166" },
-  { key: "guide",     icon: "📚", labelKey: "studioStudyGuide",     descKey: "studioStudyGuideDesc",     color: "#00E5A0" },
-  { key: "brief",     icon: "📋", labelKey: "studioBriefingDoc",    descKey: "studioBriefingDocDesc",    color: "#7B9CFF" },
-  { key: "faq",       icon: "❓", labelKey: "studioFaq",            descKey: "studioFaqDesc",            color: "#FF6B35" },
-  { key: "timeline",  icon: "📅", labelKey: "studioTimeline",       descKey: "studioTimelineDesc",       color: "#FF6B6B" },
-  { key: "mindmap",   icon: "🗺️", labelKey: "studioMindMap",        descKey: "studioMindMapDesc",        color: "#7B9CFF" },
-  { key: "quiz",      icon: "🎯", labelKey: "studioPracticeQuiz",   descKey: "studioPracticeQuizDesc",   color: "#00E5A0" },
-  { key: "flashcards",icon: "🃏", labelKey: "studioFlashcards",     descKey: "studioFlashcardsDesc",     color: "#FFD166" },
+  { key: "podcast",   labelKey: "studioAudioOverview",  descKey: "studioAudioOverviewDesc",  color: "#FFD166" },
+  { key: "guide",     labelKey: "studioStudyGuide",     descKey: "studioStudyGuideDesc",     color: "#00E5A0" },
+  { key: "brief",     labelKey: "studioBriefingDoc",    descKey: "studioBriefingDocDesc",    color: "#7B9CFF" },
+  { key: "faq",       labelKey: "studioFaq",            descKey: "studioFaqDesc",            color: "#FF6B35" },
+  { key: "timeline",  labelKey: "studioTimeline",       descKey: "studioTimelineDesc",       color: "#FF6B6B" },
+  { key: "mindmap",   labelKey: "studioMindMap",        descKey: "studioMindMapDesc",        color: "#7B9CFF" },
+  { key: "quiz",      labelKey: "studioPracticeQuiz",   descKey: "studioPracticeQuizDesc",   color: "#00E5A0" },
+  { key: "flashcards",labelKey: "studioFlashcards",     descKey: "studioFlashcardsDesc",     color: "#FFD166" },
 ]
 
 let _sourceIdCounter = 1
@@ -1211,10 +1223,10 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                         style={{ borderTop: `3px solid ${item.color}` }}
                       >
                         <div 
-                          className="w-9 h-9 rounded-[10px] flex items-center justify-center text-lg mb-2"
+                          className="w-9 h-9 rounded-[10px] flex items-center justify-center mb-2"
                           style={{ background: `${item.color}20`, border: `1px solid ${item.color}40` }}
                         >
-                          {item.icon}
+                          {(() => { const Icon = STUDIO_ICONS[item.key]; return Icon ? <Icon size={18} weight="duotone" color={item.color} /> : null })()}
                         </div>
                         <div className="text-[13px] font-bold text-app-text mb-0.5">{ui[item.labelKey]}</div>
                         <div className="text-[11px] text-app-muted">{ui[item.descKey]}</div>

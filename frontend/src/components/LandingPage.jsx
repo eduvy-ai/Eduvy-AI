@@ -2,14 +2,16 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { getAuthToken, apiGetMe } from '../api.js'
+import { Robot, NotePencil, Presentation, Target, Microphone, Flower, Gift, Star, RocketLaunch, Crown, UsersThree, Warning, Sword, GraduationCap, Check, X } from '@phosphor-icons/react'
 
+const FEATURE_ICONS = [Robot, NotePencil, Presentation, Target, Microphone, Flower]
 const FEATURES = [
-  { icon: "🤖", title: "AI Tutor 24/7",       desc: "Ask anything from your syllabus — gets answered in your language, instantly" },
-  { icon: "📓", title: "Smart Notebook",       desc: "Upload textbooks, get notes, flashcards, mind maps & quizzes from your own material" },
-  { icon: "🎬", title: "Whiteboard Lessons",   desc: "AI draws animated lessons with narration — like a private coaching class" },
-  { icon: "🎯", title: "Quiz Arena",           desc: "Board-exam style MCQs with instant explanations for your class & board" },
-  { icon: "🎙️", title: "AI Podcast",          desc: "Two AI hosts debate your syllabus — learn while you listen" },
-  { icon: "🧘", title: "Wellness Coach",       desc: "Handles exam stress, anxiety, and motivation — your personal counselor" },
+  { title: "AI Tutor 24/7",       desc: "Ask anything from your syllabus — gets answered in your language, instantly" },
+  { title: "Smart Notebook",       desc: "Upload textbooks, get notes, flashcards, mind maps & quizzes from your own material" },
+  { title: "Whiteboard Lessons",   desc: "AI draws animated lessons with narration — like a private coaching class" },
+  { title: "Quiz Arena",           desc: "Board-exam style MCQs with instant explanations for your class & board" },
+  { title: "AI Podcast",          desc: "Two AI hosts debate your syllabus — learn while you listen" },
+  { title: "Wellness Coach",       desc: "Handles exam stress, anxiety, and motivation — your personal counselor" },
 ]
 
 const LANGS = ["हिंदी", "ગુજરાતી", "मराठी", "தமிழ்", "తెలుగు", "ಕನ್ನಡ", "বাংলা", "ਪੰਜਾਬੀ", "ଓଡ଼ିଆ", "اردو", "English"]
@@ -19,7 +21,7 @@ const BOARDS = ["CBSE", "ICSE", "GSEB", "MSBSHSE", "RBSE", "UP Board", "TN Board
 const PLANS_PRICING = [
   {
     key: 'free',
-    icon: '🆓',
+    icon: Gift,
     name: 'Free',
     price: '₹0',
     period: 'forever',
@@ -42,7 +44,7 @@ const PLANS_PRICING = [
   },
   {
     key: 'basic',
-    icon: '⭐',
+    icon: Star,
     name: 'Basic',
     price: '₹99',
     period: 'per month',
@@ -65,7 +67,7 @@ const PLANS_PRICING = [
   },
   {
     key: 'pro',
-    icon: '🚀',
+    icon: RocketLaunch,
     name: 'Pro',
     price: '₹249',
     period: 'per month',
@@ -80,15 +82,15 @@ const PLANS_PRICING = [
       { ok: true,  text: 'Smart Notebook' },
       { ok: true,  text: 'Whiteboard Video Lessons' },
       { ok: true,  text: 'Quiz Arena & Examiner Labs' },
-      { ok: true,  text: '🤝 Study Squads' },
-      { ok: true,  text: '📛 Mistake Cards + ⚔️ Battle Arena' },
+      { ok: true,  text: 'Study Squads' },
+      { ok: true,  text: 'Mistake Cards + Battle Arena' },
       { ok: false, text: 'AI Podcast & Essay Lab' },
       { ok: false, text: 'Discover Feed' },
     ],
   },
   {
     key: 'premium',
-    icon: '👑',
+    icon: Crown,
     name: 'Premium',
     price: '₹499',
     period: 'per month',
@@ -103,8 +105,8 @@ const PLANS_PRICING = [
       { ok: true,  text: 'Smart Notebook' },
       { ok: true,  text: 'Whiteboard Video Lessons' },
       { ok: true,  text: 'All Labs — Quiz, Examiner & more' },
-      { ok: true,  text: '🤝 Study Squads' },
-      { ok: true,  text: '📛 Mistake Cards + ⚔️ Battle Arena' },
+      { ok: true,  text: 'Study Squads' },
+      { ok: true,  text: 'Mistake Cards + Battle Arena' },
       { ok: true,  text: 'AI Podcast & Essay Lab' },
       { ok: true,  text: 'Discover Feed' },
     ],
@@ -178,8 +180,8 @@ export default function LandingPage() {
       <nav className="lp-nav">
         <div className="lp-container flex items-center justify-between py-3.5 px-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-app-green to-emerald-400 flex items-center justify-center text-lg shadow-[0_0_14px_rgba(0,229,160,0.27)]">
-              🎓
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-app-green to-emerald-400 flex items-center justify-center shadow-[0_0_14px_rgba(0,229,160,0.27)]">
+              <GraduationCap size={18} weight="fill" className="text-app-bg" />
             </div>
             <span className="text-lg font-black tracking-tight">
               Eduvy<span className="text-app-green">-AI</span>
@@ -243,7 +245,7 @@ export default function LandingPage() {
               onClick={() => navigate('/auth')} 
               className="bg-gradient-to-br from-app-green to-emerald-400 border-none rounded-xl py-4 px-10 text-app-bg text-base font-black cursor-pointer shadow-[0_0_32px_rgba(0,229,160,0.27)]"
             >
-              Start Learning Free 🚀
+              Start Learning Free <RocketLaunch size={16} weight="fill" className="inline" />
             </button>
             <button 
               onClick={() => navigate('/auth')} 
@@ -266,13 +268,16 @@ export default function LandingPage() {
             Everything a student needs, in one app
           </h2>
           <div className="lp-grid-features">
-            {FEATURES.map(f => (
-              <div key={f.title} className="bg-app-card border border-app-border rounded-2xl p-5">
-                <div className="text-[28px] mb-2.5">{f.icon}</div>
-                <div className="text-[15px] font-extrabold mb-1 text-app-text">{f.title}</div>
-                <div className="text-sm text-app-muted leading-normal">{f.desc}</div>
-              </div>
-            ))}
+            {FEATURES.map((f, idx) => {
+              const Icon = FEATURE_ICONS[idx]
+              return (
+                <div key={f.title} className="bg-app-card border border-app-border rounded-2xl p-5">
+                  <div className="mb-2.5">{Icon && <Icon size={28} weight="duotone" className="text-app-green" />}</div>
+                  <div className="text-[15px] font-extrabold mb-1 text-app-text">{f.title}</div>
+                  <div className="text-sm text-app-muted leading-normal">{f.desc}</div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -303,17 +308,16 @@ export default function LandingPage() {
                   borderColor: plan.popular ? plan.color : undefined 
                 }}
               >
-                {plan.popular && (
                   <div 
-                    className="absolute -top-3 left-1/2 -translate-x-1/2 text-white text-[11px] font-extrabold py-1 px-4 rounded-full whitespace-nowrap tracking-wide"
+                    className="absolute -top-3 left-1/2 -translate-x-1/2 text-white text-[11px] font-extrabold py-1 px-4 rounded-full whitespace-nowrap tracking-wide flex items-center gap-1"
                     style={{ background: `linear-gradient(90deg, ${plan.color}, #4466ee)` }}
                   >
-                    ⭐ MOST POPULAR
+                    <Star size={11} weight="fill" /> MOST POPULAR
                   </div>
                 )}
                 <div className="mb-4">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-[22px]">{plan.icon}</span>
+                    {(() => { const Icon = plan.icon; return <Icon size={22} weight="duotone" style={{ color: plan.color }} /> })()}
                     <span className="text-[17px] font-black" style={{ color: plan.color }}>{plan.name}</span>
                   </div>
                   <div className="flex items-baseline gap-1 mb-1">
@@ -329,10 +333,10 @@ export default function LandingPage() {
                       className={`flex items-start gap-2 text-[12.5px] ${f.ok ? 'font-semibold text-app-text' : 'font-normal text-app-muted opacity-55'}`}
                     >
                       <span 
-                        className="shrink-0 text-sm mt-0.5" 
+                        className="shrink-0 mt-0.5" 
                         style={{ color: f.ok ? plan.color : undefined }}
                       >
-                        {f.ok ? '✓' : '✗'}
+                        {f.ok ? <Check size={14} weight="bold" /> : <X size={14} />}
                       </span>
                       {f.text}
                     </li>
@@ -390,8 +394,8 @@ export default function LandingPage() {
       {/* ── Final CTA ── */}
       <section className="pt-[72px] pb-20">
         <div className="lp-container flex flex-col items-center gap-5 text-center">
-          <div className="w-[72px] h-[72px] rounded-2xl bg-gradient-to-br from-app-green to-emerald-400 flex items-center justify-center text-4xl shadow-[0_0_32px_rgba(0,229,160,0.27)]">
-            🎓
+          <div className="w-[72px] h-[72px] rounded-2xl bg-gradient-to-br from-app-green to-emerald-400 flex items-center justify-center shadow-[0_0_32px_rgba(0,229,160,0.27)]">
+            <GraduationCap size={36} weight="fill" className="text-app-bg" />
           </div>
           <h2 className="text-[clamp(22px,3vw,30px)] font-black tracking-tight m-0">
             Ready to start learning?
@@ -403,7 +407,7 @@ export default function LandingPage() {
             onClick={() => navigate('/auth')} 
             className="bg-gradient-to-br from-app-green to-emerald-400 border-none rounded-xl py-4 px-[52px] text-app-bg text-base font-black cursor-pointer shadow-[0_0_30px_rgba(0,229,160,0.27)] max-sm:px-6"
           >
-            Create Free Account 🚀
+            Create Free Account <RocketLaunch size={16} weight="fill" className="inline" />
           </button>
         </div>
       </section>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { callAI, LANG_RULES, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
+import { Globe, ClipboardText, BookmarkSimple, Trophy, CoinVertical, Question, Lightbulb, Trash, Books, Lock } from '@phosphor-icons/react'
 import {
   apiCreateBhoolCard, apiGetMyBhoolCards, apiUpdateBhoolCard, apiDeleteBhoolCard,
   apiGetBhoolMarketplace, apiGetBhoolTop,
@@ -8,11 +9,12 @@ import {
   apiGetMyBhoolCollections,
 } from '../../api.js'
 
+const TAB_ICONS = { feed: Globe, mine: ClipboardText, saved: BookmarkSimple, top: Trophy }
 const getTabs = (ui) => [
-  { key: 'feed',       label: `🌐 ${ui.bazaar}`,    title: ui.bazaar },
-  { key: 'mine',       label: `📋 ${ui.myBhools}`,  title: ui.myBhools },
-  { key: 'saved',      label: `🔖 ${ui.collected}`,  title: ui.collected },
-  { key: 'top',        label: `🏆 ${ui.insights}`,   title: ui.insights },
+  { key: 'feed',       label: ui.bazaar,    title: ui.bazaar },
+  { key: 'mine',       label: ui.myBhools,  title: ui.myBhools },
+  { key: 'saved',      label: ui.collected,  title: ui.collected },
+  { key: 'top',        label: ui.insights,   title: ui.insights },
 ]
 
 const SUBJECTS = ['Mathematics', 'Science', 'English', 'Social Science', 'Hindi',
@@ -38,8 +40,8 @@ function Pill({ children, active, onClick }) {
 
 function BhoolCoins({ count }) {
   return (
-    <span className="bg-app-orange/15 border border-app-orange/30 text-app-orange text-xs rounded-xl px-2 py-0.5 font-bold">
-      🪙 {count}
+    <span className="bg-app-orange/15 border border-app-orange/30 text-app-orange text-xs rounded-xl px-2 py-0.5 font-bold flex items-center gap-1">
+      <CoinVertical size={12} weight="fill" /> {count}
     </span>
   )
 }
@@ -65,7 +67,7 @@ function MistakeCard({ card, isMine = false, onCollect, onReact, onPublish, onDe
         )}
       </div>
 
-      <p className="text-app-text text-sm mb-2 font-semibold">❓ {card.question}</p>
+      <p className="text-app-text text-sm mb-2 font-semibold flex items-center gap-1.5"><Question size={16} weight="bold" className="text-app-blue shrink-0" /> {card.question}</p>
 
       <div className="bg-app-red/10 border border-app-red/30 rounded-xl px-3 py-2 mb-2">
         <span className="text-app-red text-xs font-bold">{ui.iAnswered}</span>
@@ -81,14 +83,14 @@ function MistakeCard({ card, isMine = false, onCollect, onReact, onPublish, onDe
         <div className="bg-app-green/10 border border-app-green/30 rounded-xl px-3 py-2 mb-2">
           <span className="text-app-green text-xs font-bold">{ui.correctLabel}</span>
           <span className="text-app-text text-[13px]">{card.correct_answer}</span>
-          {card.why_wrong && <p className="text-app-muted text-xs mt-1.5">💡 {card.why_wrong}</p>}
+          {card.why_wrong && <p className="text-app-muted text-xs mt-1.5 flex items-center gap-1"><Lightbulb size={12} weight="fill" className="text-app-yellow shrink-0" /> {card.why_wrong}</p>}
         </div>
       )}
 
       <div className="flex items-center gap-2 flex-wrap mt-2">
         <BhoolCoins count={card.bhool_coins || 0} />
         {!isMine && typeof card.collect_count !== 'undefined' && (
-          <span className="text-app-muted text-xs">🔖 {card.collect_count}</span>
+          <span className="text-app-muted text-xs flex items-center gap-0.5"><BookmarkSimple size={12} weight="fill" /> {card.collect_count}</span>
         )}
 
         {!isMine && (
@@ -120,7 +122,7 @@ function MistakeCard({ card, isMine = false, onCollect, onReact, onPublish, onDe
         {isMine && (
           <button onClick={() => onDelete(card.id)}
             className={`${!card.is_published ? 'ml-2' : 'ml-auto'} bg-transparent border border-app-red/30 text-app-red rounded-2xl px-3 py-1 text-xs cursor-pointer hover:bg-app-red/10 active:scale-95 transition-all`}>
-            🗑
+            <Trash size={14} />
           </button>
         )}
       </div>
@@ -258,7 +260,7 @@ function PublishConfirmModal({ card, onClose, onPublished, ui }) {
   return (
     <div className="fixed inset-0 bg-black/55 z-[200] flex items-center justify-center p-5" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="bg-app-card rounded-[20px] px-6 py-7 max-w-[420px] w-full text-center">
-        <div className="text-[48px] mb-3">🌐</div>
+        <div className="mb-3 flex justify-center"><Globe size={48} weight="duotone" className="text-app-muted" /></div>
         <h2 className="text-app-text mb-2 text-lg font-extrabold">{ui.shareYourBhool}</h2>
         <p className="text-app-muted text-sm mb-5">
           {ui.publishHelpsOthers} <strong className="text-app-orange">{ui.bhoolCoins}</strong>
@@ -431,11 +433,14 @@ export default function BhoolBazaarTab({ profile, addXp }) {
 
       {/* Sub-nav */}
       <div className="flex gap-2 flex-wrap mb-4 overflow-x-auto">
-        {TABS.map(t => (
-          <Pill key={t.key} active={activeTab === t.key} onClick={() => setActiveTab(t.key)}>
-            {t.label}
-          </Pill>
-        ))}
+        {TABS.map(t => {
+          const Icon = TAB_ICONS[t.key]
+          return (
+            <Pill key={t.key} active={activeTab === t.key} onClick={() => setActiveTab(t.key)}>
+              <span className="flex items-center gap-1.5">{Icon && <Icon size={14} weight={activeTab === t.key ? 'fill' : 'regular'} />} {t.label}</span>
+            </Pill>
+          )
+        })}
       </div>
 
       {/* Feed filters */}
@@ -462,16 +467,16 @@ export default function BhoolBazaarTab({ profile, addXp }) {
 
       {/* Empty states */}
       {!loading && activeTab === 'feed'  && feedCards.length  === 0 && (
-        <EmptyState icon="🌐" title={ui.bazaarEmpty} subtitle={ui.bazaarEmpty} />
+        <EmptyState icon={Globe} title={ui.bazaarEmpty} subtitle={ui.bazaarEmpty} />
       )}
       {!loading && activeTab === 'mine'  && myCards.length    === 0 && (
-        <EmptyState icon="📋" title={ui.noBhoolCards} subtitle={ui.tapNewBhool} />
+        <EmptyState icon={ClipboardText} title={ui.noBhoolCards} subtitle={ui.tapNewBhool} />
       )}
       {!loading && activeTab === 'saved' && savedCards.length === 0 && (
-        <EmptyState icon="🔖" title={ui.nothingSaved} subtitle={ui.visitBazaarCollect} />
+        <EmptyState icon={BookmarkSimple} title={ui.nothingSaved} subtitle={ui.visitBazaarCollect} />
       )}
       {!loading && activeTab === 'top'   && topCards.length   === 0 && (
-        <EmptyState icon="🏆" title={ui.noTopCardsWeek} subtitle={ui.moreStudentsNeeded} />
+        <EmptyState icon={Trophy} title={ui.noTopCardsWeek} subtitle={ui.moreStudentsNeeded} />
       )}
 
       {/* Cards */}
@@ -545,9 +550,11 @@ export default function BhoolBazaarTab({ profile, addXp }) {
 
 // ── Empty State ───────────────────────────────────────────────
 function EmptyState({ icon, title, subtitle }) {
+  const EMPTY_ICONS = { feed: Globe, mine: ClipboardText, saved: BookmarkSimple, top: Trophy }
+  const Icon = typeof icon === 'string' ? null : icon
   return (
     <div className="text-center py-12 px-6">
-      <div className="text-[56px] mb-3">{icon}</div>
+      <div className="mb-3 flex justify-center">{Icon ? <Icon size={56} weight="duotone" className="text-app-muted" /> : <span className="text-[56px]">{icon}</span>}</div>
       <h3 className="text-app-text m-0 mb-2">{title}</h3>
       <p className="text-app-muted text-sm m-0">{subtitle}</p>
     </div>
@@ -569,7 +576,7 @@ function TopList({ cards, ui }) {
     <div>
       {Object.entries(bySubject).map(([subject, subCards]) => (
         <div key={subject} className="mb-6">
-          <h3 className="text-app-yellow text-[15px] mb-2.5">📚 {subject}</h3>
+          <h3 className="text-app-yellow text-[15px] mb-2.5 flex items-center gap-1.5"><Books size={16} weight="duotone" className="text-app-yellow" /> {subject}</h3>
           {subCards.map((c, i) => (
             <div key={c.id}
               className={`bg-app-card border rounded-2xl px-4 py-3 mb-2.5 flex items-start gap-3 ${i === 0 ? 'border-app-yellow/25' : 'border-app-border'}`}>
@@ -578,7 +585,7 @@ function TopList({ cards, ui }) {
               </span>
               <div className="flex-1 min-w-0">
                 <p className="text-app-text text-[13px] m-0 mb-1 font-semibold">{c.question}</p>
-                <p className="text-app-muted text-[12px] m-0">{ui.byAuthor} {c.author_name} · 🔖 {c.collect_count} {ui.savedCount} · <BhoolCoins count={c.bhool_coins || 0} /></p>
+                <p className="text-app-muted text-[12px] m-0">{ui.byAuthor} {c.author_name} · <BookmarkSimple size={10} weight="fill" className="inline" /> {c.collect_count} {ui.savedCount} · <BhoolCoins count={c.bhool_coins || 0} /></p>
               </div>
             </div>
           ))}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { PLANS, planHasLab, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
+import { Target, Flask, Lightning, Microphone, PencilLine, Flower, Lock } from '@phosphor-icons/react'
 import PodcastLab from '../labs/PodcastLab.jsx'
 import QuizLab from '../labs/QuizLab.jsx'
 import EssayLab from '../labs/EssayLab.jsx'
@@ -8,13 +9,22 @@ import MentalLab from '../labs/MentalLab.jsx'
 import ExaminerLab from '../labs/ExaminerLab.jsx'
 import SamjhaoLab from '../labs/SamjhaoLab.jsx'
 
+const LAB_ICONS = {
+  examiner: Target,
+  samjhao: Flask,
+  quiz: Lightning,
+  podcast: Microphone,
+  essay: PencilLine,
+  mental: Flower,
+}
+
 const getLabs = (ui) => [
-  { key: "examiner", icon: "🎯", label: ui.marksHunter,    desc: ui.examinerLabDesc, color: "#FFD166" },
-  { key: "samjhao",  icon: "🧪", label: ui.samjhao,        desc: ui.samjhaoLabDesc,  color: "#7B9CFF" },
-  { key: "quiz",     icon: "⚡", label: ui.quizArena,      desc: ui.quizLabDesc,     color: "#00E5A0" },
-  { key: "podcast",  icon: "🎙️", label: ui.aiPodcast,      desc: ui.podcastLabDesc,  color: "#FF6B35" },
-  { key: "essay",    icon: "✍️",  label: ui.essayWriter,    desc: ui.essayLabDesc,    color: "#FF6B6B" },
-  { key: "mental",   icon: "🧘", label: ui.wellnessCoach,   desc: ui.mentalLabDesc,   color: "#00E5A0" },
+  { key: "examiner", label: ui.marksHunter,    desc: ui.examinerLabDesc, color: "#FFD166" },
+  { key: "samjhao",  label: ui.samjhao,        desc: ui.samjhaoLabDesc,  color: "#7B9CFF" },
+  { key: "quiz",     label: ui.quizArena,      desc: ui.quizLabDesc,     color: "#00E5A0" },
+  { key: "podcast",  label: ui.aiPodcast,      desc: ui.podcastLabDesc,  color: "#FF6B35" },
+  { key: "essay",    label: ui.essayWriter,    desc: ui.essayLabDesc,    color: "#FF6B6B" },
+  { key: "mental",   label: ui.wellnessCoach,   desc: ui.mentalLabDesc,   color: "#00E5A0" },
 ]
 
 export default function LabsTab(props) {
@@ -50,10 +60,10 @@ export default function LabsTab(props) {
             className="bg-app-card border border-app-border rounded-[18px] p-[18px] flex items-center gap-4 cursor-pointer text-left w-full hover:border-app-green/20 active:scale-[0.99] transition-all duration-150"
           >
             <div
-              className="w-14 h-14 rounded-2xl flex items-center justify-center text-[26px] shrink-0"
+              className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
               style={{ background: `${lab.color}20`, border: `1.5px solid ${lab.color}40` }}
             >
-              {lab.icon}
+              {(() => { const Icon = LAB_ICONS[lab.key]; return Icon ? <Icon size={26} weight="duotone" color={lab.color} /> : null })()}
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[15px] font-extrabold text-app-text mb-1">{lab.label}</div>
@@ -78,16 +88,16 @@ export default function LabsTab(props) {
                 className="bg-app-card border border-app-border rounded-[18px] p-[18px] flex items-center gap-4 opacity-45 cursor-not-allowed"
               >
                 <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center text-[26px] shrink-0"
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
                   style={{ background: `${lab.color}10`, border: `1.5px solid ${lab.color}20` }}
                 >
-                  {lab.icon}
+                  {(() => { const Icon = LAB_ICONS[lab.key]; return Icon ? <Icon size={26} weight="duotone" color={lab.color} /> : null })()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[15px] font-extrabold text-app-muted mb-1">{lab.label}</div>
                   <div className="text-xs text-app-muted leading-relaxed">{lab.desc}</div>
                 </div>
-                <span className="text-sm text-app-muted shrink-0">🔒</span>
+                <Lock size={16} className="text-app-muted shrink-0" />
               </div>
             ))}
           </>

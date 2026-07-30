@@ -4,6 +4,7 @@ import { apiGetParentPin, apiCreateParentPin, apiRevokeParentPin, apiGetMyReferr
 import { li } from '../i18n/index.js'
 import { APP_URL } from '../config'
 import UpgradePlanModal from './UpgradePlanModal.jsx'
+import { GearSix, X, CheckCircle, XCircle, ShareNetwork, UsersThree, ClipboardText, Clock, Trash, Link, ArrowUp, Lock, Warning, Robot, SignOut } from '@phosphor-icons/react'
 
 const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
 
@@ -96,9 +97,9 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
         <div className="px-[18px] pt-2">
           <div className="flex items-center justify-between mb-3.5">
             <div>
-              <h2 className="text-[17px] font-extrabold text-app-text">⚙️ {ui.settings}</h2>
+              <h2 className="text-[17px] font-extrabold text-app-text flex items-center gap-2"><GearSix size={18} weight="duotone" /> {ui.settings}</h2>
             </div>
-            <button onClick={onClose} className="bg-transparent border-none text-app-muted text-xl cursor-pointer font-[Sora,sans-serif]">✕</button>
+            <button onClick={onClose} className="bg-transparent border-none text-app-muted cursor-pointer font-[Sora,sans-serif]"><X size={20} /></button>
           </div>
 
           {/* Tab switcher */}
@@ -153,7 +154,7 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
                 <input className={inputClass} type="text" value={pSchool} onChange={e => setPSchool(e.target.value)} placeholder={ui.schoolPlaceholder} maxLength={100} />
               </div>
               <button onClick={saveProfile} className="w-full bg-gradient-to-br from-app-green to-emerald-500 text-app-bg border-none rounded-xl py-3 px-4 text-sm font-extrabold cursor-pointer font-[Sora,sans-serif]">
-                {profileSaved ? `✅ ${ui.saved}` : profileError ? `❌ ${ui.saveFailed}` : ui.saveProfile}
+                {profileSaved ? <><CheckCircle size={14} weight="fill" className="inline" /> {ui.saved}</> : profileError ? <><XCircle size={14} weight="fill" className="inline" /> {ui.saveFailed}</> : ui.saveProfile}
               </button>
 
               {/* ── Refer Friends ── */}
@@ -199,7 +200,7 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
                         }
                       }}
                       className={`rounded-[10px] py-1.5 px-3 text-xs cursor-pointer font-bold ${refCopied ? 'bg-app-green/15 border border-app-green/30 text-app-green' : 'bg-app-blue/15 border border-app-blue/30 text-app-blue'}`}
-                    >{refCopied ? `✅ ${ui.copied}` : `📲 ${ui.share}`}</button>
+                    >{refCopied ? <><CheckCircle size={12} weight="fill" /> {ui.copied}</> : <><ShareNetwork size={12} /> {ui.share}</>}</button>
                   </div>
                 ) : (
                   <div className="text-app-muted text-xs">{ui.loading}...</div>
@@ -208,8 +209,8 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
 
               {/* ── Share with Parent ── */}
               <div className="mt-2 bg-app-green/5 border border-app-green/20 rounded-[14px] p-4">
-                <div className="font-bold text-app-green text-sm mb-1.5">
-                  👨‍👩‍👦 {ui.shareWithParent}
+                <div className="font-bold text-app-green text-sm mb-1.5 flex items-center gap-1.5">
+                  <UsersThree size={16} weight="fill" /> {ui.shareWithParent}
                 </div>
                 <p className="text-app-muted text-xs m-0 mb-3">
                   {ui.parentPinDescription}
@@ -231,11 +232,11 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
                           setTimeout(() => setPinCopied(false), 2000)
                         }}
                         className={`rounded-[10px] py-1.5 px-3 text-xs cursor-pointer ${pinCopied ? 'bg-app-green/15 border border-app-green text-app-green' : 'bg-app-card border border-app-border text-app-text'}`}
-                      >{pinCopied ? `✅ ${ui.copied}` : `📋 ${ui.copy}`}</button>
+                      >{pinCopied ? <><CheckCircle size={12} weight="fill" /> {ui.copied}</> : <><ClipboardText size={12} /> {ui.copy}</>}</button>
                     </div>
                     {parentExpires && (
-                      <div className="text-app-muted text-[11px] mb-2">
-                        ⏰ {ui.validUntil} {new Date(parentExpires).toLocaleDateString()}
+                      <div className="text-app-muted text-[11px] mb-2 flex items-center gap-1">
+                        <Clock size={11} /> {ui.validUntil} {new Date(parentExpires).toLocaleDateString()}
                       </div>
                     )}
                     <button
@@ -248,7 +249,7 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
                         } finally { setPinLoading(false) }
                       }}
                       className="w-full bg-app-red/10 border border-app-red/20 text-app-red rounded-[10px] py-1.5 px-3.5 text-xs cursor-pointer"
-                    >{pinLoading ? `${ui.revoking}...` : `🗑 ${ui.revokeAccess}`}</button>
+                    >{pinLoading ? `${ui.revoking}...` : <><Trash size={12} /> {ui.revokeAccess}</>}</button>
                   </>
                 ) : (
                   <button
@@ -261,7 +262,7 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
                       } finally { setPinLoading(false) }
                     }}
                     className="w-full bg-app-green/15 border border-app-green/30 text-app-green rounded-[10px] py-2.5 text-sm font-bold cursor-pointer"
-                  >{pinLoading ? `${ui.generating}...` : `🔗 ${ui.generateParentLink}`}</button>
+                  >{pinLoading ? `${ui.generating}...` : <><Link size={14} /> {ui.generateParentLink}</>}</button>
                 )}
               </div>
             </div>
@@ -284,8 +285,8 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
                     <div className="text-lg font-black" style={{ color: currentPlanInfo.color }}>{currentPlanInfo.label}</div>
                     <div className="text-xs text-app-muted mt-0.5">{ui.yourCurrentPlan}</div>
                     {profile?.plan_expires_at && (
-                      <div className="text-[11px] text-app-yellow mt-1">
-                        ⏰ {ui.expires}: {new Date(profile.plan_expires_at).toLocaleDateString()}
+                      <div className="text-[11px] text-app-yellow mt-1 flex items-center gap-1">
+                        <Clock size={11} /> {ui.expires}: {new Date(profile.plan_expires_at).toLocaleDateString()}
                       </div>
                     )}
                   </div>
@@ -335,7 +336,7 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
                     onClick={() => setShowUpgrade(true)}
                     className="w-full py-3 rounded-[14px] mt-1 bg-gradient-to-br from-app-green to-app-blue border-none text-app-bg text-sm font-black cursor-pointer font-[Sora,sans-serif]"
                   >
-                    ⬆️ {ui.upgradePlan}
+                    <ArrowUp size={14} weight="bold" className="inline" /> {ui.upgradePlan}
                   </button>
                 )}
               </div>
@@ -356,7 +357,7 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
 
                 {/* Managed AI notice */}
                 <div className="bg-app-green/5 border border-app-green/20 rounded-[14px] py-3.5 px-4 flex items-center gap-3">
-                  <span className="text-[28px] shrink-0">🔐</span>
+                  <Lock size={28} weight="duotone" className="text-app-green shrink-0" />
                   <div>
                     <div className="text-[13px] font-extrabold text-app-green">{ui.aiManagedTitle}</div>
                     <div className="text-[11px] text-app-muted mt-0.5 leading-relaxed">
@@ -394,7 +395,7 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
                       </div>
                       {pct >= 90 && (
                         <div className="mt-2.5 text-xs text-app-red bg-app-red/10 rounded-lg py-2 px-2.5 leading-relaxed">
-                          ⚠️ {ui.dailyLimitWarning}
+                          <Warning size={12} weight="fill" className="inline" /> {ui.dailyLimitWarning}
                           {userPlan !== 'premium' && ` ${ui.upgradeForMore}`}
                         </div>
                       )}
@@ -404,7 +405,7 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
 
                 {/* Active model info */}
                 <div className="bg-app-card border border-app-border rounded-[14px] py-3.5 px-4 flex items-center gap-3">
-                  <span className="text-[22px] shrink-0">🤖</span>
+                  <Robot size={22} weight="duotone" className="text-app-blue shrink-0" />
                   <div>
                     <div className="text-[11px] font-bold text-app-muted mb-0.5">{ui.yourAiModel}</div>
                     <div className="text-[13px] font-bold text-app-text">
@@ -448,7 +449,7 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
               onClick={onLogout}
               className="w-full bg-app-red/10 border border-app-red/25 text-app-red rounded-xl py-3 text-sm font-bold cursor-pointer font-[Sora,sans-serif] hover:bg-app-red/20 active:scale-[0.97] transition-all"
             >
-              🚪 {ui.logout}
+              <SignOut size={16} weight="bold" className="inline" /> {ui.logout}
             </button>
           </div>
         )}

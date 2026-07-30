@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect, useRef, useCallback } from 'react'
 import { li } from '../../i18n/index.js'
 import { getDisplayLang } from '../../shared.js'
+import { Sword, Trophy, Scroll, Hourglass, Handshake, Barbell, CheckCircle, XCircle, Lightning, Buildings, Medal } from '@phosphor-icons/react'
 import {
   apiCreateMuqablaChallenge, apiJoinMuqabalaBattle,
   apiSubmitMuqablaAnswers, apiGetMuqabalaBattle,
@@ -15,10 +16,11 @@ const SUBJECTS = [
   'Economics', 'Computer', 'Sanskrit',
 ]
 
+const VIEW_ICONS = { arena: Sword, board: Trophy, history: Scroll }
 const getViews = (ui) => [
-  { key: 'arena',   label: ui.arenaSubTab || '⚔️ Arena',     title: ui.battleArena },
-  { key: 'board',   label: ui.rankingsSubTab || '🏆 Rankings',  title: ui.leaderboard  },
-  { key: 'history', label: ui.historySubTab || '📜 History',   title: ui.couldNotLoadHistory },
+  { key: 'arena',   label: ui.arenaSubTab || 'Arena',     title: ui.battleArena },
+  { key: 'board',   label: ui.rankingsSubTab || 'Rankings',  title: ui.leaderboard  },
+  { key: 'history', label: ui.historySubTab || 'History',   title: ui.couldNotLoadHistory },
 ]
 
 const DIFF_COLORS = { Easy: '#00E5A0', Medium: '#FFD166', Hard: '#FF6B6B' }
@@ -239,7 +241,7 @@ function QuizScreen({ battle, onDone, userId, ui }) {
         <div className="bg-app-card rounded-3xl px-6 py-8 max-w-[420px] w-full text-center">
           {waiting ? (
             <>
-              <div className="text-[56px] mb-3">⏳</div>
+              <div className="mb-3 flex justify-center"><Hourglass size={56} weight="duotone" className="text-app-yellow" /></div>
               <h2 className="text-app-yellow mb-2">{ui.waitingOpponentResult}</h2>
               <p className="text-app-muted text-sm">
                 {ui.yourScore}: <strong className="text-app-green">{result.score}/{questions.length}</strong>
@@ -248,17 +250,17 @@ function QuizScreen({ battle, onDone, userId, ui }) {
             </>
           ) : won ? (
             <>
-              <div className="text-[56px] mb-3">🏆</div>
+              <div className="mb-3 flex justify-center"><Trophy size={56} weight="duotone" className="text-app-yellow" /></div>
               <h2 className="text-app-yellow mb-2">{ui.youWonShort}</h2>
             </>
           ) : draw ? (
             <>
-              <div className="text-[56px] mb-3">🤝</div>
+              <div className="mb-3 flex justify-center"><Handshake size={56} weight="duotone" className="text-app-blue" /></div>
               <h2 className="text-app-blue mb-2">{ui.drawResult}!</h2>
             </>
           ) : (
             <>
-              <div className="text-[56px] mb-3">💪</div>
+              <div className="mb-3 flex justify-center"><Barbell size={56} weight="duotone" className="text-app-text" /></div>
               <h2 className="text-app-text mb-2">{ui.goodFight}</h2>
             </>
           )}
@@ -288,8 +290,8 @@ function QuizScreen({ battle, onDone, userId, ui }) {
                 return (
                   <div key={i} className={`border rounded-xl px-2.5 py-2 mb-1.5 ${correct ? 'bg-app-green/5 border-app-green/25' : 'bg-app-red/5 border-app-red/25'}`}>
                     <p className="text-app-text text-[12px] m-0 mb-1">{q.q}</p>
-                    <p className={`text-[11px] m-0 ${correct ? 'text-app-green' : 'text-app-red'}`}>
-                      {correct ? '✅' : '❌'} {q.options[myAns]} → ✅ {q.options[q.correct]}
+                    <p className={`text-[11px] m-0 flex items-center gap-1 ${correct ? 'text-app-green' : 'text-app-red'}`}>
+                      {correct ? <CheckCircle size={12} weight="fill" /> : <XCircle size={12} weight="fill" />} {q.options[myAns]} → <CheckCircle size={12} weight="fill" className="text-app-green" /> {q.options[q.correct]}
                     </p>
                   </div>
                 )
@@ -309,7 +311,7 @@ function QuizScreen({ battle, onDone, userId, ui }) {
   if (submitting) {
     return (
       <div className="fixed inset-0 bg-app-bg z-[200] flex items-center justify-center flex-col">
-        <div className="text-[48px] mb-4">⚡</div>
+        <div className="mb-4 flex justify-center"><Lightning size={48} weight="duotone" className="text-app-orange" /></div>
         <p className="text-app-text text-base">{ui.submittingAnswers}</p>
         {err && <p className="text-app-red text-sm">{err}</p>}
       </div>
@@ -324,7 +326,7 @@ function QuizScreen({ battle, onDone, userId, ui }) {
       <div className="mb-5">
         <div className="flex justify-between mb-2">
           <span className="text-app-muted text-[13px]">{ui.questionOf.replace('{current}', current + 1).replace('{total}', questions.length)}</span>
-          <span className="text-app-orange font-bold text-[13px]">⚔️ {battle.subject} — {battle.difficulty}</span>
+          <span className="text-app-orange font-bold text-[13px] flex items-center gap-1"><Sword size={13} weight="fill" /> {battle.subject} — {battle.difficulty}</span>
         </div>
         <div className="bg-app-card2 rounded h-1">
           <div className="bg-app-orange h-1 rounded transition-[width_.3s]" style={{ width: `${progress}%` }} />
@@ -392,7 +394,7 @@ function LeaderboardView({ myId, ui }) {
 
       {tab === 'students' && !loading && (
         students.length === 0
-          ? <EmptyMsg icon="🏆" text={ui.noBattlesWeek} />
+          ? <EmptyMsg icon={Trophy} text={ui.noBattlesWeek} />
           : students.map(s => (
             <div key={s.id} className={`border rounded-2xl px-4 py-3 mb-2 flex items-center gap-3 ${s.is_me ? 'bg-app-yellow/5 border-app-yellow/35' : 'bg-app-card border-app-border'}`}>
               <span className="text-lg min-w-[30px] text-center" style={{ color: s.rank === 1 ? '#FFD166' : s.rank === 2 ? '#aaa' : s.rank === 3 ? '#cd7f32' : '#6868a0' }}>
@@ -413,13 +415,13 @@ function LeaderboardView({ myId, ui }) {
 
       {tab === 'schools' && !loading && (
         schools.length === 0
-          ? <EmptyMsg icon="🏫" text={ui.addSchoolLeaderboard} />
+          ? <EmptyMsg icon={Buildings} text={ui.addSchoolLeaderboard} />
           : schools.map(s => (
             <div key={s.school} className={`border rounded-2xl px-4 py-3 mb-2 flex items-center gap-3 ${s.is_mine ? 'bg-app-blue/5 border-app-blue/35' : 'bg-app-card border-app-border'}`}>
               <span className="text-xl min-w-[30px] text-center" style={{ color: s.rank === 1 ? '#FFD166' : s.rank === 2 ? '#aaa' : s.rank === 3 ? '#cd7f32' : '#6868a0' }}>
                 {s.rank === 1 ? '🥇' : s.rank === 2 ? '🥈' : s.rank === 3 ? '🥉' : `#${s.rank}`}
               </span>
-              <div className="text-[28px]">🏫</div>
+              <div className="flex justify-center"><Buildings size={28} weight="duotone" className="text-app-blue" /></div>
               <div className="flex-1">
                 <div className={`font-bold text-sm ${s.is_mine ? 'text-app-blue' : 'text-app-text'}`}>{s.school} {s.is_mine && ui.yoursBracket}</div>
                 <div className="text-app-muted text-[11px]">{s.member_count} {ui.studentsCount}</div>
@@ -436,9 +438,10 @@ function LeaderboardView({ myId, ui }) {
 }
 
 function EmptyMsg({ icon, text }) {
+  const Icon = typeof icon === 'function' ? icon : null
   return (
     <div className="text-center py-10 px-5">
-      <div className="text-[48px] mb-2.5">{icon}</div>
+      <div className="mb-2.5 flex justify-center">{Icon ? <Icon size={48} weight="duotone" className="text-app-muted" /> : <span className="text-[48px]">{icon}</span>}</div>
       <p className="text-app-muted text-sm">{text}</p>
     </div>
   )
@@ -565,15 +568,19 @@ export default function MuqablaTab({ profile, userId }) {
 
       {/* Nav */}
       <div className="flex gap-2 mb-5">
-        {VIEWS.map(v => (
-          <button key={v.key} onClick={() => setView(v.key)}
-            className={`relative px-3.5 py-1.5 rounded-full border text-[13px] cursor-pointer transition-all ${view === v.key ? 'bg-app-orange/15 border-app-orange text-app-orange' : 'bg-app-card2 border-app-border text-app-muted hover:bg-white/[0.03]'}`}>
-            {v.label}
-            {v.key === 'arena' && pendingCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-app-red text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-black">{pendingCount}</span>
-            )}
-          </button>
-        ))}
+        {VIEWS.map(v => {
+          const Icon = VIEW_ICONS[v.key]
+          return (
+            <button key={v.key} onClick={() => setView(v.key)}
+              className={`relative px-3.5 py-1.5 rounded-full border text-[13px] cursor-pointer transition-all flex items-center gap-1.5 ${view === v.key ? 'bg-app-orange/15 border-app-orange text-app-orange' : 'bg-app-card2 border-app-border text-app-muted hover:bg-white/[0.03]'}`}>
+              {Icon && <Icon size={14} weight={view === v.key ? 'fill' : 'regular'} />}
+              {v.label}
+              {v.key === 'arena' && pendingCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-app-red text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-black">{pendingCount}</span>
+              )}
+            </button>
+          )
+        })}
       </div>
 
       {err && <div className="bg-app-red/10 border border-app-red/25 rounded-xl px-3.5 py-2.5 mb-3 text-app-red text-[13px]">{err}</div>}
@@ -616,7 +623,7 @@ export default function MuqablaTab({ profile, userId }) {
           )}
 
           {pending.length === 0 && active.length === 0 && openBattles.length === 0 && (
-            <EmptyMsg icon="⚔️" text={ui.noBattlesArena} />
+            <EmptyMsg icon={Sword} text={ui.noBattlesArena} />
           )}
 
           {!profile.school && (
@@ -633,7 +640,7 @@ export default function MuqablaTab({ profile, userId }) {
       {/* ── History ── */}
       {view === 'history' && !loading && (
         history.length === 0
-          ? <EmptyMsg icon="📜" text={ui.noCompletedBattles} />
+          ? <EmptyMsg icon={Scroll} text={ui.noCompletedBattles} />
           : history.map(b => <BattleCard key={b.id} battle={b} onAction={handleAction} myId={myId} ui={ui} />)
       )}
 
@@ -649,8 +656,8 @@ export default function MuqablaTab({ profile, userId }) {
       {quizBattle?.showResultsOnly && (
         <div className="fixed inset-0 bg-app-bg z-[200] flex items-center justify-center p-5 flex-col overflow-y-auto">
           <div className="bg-app-card rounded-3xl px-6 py-8 max-w-[420px] w-full text-center">
-            <div className="text-[48px] mb-3">
-              {quizBattle.winner_id === myId ? '🏆' : quizBattle.winner_id === 'draw' ? '🤝' : '💪'}
+            <div className="text-[48px] mb-3 flex justify-center">
+              {quizBattle.winner_id === myId ? <Trophy size={48} weight="duotone" className="text-app-yellow" /> : quizBattle.winner_id === 'draw' ? <Handshake size={48} weight="duotone" className="text-app-blue" /> : <Barbell size={48} weight="duotone" className="text-app-text" />}
             </div>
             <h2 className="mb-4" style={{ color: quizBattle.winner_id === myId ? '#FFD166' : quizBattle.winner_id === 'draw' ? '#7B9CFF' : '#eeeeff' }}>
               {quizBattle.winner_id === myId ? ui.youWonShort : quizBattle.winner_id === 'draw' ? ui.drawResult : quizBattle.status === 'waiting_for_opponent' ? ui.waitingForOpponent : ui.goodFight}

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { callAI, parseAIObject, parseAIArray, checkStudentQuery, getDisplayLang } from '../../shared.js'
 import { apiYouTubeSearch, apiYouTubeSmartSearch, apiYouTubeEduReels, apiYouTubeGetVideo } from '../../api.js'
 import { li } from '../../i18n/index.js'
+import { MonitorPlay, MagnifyingGlass, FilmReel, MagnifyingGlassPlus, Sparkle, Books, Brain, Lightbulb, GlobeHemisphereWest, Exam, Play, Robot, Target, ClipboardText, Prohibit, Hourglass } from '@phosphor-icons/react'
 
 // ── Backend YouTube API (uses yt-dlp on server) ──────────────
 
@@ -369,27 +370,30 @@ export default function LearnTVTab({ profile }) {
     <div className="px-4 md:px-6 lg:px-8 py-4 pb-6">
       {/* Header */}
       <div className="flex items-center gap-2.5 mb-3.5">
-        <span className="text-[22px]">📺</span>
+        <MonitorPlay size={22} weight="duotone" className="text-app-green" />
         <h2 className="text-[18px] font-extrabold text-app-text m-0">{ui.learnTV}</h2>
       </div>
 
       {/* Mode Tabs */}
       <div className="flex gap-1.5 mb-4 bg-app-card rounded-2xl p-1 border border-app-border">
         {[
-          { key: 'discover', icon: '🔍', label: 'Discover' },
-          { key: 'reels',    icon: '📸', label: 'Reels' },
-          { key: 'analyze',  icon: '🔬', label: 'Analyze' },
-          { key: 'create',   icon: '✨', label: 'AI Content' },
-        ].map(m => (
-          <button key={m.key} onClick={() => setMode(m.key)}
-            className={`flex-1 border-none rounded-xl py-2.5 px-1.5 text-[12px] cursor-pointer transition-all ${
-              mode === m.key
-                ? 'bg-gradient-to-br from-app-green to-[#33cc88] text-app-bg font-extrabold'
-                : 'bg-transparent text-app-muted font-medium hover:text-app-text'
-            }`}>
-            {m.icon} {m.label}
-          </button>
-        ))}
+          { key: 'discover', icon: MagnifyingGlass, label: 'Discover' },
+          { key: 'reels',    icon: FilmReel, label: 'Reels' },
+          { key: 'analyze',  icon: MagnifyingGlassPlus, label: 'Analyze' },
+          { key: 'create',   icon: Sparkle, label: 'AI Content' },
+        ].map(m => {
+          const Icon = m.icon
+          return (
+            <button key={m.key} onClick={() => setMode(m.key)}
+              className={`flex-1 border-none rounded-xl py-2.5 px-1.5 text-[12px] cursor-pointer transition-all flex items-center justify-center gap-1 ${
+                mode === m.key
+                  ? 'bg-gradient-to-br from-app-green to-[#33cc88] text-app-bg font-extrabold'
+                  : 'bg-transparent text-app-muted font-medium hover:text-app-text'
+              }`}>
+              <Icon size={13} weight={mode === m.key ? 'fill' : 'regular'} /> {m.label}
+            </button>
+          )
+        })}
       </div>
 
       {/* ─── DISCOVER MODE ──────────────────────────────────── */}
@@ -409,13 +413,13 @@ export default function LearnTVTab({ profile }) {
               onClick={() => doSearch()}
               disabled={searching || !searchQ.trim()}
               className={pBtnCls + ' !w-auto !min-w-[60px] !px-4 !py-2.5'}
-            >{searching ? '⏳' : '🔍'}</button>
+            >{searching ? <Hourglass size={16} weight="bold" /> : <MagnifyingGlass size={16} weight="bold" />}</button>
           </div>
 
           {/* Suggested topics */}
           {!videos.length && !searching && (
             <div>
-              <div className="text-[12px] text-app-muted mb-2.5 font-semibold">📚 {ui.suggestedForYou}</div>
+              <div className="text-[12px] text-app-muted mb-2.5 font-semibold flex items-center gap-1"><Books size={13} weight="duotone" /> {ui.suggestedForYou}</div>
               <div className="flex flex-wrap gap-2 mb-4">
                 {suggested.map((t, i) => (
                   <button key={i} onClick={() => { setSearchQ(t); doSearch(t) }} className={chipBtnCls}>{t}</button>
@@ -427,7 +431,7 @@ export default function LearnTVTab({ profile }) {
           {/* Loading */}
           {searching && (
             <div className="text-center py-10 text-app-muted">
-              <div className="text-[28px] mb-2.5">🔍</div>
+              <div className="mb-2.5 flex justify-center"><MagnifyingGlass size={28} weight="duotone" className="text-app-muted" /></div>
               {ui.searchingYouTube}…
             </div>
           )}
@@ -436,7 +440,7 @@ export default function LearnTVTab({ profile }) {
           {(conceptLoading || conceptSummary) && (
             <div className="border border-app-green/20 rounded-2xl px-4 py-3.5 mb-3.5" style={{ background: 'linear-gradient(135deg,#00E5A012,#7B9CFF10)' }}>
               <div className="flex items-center gap-2 mb-2.5">
-                <span className="text-base">🧠</span>
+                <Brain size={16} weight="duotone" className="text-app-green" />
                 <span className="text-[13px] font-bold text-app-green">{ui.conceptOverview}</span>
                 {conceptLoading && <span className="text-[11px] text-app-muted ml-1">{ui.aiThinking}…</span>}
               </div>
@@ -461,7 +465,7 @@ export default function LearnTVTab({ profile }) {
                   {/* Key Ideas */}
                   {conceptSummary.keyIdeas?.length > 0 && (
                     <div className="mb-2.5">
-                      <div className="text-[11px] font-bold text-app-blue mb-1.5">💡 {ui.keyIdeas}</div>
+                      <div className="text-[11px] font-bold text-app-blue mb-1.5 flex items-center gap-1"><Lightbulb size={12} weight="fill" /> {ui.keyIdeas}</div>
                       <div className="flex flex-col gap-1">
                         {conceptSummary.keyIdeas.map((idea, i) => (
                           <div key={i} className="text-[12px] text-app-text leading-[1.5] flex gap-2">
@@ -476,7 +480,7 @@ export default function LearnTVTab({ profile }) {
                   {/* Real Life Examples */}
                   {conceptSummary.realLife?.length > 0 && (
                     <div className="mb-2.5">
-                      <div className="text-[11px] font-bold text-app-yellow mb-1.5">🌍 {ui.realLifeExamples}</div>
+                      <div className="text-[11px] font-bold text-app-yellow mb-1.5 flex items-center gap-1"><GlobeHemisphereWest size={12} weight="fill" /> {ui.realLifeExamples}</div>
                       <div className="flex gap-2 flex-wrap">
                         {conceptSummary.realLife.map((ex, i) => (
                           <span key={i} className="text-[11px] text-app-text px-2.5 py-0.5 rounded-[10px] bg-app-yellow/10 border border-app-yellow/20">{ex}</span>
@@ -488,7 +492,7 @@ export default function LearnTVTab({ profile }) {
                   {/* Exam Tip */}
                   {conceptSummary.examTip && (
                     <div className="bg-[#FF6B3515] border border-[#FF6B3530] rounded-lg px-3 py-2 text-[12px] text-app-text leading-[1.5]">
-                      <span className="font-bold text-app-orange">📝 {ui.examTip} </span>
+                      <span className="font-bold text-app-orange flex items-center gap-1"><Exam size={12} weight="fill" /> {ui.examTip} </span>
                       {conceptSummary.examTip}
                     </div>
                   )}
@@ -530,7 +534,7 @@ export default function LearnTVTab({ profile }) {
                               loading="lazy"
                             />
                             <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                              <div className="w-8 h-8 rounded-full bg-black/70 flex items-center justify-center text-[13px]">▶</div>
+                              <div className="w-8 h-8 rounded-full bg-black/70 flex items-center justify-center"><Play size={13} weight="fill" className="text-white" /></div>
                             </div>
                             {v.duration > 0 && (
                               <div className="absolute bottom-1 right-1 bg-black/80 rounded px-1.5 text-[10px] text-white font-bold">{fmtDuration(v.duration)}</div>
@@ -580,7 +584,7 @@ export default function LearnTVTab({ profile }) {
                             onClick={() => getBrief(v)}
                             disabled={briefLoading === v.id}
                             className="text-[11px] text-app-green bg-transparent border-none cursor-pointer p-0 font-semibold"
-                          >{briefLoading === v.id ? '⏳ Analyzing…' : '🤖 AI Brief'}</button>
+                          >{briefLoading === v.id ? <><Hourglass size={12} weight="bold" /> Analyzing…</> : <><Robot size={12} weight="fill" /> AI Brief</>}</button>
                         )}
                         {brief && !isExpanded && (
                           <button
@@ -602,7 +606,7 @@ export default function LearnTVTab({ profile }) {
                       <div className="mt-2.5 pt-2.5 border-t border-app-border">
                         {brief.keyPoints?.length > 0 && (
                           <div className="mb-2">
-                            <div className="text-[11px] font-bold text-app-green mb-1.5">🎯 Key Points</div>
+                            <div className="text-[11px] font-bold text-app-green mb-1.5 flex items-center gap-1"><Target size={12} weight="fill" /> Key Points</div>
                             {brief.keyPoints.map((pt, i) => (
                               <div key={i} className="text-[12px] text-app-text leading-[1.6] pl-3">
                                 • {pt}
@@ -612,7 +616,7 @@ export default function LearnTVTab({ profile }) {
                         )}
                         {brief.prerequisites && (
                           <div className="text-[11px] text-app-muted mt-1.5">
-                            📋 Prerequisites: {brief.prerequisites}
+                            <ClipboardText size={11} weight="fill" className="inline" /> Prerequisites: {brief.prerequisites}
                           </div>
                         )}
                       </div>
@@ -738,7 +742,7 @@ export default function LearnTVTab({ profile }) {
                           />
                           {/* Gradient + play button */}
                           <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 40%, transparent 70%)' }}>
-                            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-app-green to-['#33cc88'] flex items-center justify-center text-[17px] text-app-bg shadow-[0_2px_16px_rgba(0,0,0,0.5)]">▶</div>
+                            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-app-green to-['#33cc88'] flex items-center justify-center text-app-bg shadow-[0_2px_16px_rgba(0,0,0,0.5)]"><Play size={17} weight="fill" /></div>
                           </div>
                           {/* Duration badge */}
                           {v.duration > 0 && (
