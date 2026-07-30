@@ -1,6 +1,6 @@
 // ─── Study Coach Page ───────────────────────────────────────
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useStudyCoach } from '../../modules/studycoach'
 import { useAuth } from '../../modules/auth'
 import { li, getDisplayLang } from '../../shared.js'
@@ -28,6 +28,11 @@ export default function StudyCoachPage() {
   // Use user's medium (instruction language) for TTS
   const userLanguage = user?.language || 'English'
   const ui = useMemo(() => li(getDisplayLang(user)), [user])
+
+  // Clear old response when language changes so stale content doesn't persist
+  useEffect(() => {
+    clear()
+  }, [userLanguage]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = useCallback(async () => {
     if (!question.trim()) return

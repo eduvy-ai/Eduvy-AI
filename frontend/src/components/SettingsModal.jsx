@@ -346,9 +346,9 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
           {activeTab === "ai" && (() => {
             const userPlan = profile?.plan || 'free'
             const planInfo = PLANS[userPlan] || PLANS.free
-            const used  = usage?.today?.calls || 0
-            const limit = usage?.daily_quota  || planInfo.aiCallsPerDay || 10
-            const remaining = usage?.today?.remaining ?? Math.max(0, limit - used)
+            const used  = usage?.today_calls || 0
+            const limit = usage?.daily_limit  || planInfo.aiCallsPerDay || 10
+            const remaining = Math.max(0, limit - used)
             const pct = Math.min(100, limit > 0 ? Math.round((used / limit) * 100) : 0)
             const barColor = pct >= 90 ? '#FF6B6B' : pct >= 70 ? '#FFD166' : '#00E5A0'
             return (
@@ -386,9 +386,9 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
                         <span className="text-[11px] text-app-muted">
                           {remaining} {ui.remainingToday}
                         </span>
-                        {usage?.today?.tokens > 0 && (
+                        {usage?.today_tokens > 0 && (
                           <span className="text-[11px] text-app-muted">
-                            ~{((usage.today.tokens) / 1000).toFixed(1)}K {ui.tokensUsed}
+                            ~{((usage.today_tokens) / 1000).toFixed(1)}K {ui.tokensUsed}
                           </span>
                         )}
                       </div>
@@ -417,17 +417,17 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
                 </div>
 
                 {/* Monthly usage */}
-                {usage?.this_month && (
+                {usage?.month_calls > 0 && (
                   <div className="bg-app-card border border-app-border rounded-[14px] py-3.5 px-4">
                     <div className="text-[11px] font-bold text-app-muted mb-2.5 tracking-wider">{ui.thisMonth}</div>
                     <div className="flex gap-5">
                       <div>
-                        <div className="text-lg font-black text-app-blue">{usage.this_month.calls}</div>
+                        <div className="text-lg font-black text-app-blue">{usage.month_calls}</div>
                         <div className="text-[10px] text-app-muted">{ui.totalCalls}</div>
                       </div>
                       <div>
                         <div className="text-lg font-black text-app-blue">
-                          {((usage.this_month.tokens || 0) / 1000).toFixed(1)}K
+                          {((usage.month_tokens || 0) / 1000).toFixed(1)}K
                         </div>
                         <div className="text-[10px] text-app-muted">{ui.tokens}</div>
                       </div>
