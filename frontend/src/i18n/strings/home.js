@@ -348,7 +348,7 @@ export const HOME = {
 
   // Mera Sawaal (Daily Problem)
   meraSawaal: {
-    English:  "🧩 Mera Sawaal",
+    English:  "🧩 My Question",
     Hindi:    "🧩 मेरा सवाल",
     Gujarati: "🧩 મારો સવાલ",
     Marathi:  "🧩 माझा प्रश्न",

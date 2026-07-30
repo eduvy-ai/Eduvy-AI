@@ -47,7 +47,7 @@ export const LABS = {
   },
 
   samjhao: {
-    English:  "🎓 Samjhao",
+    English:  "🎓 Teach Back",
     Hindi:    "🎓 समझाओ",
     Gujarati: "🎓 સમજાવો",
     Marathi:  "🎓 समजावून सांगा",
@@ -196,7 +196,7 @@ export const LABS = {
     Punjabi: "ਕੋਈ ਵੀ concept ਆਪਣੇ ਸ਼ਬਦਾਂ ਵਿੱਚ ਸਮਝਾਓ — ਆਪਣਾ Feynman Score ਪ੍ਰਾਪਤ ਕਰੋ", Odia: "ଯେକୌଣସି ଧାରଣା ନିଜ ଶବ୍ଦରେ ବୁଝାଅ — ତୁମର Feynman Score ପାଅ", Urdu: "کسی بھی تصور کو اپنے الفاظ میں سمجھائیں — اپنا Feynman Score حاصل کریں",
   },
   quizLabDesc: {
-    English: "Adaptive board-exam MCQ practice with instant explanations + Galti Doctor", Hindi: "तत्काल स्पष्टीकरण + गलती डॉक्टर के साथ बोर्ड-परीक्षा MCQ अभ्यास", Gujarati: "તાત્કાલિક સમજૂતી + ગલતી ડૉક્ટર સાથે બોર્ડ-પરીક્ષા MCQ અભ્યાસ", Marathi: "त्वरित स्पष्टीकरण + गलती डॉक्टर सह बोर्ड-परीक्षा MCQ सराव",
+    English: "Adaptive board-exam MCQ practice with instant explanations + Mistake Doctor", Hindi: "तत्काल स्पष्टीकरण + गलती डॉक्टर के साथ बोर्ड-परीक्षा MCQ अभ्यास", Gujarati: "તાત્કાલિક સમજૂતી + ગલતી ડૉક્ટર સાથે બોર્ડ-પરીક્ષા MCQ અભ્યાસ", Marathi: "त्वरित स्पष्टीकरण + गलती डॉक्टर सह बोर्ड-परीक्षा MCQ सराव",
     Tamil: "உடனடி விளக்கங்கள் + தவறு மருத்துவர் உடன் போர்டு தேர்வு MCQ பயிற்சி", Telugu: "తక్షణ వివరణలు + తప్పు డాక్టర్ తో బోర్డ్ పరీక్ష MCQ ప్రాక్టీస్", Kannada: "ತ್ವರಿತ ವಿವರಣೆಗಳು + ತಪ್ಪು ಡಾಕ್ಟರ್ ಜೊತೆ ಬೋರ್ಡ್ ಪರೀಕ್ಷೆ MCQ ಅಭ್ಯಾಸ", Bengali: "তাৎক্ষণিক ব্যাখ্যা + ভুল ডক্টর সহ বোর্ড পরীক্ষা MCQ অভ্যাস",
     Punjabi: "ਤੁਰੰਤ ਵਿਆਖਿਆ + ਗਲਤੀ ਡਾਕਟਰ ਨਾਲ ਬੋਰਡ ਪ੍ਰੀਖਿਆ MCQ ਅਭਿਆਸ", Odia: "ତୁରନ୍ତ ବ୍ୟାଖ୍ୟା + ଭୁଲ ଡକ୍ଟର ସହ ବୋର୍ଡ ପରୀକ୍ଷା MCQ ଅଭ୍ୟାସ", Urdu: "فوری وضاحت + غلطی ڈاکٹر کے ساتھ بورڈ امتحان MCQ مشق",
   },

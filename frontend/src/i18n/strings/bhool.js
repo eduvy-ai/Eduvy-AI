@@ -5,7 +5,7 @@
 export const BHOOL = {
   // Sub-tabs
   myBhools: {
-    English:  "My Bhools",
+    English:  "My Mistakes",
     Hindi:    "मेरी भूलें",
     Gujarati: "મારી ભૂલો",
     Marathi:  "माझ्या भूला",
@@ -19,7 +19,7 @@ export const BHOOL = {
   },
 
   bazaar: {
-    English:  "Bazaar",
+    English:  "Marketplace",
     Hindi:    "बाज़ार",
     Gujarati: "બજાર",
     Marathi:  "बाजार",
@@ -62,7 +62,7 @@ export const BHOOL = {
 
   // Actions
   addBhool: {
-    English:  "➕ Add Bhool",
+    English:  "➕ Add Mistake",
     Hindi:    "➕ भूल जोड़ें",
     Gujarati: "➕ ભૂલ ઉમેરો",
     Marathi:  "➕ भूल जोडा",
@@ -76,7 +76,7 @@ export const BHOOL = {
   },
 
   shareToBazaar: {
-    English:  "Share to Bazaar",
+    English:  "Share to Marketplace",
     Hindi:    "बाज़ार में शेयर करें",
     Gujarati: "બજારમાં શેર કરો",
     Marathi:  "बाजारात शेअर करा",
@@ -206,7 +206,7 @@ export const BHOOL = {
 
   // Empty states
   noBhoolsYet: {
-    English:  "No bhools yet. Make some mistakes while learning — they help you grow! 🌱",
+    English:  "No mistakes yet. Make some mistakes while learning — they help you grow! 🌱",
     Hindi:    "अभी तक कोई भूल नहीं। पढ़ते समय गलतियाँ करें — वे आपको बढ़ने में मदद करती हैं! 🌱",
     Gujarati: "હજી કોઈ ભૂલ નથી. શીખતી વખતે ભૂલો કરો — તે તમને વધવામાં મદદ કરે છે! 🌱",
     Marathi:  "अद्याप कोणतीही भूल नाही. शिकताना चुका करा — त्या तुम्हाला वाढण्यास मदत करतात! 🌱",
@@ -220,7 +220,7 @@ export const BHOOL = {
   },
 
   bazaarEmpty: {
-    English:  "Bazaar is empty. Be the first to share your mistake!",
+    English:  "Marketplace is empty. Be the first to share your mistake!",
     Hindi:    "बाज़ार खाली है। अपनी गलती शेयर करने वाले पहले बनें!",
     Gujarati: "બજાર ખાલી છે. તમારી ભૂલ શેર કરનાર પ્રથમ બનો!",
     Marathi:  "बाजार रिकामा आहे. तुमची चूक शेअर करणारे पहिले व्हा!",
@@ -288,7 +288,7 @@ export const BHOOL = {
     Punjabi: "ਗਲਤੀਆਂ ਨੂੰ ਸਿੱਖਣ ਦੇ ਸਾਧਨ ਬਣਾਓ", Odia: "ଭୁଲକୁ ଶିକ୍ଷାର ସଂପତ୍ତି କର", Urdu: "غلطیوں کو سیکھنے کا ذریعہ بنائیں",
   },
   newBhool: {
-    English: "+ New Bhool", Hindi: "+ नई भूल", Gujarati: "+ નવી ભૂલ", Marathi: "+ नवीन भूल",
+    English: "+ New Mistake", Hindi: "+ नई भूल", Gujarati: "+ નવી ભૂલ", Marathi: "+ नवीन भूल",
     Tamil: "+ புதிய தவறு", Telugu: "+ కొత్త తప్పు", Kannada: "+ ಹೊಸ ತಪ್ಪು", Bengali: "+ নতুন ভুল",
     Punjabi: "+ ਨਵੀਂ ਭੁੱਲ", Odia: "+ ନୂଆ ଭୁଲ", Urdu: "+ نئی غلطی",
   },
@@ -358,7 +358,7 @@ export const BHOOL = {
     Punjabi: "ਹੋਰ ਲੋਡ ਕਰੋ", Odia: "ଅଧିକ ଲୋଡ କର", Urdu: "مزید دکھائیں",
   },
   saveBhoolTitle: {
-    English: "📝 Save a Bhool", Hindi: "📝 भूल सेव करें", Gujarati: "📝 ભૂલ સાચવો", Marathi: "📝 भूल जतन करा",
+    English: "📝 Save a Mistake", Hindi: "📝 भूल सेव करें", Gujarati: "📝 ભૂલ સાચવો", Marathi: "📝 भूल जतन करा",
     Tamil: "📝 தவறு சேமி", Telugu: "📝 తప్పు సేవ్ చేయండి", Kannada: "📝 ತಪ್ಪು ಉಳಿಸಿ", Bengali: "📝 ভুল সেভ করুন",
     Punjabi: "📝 ਭੁੱਲ ਸੇਵ ਕਰੋ", Odia: "📝 ଭୁଲ ସେଭ କର", Urdu: "📝 غلطی محفوظ کریں",
   },
@@ -418,7 +418,7 @@ export const BHOOL = {
     Punjabi: "✨ AI ਸਮਝਾਓ", Odia: "✨ AI ବ୍ୟାଖ୍ୟା", Urdu: "✨ AI وضاحت",
   },
   publishToBazaar: {
-    English: "🌐 Will be published to Bazaar", Hindi: "🌐 बाज़ार में प्रकाशित होगा", Gujarati: "🌐 બજારમાં પ્રકાશિત થશે", Marathi: "🌐 बाजारात प्रकाशित होईल",
+    English: "🌐 Will be published to Marketplace", Hindi: "🌐 बाज़ार में प्रकाशित होगा", Gujarati: "🌐 બજારમાં પ્રકાશિત થશે", Marathi: "🌐 बाजारात प्रकाशित होईल",
     Tamil: "🌐 சந்தையில் வெளியிடப்படும்", Telugu: "🌐 బజార్‌లో ప్రచురించబడుతుంది", Kannada: "🌐 ಬಜಾರ್‌ನಲ್ಲಿ ಪ್ರಕಟವಾಗುತ್ತದೆ", Bengali: "🌐 বাজারে প্রকাশিত হবে",
     Punjabi: "🌐 ਬਾਜ਼ਾਰ ਵਿੱਚ ਪ੍ਰਕਾਸ਼ਿਤ ਹੋਵੇਗਾ", Odia: "🌐 ବଜାରରେ ପ୍ରକାଶିତ ହେବ", Urdu: "🌐 بازار میں شائع ہوگا",
   },
@@ -433,12 +433,12 @@ export const BHOOL = {
     Punjabi: "ਸੇਵ ਹੋ ਰਿਹਾ ਹੈ…", Odia: "ସେଭ ହେଉଛି…", Urdu: "محفوظ ہو رہا ہے…",
   },
   saveBhoolBtn: {
-    English: "💾 Save Bhool", Hindi: "💾 भूल सेव करें", Gujarati: "💾 ભૂલ સાચવો", Marathi: "💾 भूल जतन करा",
+    English: "💾 Save Mistake", Hindi: "💾 भूल सेव करें", Gujarati: "💾 ભૂલ સાચવો", Marathi: "💾 भूल जतन करा",
     Tamil: "💾 தவறு சேமி", Telugu: "💾 తప్పు సేవ్ చేయండి", Kannada: "💾 ತಪ್ಪು ಉಳಿಸಿ", Bengali: "💾 ভুল সেভ করুন",
     Punjabi: "💾 ਭੁੱਲ ਸੇਵ ਕਰੋ", Odia: "💾 ଭୁଲ ସେଭ କର", Urdu: "💾 غلطی محفوظ کریں",
   },
   shareYourBhool: {
-    English: "Share Your Bhool?", Hindi: "अपनी भूल शेयर करें?", Gujarati: "તમારી ભૂલ શેર કરશો?", Marathi: "तुमची भूल शेअर कराल?",
+    English: "Share Your Mistake?", Hindi: "अपनी भूल शेयर करें?", Gujarati: "તમારી ભૂલ શેર કરશો?", Marathi: "तुमची भूल शेअर कराल?",
     Tamil: "உங்கள் தவறை பகிரவா?", Telugu: "మీ తప్పు షేర్ చేస్తారా?", Kannada: "ನಿಮ್ಮ ತಪ್ಪನ್ನು ಹಂಚಿಕೊಳ್ಳುವಿರಾ?", Bengali: "আপনার ভুল শেয়ার করবেন?",
     Punjabi: "ਆਪਣੀ ਭੁੱਲ ਸਾਂਝੀ ਕਰੋਗੇ?", Odia: "ତୁମର ଭୁଲ ସେୟାର କରିବ?", Urdu: "اپنی غلطی شیئر کریں گے؟",
   },
@@ -468,7 +468,7 @@ export const BHOOL = {
     Punjabi: "ਸੇਵ ਨਹੀਂ ਹੋ ਸਕਿਆ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।", Odia: "ସେଭ ହୋଇପାରିଲା ନାହିଁ। ପୁନଃ ଚେଷ୍ଟା କରନ୍ତୁ।", Urdu: "محفوظ نہیں ہو سکا۔ دوبارہ کوشش کریں۔",
   },
   couldNotLoadBazaar: {
-    English: "Could not load Bazaar. Try again.", Hindi: "बाज़ार लोड नहीं हो सका। फिर कोशिश करें।", Gujarati: "બજાર લોડ થઈ શક્યું નથી. ફરી પ્રયાસ કરો.", Marathi: "बाजार लोड होऊ शकले नाही. पुन्हा प्रयत्न करा.",
+    English: "Could not load Marketplace. Try again.", Hindi: "बाज़ार लोड नहीं हो सका। फिर कोशिश करें।", Gujarati: "બજાર લોડ થઈ શક્યું નથી. ફરી પ્રયાસ કરો.", Marathi: "बाजार लोड होऊ शकले नाही. पुन्हा प्रयत्न करा.",
     Tamil: "சந்தை ஏற்ற இயலவில்லை. மீண்டும் முயற்சிக்கவும்.", Telugu: "బజార్ లోడ్ చేయడం విఫలమైంది. మళ్ళీ ప్రయత్నించండి.", Kannada: "ಬಜಾರ್ ಲೋಡ್ ಆಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.", Bengali: "বাজার লোড হয়নি। আবার চেষ্টা করুন।",
     Punjabi: "ਬਾਜ਼ਾਰ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕਿਆ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।", Odia: "ବଜାର ଲୋଡ ହୋଇପାରିଲା ନାହିଁ। ପୁନଃ ଚେଷ୍ଟା କରନ୍ତୁ।", Urdu: "بازار لوڈ نہیں ہو سکا۔ دوبارہ کوشش کریں۔",
   },
@@ -488,14 +488,14 @@ export const BHOOL = {
     Punjabi: "ਟੌਪ ਕਾਰਡ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੇ।", Odia: "ଟପ କାର୍ଡ ଲୋଡ ହୋଇପାରିଲା ନାହିଁ।", Urdu: "ٹاپ کارڈز لوڈ نہیں ہو سکے۔",
   },
   noBhoolCards: {
-    English: "No bhool cards yet", Hindi: "अभी तक कोई भूल कार्ड नहीं", Gujarati: "હજી કોઈ ભૂલ કાર્ડ નથી", Marathi: "अद्याप कोणतेही भूल कार्ड नाही",
+    English: "No mistake cards yet", Hindi: "अभी तक कोई भूल कार्ड नहीं", Gujarati: "હજી કોઈ ભૂલ કાર્ડ નથી", Marathi: "अद्याप कोणतेही भूल कार्ड नाही",
     Tamil: "இன்னும் தவறு அட்டைகள் இல்லை", Telugu: "ఇంకా తప్పు కార్డ్‌లు లేవు", Kannada: "ಇನ್ನೂ ತಪ್ಪು ಕಾರ್ಡ್‌ಗಳಿಲ್ಲ", Bengali: "এখনও কোনো ভুল কার্ড নেই",
     Punjabi: "ਹਾਲੇ ਕੋਈ ভুল ਕਾਰਡ ਨਹੀਂ", Odia: "ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ଭୁଲ କାର୍ଡ ନାହିଁ", Urdu: "ابھی تک کوئی غلطی کارڈ نہیں",
   },
   tapNewBhool: {
-    English: 'Tap "+ New Bhool" to save your first mistake.', Hindi: 'अपनी पहली गलती सेव करने के लिए "+ New Bhool" दबाएं।', Gujarati: 'તમારી પ્રથમ ભૂલ સાચવવા "+ New Bhool" દબાવો.', Marathi: 'तुमची पहिली चूक जतन करण्यासाठी "+ New Bhool" दबा.',
-    Tamil: 'முதல் தவறை சேமிக்க "+ New Bhool" தட்டவும்.', Telugu: 'మీ మొదటి తప్పు సేవ్ చేయడానికి "+ New Bhool" నొక్కండి.', Kannada: 'ನಿಮ್ಮ ಮೊದಲ ತಪ್ಪನ್ನು ಉಳಿಸಲು "+ New Bhool" ಒತ್ತಿ.', Bengali: 'প্রথম ভুল সেভ করতে "+ New Bhool" চাপুন।',
-    Punjabi: 'ਆਪਣੀ ਪਹਿਲੀ ਭੁੱਲ ਸੇਵ ਕਰਨ ਲਈ "+ New Bhool" ਦਬਾਓ।', Odia: 'ତୁମର ପ୍ରଥମ ଭୁଲ ସେଭ କରିବାକୁ "+ New Bhool" ଦବାଅ।', Urdu: 'پہلی غلطی محفوظ کرنے کے لیے "+ New Bhool" دبائیں۔',
+    English: 'Tap "+ New Mistake" to save your first mistake.', Hindi: 'अपनी पहली गलती सेव करने के लिए "+ New Mistake" दबाएं।', Gujarati: 'તમારી પ્રથમ ભૂલ સાચવવા "+ New Mistake" દબાવો.', Marathi: 'तुमची पहिली चूक जतन करण्यासाठी "+ New Mistake" दबा.',
+    Tamil: 'முதல் தவறை சேமிக்க "+ New Mistake" தட்டவும்.', Telugu: 'మీ మొదటి తప్పు సేవ్ చేయడానికి "+ New Mistake" నొక్కండి.', Kannada: 'ನಿಮ್ಮ ಮೊದಲ ತಪ್ಪನ್ನು ಉಳಿಸಲು "+ New Mistake" ಒತ್ತಿ.', Bengali: 'প্রথম ভুল সেভ করতে "+ New Mistake" চাপুন।',
+    Punjabi: 'ਆਪਣੀ ਪਹਿਲੀ ਭੁੱਲ ਸੇਵ ਕਰਨ ਲਈ "+ New Mistake" ਦਬਾਓ।', Odia: 'ତୁମର ପ୍ରଥମ ଭୁଲ ସେଭ କରିବାକୁ "+ New Mistake" ଦବାଅ।', Urdu: 'پہلی غلطی محفوظ کرنے کے لیے "+ New Mistake" دبائیں۔',
   },
   nothingSaved: {
     English: "Nothing saved yet", Hindi: "अभी तक कुछ सेव नहीं", Gujarati: "હજી કંઈ સાચવ્યું નથી", Marathi: "अद्याप काहीही जतन नाही",
@@ -503,7 +503,7 @@ export const BHOOL = {
     Punjabi: "ਹਾਲੇ ਕੁਝ ਸੇਵ ਨਹੀਂ", Odia: "ଏପର୍ଯ୍ୟନ୍ତ କିଛି ସେଭ ହୋଇନାହିଁ", Urdu: "ابھی تک کچھ محفوظ نہیں",
   },
   visitBazaarCollect: {
-    English: "Visit the Bazaar and collect cards from other students.", Hindi: "बाज़ार जाएं और दूसरे छात्रों के कार्ड संग्रह करें।", Gujarati: "બજાર જાઓ અને અન્ય વિદ્યાર્થીઓના કાર્ડ્સ સંગ્રહ કરો.", Marathi: "बाजारात जा आणि इतर विद्यार्थ्यांचे कार्ड्स संग्रह करा.",
+    English: "Visit the Marketplace and collect cards from other students.", Hindi: "बाज़ार जाएं और दूसरे छात्रों के कार्ड संग्रह करें।", Gujarati: "બજાર જાઓ અને અન્ય વિદ્યાર્થીઓના કાર્ડ્સ સંગ્રહ કરો.", Marathi: "बाजारात जा आणि इतर विद्यार्थ्यांचे कार्ड्स संग्रह करा.",
     Tamil: "சந்தைக்குச் சென்று மற்ற மாணவர்களின் அட்டைகளை சேகரியுங்கள்.", Telugu: "బజార్‌కి వెళ్ళి ఇతర విద్యార్థుల కార్డ్‌లను సేకరించండి.", Kannada: "ಬಜಾರ್‌ಗೆ ಹೋಗಿ ಇತರ ವಿದ್ಯಾರ್ಥಿಗಳ ಕಾರ್ಡ್‌ಗಳನ್ನು ಸಂಗ್ರಹಿಸಿ.", Bengali: "বাজারে যান এবং অন্য ছাত্রদের কার্ড সংগ্রহ করুন।",
     Punjabi: "ਬਾਜ਼ਾਰ ਜਾਓ ਅਤੇ ਹੋਰ ਵਿਦਿਆਰਥੀਆਂ ਦੇ ਕਾਰਡ ਇਕੱਠੇ ਕਰੋ।", Odia: "ବଜାରକୁ ଯାଅ ଏବଂ ଅନ୍ୟ ଛାତ୍ରଙ୍କ କାର୍ଡ ସଂଗ୍ରହ କର।", Urdu: "بازار جائیں اور دوسرے طلباء کے کارڈز جمع کریں۔",
   },
@@ -523,7 +523,7 @@ export const BHOOL = {
     Punjabi: "ਦੁਆਰਾ", Odia: "ଦ୍ୱାରା", Urdu: "از",
   },
   deleteConfirm: {
-    English: "Delete this bhool card?", Hindi: "यह भूल कार्ड हटाएं?", Gujarati: "આ ભૂલ કાર્ડ કાઢી નાખશો?", Marathi: "हे भूल कार्ड हटवायचे?",
+    English: "Delete this mistake card?", Hindi: "यह भूल कार्ड हटाएं?", Gujarati: "આ ભૂલ કાર્ડ કાઢી નાખશો?", Marathi: "हे भूल कार्ड हटवायचे?",
     Tamil: "இந்த தவறு அட்டையை நீக்கவா?", Telugu: "ఈ తప్పు కార్డ్ తొలగించాలా?", Kannada: "ಈ ತಪ್ಪು ಕಾರ್ಡ್ ಅಳಿಸಬೇಕೇ?", Bengali: "এই ভুল কার্ড মুছবেন?",
     Punjabi: "ਇਹ ভুল ਕਾਰਡ ਮਿਟਾਉਣਾ ਹੈ?", Odia: "ଏହି ভুল କାର୍ଡ ବିଲୋପ କରିବ?", Urdu: "یہ غلطی کارڈ حذف کریں؟",
   },
@@ -558,7 +558,7 @@ export const BHOOL = {
     Punjabi: "AI ਵਿਆਖਿਆ ਅਸਫਲ। ਆਪ ਲਿਖੋ!", Odia: "AI ବ୍ୟାଖ୍ୟା ବିଫଳ। ନିଜେ ଲେଖ!", Urdu: "AI وضاحت ناکام۔ خود لکھیں!",
   },
   bhoolCoins: {
-    English: "🪙 5 Bhool Coins!", Hindi: "🪙 5 भूल सिक्के!", Gujarati: "🪙 5 ભૂલ સિક્કા!", Marathi: "🪙 5 भूल नाणी!",
+    English: "🪙 5 Mistake Coins!", Hindi: "🪙 5 भूल सिक्के!", Gujarati: "🪙 5 ભૂલ સિક્કા!", Marathi: "🪙 5 भूल नाणी!",
     Tamil: "🪙 5 தவறு நாணயங்கள்!", Telugu: "🪙 5 తప్పు నాణేలు!", Kannada: "🪙 5 ತಪ್ಪು ನಾಣ್ಯಗಳು!", Bengali: "🪙 5 ভুল কয়েন!",
     Punjabi: "🪙 5 ভুল ਸਿੱਕੇ!", Odia: "🪙 5 ଭୁଲ ମୁଦ୍ରା!", Urdu: "🪙 5 غلطی سکے!",
   },

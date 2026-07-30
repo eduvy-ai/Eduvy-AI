@@ -262,7 +262,7 @@ export const TABS = {
   },
 
   bazaarSubTab: {
-    English:  "🌐 Bazaar",
+    English:  "🌐 Marketplace",
     Hindi:    "🌐 बाज़ार",
     Gujarati: "🌐 બજાર",
     Marathi:  "🌐 बाजार",
@@ -276,7 +276,7 @@ export const TABS = {
   },
 
   myBhoolsSubTab: {
-    English:  "📋 My Bhools",
+    English:  "📋 My Mistakes",
     Hindi:    "📋 मेरी भूल",
     Gujarati: "📋 મારી ભૂલો",
     Marathi:  "📋 माझ्या चुका",

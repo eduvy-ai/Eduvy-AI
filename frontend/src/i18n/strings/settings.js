@@ -161,7 +161,7 @@ export const SETTINGS = {
   },
 
   schoolLabel: {
-    English:  "SCHOOL NAME (for Muqabla Battles)",
+    English:  "SCHOOL NAME (for Battles)",
     Hindi:    "स्कूल का नाम (मुकाबला बैटल्स के लिए)",
     Gujarati: "શાળાનું નામ (મુકાબલા બેટલ્સ માટે)",
     Marathi:  "शाळेचे नाव (मुकाबला बॅटल्ससाठी)",
