@@ -10,6 +10,7 @@ import {
 } from '../../api.js'
 import { li } from '../../i18n/index.js'
 import { mediaUrl } from '../../shared/utils/helpers'
+import { getDisplayLang } from '../../shared.js'
 import StylePicker from '../video/StylePicker'
 import SceneEditor from '../video/SceneEditor'
 import VideoPlayer from '../video/VideoPlayer'
@@ -37,7 +38,7 @@ const TIMINGS = [
 export default function VideoCreatorTab({ profile = null }) {
   const [step, setStep] = useState(0)
   const lang = profile?.language || 'English'
-  const ui = li(lang)
+  const ui = li(getDisplayLang(profile))
 
   // Step 1 form
   const [topic, setTopic] = useState('')

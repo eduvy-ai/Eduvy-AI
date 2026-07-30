@@ -1,6 +1,7 @@
-﻿import { useState, useRef, useEffect } from 'react'
-import { callAI, parseAIObject, parseAIArray, checkStudentQuery } from '../../shared.js'
+import { useState, useRef, useEffect } from 'react'
+import { callAI, parseAIObject, parseAIArray, checkStudentQuery, getDisplayLang } from '../../shared.js'
 import { apiYouTubeSearch, apiYouTubeSmartSearch, apiYouTubeEduReels, apiYouTubeGetVideo } from '../../api.js'
+import { li } from '../../i18n/index.js'
 
 // ── Backend YouTube API (uses yt-dlp on server) ──────────────
 
@@ -101,6 +102,7 @@ function detectUrlType(url) {
 
 // ═════════════════════════════════════════════════════════════
 export default function LearnTVTab({ profile }) {
+  const ui = li(getDisplayLang(profile))
   const [mode, setMode] = useState('discover')  // discover | analyze | create
 
   // ── Discover state ─────────────────────────────────────────
@@ -368,7 +370,7 @@ export default function LearnTVTab({ profile }) {
       {/* Header */}
       <div className="flex items-center gap-2.5 mb-3.5">
         <span className="text-[22px]">📺</span>
-        <h2 className="text-[18px] font-extrabold text-app-text m-0">Learn TV</h2>
+        <h2 className="text-[18px] font-extrabold text-app-text m-0">{ui.learnTV}</h2>
       </div>
 
       {/* Mode Tabs */}
@@ -398,7 +400,7 @@ export default function LearnTVTab({ profile }) {
             <input
               ref={searchRef}
               className={inputCls}
-              placeholder="Search educational videos…"
+              placeholder={ui.searchEducationalVideos}
               value={searchQ}
               onChange={e => setSearchQ(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && doSearch()}
@@ -413,7 +415,7 @@ export default function LearnTVTab({ profile }) {
           {/* Suggested topics */}
           {!videos.length && !searching && (
             <div>
-              <div className="text-[12px] text-app-muted mb-2.5 font-semibold">📚 Suggested for you</div>
+              <div className="text-[12px] text-app-muted mb-2.5 font-semibold">📚 {ui.suggestedForYou}</div>
               <div className="flex flex-wrap gap-2 mb-4">
                 {suggested.map((t, i) => (
                   <button key={i} onClick={() => { setSearchQ(t); doSearch(t) }} className={chipBtnCls}>{t}</button>
@@ -426,7 +428,7 @@ export default function LearnTVTab({ profile }) {
           {searching && (
             <div className="text-center py-10 text-app-muted">
               <div className="text-[28px] mb-2.5">🔍</div>
-              Searching YouTube…
+              {ui.searchingYouTube}…
             </div>
           )}
 
@@ -435,8 +437,8 @@ export default function LearnTVTab({ profile }) {
             <div className="border border-app-green/20 rounded-2xl px-4 py-3.5 mb-3.5" style={{ background: 'linear-gradient(135deg,#00E5A012,#7B9CFF10)' }}>
               <div className="flex items-center gap-2 mb-2.5">
                 <span className="text-base">🧠</span>
-                <span className="text-[13px] font-bold text-app-green">Concept Overview</span>
-                {conceptLoading && <span className="text-[11px] text-app-muted ml-1">AI is thinking…</span>}
+                <span className="text-[13px] font-bold text-app-green">{ui.conceptOverview}</span>
+                {conceptLoading && <span className="text-[11px] text-app-muted ml-1">{ui.aiThinking}…</span>}
               </div>
 
               {conceptLoading && !conceptSummary && (
@@ -459,7 +461,7 @@ export default function LearnTVTab({ profile }) {
                   {/* Key Ideas */}
                   {conceptSummary.keyIdeas?.length > 0 && (
                     <div className="mb-2.5">
-                      <div className="text-[11px] font-bold text-app-blue mb-1.5">💡 Key Ideas</div>
+                      <div className="text-[11px] font-bold text-app-blue mb-1.5">💡 {ui.keyIdeas}</div>
                       <div className="flex flex-col gap-1">
                         {conceptSummary.keyIdeas.map((idea, i) => (
                           <div key={i} className="text-[12px] text-app-text leading-[1.5] flex gap-2">
@@ -474,7 +476,7 @@ export default function LearnTVTab({ profile }) {
                   {/* Real Life Examples */}
                   {conceptSummary.realLife?.length > 0 && (
                     <div className="mb-2.5">
-                      <div className="text-[11px] font-bold text-app-yellow mb-1.5">🌍 Real-Life Examples</div>
+                      <div className="text-[11px] font-bold text-app-yellow mb-1.5">🌍 {ui.realLifeExamples}</div>
                       <div className="flex gap-2 flex-wrap">
                         {conceptSummary.realLife.map((ex, i) => (
                           <span key={i} className="text-[11px] text-app-text px-2.5 py-0.5 rounded-[10px] bg-app-yellow/10 border border-app-yellow/20">{ex}</span>
@@ -486,7 +488,7 @@ export default function LearnTVTab({ profile }) {
                   {/* Exam Tip */}
                   {conceptSummary.examTip && (
                     <div className="bg-[#FF6B3515] border border-[#FF6B3530] rounded-lg px-3 py-2 text-[12px] text-app-text leading-[1.5]">
-                      <span className="font-bold text-app-orange">📝 Exam Tip: </span>
+                      <span className="font-bold text-app-orange">📝 {ui.examTip} </span>
                       {conceptSummary.examTip}
                     </div>
                   )}
@@ -624,7 +626,7 @@ export default function LearnTVTab({ profile }) {
           {/* No results */}
           {!searching && videos.length === 0 && searchQ && (
             <div className="text-center p-7 text-app-muted">
-              No videos found. Try a different search.
+              {ui.noVideosFoundTryDifferent}
             </div>
           )}
         </div>
@@ -636,7 +638,7 @@ export default function LearnTVTab({ profile }) {
           {/* Header */}
           <div className="flex items-center gap-2.5 mb-1">
             <span className="text-[20px]">📱</span>
-            <span className="text-[15px] font-bold text-app-text">Edu Reels</span>
+            <span className="text-[15px] font-bold text-app-text">{ui.eduReelsTitle}</span>
             <span className="text-[10px] text-app-muted bg-app-green/[0.08] border border-app-green/20 rounded-md px-2 py-0.5 font-semibold">
               PhysicsWallah · Vedantu · Unacademy · more
             </span>
@@ -842,7 +844,7 @@ export default function LearnTVTab({ profile }) {
         <div>
           {/* URL input */}
           <div className="mb-4">
-            <label className={labelCls}>PASTE YOUTUBE VIDEO OR SHORTS URL</label>
+            <label className={labelCls}>{ui.pasteYoutubeUrl}</label>
             <div className="flex gap-2">
               <input
                 className={inputCls}
@@ -873,7 +875,7 @@ export default function LearnTVTab({ profile }) {
           {analyzing && (
             <div className="text-center p-10 text-app-muted">
               <div className="text-[28px] mb-2.5">🔬</div>
-              <div className="mb-1.5">Analyzing video…</div>
+              <div className="mb-1.5">{ui.analyzingVideo}…</div>
               <div className="text-[11px]">Fetching captions & generating insights</div>
             </div>
           )}
@@ -1040,7 +1042,7 @@ export default function LearnTVTab({ profile }) {
         <div>
           {/* Topic input */}
           <div className="mb-4">
-            <label className={labelCls}>ENTER A TOPIC</label>
+            <label className={labelCls}>{ui.enterATopic}</label>
             <div className="flex gap-2">
               <input
                 className={inputCls}
@@ -1061,7 +1063,7 @@ export default function LearnTVTab({ profile }) {
           {creating && (
             <div className="text-center p-10 text-app-muted">
               <div className="text-[28px] mb-2.5">✨</div>
-              <div className="mb-1.5">Creating AI lesson + finding videos…</div>
+              <div className="mb-1.5">{ui.creatingAiLesson}…</div>
               <div className="text-[11px]">This may take a few seconds</div>
             </div>
           )}

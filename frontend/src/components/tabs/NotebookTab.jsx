@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { COLORS, callAI, parseAIArray, parseAIObject, SUBS, checkStudentQuery, validateSourceContent, checkContentRelevance, generateSmartSummary } from '../../shared.js'
+import { COLORS, callAI, parseAIArray, parseAIObject, SUBS, checkStudentQuery, validateSourceContent, checkContentRelevance, generateSmartSummary, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import {
   apiGetSources, apiSaveSource, apiDeleteSource,
@@ -94,7 +94,7 @@ async function extractPdfText(file) {
 export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx, docName, setDocName }) {
 
   const lang = profile?.language || 'English'
-  const ui = li(lang)
+  const ui = li(getDisplayLang(profile))
 
   // ── View state ──────────────────────────────────────────────
   const [view, setView]       = useState("sources") // sources | chat | studio

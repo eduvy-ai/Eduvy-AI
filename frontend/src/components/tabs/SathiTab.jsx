@@ -151,7 +151,7 @@ function ChallengeBanner({ challenge, onSubmit, onDismiss, ui }) {
 }
 
 // -- Members strip ---------------------------------------------
-function MembersStrip({ members, currentUserId }) {
+function MembersStrip({ members, currentUserId, ui }) {
   return (
     <div className="flex gap-3 px-3.5 py-2.5 overflow-x-auto border-b border-app-border bg-app-card">
       {members.map(m => (
@@ -162,7 +162,7 @@ function MembersStrip({ members, currentUserId }) {
           >{m.user_id === currentUserId ? ui.youLabel : m.name.split(' ')[0]}</span>
           <span className="text-[9px] font-bold"
             style={{ color: m.role === 'teacher' ? '#FFD166' : '#6868a0' }}
-          >{m.role === 'teacher' ? '? teacher' : '?? learner'}</span>
+          >{m.role === 'teacher' ? ui.teacherRole : ui.learnerRole}</span>
         </div>
       ))}
     </div>
@@ -1013,7 +1013,7 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
 
   // -- Leave squad --------------------------------------------
   const handleLeave = async () => {
-    if (!squad || !window.confirm('${ui.leaveConfirm}')) return
+    if (!squad || !window.confirm(ui.leaveConfirm)) return
     setLeaving(true)
     try {
       await apiLeaveSquad(squad.id)
@@ -1073,7 +1073,7 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
       </div>
 
       {/* -- Members strip -- */}
-      <MembersStrip members={members} currentUserId={userId} />
+      <MembersStrip members={members} currentUserId={userId} ui={ui} />
 
       {/* -- Sub-tab nav -- */}
       <SubNav active={activePanel} onChange={setActivePanel} ui={ui} />
