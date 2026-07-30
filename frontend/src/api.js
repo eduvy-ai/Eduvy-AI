@@ -107,6 +107,15 @@ export async function apiUpdateProfile(userId, data) {
 
 // ── XP ────────────────────────────────────────────────────────
 
+export async function apiGetAiUsage() {
+  const res = await fetch(`${API_BASE_URL}/api/ai/usage`, {
+    headers: { ..._authHeaders() },
+    signal: AbortSignal.timeout(5000),
+  })
+  if (!res.ok) return null
+  return safeJson(res)
+}
+
 export async function apiAddXp(userId, points) {
   const res = await fetch(`${API_BASE_URL}/api/profile/${userId}/xp`, {
     method: 'POST',

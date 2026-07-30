@@ -97,10 +97,10 @@ const DashboardLayout: React.FC = () => {
     if (!user?.id) return
     try {
       await apiUpdateProfile(user.id, updates)
-      // Refresh user data after update
       await refresh()
     } catch (e) {
       console.error('Failed to update profile:', e)
+      throw e
     }
   }
 
@@ -227,9 +227,6 @@ const DashboardLayout: React.FC = () => {
       {showSettings && (
         <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center"><span className="text-white">{ui.loading || 'Loading...'}</span></div>}>
           <SettingsModal
-            config={{}}
-            savedKeys={{}}
-            onSave={() => {}}
             onClose={() => setShowSettings(false)}
             onLogout={handleLogout}
             profile={user}

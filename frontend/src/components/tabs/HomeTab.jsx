@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { COLORS, SUBS, getBhoolStats, parseAIArray, getDisplayLang } from '../../shared.js'
-import { apiGetMastery, apiGetMySquad, apiGetPendingMuqabalaBattles, apiGetDailyContent, apiSaveDailyContent, apiGenerateDailyQuestions, apiGenerateDailyBrief, apiGenerateStudyPlan, apiGenerateExamOracle, apiGenerateDeepDive } from '../../api.js'
+import { SUBS, getBhoolStats, getDisplayLang } from '../../shared.js'
+import { apiGetMastery, apiGetPendingMuqabalaBattles, apiGetDailyContent, apiGenerateDailyQuestions, apiGenerateDailyBrief } from '../../api.js'
 import { li } from '../../i18n/index.js'
 
 // ── Bhool Curve stats (reads localStorage) ───────────────────
@@ -12,35 +12,10 @@ function useBhoolStats() {
   return stats
 }
 
-// Subject emoji map for visual flair
-const SUB_ICONS = {
-  Mathematics: "📐", Science: "🔬", Physics: "⚡", Chemistry: "🧪",
-  Biology: "🌿", English: "📝", Hindi: "🇮🇳", History: "🏛️",
-  Geography: "🌍", "Social Science": "🌐", "Social Studies": "🌐",
-  Economics: "📊", Accountancy: "📒", "Business Studies": "💼",
-  Computer: "💻", "Computer Science": "💻", IT: "💻", Sanskrit: "📜",
-  EVS: "🌱", Drawing: "🎨", Punjabi: "📖",
-}
-
-function subIcon(sub) {
-  for (const [key, icon] of Object.entries(SUB_ICONS)) {
-    if (sub.toLowerCase().includes(key.toLowerCase())) return icon
-  }
-  return "📚"
-}
-
 function masteryColor(pct) {
   if (pct >= 75) return '#00E5A0'
   if (pct >= 45) return '#FFD166'
   return '#FF6B6B'
-}
-
-function masteryLabel(pct, lang) {
-  const ui = li(lang)
-  if (pct === 0)  return ui.notStarted
-  if (pct >= 75)  return ui.mastered
-  if (pct >= 45)  return ui.learning
-  return ui.needsWork
 }
 
 // ── Quick action cards config (labels come from i18n) ────────
@@ -56,13 +31,9 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
   const [briefLoading, setBriefLoading]   = useState(false)
   const [brief, setBrief]                 = useState("")
   const [masteries, setMasteries]         = useState({})
-  const [selectedSub, setSelectedSub]     = useState(null)
-  const [subPlan, setSubPlan]             = useState("")
-  const [subLoading, setSubLoading]       = useState(false)
   
-  // ── Notifications & Squad ───────────────────────────────────
+  // ── Notifications ───────────────────────────────────────────
   const [pendingBattles, setPendingBattles] = useState([])
-  const [mySquad, setMySquad]               = useState(null)
   const [lastTab, setLastTab]               = useState(null)
 
   // ── Mood Check ──────────────────────────────────────────────
@@ -95,13 +66,6 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
     localStorage.setItem('eduvyai_dailyq_xp', JSON.stringify(newState))
   }
 
-  // ── Exam Oracle ─────────────────────────────────────────────
-  const [oracleTopics, setOracleTopics] = useState([])
-  const [oracleLoading, setOracleLoading] = useState(false)
-  const [oracleSel, setOracleSel] = useState(null)
-  const [oracleDeep, setOracleDeep] = useState("")
-  const [deepLoading, setDeepLoading] = useState(false)
-
   // ── Bhool Curve ─────────────────────────────────────────────
   const bhool = useBhoolStats()
   const bhoolDue = bhool.overdue.length + bhool.soon.length
@@ -127,11 +91,6 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
     // Pending Muqabla battles
     apiGetPendingMuqabalaBattles()
       .then(data => { if (data?.battles?.length) setPendingBattles(data.battles) })
-      .catch(() => {})
-
-    // My squad info
-    apiGetMySquad()
-      .then(data => { if (data?.squad) setMySquad(data.squad) })
       .catch(() => {})
   }, [])
 
@@ -256,100 +215,6 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
       })
       .catch(() => {})
   }, [mood, masteries])
-
-  // ── Subject mastery tap ────────────────────────────────────
-  const tapSubject = async (sub) => {
-    if (subLoading) return
-    // Toggle collapse: tap same subject again to dismiss plan
-    if (selectedSub === sub) {
-      setSelectedSub(null)
-      setSubPlan("")
-      return
-    }
-    setSelectedSub(sub)
-    setSubPlan("")
-    setSubLoading(true)
-    
-    try {
-      const pct = masteries[sub] ?? 0
-      const result = await apiGenerateStudyPlan({
-        subject: sub,
-        mastery: pct,
-        standard: profile.standard,
-        board: profile.board || 'CBSE',
-        language: profile.language || 'English'
-      })
-      
-      setSubPlan(result?.plan || ui.noPlanGenerated || "No plan generated. Please try again.")
-      // Only award XP if freshly generated
-      if (!result?.saved) {
-        addXp(3)
-      }
-    } catch (err) {
-      console.error('Study plan error:', err)
-      setSubPlan(ui.noPlanGenerated || "No plan generated. Please try again.")
-    }
-    
-    setSubLoading(false)
-  }
-
-  // ── Exam Oracle: predict important topics (backend) ──────────────────
-  const generateOracle = async () => {
-    setOracleLoading(true)
-    setOracleTopics([])
-    setOracleSel(null)
-    setOracleDeep("")
-    
-    try {
-      const result = await apiGenerateExamOracle({
-        standard: profile.standard,
-        board: profile.board || 'CBSE',
-        language: profile.language || 'English',
-        subjects: subjects.slice(0, 4)
-      })
-      
-      if (result?.topics?.length) {
-        setOracleTopics(result.topics)
-        // Only award XP if freshly generated
-        if (!result?.saved) {
-          addXp(5)
-        }
-      }
-    } catch (err) {
-      console.error('Oracle error:', err)
-    }
-    
-    setOracleLoading(false)
-  }
-
-  // ── Deep Dive (backend) ─────────────────────────────────────
-  const deepDive = async (topic) => {
-    if (deepLoading) return
-    setOracleSel(topic)
-    setOracleDeep("")
-    setDeepLoading(true)
-    
-    try {
-      const result = await apiGenerateDeepDive({
-        topic: topic.topic,
-        subject: topic.subject,
-        standard: profile.standard,
-        board: profile.board || 'CBSE',
-        language: profile.language || 'English'
-      })
-      
-      setOracleDeep(result?.content || ui.noPlanGenerated || "Could not generate content. Please try again.")
-      // Only award XP if freshly generated
-      if (!result?.saved) {
-        addXp(3)
-      }
-    } catch (err) {
-      console.error('Deep dive error:', err)
-      setOracleDeep(ui.noPlanGenerated || "Could not generate content. Please try again.")
-    }
-    
-    setDeepLoading(false)
-  }
 
   const greeting = getTimeGreeting(getDisplayLang(profile))
   const ui = li(getDisplayLang(profile))
@@ -552,137 +417,6 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
         )}
       </Section>
 
-      {/* ── Subject Mastery ───────────────────────────────── */}
-      <Section title={`📚 ${ui.subjectMastery || 'Subject Mastery'}`}>
-        <p className="text-xs text-app-muted mb-3">
-          {ui.tapSubjectForPlan || 'Tap a subject to get a personalised study plan'}
-        </p>
-        <div className="flex flex-col gap-2">
-          {subjects.map(sub => {
-            const pct = masteries[sub] ?? 0
-            const color = pct === 0 ? '#6868a0' : masteryColor(pct)
-            const isSelected = selectedSub === sub
-            return (
-              <button
-                key={sub}
-                onClick={() => tapSubject(sub)}
-                className="rounded-[14px] py-3 px-3.5 cursor-pointer font-[Sora,sans-serif] text-left transition-all duration-150 border"
-                style={{
-                  background: isSelected ? `${color}12` : '#101022',
-                  borderColor: isSelected ? `${color}50` : 'rgba(255,255,255,0.03)',
-                }}
-              >
-                {/* Top row */}
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{subIcon(sub)}</span>
-                    <span className="text-[13px] font-bold text-app-text">{sub}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-bold" style={{ color }}>{masteryLabel(pct, getDisplayLang(profile))}</span>
-                    <span 
-                      className="text-xs font-black rounded-lg py-0.5 px-2"
-                      style={{ color, background: `${color}15` }}
-                    >{pct}%</span>
-                  </div>
-                </div>
-                {/* Progress bar */}
-                <div className="h-[5px] bg-white/5 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full rounded-full transition-[width] duration-[600ms] ease-out"
-                    style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${color}, ${color}bb)` }}
-                  />
-                </div>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Study plan output */}
-        {(subLoading || subPlan) && (
-          <div className="mt-3">
-            {subLoading
-              ? <LoadingDots label={`${ui.generatingFor || 'Generating plan for'} ${selectedSub}…`} />
-              : (
-                <div className="ai-card" style={{ borderColor: `${masteryColor(masteries[selectedSub] ?? 0)}30` }}>
-                  <div className="text-xs font-bold mb-1.5" style={{ color: masteryColor(masteries[selectedSub] ?? 0) }}>
-                    {ui.studyPlanFor || '📋 Study Plan —'} {selectedSub}
-                  </div>
-                  <p className="text-[13px] text-app-text leading-[1.8] whitespace-pre-wrap m-0">{subPlan}</p>
-                </div>
-              )
-            }
-          </div>
-        )}
-      </Section>
-
-      {/* ── Exam Oracle ───────────────────────────────────── */}
-      <Section title={`🔮 ${ui.examOracle || 'Exam Oracle'}`}>
-        <p className="text-xs text-app-muted mb-3">
-          {ui.examOracleDesc || `AI predicts the most likely topics for your exam`} — {profile.board} {profile.standard}
-        </p>
-        {!oracleTopics.length ? (
-          <button onClick={generateOracle} disabled={oracleLoading} className="primary-btn">
-            {oracleLoading ? (ui.predicting || "🔮 Predicting…") : (ui.predictTopics || "⚡ Predict This Year's Topics")}
-          </button>
-        ) : (
-          <>
-            <div className="flex flex-col gap-2">
-              {oracleTopics.map((t, i) => {
-                const topicColor = t.pct >= 80 ? '#FF6B6B' : t.pct >= 60 ? '#FFD166' : '#00E5A0'
-                return (
-                  <button
-                    key={i}
-                    onClick={() => deepDive(t)}
-                    className="rounded-xl py-3 px-3.5 flex items-center justify-between cursor-pointer font-[Sora,sans-serif] text-left border"
-                    style={{
-                      background: oracleSel?.topic === t.topic ? `${topicColor}12` : '#101022',
-                      borderColor: oracleSel?.topic === t.topic ? `${topicColor}50` : 'rgba(255,255,255,0.03)',
-                    }}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span 
-                        className="text-[11px] font-extrabold rounded-md py-0.5 px-1.5 min-w-[20px] text-center"
-                        style={{ color: topicColor, background: `${topicColor}15` }}
-                      >{i + 1}</span>
-                      <span className="text-[13px] text-app-text font-semibold">{t.topic}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <div className="w-12 h-1 bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${t.pct}%`, background: topicColor }} />
-                      </div>
-                      <span className="text-xs font-black min-w-[32px] text-right" style={{ color: topicColor }}>{t.pct}%</span>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-            <button
-              onClick={generateOracle}
-              disabled={oracleLoading}
-              className="ghost-btn mt-2.5"
-            >
-              {oracleLoading ? (ui.predicting || "🔮 Predicting…") : (ui.rePredict || "↺ Re-predict")}
-            </button>
-          </>
-        )}
-
-        {(deepLoading || oracleDeep) && (
-          <div className="mt-3">
-            {deepLoading
-              ? <LoadingDots label={`${ui.deepDiving || 'Deep diving into'} ${oracleSel?.topic}…`} />
-              : (
-                <div className="ai-card border-app-yellow/30">
-                  <div className="text-xs font-bold text-app-yellow mb-1.5">
-                    {ui.deepDive || '🔮 Deep Dive —'} {oracleSel?.topic}
-                  </div>
-                  <p className="text-[13px] text-app-text leading-[1.8] whitespace-pre-wrap m-0">{oracleDeep}</p>
-                </div>
-              )}
-          </div>
-        )}
-      </Section>
-
       {/* ── Continue Learning ────────────────────────────────── */}
       {lastTab && (
         <Section title={`📚 ${ui.continueLearning || 'Continue Learning'}`}>
@@ -742,34 +476,6 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
               </button>
             ))}
           </div>
-        </Section>
-      )}
-
-      {/* ── Squad Activity ───────────────────────────────────── */}
-      {mySquad && (
-        <Section title={`👥 ${ui.yourSquad || 'Your Squad'}`}>
-          <button
-            onClick={() => setTab('squads')}
-            className="w-full rounded-[14px] py-3.5 px-4 flex items-center justify-between cursor-pointer font-[Sora,sans-serif] border bg-gradient-to-r from-app-green/10 to-app-blue/10 border-app-green/30 hover:border-app-green/50 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">👥</span>
-              <div>
-                <div className="text-[13px] font-bold text-app-text">{mySquad.name || ui.studySquad || 'Study Squad'}</div>
-                <div className="text-[11px] text-app-muted">
-                  {mySquad.member_count || mySquad.members?.length || '?'} {ui.members || 'members'} • {mySquad.focus_subject || 'General'}
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col items-end gap-0.5">
-              {mySquad.message_count > 0 && (
-                <span className="text-[10px] font-bold text-white bg-app-green rounded-full py-0.5 px-2">
-                  {mySquad.message_count} {ui.newMessages || 'new'}
-                </span>
-              )}
-              <span className="text-app-green text-lg">→</span>
-            </div>
-          </button>
         </Section>
       )}
 
