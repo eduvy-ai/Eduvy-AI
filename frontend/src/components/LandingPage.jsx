@@ -308,6 +308,7 @@ export default function LandingPage() {
                   borderColor: plan.popular ? plan.color : undefined 
                 }}
               >
+                {plan.popular && (
                   <div 
                     className="absolute -top-3 left-1/2 -translate-x-1/2 text-white text-[11px] font-extrabold py-1 px-4 rounded-full whitespace-nowrap tracking-wide flex items-center gap-1"
                     style={{ background: `linear-gradient(90deg, ${plan.color}, #4466ee)` }}
