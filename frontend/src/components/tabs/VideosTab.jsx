@@ -4,6 +4,24 @@ import { getStarters, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import { apiGetDraft, apiSaveDraft } from '../../api.js'
 
+// ─── Native TTS for Capacitor (mobile) ─────────────────────
+let _capacitorTTS = null
+let _isNativePlatform = false
+async function initNativeTTS() {
+  try {
+    const { Capacitor } = await import('@capacitor/core')
+    _isNativePlatform = Capacitor.isNativePlatform()
+    if (_isNativePlatform) {
+      const { TextToSpeech } = await import('@capacitor-community/text-to-speech')
+      _capacitorTTS = TextToSpeech
+      console.log('[Eduvy-AI TTS] Native TTS initialized')
+    }
+  } catch (e) {
+    console.log('[Eduvy-AI TTS] Native TTS not available:', e.message)
+  }
+}
+initNativeTTS()
+
 const LANG_VOICE = {
   English:'en-IN', Hindi:'hi-IN', Gujarati:'gu-IN', Marathi:'mr-IN',
   Tamil:'ta-IN', Telugu:'te-IN', Kannada:'kn-IN', Bengali:'bn-IN',
@@ -1724,17 +1742,39 @@ export default function VideosTab({ profile, userId, addXp }) {
   useEffect(() => { lessonRef.current = lesson }, [lesson])
 
   // Pre-load best voice for this language (Chrome loads voices async)
+  // On mobile (Capacitor), native TTS is always ready
   useEffect(() => {
+    // Check if native TTS is available (mobile) - with retry for async init
+    const checkNative = () => {
+      if (_isNativePlatform && _capacitorTTS) {
+        console.log('[Eduvy-AI TTS] Native TTS ready (Capacitor)')
+        setVoiceStatus('ready')
+        return true
+      }
+      return false
+    }
+    
+    if (checkNative()) return
+    
+    // Retry after native init completes
+    const nativeRetry = setTimeout(() => {
+      if (checkNative()) return
+    }, 500)
+    
+    // Browser Web Speech API
     if (!('speechSynthesis' in window)) { setVoiceStatus('none'); return }
     const load = () => {
+      // Skip if native TTS is available
+      if (_isNativePlatform && _capacitorTTS) return
+      
       const allVoices = window.speechSynthesis.getVoices()
       const v = pickVoice(profile.language)
       voiceRef.current = v
       const langCode = LANG_VOICE[profile.language] || 'en-IN'
       const isNative = v && (v.lang === langCode || v.lang.replace('_','-') === langCode || v.lang.startsWith(langCode.split('-')[0]))
-      console.log('[Eduvy-AI TTS] Voices:', allVoices.length, 'Picked:', v?.name || 'NONE', '(' + (v?.lang||'') + ')', isNative ? '? native' : '? fallback')
+      console.log('[Eduvy-AI TTS] Voices:', allVoices.length, 'Picked:', v?.name || 'NONE', '(' + (v?.lang||'') + ')', isNative ? '✓ native' : '⚠ fallback')
       if (v && isNative) setVoiceStatus('ready')
-      else if (v) setVoiceStatus('ready')  // fallback voice found � still usable
+      else if (v) setVoiceStatus('ready')  // fallback voice found – still usable
       else if (allVoices.length === 0) setVoiceStatus('loading')
       else setVoiceStatus('none')
     }
@@ -1744,6 +1784,7 @@ export default function VideosTab({ profile, userId, addXp }) {
     const retry2 = setTimeout(load, 3000)
     return () => {
       window.speechSynthesis.onvoiceschanged = null
+      clearTimeout(nativeRetry)
       clearTimeout(retry); clearTimeout(retry2)
     }
   }, [profile.language])
@@ -1786,6 +1827,10 @@ export default function VideosTab({ profile, userId, addXp }) {
 
   // -- Speech & Playback -------------------------------------
   const stopSpeech = useCallback(() => {
+    // Stop native TTS on mobile
+    if (_isNativePlatform && _capacitorTTS) {
+      _capacitorTTS.stop().catch(() => {})
+    }
     window.speechSynthesis?.cancel()
     clearInterval(progressRef.current)
     clearTimeout(sceneTimerRef.current)
@@ -1798,6 +1843,9 @@ export default function VideosTab({ profile, userId, addXp }) {
 
   const speakScene = useCallback((scene, onEnd) => {
     // -- STEP 1: Stop everything from previous scene --
+    if (_isNativePlatform && _capacitorTTS) {
+      _capacitorTTS.stop().catch(() => {})
+    }
     window.speechSynthesis?.cancel()
     clearInterval(progressRef.current)
     clearTimeout(sceneTimerRef.current)
@@ -1846,9 +1894,39 @@ export default function VideosTab({ profile, userId, addXp }) {
       timerDone = true; tryFinish()
     }, sceneMs)
 
-    // -- STEP 6: Speak --
-    if (voiceOk && text.length > 0) {
-      speakDelayRef.current = setTimeout(() => {
+    // -- STEP 6: Speak (native TTS on mobile, browser SpeechSynthesis on web) --
+    if (text.length > 0) {
+      speakDelayRef.current = setTimeout(async () => {
+        const langCode = LANG_VOICE[profile.language] || 'en-IN'
+        
+        // Use native TTS on Capacitor (mobile)
+        if (_isNativePlatform && _capacitorTTS) {
+          console.log('[Eduvy-AI TTS] Native speak()', { lang: langCode, len: text.length })
+          try {
+            await _capacitorTTS.speak({
+              text,
+              lang: langCode,
+              rate: 1.0,
+              volume: 1.0,
+            })
+            console.log('[Eduvy-AI TTS] Native TTS ended')
+            ttsEnded = true
+            tryFinish()
+          } catch (err) {
+            console.error('[Eduvy-AI TTS] Native TTS error:', err)
+            ttsEnded = true
+            tryFinish()
+          }
+          return
+        }
+        
+        // Fallback: Browser Web Speech API
+        if (!voiceOk) {
+          console.warn('[Eduvy-AI TTS] No TTS available')
+          ttsEnded = true
+          return
+        }
+        
         const utter = new SpeechSynthesisUtterance(text)
         utterRef.current = utter
 
@@ -1861,14 +1939,14 @@ export default function VideosTab({ profile, userId, addXp }) {
         }
         utter.volume = 1; utter.rate = 1; utter.pitch = 1
 
-        utter.onstart = () => console.log('[Eduvy-AI TTS] ? onstart �', text.slice(0,40))
+        utter.onstart = () => console.log('[Eduvy-AI TTS] 🔊 onstart', text.slice(0,40))
         utter.onboundary = e => { if (e.name === 'word') setWordBoundary({ idx: e.charIndex }) }
         utter.onend = () => {
-          console.log('[Eduvy-AI TTS] ? onend')
+          console.log('[Eduvy-AI TTS] ✓ onend')
           ttsEnded = true; tryFinish()
         }
         utter.onerror = (ev) => {
-          console.error('[Eduvy-AI TTS] ? onerror:', ev?.error || ev)
+          console.error('[Eduvy-AI TTS] ✗ onerror:', ev?.error || ev)
           ttsEnded = true; tryFinish()
         }
 
@@ -1884,7 +1962,7 @@ export default function VideosTab({ profile, userId, addXp }) {
         }, 10000)
       }, 50)
     } else {
-      console.warn('[Eduvy-AI TTS] Skip:', { voiceOk, textLen: text.length })
+      console.warn('[Eduvy-AI TTS] Skip: empty text')
       ttsEnded = true
     }
   }, [profile.language, voiceOk])
