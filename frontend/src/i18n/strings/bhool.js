@@ -5,7 +5,7 @@
 export const BHOOL = {
   // Sub-tabs
   myBhools: {
-    English:  "My Bhools",
+    English:  "My Mistakes",
     Hindi:    "मेरी भूलें",
     Gujarati: "મારી ભૂલો",
     Marathi:  "माझ्या भूला",
@@ -19,7 +19,7 @@ export const BHOOL = {
   },
 
   bazaar: {
-    English:  "Bazaar",
+    English:  "Marketplace",
     Hindi:    "बाज़ार",
     Gujarati: "બજાર",
     Marathi:  "बाजार",
@@ -62,7 +62,7 @@ export const BHOOL = {
 
   // Actions
   addBhool: {
-    English:  "➕ Add Bhool",
+    English:  "➕ Add Mistake",
     Hindi:    "➕ भूल जोड़ें",
     Gujarati: "➕ ભૂલ ઉમેરો",
     Marathi:  "➕ भूल जोडा",
@@ -76,7 +76,7 @@ export const BHOOL = {
   },
 
   shareToBazaar: {
-    English:  "Share to Bazaar",
+    English:  "Share to Marketplace",
     Hindi:    "बाज़ार में शेयर करें",
     Gujarati: "બજારમાં શેર કરો",
     Marathi:  "बाजारात शेअर करा",
@@ -206,7 +206,7 @@ export const BHOOL = {
 
   // Empty states
   noBhoolsYet: {
-    English:  "No bhools yet. Make some mistakes while learning — they help you grow! 🌱",
+    English:  "No mistakes yet. Make some mistakes while learning — they help you grow! 🌱",
     Hindi:    "अभी तक कोई भूल नहीं। पढ़ते समय गलतियाँ करें — वे आपको बढ़ने में मदद करती हैं! 🌱",
     Gujarati: "હજી કોઈ ભૂલ નથી. શીખતી વખતે ભૂલો કરો — તે તમને વધવામાં મદદ કરે છે! 🌱",
     Marathi:  "अद्याप कोणतीही भूल नाही. शिकताना चुका करा — त्या तुम्हाला वाढण्यास मदत करतात! 🌱",
@@ -220,7 +220,7 @@ export const BHOOL = {
   },
 
   bazaarEmpty: {
-    English:  "Bazaar is empty. Be the first to share your mistake!",
+    English:  "Marketplace is empty. Be the first to share your mistake!",
     Hindi:    "बाज़ार खाली है। अपनी गलती शेयर करने वाले पहले बनें!",
     Gujarati: "બજાર ખાલી છે. તમારી ભૂલ શેર કરનાર પ્રથમ બનો!",
     Marathi:  "बाजार रिकामा आहे. तुमची चूक शेअर करणारे पहिले व्हा!",
@@ -274,5 +274,292 @@ export const BHOOL = {
     Punjabi:  "ਇਸ ਨੂੰ ਕਿਵੇਂ ਠੀਕ ਕਰਨਾ ਹੈ?",
     Odia:     "ଏହାକୁ କିପରି ଠିକ କରିବେ?",
     Urdu:     "اسے کیسے ٹھیک کریں؟",
+  },
+
+  // ── BhoolBazaarTab UI strings ─────────────────────────────
+  mistakeCards: {
+    English: "📛 Mistake Cards", Hindi: "📛 गलती कार्ड्स", Gujarati: "📛 ભૂલ કાર્ડ્સ", Marathi: "📛 चुका कार्ड्स",
+    Tamil: "📛 தவறு அட்டைகள்", Telugu: "📛 తప్పు కార్డ్‌లు", Kannada: "📛 ತಪ್ಪು ಕಾರ್ಡ್‌ಗಳು", Bengali: "📛 ভুল কার্ড",
+    Punjabi: "📛 ਗਲਤੀ ਕਾਰਡ", Odia: "📛 ଭୁଲ କାର୍ଡ", Urdu: "📛 غلطی کارڈز",
+  },
+  turnMistakesIntoAssets: {
+    English: "Turn mistakes into learning assets", Hindi: "गलतियों को सीखने का जरिया बनाएं", Gujarati: "ભૂલોને શીખવાના સાધનમાં ફેરવો", Marathi: "चुका शिकण्याचे साधन बनवा",
+    Tamil: "தவறுகளை கற்றல் சொத்துகளாக மாற்றுங்கள்", Telugu: "తప్పులను నేర్చుకునే ఆస్తులుగా మార్చండి", Kannada: "ತಪ್ಪುಗಳನ್ನು ಕಲಿಕೆಯ ಸಂಪತ್ತಾಗಿ ಬದಲಿಸಿ", Bengali: "ভুলগুলোকে শেখার সম্পদে পরিণত করুন",
+    Punjabi: "ਗਲਤੀਆਂ ਨੂੰ ਸਿੱਖਣ ਦੇ ਸਾਧਨ ਬਣਾਓ", Odia: "ଭୁଲକୁ ଶିକ୍ଷାର ସଂପତ୍ତି କର", Urdu: "غلطیوں کو سیکھنے کا ذریعہ بنائیں",
+  },
+  newBhool: {
+    English: "+ New Mistake", Hindi: "+ नई भूल", Gujarati: "+ નવી ભૂલ", Marathi: "+ नवीन भूल",
+    Tamil: "+ புதிய தவறு", Telugu: "+ కొత్త తప్పు", Kannada: "+ ಹೊಸ ತಪ್ಪು", Bengali: "+ নতুন ভুল",
+    Punjabi: "+ ਨਵੀਂ ਭੁੱਲ", Odia: "+ ନୂଆ ଭୁଲ", Urdu: "+ نئی غلطی",
+  },
+  published: {
+    English: "✅ Published", Hindi: "✅ प्रकाशित", Gujarati: "✅ પ્રકાશિત", Marathi: "✅ प्रकाशित",
+    Tamil: "✅ வெளியிடப்பட்டது", Telugu: "✅ ప్రచురించబడింది", Kannada: "✅ ಪ್ರಕಟಿತ", Bengali: "✅ প্রকাশিত",
+    Punjabi: "✅ ਪ੍ਰਕਾਸ਼ਿਤ", Odia: "✅ ପ୍ରକାଶିତ", Urdu: "✅ شائع شدہ",
+  },
+  draft: {
+    English: "🔒 Draft", Hindi: "🔒 ड्राफ्ट", Gujarati: "🔒 ડ્રાફ્ટ", Marathi: "🔒 मसुदा",
+    Tamil: "🔒 வரைவு", Telugu: "🔒 డ్రాఫ్ట్", Kannada: "🔒 ಡ್ರಾಫ್ಟ್", Bengali: "🔒 খসড়া",
+    Punjabi: "🔒 ਡਰਾਫਟ", Odia: "🔒 ଡ୍ରାଫ୍ଟ", Urdu: "🔒 مسودہ",
+  },
+  iAnswered: {
+    English: "❌ I answered: ", Hindi: "❌ मेरा जवाब: ", Gujarati: "❌ મેં જવાબ આપ્યો: ", Marathi: "❌ माझे उत्तर: ",
+    Tamil: "❌ நான் பதிலளித்தேன்: ", Telugu: "❌ నేను సమాధానమిచ్చాను: ", Kannada: "❌ ನಾನು ಉತ್ತರಿಸಿದೆ: ", Bengali: "❌ আমি উত্তর দিয়েছি: ",
+    Punjabi: "❌ ਮੈਂ ਜਵਾਬ ਦਿੱਤਾ: ", Odia: "❌ ମୋର ଉତ୍ତର: ", Urdu: "❌ میرا جواب: ",
+  },
+  revealCorrectAnswer: {
+    English: "👁 Reveal Correct Answer", Hindi: "👁 सही जवाब दिखाएं", Gujarati: "👁 સાચો જવાબ બતાવો", Marathi: "👁 बरोबर उत्तर दाखवा",
+    Tamil: "👁 சரியான பதிலைக் காட்டு", Telugu: "👁 సరైన సమాధానం చూపించు", Kannada: "👁 ಸರಿಯಾದ ಉತ್ತರ ತೋರಿಸಿ", Bengali: "👁 সঠিক উত্তর দেখান",
+    Punjabi: "👁 ਸਹੀ ਜਵਾਬ ਦਿਖਾਓ", Odia: "👁 ସଠିକ ଉତ୍ତର ଦେଖାଅ", Urdu: "👁 صحیح جواب دکھائیں",
+  },
+  correctLabel: {
+    English: "✅ Correct: ", Hindi: "✅ सही: ", Gujarati: "✅ સાચો: ", Marathi: "✅ बरोबर: ",
+    Tamil: "✅ சரி: ", Telugu: "✅ సరైనది: ", Kannada: "✅ ಸರಿ: ", Bengali: "✅ সঠিক: ",
+    Punjabi: "✅ ਸਹੀ: ", Odia: "✅ ସଠିକ: ", Urdu: "✅ صحیح: ",
+  },
+  collectXp: {
+    English: "🔖 Collect +10 XP", Hindi: "🔖 +10 XP पाएं", Gujarati: "🔖 +10 XP મેળવો", Marathi: "🔖 +10 XP मिळवा",
+    Tamil: "🔖 +10 XP பெறு", Telugu: "🔖 +10 XP పొందండి", Kannada: "🔖 +10 XP ಪಡೆಯಿರಿ", Bengali: "🔖 +10 XP পান",
+    Punjabi: "🔖 +10 XP ਪ੍ਰਾਪਤ ਕਰੋ", Odia: "🔖 +10 XP ପାଅ", Urdu: "🔖 +10 XP حاصل کریں",
+  },
+  savedLabel: {
+    English: "✅ Saved", Hindi: "✅ सेव किया", Gujarati: "✅ સાચવ્યું", Marathi: "✅ जतन केले",
+    Tamil: "✅ சேமிக்கப்பட்டது", Telugu: "✅ సేవ్ చేయబడింది", Kannada: "✅ ಉಳಿಸಲಾಗಿದೆ", Bengali: "✅ সংরক্ষিত",
+    Punjabi: "✅ ਸੇਵ ਕੀਤਾ", Odia: "✅ ସେଭ ହେଲା", Urdu: "✅ محفوظ",
+  },
+  publishBtn: {
+    English: "🌐 Publish", Hindi: "🌐 प्रकाशित करें", Gujarati: "🌐 પ્રકાશિત કરો", Marathi: "🌐 प्रकाशित करा",
+    Tamil: "🌐 வெளியிடு", Telugu: "🌐 ప్రచురించు", Kannada: "🌐 ಪ್ರಕಟಿಸಿ", Bengali: "🌐 প্রকাশ করুন",
+    Punjabi: "🌐 ਪ੍ਰਕਾਸ਼ਿਤ ਕਰੋ", Odia: "🌐 ପ୍ରକାଶ କର", Urdu: "🌐 شائع کریں",
+  },
+  allSubjects: {
+    English: "All Subjects", Hindi: "सभी विषय", Gujarati: "બધા વિષયો", Marathi: "सर्व विषय",
+    Tamil: "அனைத்து பாடங்கள்", Telugu: "అన్ని సబ్జెక్టులు", Kannada: "ಎಲ್ಲಾ ವಿಷಯಗಳು", Bengali: "সব বিষয়",
+    Punjabi: "ਸਾਰੇ ਵਿਸ਼ੇ", Odia: "ସମସ୍ତ ବିଷୟ", Urdu: "تمام مضامین",
+  },
+  sortRecent: {
+    English: "🕐 Recent", Hindi: "🕐 हाल ही के", Gujarati: "🕐 તાજેતરના", Marathi: "🕐 अलीकडील",
+    Tamil: "🕐 சமீபத்திய", Telugu: "🕐 ఇటీవలి", Kannada: "🕐 ಇತ್ತೀಚಿನ", Bengali: "🕐 সাম্প্রতিক",
+    Punjabi: "🕐 ਤਾਜ਼ਾ", Odia: "🕐 ସାମ୍ପ୍ରତିକ", Urdu: "🕐 حالیہ",
+  },
+  sortCoins: {
+    English: "🪙 Most Coins", Hindi: "🪙 सबसे ज्यादा सिक्के", Gujarati: "🪙 સૌથી વધુ સિક્કા", Marathi: "🪙 सर्वाधिक नाणी",
+    Tamil: "🪙 அதிக நாணயங்கள்", Telugu: "🪙 ఎక్కువ నాణేలు", Kannada: "🪙 ಹೆಚ್ಚು ನಾಣ್ಯಗಳು", Bengali: "🪙 সবচেয়ে বেশি কয়েন",
+    Punjabi: "🪙 ਸਭ ਤੋਂ ਵੱਧ ਸਿੱਕੇ", Odia: "🪙 ସର୍ବାଧିକ ମୁଦ୍ରା", Urdu: "🪙 سب سے زیادہ سکے",
+  },
+  sortSaved: {
+    English: "🔖 Most Saved", Hindi: "🔖 सबसे ज्यादा सेव", Gujarati: "🔖 સૌથી વધુ સાચવેલા", Marathi: "🔖 सर्वाधिक जतन",
+    Tamil: "🔖 அதிகம் சேமிக்கப்பட்டவை", Telugu: "🔖 ఎక్కువ సేవ్ చేయబడినవి", Kannada: "🔖 ಹೆಚ್ಚು ಉಳಿಸಲಾದ", Bengali: "🔖 সবচেয়ে বেশি সেভ",
+    Punjabi: "🔖 ਸਭ ਤੋਂ ਵੱਧ ਸੇਵ", Odia: "🔖 ସର୍ବାଧିକ ସେଭ", Urdu: "🔖 سب سے زیادہ محفوظ",
+  },
+  loadMore: {
+    English: "Load More", Hindi: "और देखें", Gujarati: "વધુ લોડ કરો", Marathi: "आणखी दाखवा",
+    Tamil: "மேலும் காட்டு", Telugu: "మరిన్ని చూపించు", Kannada: "ಇನ್ನಷ್ಟು ಲೋಡ್ ಮಾಡಿ", Bengali: "আরও দেখুন",
+    Punjabi: "ਹੋਰ ਲੋਡ ਕਰੋ", Odia: "ଅଧିକ ଲୋଡ କର", Urdu: "مزید دکھائیں",
+  },
+  saveBhoolTitle: {
+    English: "📝 Save a Mistake", Hindi: "📝 भूल सेव करें", Gujarati: "📝 ભૂલ સાચવો", Marathi: "📝 भूल जतन करा",
+    Tamil: "📝 தவறு சேமி", Telugu: "📝 తప్పు సేవ్ చేయండి", Kannada: "📝 ತಪ್ಪು ಉಳಿಸಿ", Bengali: "📝 ভুল সেভ করুন",
+    Punjabi: "📝 ਭੁੱਲ ਸੇਵ ਕਰੋ", Odia: "📝 ଭୁଲ ସେଭ କର", Urdu: "📝 غلطی محفوظ کریں",
+  },
+  subjectLabel: {
+    English: "Subject", Hindi: "विषय", Gujarati: "વિષય", Marathi: "विषय",
+    Tamil: "பாடம்", Telugu: "సబ్జెక్ట్", Kannada: "ವಿಷಯ", Bengali: "বিষয়",
+    Punjabi: "ਵਿਸ਼ਾ", Odia: "ବିଷୟ", Urdu: "مضمون",
+  },
+  questionTopic: {
+    English: "Question / Topic", Hindi: "प्रश्न / विषय", Gujarati: "પ્રશ્ન / વિષય", Marathi: "प्रश्न / विषय",
+    Tamil: "கேள்வி / தலைப்பு", Telugu: "ప్రశ్న / అంశం", Kannada: "ಪ್ರಶ್ನೆ / ವಿಷಯ", Bengali: "প্রশ্ন / বিষয়",
+    Punjabi: "ਸਵਾਲ / ਵਿਸ਼ਾ", Odia: "ପ୍ରଶ୍ନ / ବିଷୟ", Urdu: "سوال / موضوع",
+  },
+  questionPlaceholder: {
+    English: "What was the question?", Hindi: "प्रश्न क्या था?", Gujarati: "પ્રશ્ન શું હતો?", Marathi: "प्रश्न काय होता?",
+    Tamil: "கேள்வி என்ன?", Telugu: "ప్రశ్న ఏమిటి?", Kannada: "ಪ್ರಶ್ನೆ ಏನು?", Bengali: "প্রশ্ন কী ছিল?",
+    Punjabi: "ਸਵਾਲ ਕੀ ਸੀ?", Odia: "ପ୍ରଶ୍ନ କ'ଣ ଥିଲା?", Urdu: "سوال کیا تھا؟",
+  },
+  myWrongAnswer: {
+    English: "My Wrong Answer ❌", Hindi: "मेरा गलत जवाब ❌", Gujarati: "મારો ખોટો જવાબ ❌", Marathi: "माझे चुकीचे उत्तर ❌",
+    Tamil: "என் தவறான பதில் ❌", Telugu: "నా తప్పు సమాధానం ❌", Kannada: "ನನ್ನ ತಪ್ಪು ಉತ್ತರ ❌", Bengali: "আমার ভুল উত্তর ❌",
+    Punjabi: "ਮੇਰਾ ਗਲਤ ਜਵਾਬ ❌", Odia: "ମୋର ଭୁଲ ଉତ୍ତର ❌", Urdu: "میرا غلط جواب ❌",
+  },
+  wrongAnswerPlaceholder: {
+    English: "What answer did you give (incorrectly)?", Hindi: "आपने कौन सा जवाब दिया (गलत)?", Gujarati: "તમે કયો જવાબ આપ્યો (ખોટો)?", Marathi: "तुम्ही कोणते उत्तर दिले (चुकीचे)?",
+    Tamil: "நீங்கள் என்ன பதில் அளித்தீர்கள் (தவறாக)?", Telugu: "మీరు ఏ సమాధానం ఇచ్చారు (తప్పుగా)?", Kannada: "ನೀವು ಯಾವ ಉತ್ತರ ನೀಡಿದ್ದೀರಿ (ತಪ್ಪಾಗಿ)?", Bengali: "আপনি কোন উত্তর দিয়েছিলেন (ভুলভাবে)?",
+    Punjabi: "ਤੁਸੀਂ ਕਿਹੜਾ ਜਵਾਬ ਦਿੱਤਾ (ਗਲਤ)?", Odia: "ତୁମେ କ'ଣ ଉତ୍ତର ଦେଲ (ଭୁଲ)?", Urdu: "آپ نے کون سا جواب دیا (غلط)؟",
+  },
+  correctAnswerLabel: {
+    English: "Correct Answer ✅", Hindi: "सही जवाब ✅", Gujarati: "સાચો જવાબ ✅", Marathi: "बरोबर उत्तर ✅",
+    Tamil: "சரியான பதில் ✅", Telugu: "సరైన సమాధానం ✅", Kannada: "ಸರಿಯಾದ ಉತ್ತರ ✅", Bengali: "সঠিক উত্তর ✅",
+    Punjabi: "ਸਹੀ ਜਵਾਬ ✅", Odia: "ସଠିକ ଉତ୍ତର ✅", Urdu: "صحیح جواب ✅",
+  },
+  correctAnswerPlaceholder: {
+    English: "What is the right answer?", Hindi: "सही जवाब क्या है?", Gujarati: "સાચો જવાબ શું છે?", Marathi: "बरोबर उत्तर काय आहे?",
+    Tamil: "சரியான பதில் என்ன?", Telugu: "సరైన సమాధానం ఏమిటి?", Kannada: "ಸರಿಯಾದ ಉತ್ತರ ಏನು?", Bengali: "সঠিক উত্তর কী?",
+    Punjabi: "ਸਹੀ ਜਵਾਬ ਕੀ ਹੈ?", Odia: "ସଠିକ ଉତ୍ତର କ'ଣ?", Urdu: "صحیح جواب کیا ہے؟",
+  },
+  whyWrongLabel: {
+    English: "Why did I get it wrong? 💡", Hindi: "मैंने गलत क्यों किया? 💡", Gujarati: "મેં ખોટું કેમ કર્યું? 💡", Marathi: "मी चूक का केली? 💡",
+    Tamil: "ஏன் தவறு செய்தேன்? 💡", Telugu: "నేను ఎందుకు తప్పు చేశాను? 💡", Kannada: "ನಾನು ಏಕೆ ತಪ್ಪು ಮಾಡಿದೆ? 💡", Bengali: "আমি কেন ভুল করলাম? 💡",
+    Punjabi: "ਮੈਂ ਗਲਤ ਕਿਉਂ ਕੀਤਾ? 💡", Odia: "ମୁଁ ଭୁଲ କାହିଁକି କଲି? 💡", Urdu: "میں نے غلط کیوں کیا؟ 💡",
+  },
+  whyWrongPlaceholder: {
+    English: "Optional: explain your misconception…", Hindi: "वैकल्पिक: अपनी गलतफहमी समझाएं…", Gujarati: "વૈકલ્પિક: તમારી ગેરસમજ સમજાવો…", Marathi: "पर्यायी: तुमचा गैरसमज सांगा…",
+    Tamil: "விரும்பினால்: உங்கள் தவறான கருத்தை விளக்குங்கள்…", Telugu: "ఐచ్ఛికం: మీ అపోహను వివరించండి…", Kannada: "ಐಚ್ಛಿಕ: ನಿಮ್ಮ ತಪ್ಪು ಕಲ್ಪನೆಯನ್ನು ವಿವರಿಸಿ…", Bengali: "ঐচ্ছিক: আপনার ভুল ধারণা ব্যাখ্যা করুন…",
+    Punjabi: "ਵਿਕਲਪਿਕ: ਆਪਣੀ ਗਲਤ ਸਮਝ ਸਮਝਾਓ…", Odia: "ବୈକଳ୍ପିକ: ତୁମର ଭୁଲ ଧାରଣା ବୁଝାଅ…", Urdu: "اختیاری: اپنی غلط فہمی بیان کریں…",
+  },
+  aiThinking: {
+    English: "✨ Thinking…", Hindi: "✨ सोच रहा हूँ…", Gujarati: "✨ વિચારી રહ્યો છું…", Marathi: "✨ विचार करत आहे…",
+    Tamil: "✨ யோசிக்கிறேன்…", Telugu: "✨ ఆలోచిస్తున్నాను…", Kannada: "✨ ಯೋಚಿಸುತ್ತಿದ್ದೇನೆ…", Bengali: "✨ ভাবছি…",
+    Punjabi: "✨ ਸੋਚ ਰਿਹਾ ਹਾਂ…", Odia: "✨ ଭାବୁଛି…", Urdu: "✨ سوچ رہا ہوں…",
+  },
+  aiExplain: {
+    English: "✨ AI Explain", Hindi: "✨ AI समझाए", Gujarati: "✨ AI સમજાવો", Marathi: "✨ AI समजावा",
+    Tamil: "✨ AI விளக்கம்", Telugu: "✨ AI వివరణ", Kannada: "✨ AI ವಿವರಣೆ", Bengali: "✨ AI ব্যাখ্যা",
+    Punjabi: "✨ AI ਸਮਝਾਓ", Odia: "✨ AI ବ୍ୟାଖ୍ୟା", Urdu: "✨ AI وضاحت",
+  },
+  publishToBazaar: {
+    English: "🌐 Will be published to Marketplace", Hindi: "🌐 बाज़ार में प्रकाशित होगा", Gujarati: "🌐 બજારમાં પ્રકાશિત થશે", Marathi: "🌐 बाजारात प्रकाशित होईल",
+    Tamil: "🌐 சந்தையில் வெளியிடப்படும்", Telugu: "🌐 బజార్‌లో ప్రచురించబడుతుంది", Kannada: "🌐 ಬಜಾರ್‌ನಲ್ಲಿ ಪ್ರಕಟವಾಗುತ್ತದೆ", Bengali: "🌐 বাজারে প্রকাশিত হবে",
+    Punjabi: "🌐 ਬਾਜ਼ਾਰ ਵਿੱਚ ਪ੍ਰਕਾਸ਼ਿਤ ਹੋਵੇਗਾ", Odia: "🌐 ବଜାରରେ ପ୍ରକାଶିତ ହେବ", Urdu: "🌐 بازار میں شائع ہوگا",
+  },
+  keepPrivate: {
+    English: "🔒 Keep private (can publish later)", Hindi: "🔒 निजी रखें (बाद में प्रकाशित कर सकते हैं)", Gujarati: "🔒 ખાનગી રાખો (પછીથી પ્રકાશિત કરી શકાય)", Marathi: "🔒 खासगी ठेवा (नंतर प्रकाशित करता येईल)",
+    Tamil: "🔒 தனிப்பட்டதாக வைக்கவும் (பின்னர் வெளியிடலாம்)", Telugu: "🔒 ప్రైవేట్‌గా ఉంచండి (తర్వాత ప్రచురించవచ్చు)", Kannada: "🔒 ಖಾಸಗಿಯಾಗಿ ಇರಿಸಿ (ನಂತರ ಪ್ರಕಟಿಸಬಹುದು)", Bengali: "🔒 ব্যক্তিগত রাখুন (পরে প্রকাশ করা যাবে)",
+    Punjabi: "🔒 ਨਿੱਜੀ ਰੱਖੋ (ਬਾਅਦ ਵਿੱਚ ਪ੍ਰਕਾਸ਼ਿਤ ਕਰ ਸਕਦੇ ਹੋ)", Odia: "🔒 ବ୍ୟକ୍ତିଗତ ରଖ (ପରେ ପ୍ରକାଶ କରାଯାଇ ପାରିବ)", Urdu: "🔒 نجی رکھیں (بعد میں شائع کر سکتے ہیں)",
+  },
+  savingBtn: {
+    English: "Saving…", Hindi: "सेव हो रहा है…", Gujarati: "સાચવી રહ્યું છે…", Marathi: "जतन करत आहे…",
+    Tamil: "சேமிக்கிறது…", Telugu: "సేవ్ అవుతోంది…", Kannada: "ಉಳಿಸುತ್ತಿದೆ…", Bengali: "সংরক্ষণ হচ্ছে…",
+    Punjabi: "ਸੇਵ ਹੋ ਰਿਹਾ ਹੈ…", Odia: "ସେଭ ହେଉଛି…", Urdu: "محفوظ ہو رہا ہے…",
+  },
+  saveBhoolBtn: {
+    English: "💾 Save Mistake", Hindi: "💾 भूल सेव करें", Gujarati: "💾 ભૂલ સાચવો", Marathi: "💾 भूल जतन करा",
+    Tamil: "💾 தவறு சேமி", Telugu: "💾 తప్పు సేవ్ చేయండి", Kannada: "💾 ತಪ್ಪು ಉಳಿಸಿ", Bengali: "💾 ভুল সেভ করুন",
+    Punjabi: "💾 ਭੁੱਲ ਸੇਵ ਕਰੋ", Odia: "💾 ଭୁଲ ସେଭ କର", Urdu: "💾 غلطی محفوظ کریں",
+  },
+  shareYourBhool: {
+    English: "Share Your Mistake?", Hindi: "अपनी भूल शेयर करें?", Gujarati: "તમારી ભૂલ શેર કરશો?", Marathi: "तुमची भूल शेअर कराल?",
+    Tamil: "உங்கள் தவறை பகிரவா?", Telugu: "మీ తప్పు షేర్ చేస్తారా?", Kannada: "ನಿಮ್ಮ ತಪ್ಪನ್ನು ಹಂಚಿಕೊಳ್ಳುವಿರಾ?", Bengali: "আপনার ভুল শেয়ার করবেন?",
+    Punjabi: "ਆਪਣੀ ਭੁੱਲ ਸਾਂਝੀ ਕਰੋਗੇ?", Odia: "ତୁମର ଭୁଲ ସେୟାର କରିବ?", Urdu: "اپنی غلطی شیئر کریں گے؟",
+  },
+  publishHelpsOthers: {
+    English: "Publishing lets other students learn from your mistake — and earns you", Hindi: "प्रकाशित करने से दूसरे छात्र आपकी गलती से सीखेंगे — और आपको मिलेंगे", Gujarati: "પ્રકાશિત કરવાથી અન્ય વિદ્યાર્થીઓ તમારી ભૂલમાંથી શીખશે — અને તમને મળશે", Marathi: "प्रकाशित केल्यास इतर विद्यार्थी तुमच्या चुकीतून शिकतील — आणि तुम्हाला मिळतील",
+    Tamil: "வெளியிடுவது மற்ற மாணவர்களுக்கு உதவும் — மேலும் நீங்கள் பெறுவீர்கள்", Telugu: "ప్రచురించడం ద్వారా ఇతర విద్యార్థులు నేర్చుకుంటారు — మరియు మీరు సంపాదిస్తారు", Kannada: "ಪ್ರಕಟಿಸುವುದು ಇತರ ವಿದ್ಯಾರ್ಥಿಗಳಿಗೆ ಕಲಿಯಲು ಸಹಾಯ ಮಾಡುತ್ತದೆ — ಮತ್ತು ನಿಮಗೆ ಸಿಗುತ್ತದೆ", Bengali: "প্রকাশ করলে অন্য ছাত্ররা আপনার ভুল থেকে শিখবে — এবং আপনি পাবেন",
+    Punjabi: "ਪ੍ਰਕਾਸ਼ਿਤ ਕਰਨ ਨਾਲ ਹੋਰ ਵਿਦਿਆਰਥੀ ਸਿੱਖਣਗੇ — ਅਤੇ ਤੁਹਾਨੂੰ ਮਿਲਣਗੇ", Odia: "ପ୍ରକାଶ କଲେ ଅନ୍ୟ ଛାତ୍ରରା ଶିଖିବେ — ଏବଂ ତୁମେ ପାଇବ", Urdu: "شائع کرنے سے دوسرے طالب علم سیکھیں گے — اور آپ کو ملیں گے",
+  },
+  yesPublish: {
+    English: "🌐 Yes, Publish!", Hindi: "🌐 हाँ, प्रकाशित करें!", Gujarati: "🌐 હા, પ્રકાશિત કરો!", Marathi: "🌐 हो, प्रकाशित करा!",
+    Tamil: "🌐 ஆம், வெளியிடு!", Telugu: "🌐 అవును, ప్రచురించు!", Kannada: "🌐 ಹೌದು, ಪ್ರಕಟಿಸಿ!", Bengali: "🌐 হ্যাঁ, প্রকাশ করুন!",
+    Punjabi: "🌐 ਹਾਂ, ਪ੍ਰਕਾਸ਼ਿਤ ਕਰੋ!", Odia: "🌐 ହଁ, ପ୍ରକାଶ କର!", Urdu: "🌐 ہاں، شائع کریں!",
+  },
+  publishingBtn: {
+    English: "Publishing…", Hindi: "प्रकाशित हो रहा है…", Gujarati: "પ્રકાશિત થઈ રહ્યું છે…", Marathi: "प्रकाशित होत आहे…",
+    Tamil: "வெளியிடப்படுகிறது…", Telugu: "ప్రచురించబడుతోంది…", Kannada: "ಪ್ರಕಟವಾಗುತ್ತಿದೆ…", Bengali: "প্রকাশিত হচ্ছে…",
+    Punjabi: "ਪ੍ਰਕਾਸ਼ਿਤ ਹੋ ਰਿਹਾ ਹੈ…", Odia: "ପ୍ରକାଶିତ ହେଉଛି…", Urdu: "شائع ہو رہا ہے…",
+  },
+  fillRequired: {
+    English: "Please fill Question, Wrong Answer and Correct Answer.", Hindi: "कृपया प्रश्न, गलत जवाब और सही जवाब भरें।", Gujarati: "કૃપા કરીને પ્રશ્ન, ખોટો જવાબ અને સાચો જવાબ ભરો.", Marathi: "कृपया प्रश्न, चुकीचे उत्तर आणि बरोबर उत्तर भरा.",
+    Tamil: "தயவுசெய்து கேள்வி, தவறான பதில் மற்றும் சரியான பதிலை நிரப்பவும்.", Telugu: "దయచేసి ప్రశ్న, తప్పు సమాధానం మరియు సరైన సమాధానం నింపండి.", Kannada: "ದಯವಿಟ್ಟು ಪ್ರಶ್ನೆ, ತಪ್ಪು ಉತ್ತರ ಮತ್ತು ಸರಿಯಾದ ಉತ್ತರ ಭರ್ತಿ ಮಾಡಿ.", Bengali: "দয়া করে প্রশ্ন, ভুল উত্তর এবং সঠিক উত্তর পূরণ করুন।",
+    Punjabi: "ਕਿਰਪਾ ਕਰਕੇ ਸਵਾਲ, ਗਲਤ ਜਵਾਬ ਅਤੇ ਸਹੀ ਜਵਾਬ ਭਰੋ।", Odia: "ଦୟାକରି ପ୍ରଶ୍ନ, ଭୁଲ ଉତ୍ତର ଏବଂ ସଠିକ ଉତ୍ତର ପୂରଣ କରନ୍ତୁ।", Urdu: "براہ کرم سوال، غلط جواب اور صحیح جواب بھریں۔",
+  },
+  couldNotSave: {
+    English: "Could not save. Try again.", Hindi: "सेव नहीं हो सका। फिर कोशिश करें।", Gujarati: "સાચવી શકાયું નથી. ફરી પ્રયાસ કરો.", Marathi: "जतन होऊ शकले नाही. पुन्हा प्रयत्न करा.",
+    Tamil: "சேமிக்க இயலவில்லை. மீண்டும் முயற்சிக்கவும்.", Telugu: "సేవ్ చేయడం విఫలమైంది. మళ్ళీ ప్రయత్నించండి.", Kannada: "ಉಳಿಸಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.", Bengali: "সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।",
+    Punjabi: "ਸੇਵ ਨਹੀਂ ਹੋ ਸਕਿਆ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।", Odia: "ସେଭ ହୋଇପାରିଲା ନାହିଁ। ପୁନଃ ଚେଷ୍ଟା କରନ୍ତୁ।", Urdu: "محفوظ نہیں ہو سکا۔ دوبارہ کوشش کریں۔",
+  },
+  couldNotLoadBazaar: {
+    English: "Could not load Marketplace. Try again.", Hindi: "बाज़ार लोड नहीं हो सका। फिर कोशिश करें।", Gujarati: "બજાર લોડ થઈ શક્યું નથી. ફરી પ્રયાસ કરો.", Marathi: "बाजार लोड होऊ शकले नाही. पुन्हा प्रयत्न करा.",
+    Tamil: "சந்தை ஏற்ற இயலவில்லை. மீண்டும் முயற்சிக்கவும்.", Telugu: "బజార్ లోడ్ చేయడం విఫలమైంది. మళ్ళీ ప్రయత్నించండి.", Kannada: "ಬಜಾರ್ ಲೋಡ್ ಆಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.", Bengali: "বাজার লোড হয়নি। আবার চেষ্টা করুন।",
+    Punjabi: "ਬਾਜ਼ਾਰ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕਿਆ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।", Odia: "ବଜାର ଲୋଡ ହୋଇପାରିଲା ନାହିଁ। ପୁନଃ ଚେଷ୍ଟା କରନ୍ତୁ।", Urdu: "بازار لوڈ نہیں ہو سکا۔ دوبارہ کوشش کریں۔",
+  },
+  couldNotLoadCards: {
+    English: "Could not load your cards.", Hindi: "आपके कार्ड्स लोड नहीं हो सके।", Gujarati: "તમારા કાર્ડ્સ લોડ થઈ શક્યા નથી.", Marathi: "तुमचे कार्ड्स लोड होऊ शकले नाहीत.",
+    Tamil: "உங்கள் அட்டைகள் ஏற்ற இயலவில்லை.", Telugu: "మీ కార్డ్‌లు లోడ్ చేయడం విఫలమైంది.", Kannada: "ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗಲಿಲ್ಲ.", Bengali: "আপনার কার্ড লোড হয়নি।",
+    Punjabi: "ਤੁਹਾਡੇ ਕਾਰਡ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੇ।", Odia: "ତୁମର କାର୍ଡ ଲୋଡ ହୋଇପାରିଲା ନାହିଁ।", Urdu: "آپ کے کارڈز لوڈ نہیں ہو سکے۔",
+  },
+  couldNotLoadSaved: {
+    English: "Could not load saved cards.", Hindi: "सेव किए गए कार्ड्स लोड नहीं हो सके।", Gujarati: "સાચવેલા કાર્ડ્સ લોડ થઈ શક્યા નથી.", Marathi: "जतन केलेले कार्ड्स लोड होऊ शकले नाहीत.",
+    Tamil: "சேமித்த அட்டைகள் ஏற்ற இயலவில்லை.", Telugu: "సేవ్ చేసిన కార్డ్‌లు లోడ్ కాలేదు.", Kannada: "ಉಳಿಸಿದ ಕಾರ್ಡ್‌ಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗಲಿಲ್ಲ.", Bengali: "সংরক্ষিত কার্ড লোড হয়নি।",
+    Punjabi: "ਸੇਵ ਕੀਤੇ ਕਾਰਡ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੇ।", Odia: "ସେଭ ହୋଇଥିବା କାର୍ଡ ଲୋଡ ହୋଇପାରିଲା ନାହିଁ।", Urdu: "محفوظ کارڈز لوڈ نہیں ہو سکے۔",
+  },
+  couldNotLoadTop: {
+    English: "Could not load top cards.", Hindi: "टॉप कार्ड्स लोड नहीं हो सके।", Gujarati: "ટોપ કાર્ડ્સ લોડ થઈ શક્યા નથી.", Marathi: "टॉप कार्ड्स लोड होऊ शकले नाहीत.",
+    Tamil: "சிறந்த அட்டைகள் ஏற்ற இயலவில்லை.", Telugu: "టాప్ కార్డ్‌లు లోడ్ కాలేదు.", Kannada: "ಟಾಪ್ ಕಾರ್ಡ್‌ಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗಲಿಲ್ಲ.", Bengali: "টপ কার্ড লোড হয়নি।",
+    Punjabi: "ਟੌਪ ਕਾਰਡ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੇ।", Odia: "ଟପ କାର୍ଡ ଲୋଡ ହୋଇପାରିଲା ନାହିଁ।", Urdu: "ٹاپ کارڈز لوڈ نہیں ہو سکے۔",
+  },
+  noBhoolCards: {
+    English: "No mistake cards yet", Hindi: "अभी तक कोई भूल कार्ड नहीं", Gujarati: "હજી કોઈ ભૂલ કાર્ડ નથી", Marathi: "अद्याप कोणतेही भूल कार्ड नाही",
+    Tamil: "இன்னும் தவறு அட்டைகள் இல்லை", Telugu: "ఇంకా తప్పు కార్డ్‌లు లేవు", Kannada: "ಇನ್ನೂ ತಪ್ಪು ಕಾರ್ಡ್‌ಗಳಿಲ್ಲ", Bengali: "এখনও কোনো ভুল কার্ড নেই",
+    Punjabi: "ਹਾਲੇ ਕੋਈ ভুল ਕਾਰਡ ਨਹੀਂ", Odia: "ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ଭୁଲ କାର୍ଡ ନାହିଁ", Urdu: "ابھی تک کوئی غلطی کارڈ نہیں",
+  },
+  tapNewBhool: {
+    English: 'Tap "+ New Mistake" to save your first mistake.', Hindi: 'अपनी पहली गलती सेव करने के लिए "+ New Mistake" दबाएं।', Gujarati: 'તમારી પ્રથમ ભૂલ સાચવવા "+ New Mistake" દબાવો.', Marathi: 'तुमची पहिली चूक जतन करण्यासाठी "+ New Mistake" दबा.',
+    Tamil: 'முதல் தவறை சேமிக்க "+ New Mistake" தட்டவும்.', Telugu: 'మీ మొదటి తప్పు సేవ్ చేయడానికి "+ New Mistake" నొక్కండి.', Kannada: 'ನಿಮ್ಮ ಮೊದಲ ತಪ್ಪನ್ನು ಉಳಿಸಲು "+ New Mistake" ಒತ್ತಿ.', Bengali: 'প্রথম ভুল সেভ করতে "+ New Mistake" চাপুন।',
+    Punjabi: 'ਆਪਣੀ ਪਹਿਲੀ ਭੁੱਲ ਸੇਵ ਕਰਨ ਲਈ "+ New Mistake" ਦਬਾਓ।', Odia: 'ତୁମର ପ୍ରଥମ ଭୁଲ ସେଭ କରିବାକୁ "+ New Mistake" ଦବାଅ।', Urdu: 'پہلی غلطی محفوظ کرنے کے لیے "+ New Mistake" دبائیں۔',
+  },
+  nothingSaved: {
+    English: "Nothing saved yet", Hindi: "अभी तक कुछ सेव नहीं", Gujarati: "હજી કંઈ સાચવ્યું નથી", Marathi: "अद्याप काहीही जतन नाही",
+    Tamil: "இன்னும் எதுவும் சேமிக்கப்படவில்லை", Telugu: "ఇంకా ఏమీ సేవ్ చేయబడలేదు", Kannada: "ಇನ್ನೂ ಏನೂ ಉಳಿಸಲಾಗಿಲ್ಲ", Bengali: "এখনও কিছু সেভ হয়নি",
+    Punjabi: "ਹਾਲੇ ਕੁਝ ਸੇਵ ਨਹੀਂ", Odia: "ଏପର୍ଯ୍ୟନ୍ତ କିଛି ସେଭ ହୋଇନାହିଁ", Urdu: "ابھی تک کچھ محفوظ نہیں",
+  },
+  visitBazaarCollect: {
+    English: "Visit the Marketplace and collect cards from other students.", Hindi: "बाज़ार जाएं और दूसरे छात्रों के कार्ड संग्रह करें।", Gujarati: "બજાર જાઓ અને અન્ય વિદ્યાર્થીઓના કાર્ડ્સ સંગ્રહ કરો.", Marathi: "बाजारात जा आणि इतर विद्यार्थ्यांचे कार्ड्स संग्रह करा.",
+    Tamil: "சந்தைக்குச் சென்று மற்ற மாணவர்களின் அட்டைகளை சேகரியுங்கள்.", Telugu: "బజార్‌కి వెళ్ళి ఇతర విద్యార్థుల కార్డ్‌లను సేకరించండి.", Kannada: "ಬಜಾರ್‌ಗೆ ಹೋಗಿ ಇತರ ವಿದ್ಯಾರ್ಥಿಗಳ ಕಾರ್ಡ್‌ಗಳನ್ನು ಸಂಗ್ರಹಿಸಿ.", Bengali: "বাজারে যান এবং অন্য ছাত্রদের কার্ড সংগ্রহ করুন।",
+    Punjabi: "ਬਾਜ਼ਾਰ ਜਾਓ ਅਤੇ ਹੋਰ ਵਿਦਿਆਰਥੀਆਂ ਦੇ ਕਾਰਡ ਇਕੱਠੇ ਕਰੋ।", Odia: "ବଜାରକୁ ଯାଅ ଏବଂ ଅନ୍ୟ ଛାତ୍ରଙ୍କ କାର୍ଡ ସଂଗ୍ରହ କର।", Urdu: "بازار جائیں اور دوسرے طلباء کے کارڈز جمع کریں۔",
+  },
+  noTopCardsWeek: {
+    English: "No top cards this week", Hindi: "इस हफ्ते कोई टॉप कार्ड नहीं", Gujarati: "આ અઠવાડિયે કોઈ ટોપ કાર્ડ નથી", Marathi: "या आठवड्यात कोणतेही टॉप कार्ड नाही",
+    Tamil: "இந்த வாரம் சிறந்த அட்டைகள் இல்லை", Telugu: "ఈ వారం టాప్ కార్డ్‌లు లేవు", Kannada: "ಈ ವಾರ ಟಾಪ್ ಕಾರ್ಡ್‌ಗಳಿಲ್ಲ", Bengali: "এই সপ্তাহে কোনো টপ কার্ড নেই",
+    Punjabi: "ਇਸ ਹਫ਼ਤੇ ਕੋਈ ਟੌਪ ਕਾਰਡ ਨਹੀਂ", Odia: "ଏହି ସପ୍ତାହରେ କୌଣସି ଟପ କାର୍ଡ ନାହିଁ", Urdu: "اس ہفتے کوئی ٹاپ کارڈ نہیں",
+  },
+  moreStudentsNeeded: {
+    English: "More students need to publish their mistakes!", Hindi: "और छात्रों को अपनी गलतियाँ प्रकाशित करनी होंगी!", Gujarati: "વધુ વિદ્યાર્થીઓએ તેમની ભૂલો પ્રકાશિત કરવી જોઈએ!", Marathi: "अधिक विद्यार्थ्यांनी त्यांच्या चुका प्रकाशित कराव्यात!",
+    Tamil: "மேலும் மாணவர்கள் தவறுகளை வெளியிட வேண்டும்!", Telugu: "మరిన్ని విద్యార్థులు తప్పులు ప్రచురించాలి!", Kannada: "ಹೆಚ್ಚು ವಿದ್ಯಾರ್ಥಿಗಳು ತಪ್ಪುಗಳನ್ನು ಪ್ರಕಟಿಸಬೇಕು!", Bengali: "আরও ছাত্রদের ভুল প্রকাশ করতে হবে!",
+    Punjabi: "ਹੋਰ ਵਿਦਿਆਰਥੀਆਂ ਨੂੰ ਆਪਣੀਆਂ ਗਲਤੀਆਂ ਪ੍ਰਕਾਸ਼ਿਤ ਕਰਨੀਆਂ ਚਾਹੀਦੀਆਂ ਹਨ!", Odia: "ଅଧିକ ଛାତ୍ରଙ୍କୁ ନିଜର ଭୁଲ ପ୍ରକାଶ କରିବା ଦରକାର!", Urdu: "مزید طلباء کو اپنی غلطیاں شائع کرنی چاہئیں!",
+  },
+  byAuthor: {
+    English: "by", Hindi: "द्वारा", Gujarati: "દ્વારા", Marathi: "द्वारे",
+    Tamil: "எழுதியவர்", Telugu: "ద్వారా", Kannada: "ಮೂಲಕ", Bengali: "দ্বারা",
+    Punjabi: "ਦੁਆਰਾ", Odia: "ଦ୍ୱାରା", Urdu: "از",
+  },
+  deleteConfirm: {
+    English: "Delete this mistake card?", Hindi: "यह भूल कार्ड हटाएं?", Gujarati: "આ ભૂલ કાર્ડ કાઢી નાખશો?", Marathi: "हे भूल कार्ड हटवायचे?",
+    Tamil: "இந்த தவறு அட்டையை நீக்கவா?", Telugu: "ఈ తప్పు కార్డ్ తొలగించాలా?", Kannada: "ಈ ತಪ್ಪು ಕಾರ್ಡ್ ಅಳಿಸಬೇಕೇ?", Bengali: "এই ভুল কার্ড মুছবেন?",
+    Punjabi: "ਇਹ ভুল ਕਾਰਡ ਮਿਟਾਉਣਾ ਹੈ?", Odia: "ଏହି ভুল କାର୍ଡ ବିଲୋପ କରିବ?", Urdu: "یہ غلطی کارڈ حذف کریں؟",
+  },
+  emojiSame: {
+    English: "😅 Same!", Hindi: "😅 मैं भी!", Gujarati: "😅 હું પણ!", Marathi: "😅 मी पण!",
+    Tamil: "😅 நானும்!", Telugu: "😅 నేను కూడా!", Kannada: "😅 ನಾನೂ!", Bengali: "😅 আমিও!",
+    Punjabi: "😅 ਮੈਂ ਵੀ!", Odia: "😅 ମୁଁ ମଧ୍ୟ!", Urdu: "😅 میں بھی!",
+  },
+  emojiClever: {
+    English: "🧠 Clever", Hindi: "🧠 चालाक", Gujarati: "🧠 ચતુર", Marathi: "🧠 हुशार",
+    Tamil: "🧠 புத்திசாலி", Telugu: "🧠 తెలివైన", Kannada: "🧠 ಜಾಣ", Bengali: "🧠 চতুর",
+    Punjabi: "🧠 ਚਲਾਕ", Odia: "🧠 ଚତୁର", Urdu: "🧠 ہوشیار",
+  },
+  emojiTricky: {
+    English: "🤔 Tricky", Hindi: "🤔 मुश्किल", Gujarati: "🤔 મુશ્કેલ", Marathi: "🤔 अवघड",
+    Tamil: "🤔 தந்திரமான", Telugu: "🤔 ట్రికీ", Kannada: "🤔 ಕಷ್ಟಕರ", Bengali: "🤔 জটিল",
+    Punjabi: "🤔 ਔਖਾ", Odia: "🤔 କଠିନ", Urdu: "🤔 مشکل",
+  },
+  emojiLol: {
+    English: "😂 Lol", Hindi: "😂 हाहा", Gujarati: "😂 હાહા", Marathi: "😂 हाहा",
+    Tamil: "😂 ஹாஹா", Telugu: "😂 హాహా", Kannada: "😂 ಹಾಹಾ", Bengali: "😂 হাহা",
+    Punjabi: "😂 ਹਾਹਾ", Odia: "😂 ହାହା", Urdu: "😂 ہاہا",
+  },
+  savedCount: {
+    English: "saved", Hindi: "सेव किया", Gujarati: "સાચવ્યું", Marathi: "जतन केले",
+    Tamil: "சேமிக்கப்பட்டது", Telugu: "సేవ్ చేయబడింది", Kannada: "ಉಳಿಸಲಾಗಿದೆ", Bengali: "সংরক্ষিত",
+    Punjabi: "ਸੇਵ ਕੀਤਾ", Odia: "ସେଭ ହେଲା", Urdu: "محفوظ",
+  },
+  aiExplainFailed: {
+    English: "AI explanation failed. Write it yourself!", Hindi: "AI व्याख्या विफल रही। खुद लिखें!", Gujarati: "AI સમજૂતી નિષ્ફળ. જાતે લખો!", Marathi: "AI स्पष्टीकरण अयशस्वी. स्वतः लिहा!",
+    Tamil: "AI விளக்கம் தோல்வி. நீங்களே எழுதுங்கள்!", Telugu: "AI వివరణ విఫలమైంది. మీరే రాయండి!", Kannada: "AI ವಿವರಣೆ ವಿಫಲ. ನೀವೇ ಬರೆಯಿರಿ!", Bengali: "AI ব্যাখ্যা ব্যর্থ। নিজে লিখুন!",
+    Punjabi: "AI ਵਿਆਖਿਆ ਅਸਫਲ। ਆਪ ਲਿਖੋ!", Odia: "AI ବ୍ୟାଖ୍ୟା ବିଫଳ। ନିଜେ ଲେଖ!", Urdu: "AI وضاحت ناکام۔ خود لکھیں!",
+  },
+  bhoolCoins: {
+    English: "🪙 5 Mistake Coins!", Hindi: "🪙 5 भूल सिक्के!", Gujarati: "🪙 5 ભૂલ સિક્કા!", Marathi: "🪙 5 भूल नाणी!",
+    Tamil: "🪙 5 தவறு நாணயங்கள்!", Telugu: "🪙 5 తప్పు నాణేలు!", Kannada: "🪙 5 ತಪ್ಪು ನಾಣ್ಯಗಳು!", Bengali: "🪙 5 ভুল কয়েন!",
+    Punjabi: "🪙 5 ভুল ਸਿੱਕੇ!", Odia: "🪙 5 ଭୁଲ ମୁଦ୍ରା!", Urdu: "🪙 5 غلطی سکے!",
   },
 }

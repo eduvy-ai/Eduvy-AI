@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { BOARDS, LANGS, SUBS } from '../shared.js'
 import { getDeviceId, apiCreateProfile, apiApplyReferralCode } from '../api.js'
 import { li } from '../i18n/index.js'
+import { HandWaving, CheckCircle, Books, Confetti, GraduationCap, ClipboardText, Globe, House, BookOpen, Robot, PlayCircle, Microphone, Target, PencilLine, Flower, Check } from '@phosphor-icons/react'
 
 const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
 
@@ -151,7 +152,7 @@ export default function Onboard({ onComplete }) {
   const ui = li(language)
 
   return (
-    <div className="w-full max-w-[480px] min-h-screen bg-app-bg flex flex-col">
+    <div className="w-full max-w-[480px] mx-auto min-h-screen bg-app-bg flex flex-col">
       {/* Progress bar */}
       <div className="h-[3px] bg-white/10 w-full">
         <div 
@@ -180,8 +181,8 @@ export default function Onboard({ onComplete }) {
         {step === 1 && (
           <div className="flex flex-col gap-4">
             <div>
-              <h2 className="text-[22px] font-extrabold text-app-text mb-1">
-                {ui.welcome} 👋
+              <h2 className="text-[22px] font-extrabold text-app-text mb-1 flex items-center gap-2">
+                {ui.welcome} <HandWaving size={22} weight="fill" className="text-app-yellow" />
               </h2>
               <p className="text-sm text-app-muted">{ui.setupProfile}</p>
             </div>
@@ -241,8 +242,8 @@ export default function Onboard({ onComplete }) {
                 <select className={selectClass} value={language} onChange={e => setLang(e.target.value)}>
                   {mediumList.map(l => <option key={l} value={l}>{l}</option>)}
                 </select>
-                <div className="mt-2 py-2 px-3 bg-app-green/15 border border-app-green/30 rounded-lg text-xs text-app-green">
-                  ✓ {ui.aiInLanguage.replace('{language}', language)}
+                <div className="mt-2 py-2 px-3 bg-app-green/15 border border-app-green/30 rounded-lg text-xs text-app-green flex items-center gap-1.5">
+                  <CheckCircle size={13} weight="fill" /> {ui.aiInLanguage.replace('{language}', language)}
                 </div>
               </div>
             </div>
@@ -257,8 +258,8 @@ export default function Onboard({ onComplete }) {
         {step === 2 && (
           <div className="flex flex-col gap-4">
             <div>
-              <h2 className="text-[22px] font-extrabold text-app-text mb-1">
-                {ui.pickSubjects} 📚
+              <h2 className="text-[22px] font-extrabold text-app-text mb-1 flex items-center gap-2">
+                {ui.pickSubjects} <Books size={22} weight="duotone" className="text-app-blue" />
               </h2>
               <p className="text-sm text-app-muted">
                 {standard} • {board} • {language}
@@ -267,9 +268,9 @@ export default function Onboard({ onComplete }) {
 
             <button
               onClick={selectAll}
-              className="bg-transparent border border-app-green rounded-xl py-2 px-3.5 text-app-green text-sm font-bold cursor-pointer w-fit"
+              className="bg-transparent border border-app-green rounded-xl py-2 px-3.5 text-app-green text-sm font-bold cursor-pointer w-fit flex items-center gap-1.5"
             >
-              ✓ {ui.selectAll}
+              <Check size={14} weight="bold" /> {ui.selectAll}
             </button>
 
             {loadingSubs ? (
@@ -288,7 +289,7 @@ export default function Onboard({ onComplete }) {
                           : 'bg-app-card border-[1.5px] border-app-border text-app-text font-medium'
                       }`}
                     >
-                      {selected ? "✓ " : ""}{s}
+                      {selected ? <><Check size={12} weight="bold" className="inline" /> </> : ""}{s}
                     </button>
                   )
                 })}
@@ -310,8 +311,8 @@ export default function Onboard({ onComplete }) {
         {step === 3 && (
           <div className="flex flex-col gap-5">
             <div>
-              <h2 className="text-[22px] font-extrabold text-app-text mb-1">
-                {ui.allSet.replace('{name}', name)} 🎉
+              <h2 className="text-[22px] font-extrabold text-app-text mb-1 flex items-center gap-2">
+                {ui.allSet.replace('{name}', name)} <Confetti size={22} weight="fill" className="text-app-yellow" />
               </h2>
               <p className="text-sm text-app-muted">{ui.tutorReady}</p>
             </div>
@@ -319,13 +320,13 @@ export default function Onboard({ onComplete }) {
             {/* Profile Summary */}
             <div className="bg-app-card border border-app-border rounded-xl p-4 flex flex-col gap-2.5">
               {[
-                ["🎓", ui.classLabel, standard],
-                ["📋", ui.boardLabel, board],
-                ["🌐", ui.languageLabel, language],
-                ["📚", ui.subjectsLabel, (subjects.length ? subjects : subjectList).join(", ")],
-              ].map(([icon, label, value]) => (
+                [GraduationCap, ui.classLabel, standard],
+                [ClipboardText, ui.boardLabel, board],
+                [Globe, ui.languageLabel, language],
+                [Books, ui.subjectsLabel, (subjects.length ? subjects : subjectList).join(", ")],
+              ].map(([Icon, label, value]) => (
                 <div key={label} className="flex gap-2.5 items-start">
-                  <span>{icon}</span>
+                  <Icon size={16} weight="duotone" className="text-app-green mt-0.5" />
                   <div>
                     <div className="text-[11px] text-app-muted font-semibold">{label}</div>
                     <div className="text-sm text-app-text font-medium">{value}</div>
@@ -338,16 +339,16 @@ export default function Onboard({ onComplete }) {
             <div className="flex flex-col gap-2">
               <p className="text-xs text-app-muted font-semibold">{ui.whatsAvailable}</p>
               {[
-                `🏠 ${ui.featureDailyBrief}`,
-                `📖 ${ui.featureAiNotes}`,
-                `🤖 ${ui.featureTutor}`,
-                `🎬 ${ui.featureVideos}`,
-                `🎤 ${ui.featurePodcast}`,
-                `🎯 ${ui.featureQuiz}`,
-                `✍️ ${ui.featureEssay}`,
-                `🧘 ${ui.featureWellness}`,
-              ].map(f => (
-                <div key={f} className="text-sm text-app-text flex items-center gap-1.5">{f}</div>
+                [House, ui.featureDailyBrief],
+                [BookOpen, ui.featureAiNotes],
+                [Robot, ui.featureTutor],
+                [PlayCircle, ui.featureVideos],
+                [Microphone, ui.featurePodcast],
+                [Target, ui.featureQuiz],
+                [PencilLine, ui.featureEssay],
+                [Flower, ui.featureWellness],
+              ].map(([Icon, label]) => (
+                <div key={label} className="text-sm text-app-text flex items-center gap-2"><Icon size={15} weight="duotone" className="text-app-green" /> {label}</div>
               ))}
             </div>
 

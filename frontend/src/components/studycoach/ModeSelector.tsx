@@ -36,7 +36,7 @@ export default function ModeSelector({ currentMode, onModeChange, ui }: ModeSele
             key={mode}
             onClick={() => onModeChange(mode)}
             className={`
-              px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
+              px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-medium transition-all duration-200
               flex items-center gap-2
               ${isActive
                 ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25'

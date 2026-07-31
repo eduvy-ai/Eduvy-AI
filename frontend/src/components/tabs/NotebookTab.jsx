@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { COLORS, callAI, parseAIArray, parseAIObject, SUBS, checkStudentQuery, validateSourceContent, checkContentRelevance, generateSmartSummary } from '../../shared.js'
+import { COLORS, callAI, parseAIArray, parseAIObject, SUBS, checkStudentQuery, validateSourceContent, checkContentRelevance, generateSmartSummary, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
+import { Microphone, Books, ClipboardText, Question, CalendarBlank, MapTrifold, Target, Cards, Warning } from '@phosphor-icons/react'
 import {
   apiGetSources, apiSaveSource, apiDeleteSource,
   apiGetNotebookChat, apiSaveChatMessage, apiClearNotebookChat,
@@ -13,15 +14,26 @@ const MAX_SOURCES = 15
 const MAX_VIOLATIONS = 5
 
 // ─── Studio output types (labels resolved via i18n inside component) ──
+const STUDIO_ICONS = {
+  podcast: Microphone,
+  guide: Books,
+  brief: ClipboardText,
+  faq: Question,
+  timeline: CalendarBlank,
+  mindmap: MapTrifold,
+  quiz: Target,
+  flashcards: Cards,
+}
+
 const STUDIO_ITEMS = [
-  { key: "podcast",   icon: "🎙️", labelKey: "studioAudioOverview",  descKey: "studioAudioOverviewDesc",  color: "#FFD166" },
-  { key: "guide",     icon: "📚", labelKey: "studioStudyGuide",     descKey: "studioStudyGuideDesc",     color: "#00E5A0" },
-  { key: "brief",     icon: "📋", labelKey: "studioBriefingDoc",    descKey: "studioBriefingDocDesc",    color: "#7B9CFF" },
-  { key: "faq",       icon: "❓", labelKey: "studioFaq",            descKey: "studioFaqDesc",            color: "#FF6B35" },
-  { key: "timeline",  icon: "📅", labelKey: "studioTimeline",       descKey: "studioTimelineDesc",       color: "#FF6B6B" },
-  { key: "mindmap",   icon: "🗺️", labelKey: "studioMindMap",        descKey: "studioMindMapDesc",        color: "#7B9CFF" },
-  { key: "quiz",      icon: "🎯", labelKey: "studioPracticeQuiz",   descKey: "studioPracticeQuizDesc",   color: "#00E5A0" },
-  { key: "flashcards",icon: "🃏", labelKey: "studioFlashcards",     descKey: "studioFlashcardsDesc",     color: "#FFD166" },
+  { key: "podcast",   labelKey: "studioAudioOverview",  descKey: "studioAudioOverviewDesc",  color: "#FFD166" },
+  { key: "guide",     labelKey: "studioStudyGuide",     descKey: "studioStudyGuideDesc",     color: "#00E5A0" },
+  { key: "brief",     labelKey: "studioBriefingDoc",    descKey: "studioBriefingDocDesc",    color: "#7B9CFF" },
+  { key: "faq",       labelKey: "studioFaq",            descKey: "studioFaqDesc",            color: "#FF6B35" },
+  { key: "timeline",  labelKey: "studioTimeline",       descKey: "studioTimelineDesc",       color: "#FF6B6B" },
+  { key: "mindmap",   labelKey: "studioMindMap",        descKey: "studioMindMapDesc",        color: "#7B9CFF" },
+  { key: "quiz",      labelKey: "studioPracticeQuiz",   descKey: "studioPracticeQuizDesc",   color: "#00E5A0" },
+  { key: "flashcards",labelKey: "studioFlashcards",     descKey: "studioFlashcardsDesc",     color: "#FFD166" },
 ]
 
 let _sourceIdCounter = 1
@@ -94,7 +106,7 @@ async function extractPdfText(file) {
 export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx, docName, setDocName }) {
 
   const lang = profile?.language || 'English'
-  const ui = li(lang)
+  const ui = li(getDisplayLang(profile))
 
   // ── View state ──────────────────────────────────────────────
   const [view, setView]       = useState("sources") // sources | chat | studio
@@ -782,7 +794,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
     <div className="flex flex-col h-full min-h-0">
 
       {/* ── Top sub-nav ── */}
-      <div className="flex bg-app-card border-b border-app-border py-2 px-3 md:px-5 pb-0 gap-1 shrink-0">
+      <div className="flex bg-app-card border-b border-app-border py-2 px-3 md:px-5 pb-0 gap-1 shrink-0 overflow-x-auto min-h-[40px]">
         {[
           { key: "sources", icon: "📚", label: `${ui.sourcesTab} (${sources.length})` },
           { key: "chat",    icon: "💬", label: ui.chatTab    },
@@ -791,7 +803,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
           <button
             key={t.key}
             onClick={() => setView(t.key)}
-            className={`bg-transparent border-none py-1.5 px-3.5 pb-2 text-[13px] cursor-pointer font-[Sora,sans-serif] shrink-0 border-b-2 ${
+            className={`bg-transparent border-none py-2.5 px-3.5 pb-2.5 text-[13px] cursor-pointer font-[Sora,sans-serif] shrink-0 border-b-2 ${
               view === t.key
                 ? 'border-app-green font-bold text-app-green'
                 : 'border-transparent font-medium text-app-muted'
@@ -803,7 +815,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
       </div>
 
       {/* ── Content area ── */}
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <div className={`flex-1 min-h-0 ${view === 'chat' || view === 'studio' ? 'flex flex-col' : 'overflow-y-auto pb-4'}`}>
 
         {/* ════ SOURCES VIEW ════ */}
         {view === "sources" && (
@@ -926,12 +938,58 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
 
                 {/* File tab */}
                 {addTab === "file" && (
-                  <label className="block bg-app-green/5 border-2 border-dashed border-app-green/40 rounded-xl py-6 px-4 text-center cursor-pointer">
-                    <div className="text-3xl mb-1.5">📂</div>
-                    <div className="text-[13px] text-app-green font-bold">{ui.tapToUpload}</div>
-                    <div className="text-[11px] text-app-muted mt-1">.txt .md .pdf .doc .docx .jpg .png</div>
-                    <input type="file" accept=".txt,.md,.pdf,.doc,.docx,.jpg,.jpeg,.png" className="hidden" onChange={handleFile} />
-                  </label>
+                  <div className="flex flex-col gap-2.5">
+                    <label className="block bg-app-green/5 border-2 border-dashed border-app-green/40 rounded-xl py-6 px-4 text-center cursor-pointer">
+                      <div className="text-3xl mb-1.5">📂</div>
+                      <div className="text-[13px] text-app-green font-bold">{ui.tapToUpload}</div>
+                      <div className="text-[11px] text-app-muted mt-1">.txt .md .pdf .doc .docx .jpg .png</div>
+                      <input type="file" accept=".txt,.md,.pdf,.doc,.docx,.jpg,.jpeg,.png" className="hidden" onChange={handleFile} />
+                    </label>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const { Capacitor } = await import('@capacitor/core')
+                          if (Capacitor.isNativePlatform()) {
+                            const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera')
+                            const photo = await Camera.getPhoto({
+                              resultType: CameraResultType.Base64,
+                              source: CameraSource.Camera,
+                              quality: 85,
+                            })
+                            if (photo.base64String) {
+                              setValidating(true)
+                              const mimeType = `image/${photo.format || 'jpeg'}`
+                              const visionResult = await apiExtractImageContent(photo.base64String, mimeType, '', lang)
+                              if (visionResult.content?.startsWith('⚠️') || !visionResult.is_educational) {
+                                setValidationError(ui.cantReadImage || 'Could not read this image')
+                                setValidating(false)
+                                return
+                              }
+                              const src = { id: newId(), name: `Photo_${Date.now()}.${photo.format || 'jpg'}`, type: 'file', content: visionResult.content || '', summary: visionResult.summary || '', icon: '🖼️', addedAt: Date.now() }
+                              setSources(p => [...p, src])
+                              apiSaveSource(userId, src).catch(() => {})
+                              setAddOpen(false)
+                              setValidating(false)
+                            }
+                          } else {
+                            // Web fallback: trigger file input with camera capture
+                            const input = document.createElement('input')
+                            input.type = 'file'
+                            input.accept = 'image/*'
+                            input.capture = 'environment'
+                            input.onchange = (e) => handleFile(e)
+                            input.click()
+                          }
+                        } catch (err) {
+                          setValidationError('Camera not available. Please use the file upload instead.')
+                          setValidating(false)
+                        }
+                      }}
+                      className="w-full bg-app-blue/10 border border-app-blue/30 text-app-blue text-[13px] font-bold rounded-xl py-3 cursor-pointer hover:bg-app-blue/20 transition-colors"
+                    >
+                      📷 Take Photo
+                    </button>
+                  </div>
                 )}
 
                 {/* Text tab */}
@@ -977,7 +1035,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
 
         {/* ════ CHAT VIEW ════ */}
         {view === "chat" && (
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col flex-1 min-h-0">
             {/* Loading state */}
             {!sourcesLoaded ? (
               <div className="flex-1 flex flex-col items-center justify-center">
@@ -1059,7 +1117,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
               </div>
             </div>
 
-            <div className="py-2.5 px-3.5 bg-app-card border-t border-app-border flex gap-2 shrink-0">
+            <div className="py-2.5 px-3.5 pb-2 bg-app-card border-t border-app-border flex gap-2 shrink-0">
               <input
                 className="tutor-input flex-1 py-2.5 px-3.5"
                 type="text"
@@ -1071,6 +1129,16 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                 onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && sendChat()}
               />
+              <button
+                onClick={async () => {
+                  try {
+                    const { startVoiceInput, LANG_TO_SPEECH_CODE } = await import('../../shared.js')
+                    const text = await startVoiceInput(LANG_TO_SPEECH_CODE[profile?.language] || 'en-IN')
+                    if (text) setChatInput(prev => prev ? prev + ' ' + text : text)
+                  } catch {}
+                }}
+                className="mic-btn shrink-0"
+              ><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="1" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
               <button
                 onClick={sendChat}
                 disabled={chatLoading || !chatInput.trim()}
@@ -1086,7 +1154,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
 
         {/* ════ STUDIO VIEW ════ */}
         {view === "studio" && (
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col flex-1 min-h-0">
 
             {/* Loading sources */}
             {!sourcesLoaded ? (
@@ -1146,7 +1214,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                 <div className="flex-1 overflow-y-auto p-3.5">
                 {/* ── Output type grid (shown when no active type) ── */}
                 {!studioType && (
-                  <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3.5">
                     {STUDIO_ITEMS.map(item => (
                       <button
                         key={item.key}
@@ -1155,10 +1223,10 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                         style={{ borderTop: `3px solid ${item.color}` }}
                       >
                         <div 
-                          className="w-9 h-9 rounded-[10px] flex items-center justify-center text-lg mb-2"
+                          className="w-9 h-9 rounded-[10px] flex items-center justify-center mb-2"
                           style={{ background: `${item.color}20`, border: `1px solid ${item.color}40` }}
                         >
-                          {item.icon}
+                          {(() => { const Icon = STUDIO_ICONS[item.key]; return Icon ? <Icon size={18} weight="duotone" color={item.color} /> : null })()}
                         </div>
                         <div className="text-[13px] font-bold text-app-text mb-0.5">{ui[item.labelKey]}</div>
                         <div className="text-[11px] text-app-muted">{ui[item.descKey]}</div>

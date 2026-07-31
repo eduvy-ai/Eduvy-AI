@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { callAI, checkStudentQuery } from '../../shared.js'
+import { callAI, checkStudentQuery, startVoiceInput, LANG_TO_SPEECH_CODE } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import { getStarters, getDisplayLang } from '../../shared.js'
 import { getDeviceId, apiGetSession, apiSaveToSession } from '../../api.js'
@@ -66,7 +66,7 @@ export default function MentalLab({ profile, addXp, onBack }) {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-130px)]">
+    <div className="flex flex-col h-full flex-1 min-h-0">
       {/* Header */}
       <div className="bg-app-card border-b border-app-border px-4 py-3 flex items-center gap-2.5 shrink-0">
         <button onClick={onBack} className="bg-transparent border-none text-app-muted text-[13px] cursor-pointer p-0">← Back</button>
@@ -77,7 +77,7 @@ export default function MentalLab({ profile, addXp, onBack }) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3.5">
+      <div className="flex-1 overflow-y-auto p-3.5 pb-4">
         {messages.length === 1 && (
           <div className="mb-3.5">
             <div className="text-xs text-app-muted mb-2">Or share what's on your mind:</div>
@@ -114,7 +114,7 @@ export default function MentalLab({ profile, addXp, onBack }) {
       </div>
 
       {/* Input */}
-      <div className="px-3.5 py-2.5 bg-app-card border-t border-app-border flex gap-2 shrink-0">
+      <div className="px-3.5 py-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-app-card border-t border-app-border flex gap-2 shrink-0">
         <input
           className="flex-1 bg-app-card2 border border-white/[0.08] rounded-xl py-2.5 px-3.5 text-app-text text-[13px] outline-none"
           type="text"
@@ -123,6 +123,16 @@ export default function MentalLab({ profile, addXp, onBack }) {
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === "Enter" && sendMessage()}
         />
+        <button
+          onClick={async () => {
+            try {
+              const text = await startVoiceInput(LANG_TO_SPEECH_CODE[profile?.language] || 'en-IN')
+              if (text) setInput(prev => prev ? prev + ' ' + text : text)
+            } catch {}
+          }}
+          className="mic-btn shrink-0"
+          title="Voice input"
+        ><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="1" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
         <button
           onClick={() => sendMessage()}
           disabled={loading || !input.trim()}

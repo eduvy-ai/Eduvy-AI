@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { callAI, parseAIObject, updateBhool } from '../../shared.js'
+import { callAI, parseAIObject, updateBhool, getDisplayLang } from '../../shared.js'
+import { li } from '../../i18n/index.js'
 
 // ── Feynman Score ring
 function ScoreRing({ label, value, color }) {
@@ -22,6 +23,7 @@ function ScoreRing({ label, value, color }) {
 }
 
 export default function SamjhaoLab({ profile, addXp, onBack }) {
+  const ui = li(getDisplayLang(profile))
   const [phase, setPhase]       = useState("setup")
   const [concept, setConcept]   = useState("")
   const [subject, setSubject]   = useState("")
@@ -32,7 +34,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
 
   const scoreExplanation = async () => {
     if (explanation.trim().split(/\s+/).length < 10) {
-      setErr("Please write at least 10 words — explain it as if teaching someone!")
+      setErr(ui.writeAtLeast10Words)
       return
     }
     setErr("")
@@ -49,7 +51,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
       if (subject) updateBhool(subject, concept, correct)
       addXp(Math.round((parsed.overall || 0) / 10) + 2)
     } else {
-      setErr("Could not score your explanation. Please try again.")
+      setErr(ui.couldNotScore)
     }
     setLoading(false)
   }
@@ -66,17 +68,17 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
   }
 
   if (phase === "setup") return (
-    <div className="flex flex-col min-h-[calc(100vh-130px)]">
+    <div className="flex flex-col h-full min-h-0">
       <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
-        <button onClick={onBack} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Back</button>
+        <button onClick={onBack} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">{ui.backBtn}</button>
         <div>
-          <div className="font-extrabold text-base text-app-text">🧪 Samjhao Mode</div>
-          <div className="text-[11px] text-app-muted">Feynman Technique Score</div>
+          <div className="font-extrabold text-base text-app-text">{ui.explainMode}</div>
+          <div className="text-[11px] text-app-muted">{ui.feynmanScore}</div>
         </div>
       </div>
-      <div className="p-4 flex-1">
+      <div className="p-4 pb-6 flex-1 overflow-y-auto">
         <div className="bg-app-blue/[0.05] border border-app-blue/20 rounded-2xl p-4 mb-5">
-          <div className="text-sm font-extrabold text-app-blue mb-2">The Feynman Technique</div>
+          <div className="text-sm font-extrabold text-app-blue mb-2">{ui.feynmanTitle}</div>
           <div className="text-[13px] text-app-text leading-[1.7]">
             Nobel Prize physicist Richard Feynman's learning rule:{" "}
             <strong>"If you can't explain it simply, you don't understand it."</strong>
@@ -86,7 +88,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
           </div>
         </div>
         <div className="mb-4">
-          <div className="text-[13px] font-bold text-app-muted mb-2 uppercase tracking-wide">What concept will you explain?</div>
+          <div className="text-[13px] font-bold text-app-muted mb-2 uppercase tracking-wide">{ui.whatConceptExplain}</div>
           <input
             value={concept}
             onChange={e => setConcept(e.target.value)}
@@ -95,7 +97,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
           />
         </div>
         <div className="mb-5">
-          <div className="text-[13px] font-bold text-app-muted mb-2 uppercase tracking-wide">Subject (optional — for memory tracking)</div>
+          <div className="text-[13px] font-bold text-app-muted mb-2 uppercase tracking-wide">{ui.subjectOptional}</div>
           <input
             value={subject}
             onChange={e => setSubject(e.target.value)}
@@ -104,7 +106,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
           />
         </div>
         <div className="mb-5">
-          <div className="text-xs text-app-muted mb-2">Try one of these:</div>
+          <div className="text-xs text-app-muted mb-2">{ui.tryOneOfThese}</div>
           <div className="flex flex-wrap gap-1.5">
             {["Photosynthesis", "Newton's Laws", "Democracy", "Osmosis", "Compound Interest", "French Revolution"].map(c => (
               <button key={c} onClick={() => setConcept(c)}
@@ -117,22 +119,22 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
         {err && <div className="text-app-red text-[13px] mb-2.5">{err}</div>}
         <button onClick={goExplain}
           className="w-full bg-gradient-to-r from-app-blue to-[#5a82ff] text-white text-[15px] font-bold rounded-2xl py-3.5 cursor-pointer active:scale-[0.99] transition-all">
-          🎤 Start Explaining
+          {ui.startExplaining}
         </button>
       </div>
     </div>
   )
 
   if (phase === "explain") return (
-    <div className="flex flex-col min-h-[calc(100vh-130px)]">
+    <div className="flex flex-col h-full min-h-0">
       <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
-        <button onClick={reset} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Back</button>
+        <button onClick={reset} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">{ui.backBtn}</button>
         <div>
-          <div className="font-extrabold text-base text-app-text">🧪 Samjhao Mode</div>
+          <div className="font-extrabold text-base text-app-text">{ui.explainMode}</div>
           <div className="text-[11px] text-app-muted">{concept}</div>
         </div>
       </div>
-      <div className="p-4 flex-1">
+      <div className="p-4 pb-6 flex-1 overflow-y-auto">
         <div className="bg-app-blue/[0.05] border border-app-blue/25 rounded-2xl p-4 mb-4">
           <div className="text-sm font-bold text-app-blue mb-1.5">
             📢 Explain: <span className="text-app-text">{concept}</span>
@@ -151,12 +153,12 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
           className="w-full bg-app-card2 border border-app-border rounded-2xl p-3.5 text-sm text-app-text outline-none resize-y leading-[1.7] box-border focus:border-app-blue/40 transition-colors placeholder:text-app-muted"
         />
         <div className="text-[11px] text-app-muted text-right mb-3.5">
-          {explanation.trim().split(/\s+/).filter(Boolean).length} words
+          {explanation.trim().split(/\s+/).filter(Boolean).length} {ui.words}
         </div>
         {err && <div className="text-app-red text-[13px] mb-2.5">{err}</div>}
         <button onClick={scoreExplanation} disabled={loading}
           className="w-full bg-gradient-to-r from-app-blue to-[#5a82ff] text-white text-[15px] font-bold rounded-2xl py-3.5 cursor-pointer disabled:opacity-50 active:scale-[0.99] transition-all">
-          {loading ? "⏳ Scoring your understanding…" : "🔬 Get My Feynman Score"}
+          {loading ? ui.scoringUnderstanding : ui.getFeynmanScore}
         </button>
       </div>
     </div>
@@ -166,33 +168,33 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
     const overall = score?.overall ?? 0
     const overallColor = overall >= 75 ? "#00E5A0" : overall >= 50 ? "#FFD166" : "#FF6B6B"
     return (
-      <div className="flex flex-col min-h-[calc(100vh-130px)]">
+      <div className="flex flex-col h-full min-h-0">
         <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
-          <button onClick={reset} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Try Again</button>
-          <div className="font-extrabold text-base text-app-text">🔬 Feynman Score</div>
+          <button onClick={reset} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">{ui.tryAgainBtn}</button>
+          <div className="font-extrabold text-base text-app-text">{ui.feynmanScoreTitle}</div>
         </div>
-        <div className="p-4 flex-1 overflow-y-auto">
+        <div className="p-4 pb-6 flex-1 overflow-y-auto">
           <div className="text-center py-5">
             <div className="inline-flex flex-col items-center rounded-3xl px-7 py-4 border-2"
               style={{ background: `${overallColor}12`, borderColor: `${overallColor}50` }}>
-              <div className="text-[11px] text-app-muted mb-1 uppercase tracking-wide">Understanding Score</div>
+              <div className="text-[11px] text-app-muted mb-1 uppercase tracking-wide">{ui.understandingScore}</div>
               <div className="text-[44px] font-black leading-none" style={{ color: overallColor }}>{overall}%</div>
               <div className="text-[13px] font-bold mt-1" style={{ color: overallColor }}>
-                {overall >= 75 ? "✅ You've got it!" : overall >= 50 ? "⚠️ Almost there" : "📚 Keep studying"}
+                {overall >= 75 ? ui.youGotIt : overall >= 50 ? ui.almostThere : ui.keepStudying}
               </div>
             </div>
           </div>
           <div className="bg-app-card border border-app-border rounded-2xl p-4 mb-3.5">
-            <div className="text-[13px] font-extrabold text-app-text mb-3.5">Dimension Scores</div>
+            <div className="text-[13px] font-extrabold text-app-text mb-3.5">{ui.dimensionScores}</div>
             <div className="flex justify-around">
-              <ScoreRing label="Accuracy"     value={score?.accuracy     ?? 0} color="'#00E5A0'" />
-              <ScoreRing label="Completeness" value={score?.completeness ?? 0} color="'#7B9CFF'" />
-              <ScoreRing label="Simplicity"   value={score?.simplicity   ?? 0} color="'#FFD166'" />
+              <ScoreRing label={ui.accuracy}     value={score?.accuracy     ?? 0} color="#00E5A0" />
+              <ScoreRing label={ui.completeness} value={score?.completeness ?? 0} color="#7B9CFF" />
+              <ScoreRing label={ui.simplicity}   value={score?.simplicity   ?? 0} color="#FFD166" />
             </div>
           </div>
           {(score?.correct || []).length > 0 && (
             <div className="bg-app-green/[0.05] border border-app-green/20 rounded-2xl p-4 mb-3.5">
-              <div className="text-[13px] font-extrabold text-app-green mb-2">✅ What you got right</div>
+              <div className="text-[13px] font-extrabold text-app-green mb-2">{ui.whatYouGotRight}</div>
               {score.correct.map((p, i) => (
                 <div key={i} className="flex gap-2 mb-1.5 items-start">
                   <span className="text-app-green text-[13px] mt-0.5">•</span>
@@ -229,7 +231,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
               <div className="text-[13px] text-app-text leading-relaxed">{score.gapLesson}</div>
             </div>
           )}
-          <div className="flex gap-3 mt-2">
+          <div className="flex flex-col sm:flex-row gap-3 mt-2">
             <button onClick={reset}
               className="flex-1 bg-transparent border border-app-border text-app-text text-[13px] font-semibold rounded-xl py-3 cursor-pointer hover:bg-white/[0.03] active:scale-[0.99] transition-all">
               🔄 Try Again

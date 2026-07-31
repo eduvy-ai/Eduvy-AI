@@ -6,6 +6,7 @@
 // Import i18n UI_STRINGS (comprehensive translations)
 import { UI_STRINGS as I18N_STRINGS, li as i18nLi } from './i18n/index.js'
 import { LANG_TO_SPEECH_CODE as _LANG_TO_SPEECH_CODE } from './i18n/languages.js'
+import { API_BASE_URL } from './config'
 export const UI_STRINGS = I18N_STRINGS
 export const li = i18nLi
 
@@ -47,24 +48,42 @@ export const DEFAULT_A11Y = {
 export const LANG_TO_SPEECH_CODE = _LANG_TO_SPEECH_CODE
 
 /**
- * Speaks text via browser SpeechSynthesis in the given BCP-47 lang code.
+ * Speaks text using native TTS (Capacitor) or browser SpeechSynthesis as fallback.
  * Always cancels any ongoing speech first to avoid overlap.
  * @param {string} text
  * @param {string} langCode - BCP-47 e.g. 'hi-IN' (use LANG_TO_SPEECH_CODE)
  * @param {number} speed - rate multiplier (0.5–2.0)
  */
-export function speakText(text, langCode = 'en-IN', speed = 1.0) {
-  if (!window.speechSynthesis || !text) return
-  window.speechSynthesis.cancel()
-  const utt = new SpeechSynthesisUtterance(text)
-  utt.lang  = langCode
-  utt.rate  = Math.max(0.5, Math.min(2.0, speed))
-  window.speechSynthesis.speak(utt)
+export async function speakText(text, langCode = 'en-IN', speed = 1.0) {
+  if (!text) return
+  try {
+    const { TextToSpeech } = await import('@capacitor-community/text-to-speech')
+    await TextToSpeech.stop()
+    await TextToSpeech.speak({
+      text,
+      lang: langCode,
+      rate: Math.max(0.5, Math.min(2.0, speed)),
+      volume: 1.0,
+    })
+  } catch {
+    // Fallback to Web Speech API
+    if (!window.speechSynthesis) return
+    window.speechSynthesis.cancel()
+    const utt = new SpeechSynthesisUtterance(text)
+    utt.lang = langCode
+    utt.rate = Math.max(0.5, Math.min(2.0, speed))
+    window.speechSynthesis.speak(utt)
+  }
 }
 
 /** Stop any ongoing TTS speech. */
-export function stopSpeaking() {
-  if (window.speechSynthesis) window.speechSynthesis.cancel()
+export async function stopSpeaking() {
+  try {
+    const { TextToSpeech } = await import('@capacitor-community/text-to-speech')
+    await TextToSpeech.stop()
+  } catch {
+    if (window.speechSynthesis) window.speechSynthesis.cancel()
+  }
 }
 
 /** Returns true if TTS is currently speaking. */
@@ -73,17 +92,37 @@ export function isSpeaking() {
 }
 
 /**
- * Start voice input and return a promise that resolves with the transcript string.
- * Rejects with an Error if the browser doesn't support speech recognition
- * or if the user denies microphone access.
+ * Start voice input using native speech recognition (Capacitor) or Web Speech API fallback.
+ * On Android, shows the native Google "Speak now" popup dialog.
  * @param {string} langCode - BCP-47 e.g. 'hi-IN'
  * @returns {Promise<string>}
  */
-export function startVoiceInput(langCode = 'en-IN') {
+export async function startVoiceInput(langCode = 'en-IN') {
+  try {
+    const { SpeechRecognition } = await import('@capacitor-community/speech-recognition')
+    const { available } = await SpeechRecognition.available()
+    if (available) {
+      const permStatus = await SpeechRecognition.requestPermissions()
+      if (permStatus.speechRecognition === 'denied') throw new Error('Permission denied')
+      const result = await SpeechRecognition.start({
+        language: langCode,
+        maxResults: 3,
+        popup: true,
+        partialResults: false,
+      })
+      const text = result?.matches?.[0] || ''
+      if (!text) throw new Error('No speech detected')
+      return text
+    }
+  } catch (e) {
+    if (e?.message === 'No speech detected' || e?.message === 'Permission denied') throw e
+    // Fall through to web fallback
+  }
+  // Web Speech API fallback
   return new Promise((resolve, reject) => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SR) {
-      reject(new Error('Voice input is not supported in this browser'))
+      reject(new Error('Voice input is not supported'))
       return
     }
     const rec = new SR()
@@ -104,7 +143,7 @@ export const PLANS = {
     label:          'Free',
     icon:           '🆓',
     color:          '#6868a0',
-    tabs:           ['home', 'bhool', 'muqabla'],
+    tabs:           ['home', 'mistakes', 'battles'],
     labs:           [],
     aiCallsPerDay:  10,
   },
@@ -112,7 +151,7 @@ export const PLANS = {
     label:          'Basic',
     icon:           '⭐',
     color:          '#FFD166',
-    tabs:           ['home', 'videos', 'notebook', 'bhool', 'muqabla'],
+    tabs:           ['home', 'videos', 'notebook', 'mistakes', 'battles'],
     labs:           [],
     aiCallsPerDay:  50,
   },
@@ -120,7 +159,7 @@ export const PLANS = {
     label:          'Pro',
     icon:           '🚀',
     color:          '#7B9CFF',
-    tabs:           ['home', 'videos', 'notebook', 'learntv', 'labs', 'sathi', 'bhool', 'muqabla'],
+    tabs:           ['home', 'videos', 'notebook', 'learntv', 'labs', 'squads', 'mistakes', 'battles'],
     labs:           ['quiz', 'examiner', 'samjhao'],
     aiCallsPerDay:  200,
   },
@@ -128,7 +167,7 @@ export const PLANS = {
     label:          'Premium',
     icon:           '👑',
     color:          '#00E5A0',
-    tabs:           ['home', 'videos', 'notebook', 'learntv', 'labs', 'discover', 'sathi', 'bhool', 'muqabla'],
+    tabs:           ['home', 'videos', 'notebook', 'learntv', 'labs', 'squads', 'mistakes', 'battles'],
     labs:           ['quiz', 'examiner', 'samjhao', 'podcast', 'essay', 'mental'],
     aiCallsPerDay:  Infinity,
   },
@@ -474,7 +513,7 @@ export async function callAI(prompt, systemPrompt, history = [], retries = 3, ma
 
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      const res = await fetch("/api/ai/chat", {
+      const res = await fetch(`${API_BASE_URL}/api/ai/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

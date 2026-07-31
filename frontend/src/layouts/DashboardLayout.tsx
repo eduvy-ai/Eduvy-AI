@@ -1,16 +1,48 @@
 // ─── Dashboard Layout ─────────────────────────────────────────
 // Main app shell with navigation sidebar and bottom nav
 
-import React, { useState, lazy, Suspense, useMemo } from 'react'
+import React, { useState, useEffect, lazy, Suspense, useMemo } from 'react'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { useAuth, useUser, usePlan, useXp, useStreak } from '../modules/auth/hooks'
 import { PLANS, planHasTab, type TabKey } from '../shared/constants/plans'
 import { apiUpdateProfile } from '../api.js'
 import { li, getDisplayLang } from '../shared.js'
 import { isRTL } from '../i18n/index.js'
+import {
+  House,
+  MagicWand,
+  NotePencil,
+  PlayCircle,
+  MonitorPlay,
+  UsersThree,
+  Warning,
+  Sword,
+  Flask,
+  FilmSlate,
+  GearSix,
+  SignOut,
+  Lightning,
+  Fire,
+  GraduationCap,
+} from '@phosphor-icons/react'
+import type { IconWeight } from '@phosphor-icons/react'
 
 // Lazy load SettingsModal (legacy JSX component)
 const SettingsModal = lazy(() => import('../components/SettingsModal.jsx'))
+
+// Icon mapping: tabKey -> Phosphor Icon component
+const TAB_ICONS: Record<string, React.ComponentType<any>> = {
+  home:         House,
+  coach:        MagicWand,
+  notebook:     NotePencil,
+  videos:       PlayCircle,
+  learntv:      MonitorPlay,
+  squads:       UsersThree,
+  mistakes:     Warning,
+  battles:      Sword,
+  labs:         Flask,
+  videocreator: FilmSlate,
+}
 
 // Navigation items with i18n label keys (not actual labels)
 const ALL_NAV_ITEMS: { key: TabKey; labelKey: string }[] = [
@@ -19,9 +51,9 @@ const ALL_NAV_ITEMS: { key: TabKey; labelKey: string }[] = [
   { key: 'notebook', labelKey: 'notebookTab' },
   { key: 'videos', labelKey: 'videosTab' },
   { key: 'learntv', labelKey: 'learntvTab' },
-  { key: 'sathi', labelKey: 'sathiTab' },
-  { key: 'bhool', labelKey: 'bhoolTab' },
-  { key: 'muqabla', labelKey: 'muqablaTab' },
+  { key: 'squads', labelKey: 'sathiTab' },
+  { key: 'mistakes', labelKey: 'bhoolTab' },
+  { key: 'battles', labelKey: 'muqablaTab' },
   { key: 'labs', labelKey: 'labsTab' },
   { key: 'videocreator', labelKey: 'videoCreatorTab' },
 ]
@@ -37,6 +69,22 @@ const DashboardLayout: React.FC = () => {
   const { xp } = useXp()
   const { streak } = useStreak()
   
+  // Lock body scroll when dashboard is active (prevents Android WebView viewport issues)
+  useEffect(() => {
+    const html = document.documentElement
+    const body = document.body
+    html.style.overflow = 'hidden'
+    html.style.height = '100%'
+    body.style.overflow = 'hidden'
+    body.style.height = '100%'
+    return () => {
+      html.style.overflow = ''
+      html.style.height = ''
+      body.style.overflow = ''
+      body.style.height = ''
+    }
+  }, [])
+  
   // Settings modal state
   const [showSettings, setShowSettings] = useState(false)
   
@@ -49,23 +97,26 @@ const DashboardLayout: React.FC = () => {
   const navItems = ALL_NAV_ITEMS.filter(n => planHasTab(plan, n.key))
   const planInfo = PLANS[plan] || PLANS.free
   
-  // Helper to get translated label (removes emoji for sidebar, keeps for mobile)
-  const getLabel = (labelKey: string, withIcon = false) => {
+  // Helper to get translated label (strip leading emoji from i18n strings)
+  const getLabel = (labelKey: string) => {
     const translated = ui[labelKey] || labelKey
-    if (withIcon) return translated
-    // Remove leading emoji for desktop sidebar (first 2-3 chars if emoji)
-    return translated.replace(/^[\u{1F300}-\u{1F9FF}]\s*/u, '')
+    return translated.replace(/^[\u{1F300}-\u{1F9FF}]\uFE0F?\s*/u, '').replace(/^[⚔️]\s*/u, '')
   }
   
-  // Helper to get icon from translated string
-  const getIcon = (labelKey: string) => {
-    const translated = ui[labelKey] || ''
-    const match = translated.match(/^([\u{1F300}-\u{1F9FF}])/u)
-    return match ? match[1] : '📱'
+  // Render Phosphor icon for a tab (filled when active, regular when inactive)
+  const renderIcon = (key: string, isActive: boolean, size = 22) => {
+    const IconComponent = TAB_ICONS[key]
+    if (!IconComponent) return null
+    const weight: IconWeight = isActive ? 'fill' : 'regular'
+    return <IconComponent size={size} weight={weight} />
   }
 
   const setTab = (key: TabKey) => {
     navigate(`/app/${key}`)
+    // Haptic feedback on tab switch (native only)
+    import('@capacitor/haptics').then(({ Haptics, ImpactStyle }) => {
+      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {})
+    }).catch(() => {})
   }
   
   const handleLogout = () => {
@@ -77,10 +128,10 @@ const DashboardLayout: React.FC = () => {
     if (!user?.id) return
     try {
       await apiUpdateProfile(user.id, updates)
-      // Refresh user data after update
       await refresh()
     } catch (e) {
       console.error('Failed to update profile:', e)
+      throw e
     }
   }
 
@@ -90,7 +141,7 @@ const DashboardLayout: React.FC = () => {
       <nav className="side-nav">
         {/* Logo */}
         <div className="flex items-center gap-2.5 mb-4 px-2">
-          <span className="text-[26px]">🎓</span>
+          <GraduationCap size={26} weight="duotone" className="text-app-green" />
           <span className="font-black text-lg text-app-green tracking-tight">Eduvy-AI</span>
         </div>
 
@@ -120,7 +171,7 @@ const DashboardLayout: React.FC = () => {
                   : 'bg-transparent border-transparent hover:bg-white/[0.04] hover:border-white/[0.05]'
               }`}
             >
-              <span className="text-xl w-6 text-center">{getIcon(n.labelKey)}</span>
+              <span className="w-6 flex items-center justify-center">{renderIcon(n.key, tab === n.key, 20)}</span>
               <span className={`text-sm ${tab === n.key ? 'font-bold text-app-green' : 'font-medium text-app-text'}`}>
                 {getLabel(n.labelKey)}
               </span>
@@ -131,11 +182,11 @@ const DashboardLayout: React.FC = () => {
         {/* Stats & Settings */}
         <div className="flex flex-col gap-2 mt-5">
           <div className="flex gap-1.5">
-            <div className="flex-1 bg-app-card2 rounded-[10px] py-1.5 px-2 text-xs font-bold text-app-yellow text-center border border-app-border">
-              ⚡ {xp} {ui.xpLabel || 'XP'}
+            <div className="flex-1 bg-app-card2 rounded-[10px] py-1.5 px-2 text-xs font-bold text-app-yellow text-center border border-app-border flex items-center justify-center gap-1">
+              <Lightning size={14} weight="fill" /> {xp} {ui.xpLabel || 'XP'}
             </div>
-            <div className="flex-1 bg-app-card2 rounded-[10px] py-1.5 px-2 text-xs font-bold text-app-orange text-center border border-app-border">
-              🔥 {streak}
+            <div className="flex-1 bg-app-card2 rounded-[10px] py-1.5 px-2 text-xs font-bold text-app-orange text-center border border-app-border flex items-center justify-center gap-1">
+              <Fire size={14} weight="fill" /> {streak}
             </div>
           </div>
 
@@ -156,7 +207,7 @@ const DashboardLayout: React.FC = () => {
             onClick={() => setShowSettings(true)}
             className="rounded-xl py-2.5 px-3 flex items-center gap-2 cursor-pointer font-[Sora,sans-serif] w-full border bg-app-card2 border-app-border hover:border-app-green/30 active:scale-[0.97] transition-all duration-150"
           >
-            <span className="text-base">⚙️</span>
+            <GearSix size={18} className="text-app-text" />
             <span className="text-sm font-medium text-app-text">{ui.settings || 'Settings'}</span>
           </button>
           
@@ -165,11 +216,19 @@ const DashboardLayout: React.FC = () => {
             onClick={handleLogout}
             className="rounded-xl py-2.5 px-3 flex items-center gap-2 cursor-pointer font-[Sora,sans-serif] w-full border bg-app-red/10 border-app-red/30 hover:bg-app-red/20 active:scale-[0.97] transition-all duration-150"
           >
-            <span className="text-base">🚪</span>
+            <SignOut size={18} className="text-app-red" />
             <span className="text-sm font-medium text-app-red">{ui.logout || 'Logout'}</span>
           </button>
         </div>
       </nav>
+
+      {/* ── Main Content Area ── */}
+      <main className="tab-content">
+        {/* key={tab} re-mounts div on tab change, triggering the CSS fade-slide-up animation */}
+        <div key={tab} className="tab-fade-in h-full flex flex-col min-h-0">
+          <Outlet />
+        </div>
+      </main>
 
       {/* ── Mobile Bottom Nav — horizontally scrollable, shows all tabs ── */}
       <nav className="bottom-nav">
@@ -181,7 +240,7 @@ const DashboardLayout: React.FC = () => {
               tab === n.key ? 'text-app-green nav-active' : 'text-app-muted'
             }`}
           >
-            <span className="text-[22px] leading-none">{getIcon(n.labelKey)}</span>
+            <span className="leading-none">{renderIcon(n.key, tab === n.key, 22)}</span>
             <span className={`text-[10px] leading-tight mt-0.5 max-w-[56px] text-center truncate ${tab === n.key ? 'font-bold' : 'font-medium'}`}>{getLabel(n.labelKey)}</span>
           </button>
         ))}
@@ -190,26 +249,15 @@ const DashboardLayout: React.FC = () => {
           onClick={() => setShowSettings(true)}
           className="flex-shrink-0 min-w-[64px] h-14 flex flex-col items-center justify-center gap-0.5 py-0 px-1 bg-transparent border-none cursor-pointer text-app-muted"
         >
-          <span className="text-[22px] leading-none">⚙️</span>
+          <GearSix size={22} />
           <span className="text-[10px] font-medium leading-tight mt-0.5">{ui.more || 'More'}</span>
         </button>
       </nav>
-
-      {/* ── Main Content Area ── */}
-      <main className="tab-content">
-        {/* key={tab} re-mounts div on tab change, triggering the CSS fade-slide-up animation */}
-        <div key={tab} className="tab-fade-in h-full flex flex-col">
-          <Outlet />
-        </div>
-      </main>
       
       {/* ── Settings Modal ── */}
       {showSettings && (
         <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center"><span className="text-white">{ui.loading || 'Loading...'}</span></div>}>
           <SettingsModal
-            config={{}}
-            savedKeys={{}}
-            onSave={() => {}}
             onClose={() => setShowSettings(false)}
             onLogout={handleLogout}
             profile={user}

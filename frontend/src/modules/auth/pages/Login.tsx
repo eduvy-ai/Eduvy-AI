@@ -116,6 +116,18 @@ const Login: React.FC = () => {
             Create account
           </Link>
         </div>
+
+        {/* Pricing Link */}
+        <div className="text-center">
+          <a
+            href="https://eduvy.co.in/#pricing"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-app-muted no-underline hover:text-app-green transition-colors"
+          >
+            View Pricing Plans →
+          </a>
+        </div>
       </form>
     </AuthLayout>
   )

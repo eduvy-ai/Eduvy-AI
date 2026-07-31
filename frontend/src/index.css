@@ -181,27 +181,26 @@ input, textarea, select { outline: none; border: none; }
    ═══════════════════════════════════════════════════════ */
 
 #root {
+  height: 100%;
   min-height: 100vh;
   background: #04040e;
 }
 
-/* App shell locks to viewport height when used */
+/* App shell — fills viewport, guaranteed to contain all content */
 .app-shell {
   width: 100%;
-  height: 100vh;
-  height: 100dvh; /* dvh accounts for iOS Safari browser chrome */
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: #04040e;
-  position: relative;
   overflow: hidden;
+  /* Safe area for devices with notches/rounded corners */
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
-/* Bottom nav visible on mobile, hidden on desktop */
+/* Bottom nav — flex child at bottom of app-shell (NOT position:fixed) */
 .bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
+  flex-shrink: 0;
   width: 100%;
   /* Glass morphism — like native iOS/Android nav bars */
   background: rgba(6, 6, 18, 0.94);
@@ -251,13 +250,11 @@ input, textarea, select { outline: none; border: none; }
 /* Sidebar nav — hidden on mobile */
 .side-nav { display: none; }
 
-/* Main content padding for bottom nav */
+/* Main content — fills space between top and bottom-nav */
 .tab-content {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  /* 56px nav + safe area — never hides behind nav/notch */
-  padding-bottom: calc(56px + env(safe-area-inset-bottom, 8px));
   min-height: 0;
   /* Native-feel scroll */
   -webkit-overflow-scrolling: touch;
@@ -280,9 +277,8 @@ input, textarea, select { outline: none; border: none; }
 
   .app-shell {
     width: 100%;
+    height: 100%;
     flex-direction: row;
-    height: 100vh;
-    height: 100dvh;
   }
 
   /* Hide bottom nav, show sidebar */
@@ -361,6 +357,7 @@ input, textarea, select { outline: none; border: none; }
   .tab-content {
     padding: 20px 32px 32px;
   }
+
 }
 
 /* ── Landing page nav pricing link — hidden on mobile, visible on wider screens ── */
@@ -531,26 +528,28 @@ body.font-xlarge { font-size: 20px; }
 }
 .tts-btn:hover { border-color: #00E5A0; color: #00E5A0; }
 
-/* Microphone button */
+/* Microphone button — modern app style */
 .mic-btn {
-  background: transparent;
-  border: 2px solid #7B9CFF;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  background: rgba(123,156,255,0.1);
+  border: none;
+  border-radius: 12px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   color: #7B9CFF;
-  font-size: 18px;
-  font-family: 'Sora', sans-serif;
-  transition: background 0.2s, border-color 0.2s;
+  font-size: 0;
+  transition: background 0.2s, transform 0.1s;
   flex-shrink: 0;
 }
+.mic-btn:active {
+  transform: scale(0.92);
+  background: rgba(123,156,255,0.2);
+}
 .mic-btn.recording {
-  background: rgba(255,107,107,0.2);
-  border-color: #FF6B6B;
+  background: rgba(255,107,107,0.15);
   color: #FF6B6B;
   animation: mic-pulse 1s ease-in-out infinite;
 }

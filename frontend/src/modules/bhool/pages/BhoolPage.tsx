@@ -28,6 +28,7 @@ const BhoolPage: React.FC = () => {
   }
 
   // Pass through to legacy component
+  if (!user) return null
   return (
     <BhoolBazaarTabLegacy
       profile={user}

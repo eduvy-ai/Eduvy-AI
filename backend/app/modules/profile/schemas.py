@@ -1,7 +1,7 @@
 """
 Profile Schemas - Request/Response validation models.
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List
 
 
@@ -17,6 +17,8 @@ class ProfileCreate(BaseModel):
 
 
 class ProfileUpdate(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     name: Optional[str] = None
     mobile: Optional[str] = None
     parent_mobile: Optional[str] = None
@@ -27,9 +29,6 @@ class ProfileUpdate(BaseModel):
     subjects: Optional[List[str]] = None
     school: Optional[str] = None
     avatar_url: Optional[str] = Field(default=None, alias="avatarUrl")
-
-    class Config:
-        populate_by_name = True
 
 
 class XpRequest(BaseModel):

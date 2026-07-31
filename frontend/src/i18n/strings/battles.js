@@ -247,4 +247,279 @@ export const BATTLES = {
     Odia:     "🏫 ସ୍କୁଲ vs ସ୍କୁଲ",
     Urdu:     "🏫 سکول vs سکول",
   },
+
+  // ── MuqablaTab UI strings ─────────────────────────────────
+  battleArena: {
+    English: "⚔️ Battle Arena", Hindi: "⚔️ बैटल अरीना", Gujarati: "⚔️ બેટલ એરિના", Marathi: "⚔️ बॅटल अरिना",
+    Tamil: "⚔️ போர் அரங்கம்", Telugu: "⚔️ బ్యాటిల్ అరీనా", Kannada: "⚔️ ಬ್ಯಾಟಲ್ ಅರೆನಾ", Bengali: "⚔️ ব্যাটল এরিনা",
+    Punjabi: "⚔️ ਬੈਟਲ ਅਰੀਨਾ", Odia: "⚔️ ବ୍ୟାଟଲ ଏରିନା", Urdu: "⚔️ بیٹل ایرینا",
+  },
+  studentVsStudent: {
+    English: "Student vs Student Battles", Hindi: "छात्र बनाम छात्र बैटल", Gujarati: "વિદ્યાર્થી vs વિદ્યાર્થી બેટલ", Marathi: "विद्यार्थी vs विद्यार्थी बॅटल",
+    Tamil: "மாணவர் vs மாணவர் போட்டிகள்", Telugu: "విద్యార్థి vs విద్యార్థి బ్యాటిల్స్", Kannada: "ವಿದ್ಯಾರ್ಥಿ vs ವಿದ್ಯಾರ್ಥಿ ಬ್ಯಾಟಲ್ಸ್", Bengali: "ছাত্র vs ছাত্র ব্যাটল",
+    Punjabi: "ਵਿਦਿਆਰਥੀ vs ਵਿਦਿਆਰਥੀ ਬੈਟਲ", Odia: "ଛାତ୍ର vs ଛାତ୍ର ବ୍ୟାଟଲ", Urdu: "طالب علم vs طالب علم بیٹل",
+  },
+  newBattle: {
+    English: "+ Battle", Hindi: "+ बैटल", Gujarati: "+ બેટલ", Marathi: "+ बॅटल",
+    Tamil: "+ போட்டி", Telugu: "+ బ్యాటిల్", Kannada: "+ ಬ್ಯಾಟಲ್", Bengali: "+ ব্যাটল",
+    Punjabi: "+ ਬੈਟਲ", Odia: "+ ବ୍ୟାଟଲ", Urdu: "+ بیٹل",
+  },
+  vs: {
+    English: "vs ", Hindi: "बनाम ", Gujarati: "vs ", Marathi: "vs ",
+    Tamil: "vs ", Telugu: "vs ", Kannada: "vs ", Bengali: "vs ",
+    Punjabi: "vs ", Odia: "vs ", Urdu: "vs ",
+  },
+  from: {
+    English: "from ", Hindi: "से ", Gujarati: "તરફથી ", Marathi: "कडून ",
+    Tamil: "இருந்து ", Telugu: "నుండి ", Kannada: "ಇಂದ ", Bengali: "থেকে ",
+    Punjabi: "ਤੋਂ ", Odia: "ରୁ ", Urdu: "سے ",
+  },
+  youLabel: {
+    English: "You: ", Hindi: "आप: ", Gujarati: "તમે: ", Marathi: "तुम्ही: ",
+    Tamil: "நீங்கள்: ", Telugu: "మీరు: ", Kannada: "ನೀವು: ", Bengali: "আপনি: ",
+    Punjabi: "ਤੁਸੀਂ: ", Odia: "ତୁମେ: ", Urdu: "آپ: ",
+  },
+  oppLabel: {
+    English: "Opp: ", Hindi: "प्रतिद्वंद्वी: ", Gujarati: "પ્રતિસ્પર્ધી: ", Marathi: "प्रतिस्पर्धी: ",
+    Tamil: "எதிரி: ", Telugu: "ప్రత్యర్థి: ", Kannada: "ಎದುರಾಳಿ: ", Bengali: "প্রতিপক্ষ: ",
+    Punjabi: "ਵਿਰੋਧੀ: ", Odia: "ପ୍ରତିପକ୍ଷ: ", Urdu: "حریف: ",
+  },
+  youWonShort: {
+    English: "🏆 You Won!", Hindi: "🏆 आप जीते!", Gujarati: "🏆 તમે જીત્યા!", Marathi: "🏆 तुम्ही जिंकलात!",
+    Tamil: "🏆 நீங்கள் வென்றீர்கள்!", Telugu: "🏆 మీరు గెలిచారు!", Kannada: "🏆 ನೀವು ಗೆದ್ದಿರಿ!", Bengali: "🏆 আপনি জিতেছেন!",
+    Punjabi: "🏆 ਤੁਸੀਂ ਜਿੱਤੇ!", Odia: "🏆 ତୁମେ ଜିତିଲ!", Urdu: "🏆 آپ جیت گئے!",
+  },
+  drawResult: {
+    English: "🤝 Draw", Hindi: "🤝 ड्रॉ", Gujarati: "🤝 ડ્રો", Marathi: "🤝 ड्रॉ",
+    Tamil: "🤝 சமன்", Telugu: "🤝 డ్రా", Kannada: "🤝 ಡ್ರಾ", Bengali: "🤝 ড্র",
+    Punjabi: "🤝 ਡ੍ਰਾ", Odia: "🤝 ଡ୍ର", Urdu: "🤝 ڈرا",
+  },
+  lost: {
+    English: "💀 Lost", Hindi: "💀 हार गए", Gujarati: "💀 હાર્યા", Marathi: "💀 हरले",
+    Tamil: "💀 தோற்றது", Telugu: "💀 ఓడిపోయారు", Kannada: "💀 ಸೋತಿರಿ", Bengali: "💀 হেরেছেন",
+    Punjabi: "💀 ਹਾਰ ਗਏ", Odia: "💀 ହାରିଲ", Urdu: "💀 ہار گئے",
+  },
+  acceptFight: {
+    English: "⚔️ Accept & Fight!", Hindi: "⚔️ स्वीकार करें और लड़ें!", Gujarati: "⚔️ સ્વીકારો અને લડો!", Marathi: "⚔️ स्वीकारा आणि लढा!",
+    Tamil: "⚔️ ஏற்கவும் & சண்டையிடவும்!", Telugu: "⚔️ ఆమోదించండి & పోరాడండి!", Kannada: "⚔️ ಒಪ್ಪಿ & ಹೋರಾಡಿ!", Bengali: "⚔️ গ্রহণ করুন ও লড়ুন!",
+    Punjabi: "⚔️ ਮਨਜ਼ੂਰ ਕਰੋ ਅਤੇ ਲੜੋ!", Odia: "⚔️ ଗ୍ରହଣ କର ଏବଂ ଲଢ!", Urdu: "⚔️ قبول کریں اور لڑیں!",
+  },
+  answerNow: {
+    English: "⚔️ Answer Now!", Hindi: "⚔️ अभी जवाब दें!", Gujarati: "⚔️ હવે જવાબ આપો!", Marathi: "⚔️ आता उत्तर द्या!",
+    Tamil: "⚔️ இப்போது பதிலளிக்கவும்!", Telugu: "⚔️ ఇప్పుడు సమాధానం ఇవ్వండి!", Kannada: "⚔️ ಈಗ ಉತ್ತರಿಸಿ!", Bengali: "⚔️ এখনই উত্তর দিন!",
+    Punjabi: "⚔️ ਹੁਣੇ ਜਵਾਬ ਦਿਓ!", Odia: "⚔️ ବର୍ତ୍ତମାନ ଉତ୍ତର ଦିଅ!", Urdu: "⚔️ ابھی جواب دیں!",
+  },
+  answerFirst: {
+    English: "▶ Answer First", Hindi: "▶ पहले जवाब दें", Gujarati: "▶ પહેલા જવાબ આપો", Marathi: "▶ आधी उत्तर द्या",
+    Tamil: "▶ முதலில் பதிலளிக்கவும்", Telugu: "▶ ముందుగా సమాధానం ఇవ్వండి", Kannada: "▶ ಮೊದಲು ಉತ್ತರಿಸಿ", Bengali: "▶ প্রথমে উত্তর দিন",
+    Punjabi: "▶ ਪਹਿਲਾਂ ਜਵਾਬ ਦਿਓ", Odia: "▶ ପ୍ରଥମେ ଉତ୍ତର ଦିଅ", Urdu: "▶ پہلے جواب دیں",
+  },
+  resultsBtn: {
+    English: "📊 Results", Hindi: "📊 परिणाम", Gujarati: "📊 પરિણામો", Marathi: "📊 निकाल",
+    Tamil: "📊 முடிவுகள்", Telugu: "📊 ఫలితాలు", Kannada: "📊 ಫಲಿತಾಂಶಗಳು", Bengali: "📊 ফলাফল",
+    Punjabi: "📊 ਨਤੀਜੇ", Odia: "📊 ଫଳାଫଳ", Urdu: "📊 نتائج",
+  },
+  newBattleTitle: {
+    English: "⚔️ New Battle", Hindi: "⚔️ नया बैटल", Gujarati: "⚔️ નવું બેટલ", Marathi: "⚔️ नवीन बॅटल",
+    Tamil: "⚔️ புதிய போட்டி", Telugu: "⚔️ కొత్త బ్యాటిల్", Kannada: "⚔️ ಹೊಸ ಬ್ಯಾಟಲ್", Bengali: "⚔️ নতুন ব্যাটল",
+    Punjabi: "⚔️ ਨਵਾਂ ਬੈਟਲ", Odia: "⚔️ ନୂଆ ବ୍ୟାଟଲ", Urdu: "⚔️ نیا بیٹل",
+  },
+  subjectLabel: {
+    English: "SUBJECT", Hindi: "विषय", Gujarati: "વિષય", Marathi: "विषय",
+    Tamil: "பாடம்", Telugu: "సబ్జెక్ట్", Kannada: "ವಿಷಯ", Bengali: "বিষয়",
+    Punjabi: "ਵਿਸ਼ਾ", Odia: "ବିଷୟ", Urdu: "مضمون",
+  },
+  difficultyLabel: {
+    English: "DIFFICULTY", Hindi: "कठिनाई", Gujarati: "કઠિનાઈ", Marathi: "कठीणता",
+    Tamil: "கடினத்தன்மை", Telugu: "కష్టస్థాయి", Kannada: "ಕಷ್ಟ ಮಟ್ಟ", Bengali: "কঠিনতা",
+    Punjabi: "ਔਖਾਈ", Odia: "କଠିନତା", Urdu: "مشکل",
+  },
+  failedCreateBattle: {
+    English: "Failed to create battle. Try again.", Hindi: "बैटल बनाने में विफल। फिर कोशिश करें।", Gujarati: "બેટલ બનાવવામાં નિષ્ફળ. ફરી પ્રયાસ કરો.", Marathi: "बॅटल तयार करणे अयशस्वी. पुन्हा प्रयत्न करा.",
+    Tamil: "போட்டி உருவாக்க இயலவில்லை. மீண்டும் முயற்சிக்கவும்.", Telugu: "బ్యాటిల్ సృష్టించడం విఫలమైంది. మళ్ళీ ప్రయత్నించండి.", Kannada: "ಬ್ಯಾಟಲ್ ರಚಿಸಲು ವಿಫಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.", Bengali: "ব্যাটল তৈরি ব্যর্থ। আবার চেষ্টা করুন।",
+    Punjabi: "ਬੈਟਲ ਬਣਾਉਣ ਵਿੱਚ ਅਸਫਲ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।", Odia: "ବ୍ୟାଟଲ ସୃଷ୍ଟି କରିବାରେ ବିଫଳ। ପୁନଃ ଚେଷ୍ଟା କରନ୍ତୁ।", Urdu: "بیٹل بنانے میں ناکام۔ دوبارہ کوشش کریں۔",
+  },
+  generatingQuestions: {
+    English: "✨ Generating Questions…", Hindi: "✨ प्रश्न बना रहे हैं…", Gujarati: "✨ પ્રશ્નો બનાવી રહ્યા છીએ…", Marathi: "✨ प्रश्न तयार करत आहोत…",
+    Tamil: "✨ கேள்விகள் உருவாக்குகிறோம்…", Telugu: "✨ ప్రశ్నలు తయారు చేస్తున్నాం…", Kannada: "✨ ಪ್ರಶ್ನೆಗಳನ್ನು ರಚಿಸುತ್ತಿದ್ದೇವೆ…", Bengali: "✨ প্রশ্ন তৈরি হচ্ছে…",
+    Punjabi: "✨ ਸਵਾਲ ਬਣਾ ਰਹੇ ਹਾਂ…", Odia: "✨ ପ୍ରଶ୍ନ ତିଆରି ହେଉଛି…", Urdu: "✨ سوالات بنا رہے ہیں…",
+  },
+  yourTurn: {
+    English: "🔥 Your Turn!", Hindi: "🔥 आपकी बारी!", Gujarati: "🔥 તમારો વારો!", Marathi: "🔥 तुमची पाळी!",
+    Tamil: "🔥 உங்கள் முறை!", Telugu: "🔥 మీ వంతు!", Kannada: "🔥 ನಿಮ್ಮ ಸರದಿ!", Bengali: "🔥 আপনার পালা!",
+    Punjabi: "🔥 ਤੁਹਾਡੀ ਵਾਰੀ!", Odia: "🔥 ତୁମର ପାଳି!", Urdu: "🔥 آپ کی باری!",
+  },
+  waitingForOpponent: {
+    English: "⏳ Waiting for Opponent", Hindi: "⏳ प्रतिद्वंद्वी का इंतजार", Gujarati: "⏳ પ્રતિસ્પર્ધીની રાહ જોઈ રહ્યા છીએ", Marathi: "⏳ प्रतिस्पर्ध्याची वाट पाहत आहे",
+    Tamil: "⏳ எதிரி வரும்வரை காத்திருக்கிறோம்", Telugu: "⏳ ప్రత్యర్థి కోసం వేచి ఉంది", Kannada: "⏳ ಎದುರಾಳಿಗಾಗಿ ಕಾಯುತ್ತಿದೆ", Bengali: "⏳ প্রতিপক্ষের জন্য অপেক্ষা",
+    Punjabi: "⏳ ਵਿਰੋਧੀ ਦੀ ਉਡੀਕ", Odia: "⏳ ପ୍ରତିପକ୍ଷ ପାଇଁ ଅପେକ୍ଷା", Urdu: "⏳ حریف کا انتظار",
+  },
+  openChallenges: {
+    English: "🌐 Open Challenges", Hindi: "🌐 खुली चुनौतियां", Gujarati: "🌐 ખુલ્લા પડકારો", Marathi: "🌐 खुली आव्हाने",
+    Tamil: "🌐 திறந்த சவால்கள்", Telugu: "🌐 ఓపెన్ ఛాలెంజ్‌లు", Kannada: "🌐 ತೆರೆದ ಸವಾಲುಗಳು", Bengali: "🌐 খোলা চ্যালেঞ্জ",
+    Punjabi: "🌐 ਖੁੱਲ੍ਹੀਆਂ ਚੁਣੌਤੀਆਂ", Odia: "🌐 ଖୋଲା ଆହ୍ୱାନ", Urdu: "🌐 کھلے چیلنجز",
+  },
+  noBattlesArena: {
+    English: "No battles yet. Create one and challenge the arena!", Hindi: "अभी तक कोई बैटल नहीं। एक बनाएं और अरीना को चुनौती दें!", Gujarati: "હજી કોઈ બેટલ નથી. એક બનાવો અને એરિનાને પડકારો!", Marathi: "अद्याप कोणतीही बॅटल नाही. एक तयार करा आणि अरिनाला आव्हान द्या!",
+    Tamil: "இன்னும் போட்டிகள் இல்லை. ஒன்றை உருவாக்கி அரங்கத்தை சவால் செய்யுங்கள்!", Telugu: "ఇంకా బ్యాటిల్స్ లేవు. ఒకటి సృష్టించి అరీనాకు సవాలు చేయండి!", Kannada: "ಇನ್ನೂ ಬ್ಯಾಟಲ್ಸ್ ಇಲ್ಲ. ಒಂದನ್ನು ರಚಿಸಿ ಅರೆನಾಕ್ಕೆ ಸವಾಲು ಹಾಕಿ!", Bengali: "এখনও কোনো ব্যাটল নেই। একটি তৈরি করুন এবং এরিনাকে চ্যালেঞ্জ করুন!",
+    Punjabi: "ਹਾਲੇ ਕੋਈ ਬੈਟਲ ਨਹੀਂ। ਇੱਕ ਬਣਾਓ ਅਤੇ ਅਰੀਨਾ ਨੂੰ ਚੁਣੌਤੀ ਦਿਓ!", Odia: "ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ବ୍ୟାଟଲ ନାହିଁ। ଗୋଟିଏ ତିଆରି କର ଏବଂ ଏରିନାକୁ ଆହ୍ୱାନ ଦିଅ!", Urdu: "ابھی تک کوئی بیٹل نہیں۔ ایک بنائیں اور ایرینا کو چیلنج کریں!",
+  },
+  addSchoolTip: {
+    English: "🏫 Add your school name in Settings → Profile to join the School Leaderboard!", Hindi: "🏫 स्कूल लीडरबोर्ड में शामिल होने के लिए सेटिंग्स → प्रोफाइल में अपना स्कूल नाम जोड़ें!", Gujarati: "🏫 શાળા લીડરબોર્ડમાં જોડાવા સેટિંગ્સ → પ્રોફાઇલમાં શાળાનું નામ ઉમેરો!", Marathi: "🏫 शाळा लीडरबोर्डमध्ये सामील होण्यासाठी सेटिंग्स → प्रोफाइलमध्ये शाळेचे नाव जोडा!",
+    Tamil: "🏫 பள்ளி தரவரிசையில் சேர அமைப்புகள் → சுயவிவரத்தில் உங்கள் பள்ளியின் பெயரைச் சேர்க்கவும்!", Telugu: "🏫 స్కూల్ లీడర్‌బోర్డ్‌లో చేరడానికి సెట్టింగ్‌లు → ప్రొఫైల్‌లో మీ స్కూల్ పేరు జోడించండి!", Kannada: "🏫 ಶಾಲೆ ಲೀಡರ್‌ಬೋರ್ಡ್‌ಗೆ ಸೇರಲು ಸೆಟ್ಟಿಂಗ್ಸ್ → ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿ ನಿಮ್ಮ ಶಾಲೆಯ ಹೆಸರನ್ನು ಸೇರಿಸಿ!", Bengali: "🏫 স্কুল লিডারবোর্ডে যোগ দিতে সেটিংস → প্রোফাইলে আপনার স্কুলের নাম যোগ করুন!",
+    Punjabi: "🏫 ਸਕੂਲ ਲੀਡਰਬੋਰਡ ਵਿੱਚ ਸ਼ਾਮਲ ਹੋਣ ਲਈ ਸੈਟਿੰਗਜ਼ → ਪ੍ਰੋਫਾਈਲ ਵਿੱਚ ਆਪਣੇ ਸਕੂਲ ਦਾ ਨਾਮ ਜੋੜੋ!", Odia: "🏫 ସ୍କୁଲ ଲିଡରବୋର୍ଡରେ ଯୋଗ ଦେବାକୁ ସେଟିଂସ → ପ୍ରୋଫାଇଲରେ ତୁମର ସ୍କୁଲର ନାମ ଯୋଡ!", Urdu: "🏫 سکول لیڈربورڈ میں شامل ہونے کے لیے سیٹنگز → پروفائل میں اپنے سکول کا نام شامل کریں!",
+  },
+  studentsTab: {
+    English: "👤 Students", Hindi: "👤 छात्र", Gujarati: "👤 વિદ્યાર્થીઓ", Marathi: "👤 विद्यार्थी",
+    Tamil: "👤 மாணவர்கள்", Telugu: "👤 విద్యార్థులు", Kannada: "👤 ವಿದ್ಯಾರ್ಥಿಗಳು", Bengali: "👤 ছাত্ররা",
+    Punjabi: "👤 ਵਿਦਿਆਰਥੀ", Odia: "👤 ଛାତ୍ର", Urdu: "👤 طلباء",
+  },
+  schoolsTab: {
+    English: "🏫 Schools", Hindi: "🏫 स्कूल", Gujarati: "🏫 શાળાઓ", Marathi: "🏫 शाळा",
+    Tamil: "🏫 பள்ளிகள்", Telugu: "🏫 స్కూళ్ళు", Kannada: "🏫 ಶಾಲೆಗಳು", Bengali: "🏫 স্কুল",
+    Punjabi: "🏫 ਸਕੂਲ", Odia: "🏫 ସ୍କୁଲ", Urdu: "🏫 سکول",
+  },
+  noBattlesWeek: {
+    English: "No battles this week yet. Be the first!", Hindi: "इस हफ्ते अभी तक कोई बैटल नहीं। पहले बनें!", Gujarati: "આ અઠવાડિયે હજી બેટલ નથી. પ્રથમ બનો!", Marathi: "या आठवड्यात अद्याप बॅटल नाही. पहिले व्हा!",
+    Tamil: "இந்த வாரம் இன்னும் போட்டிகள் இல்லை. முதலில் நீங்கள் ஆரம்பியுங்கள்!", Telugu: "ఈ వారం ఇంకా బ్యాటిల్స్ లేవు. మొదటివారు అవ్వండి!", Kannada: "ಈ ವಾರ ಇನ್ನೂ ಬ್ಯಾಟಲ್ಸ್ ಇಲ್ಲ. ಮೊದಲಿಗರಾಗಿ!", Bengali: "এই সপ্তাহে এখনও কোনো ব্যাটল নেই। প্রথম হন!",
+    Punjabi: "ਇਸ ਹਫ਼ਤੇ ਹਾਲੇ ਕੋਈ ਬੈਟਲ ਨਹੀਂ। ਪਹਿਲੇ ਬਣੋ!", Odia: "ଏହି ସପ୍ତାହରେ ଏପର୍ଯ୍ୟନ୍ତ ବ୍ୟାଟଲ ନାହିଁ। ପ୍ରଥମ ହୁଅ!", Urdu: "اس ہفتے ابھی تک کوئی بیٹل نہیں۔ پہلے بنیں!",
+  },
+  addSchoolLeaderboard: {
+    English: "Add your school name in Settings to join the school leaderboard!", Hindi: "स्कूल लीडरबोर्ड में शामिल होने के लिए सेटिंग्स में अपना स्कूल नाम जोड़ें!", Gujarati: "શાળા લીડરબોર્ડમાં જોડાવા સેટિંગ્સમાં શાળાનું નામ ઉમેરો!", Marathi: "शाळा लीडरबोर्डमध्ये सामील होण्यासाठी सेटिंग्समध्ये शाळेचे नाव जोडा!",
+    Tamil: "பள்ளி தரவரிசையில் சேர அமைப்புகளில் உங்கள் பள்ளியின் பெயரைச் சேர்க்கவும்!", Telugu: "స్కూల్ లీడర్‌బోర్డ్‌లో చేరడానికి సెట్టింగ్‌లలో మీ స్కూల్ పేరు జోడించండి!", Kannada: "ಶಾಲೆ ಲೀಡರ್‌ಬೋರ್ಡ್‌ಗೆ ಸೇರಲು ಸೆಟ್ಟಿಂಗ್ಸ್‌ನಲ್ಲಿ ನಿಮ್ಮ ಶಾಲೆಯ ಹೆಸರನ್ನು ಸೇರಿಸಿ!", Bengali: "স্কুল লিডারবোর্ডে যোগ দিতে সেটিংসে আপনার স্কুলের নাম যোগ করুন!",
+    Punjabi: "ਸਕੂਲ ਲੀਡਰਬੋਰਡ ਵਿੱਚ ਸ਼ਾਮਲ ਹੋਣ ਲਈ ਸੈਟਿੰਗਜ਼ ਵਿੱਚ ਸਕੂਲ ਦਾ ਨਾਮ ਜੋੜੋ!", Odia: "ସ୍କୁଲ ଲିଡରବୋର୍ଡରେ ଯୋଗ ଦେବାକୁ ସେଟିଂସରେ ତୁମର ସ୍କୁଲ ନାମ ଯୋଡ!", Urdu: "سکول لیڈربورڈ میں شامل ہونے کے لیے سیٹنگز میں اپنے سکول کا نام شامل کریں!",
+  },
+  wins: {
+    English: "wins", Hindi: "जीत", Gujarati: "જીત", Marathi: "जय",
+    Tamil: "வெற்றிகள்", Telugu: "గెలుపులు", Kannada: "ಗೆಲುವುಗಳು", Bengali: "জয়",
+    Punjabi: "ਜਿੱਤਾਂ", Odia: "ବିଜୟ", Urdu: "جیت",
+  },
+  battles: {
+    English: "battles", Hindi: "बैटल", Gujarati: "બેટલ", Marathi: "बॅटल",
+    Tamil: "போட்டிகள்", Telugu: "బ్యాటిల్స్", Kannada: "ಬ್ಯಾಟಲ್ಸ್", Bengali: "ব্যাটল",
+    Punjabi: "ਬੈਟਲ", Odia: "ବ୍ୟାଟଲ", Urdu: "بیٹل",
+  },
+  studentsCount: {
+    English: "students", Hindi: "छात्र", Gujarati: "વિદ્યાર્થીઓ", Marathi: "विद्यार्थी",
+    Tamil: "மாணவர்கள்", Telugu: "విద్యార్థులు", Kannada: "ವಿದ್ಯಾರ್ಥಿಗಳು", Bengali: "ছাত্র",
+    Punjabi: "ਵਿਦਿਆਰਥੀ", Odia: "ଛାତ୍ର", Urdu: "طلباء",
+  },
+  youBracket: {
+    English: "(You)", Hindi: "(आप)", Gujarati: "(તમે)", Marathi: "(तुम्ही)",
+    Tamil: "(நீங்கள்)", Telugu: "(మీరు)", Kannada: "(ನೀವು)", Bengali: "(আপনি)",
+    Punjabi: "(ਤੁਸੀਂ)", Odia: "(ତୁମେ)", Urdu: "(آپ)",
+  },
+  yoursBracket: {
+    English: "(Yours)", Hindi: "(आपका)", Gujarati: "(તમારું)", Marathi: "(तुमचे)",
+    Tamil: "(உங்களுடையது)", Telugu: "(మీది)", Kannada: "(ನಿಮ್ಮದು)", Bengali: "(আপনার)",
+    Punjabi: "(ਤੁਹਾਡਾ)", Odia: "(ତୁମର)", Urdu: "(آپ کا)",
+  },
+  backToArena: {
+    English: "Back to Arena", Hindi: "अरीना पर वापस", Gujarati: "એરિના પર પાછા", Marathi: "अरिनावर परत",
+    Tamil: "அரங்கத்திற்கு திரும்பு", Telugu: "అరీనాకు తిరిగి", Kannada: "ಅರೆನಾಕ್ಕೆ ಹಿಂತಿರುಗಿ", Bengali: "এরিনায় ফিরুন",
+    Punjabi: "ਅਰੀਨਾ ਵੱਲ ਵਾਪਸ", Odia: "ଏରିନାକୁ ଫେରି", Urdu: "ایرینا پر واپس",
+  },
+  submittingAnswers: {
+    English: "Submitting your answers…", Hindi: "आपके जवाब जमा हो रहे हैं…", Gujarati: "તમારા જવાબો સબમિટ થઈ રહ્યા છે…", Marathi: "तुमचे उत्तर सबमिट होत आहेत…",
+    Tamil: "உங்கள் பதில்கள் சமர்ப்பிக்கப்படுகின்றன…", Telugu: "మీ సమాధానాలు సమర్పించబడుతున్నాయి…", Kannada: "ನಿಮ್ಮ ಉತ್ತರಗಳನ್ನು ಸಲ್ಲಿಸಲಾಗುತ್ತಿದೆ…", Bengali: "আপনার উত্তর জমা হচ্ছে…",
+    Punjabi: "ਤੁਹਾਡੇ ਜਵਾਬ ਜਮ੍ਹਾ ਹੋ ਰਹੇ ਹਨ…", Odia: "ତୁମର ଉତ୍ତର ଦାଖଲ ହେଉଛି…", Urdu: "آپ کے جوابات جمع ہو رہے ہیں…",
+  },
+  couldNotSubmit: {
+    English: "Could not submit answers. Try again.", Hindi: "जवाब जमा नहीं हो सके। फिर कोशिश करें।", Gujarati: "જવાબો સબમિટ થઈ શક્યા નથી. ફરી પ્રયાસ કરો.", Marathi: "उत्तर सबमिट होऊ शकले नाहीत. पुन्हा प्रयत्न करा.",
+    Tamil: "பதில்களை சமர்ப்பிக்க இயலவில்லை. மீண்டும் முயற்சிக்கவும்.", Telugu: "సమాధానాలు సమర్పించడం విఫలమైంది. మళ్ళీ ప్రయత్నించండి.", Kannada: "ಉತ್ತರಗಳನ್ನು ಸಲ್ಲಿಸಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.", Bengali: "উত্তর জমা দেওয়া যায়নি। আবার চেষ্টা করুন।",
+    Punjabi: "ਜਵਾਬ ਜਮ੍ਹਾ ਨਹੀਂ ਹੋ ਸਕੇ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।", Odia: "ଉତ୍ତର ଦାଖଲ ହୋଇପାରିଲା ନାହିଁ। ପୁନଃ ଚେଷ୍ଟା କରନ୍ତୁ।", Urdu: "جوابات جمع نہیں ہو سکے۔ دوبارہ کوشش کریں۔",
+  },
+  couldNotLoadBattles: {
+    English: "Could not load battles.", Hindi: "बैटल लोड नहीं हो सके।", Gujarati: "બેટલ લોડ થઈ શક્યા નથી.", Marathi: "बॅटल लोड होऊ शकले नाहीत.",
+    Tamil: "போட்டிகள் ஏற்ற இயலவில்லை.", Telugu: "బ్యాటిల్స్ లోడ్ కాలేదు.", Kannada: "ಬ್ಯಾಟಲ್ಸ್ ಲೋಡ್ ಆಗಲಿಲ್ಲ.", Bengali: "ব্যাটল লোড হয়নি।",
+    Punjabi: "ਬੈਟਲ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੇ।", Odia: "ବ୍ୟାଟଲ ଲୋଡ ହୋଇପାରିଲା ନାହିଁ।", Urdu: "بیٹل لوڈ نہیں ہو سکے۔",
+  },
+  couldNotLoadHistory: {
+    English: "Could not load history.", Hindi: "इतिहास लोड नहीं हो सका।", Gujarati: "ઇતિહાસ લોડ થઈ શક્યો નથી.", Marathi: "इतिहास लोड होऊ शकला नाही.",
+    Tamil: "வரலாறு ஏற்ற இயலவில்லை.", Telugu: "చరిత్ర లోడ్ కాలేదు.", Kannada: "ಇತಿಹಾಸ ಲೋಡ್ ಆಗಲಿಲ್ಲ.", Bengali: "ইতিহাস লোড হয়নি।",
+    Punjabi: "ਇਤਿਹਾਸ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕਿਆ।", Odia: "ଇତିହାସ ଲୋଡ ହୋଇପାରିଲା ନାହିଁ।", Urdu: "تاریخ لوڈ نہیں ہو سکی۔",
+  },
+  couldNotLoadQuestions: {
+    English: "Could not load battle questions.", Hindi: "बैटल प्रश्न लोड नहीं हो सके।", Gujarati: "બેટલ પ્રશ્નો લોડ થઈ શક્યા નથી.", Marathi: "बॅटल प्रश्न लोड होऊ शकले नाहीत.",
+    Tamil: "போட்டி கேள்விகள் ஏற்ற இயலவில்லை.", Telugu: "బ్యాటిల్ ప్రశ్నలు లోడ్ కాలేదు.", Kannada: "ಬ್ಯಾಟಲ್ ಪ್ರಶ್ನೆಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗಲಿಲ್ಲ.", Bengali: "ব্যাটল প্রশ্ন লোড হয়নি।",
+    Punjabi: "ਬੈਟਲ ਸਵਾਲ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੇ।", Odia: "ବ୍ୟାଟଲ ପ୍ରଶ୍ନ ଲୋଡ ହୋଇପାରିଲା ନାହିଁ।", Urdu: "بیٹل سوالات لوڈ نہیں ہو سکے۔",
+  },
+  noCompletedBattles: {
+    English: "No completed battles yet.", Hindi: "अभी तक कोई पूरी बैटल नहीं।", Gujarati: "હજી કોઈ પૂર્ણ બેટલ નથી.", Marathi: "अद्याप कोणतीही पूर्ण बॅटल नाही.",
+    Tamil: "இன்னும் முடிந்த போட்டிகள் இல்லை.", Telugu: "ఇంకా పూర్తయిన బ్యాటిల్స్ లేవు.", Kannada: "ಇನ್ನೂ ಮುಗಿದ ಬ್ಯಾಟಲ್ಸ್ ಇಲ್ಲ.", Bengali: "এখনও কোনো সম্পন্ন ব্যাটল নেই।",
+    Punjabi: "ਹਾਲੇ ਕੋਈ ਪੂਰੀ ਬੈਟਲ ਨਹੀਂ।", Odia: "ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ସମ୍ପୂର୍ଣ ବ୍ୟାଟଲ ନାହିଁ।", Urdu: "ابھی تک کوئی مکمل بیٹل نہیں۔",
+  },
+  yourScore: {
+    English: "Your Score", Hindi: "आपका स्कोर", Gujarati: "તમારો સ્કોર", Marathi: "तुमचा स्कोर",
+    Tamil: "உங்கள் மதிப்பெண்", Telugu: "మీ స్కోర్", Kannada: "ನಿಮ್ಮ ಅಂಕ", Bengali: "আপনার স্কোর",
+    Punjabi: "ਤੁਹਾਡਾ ਸਕੋਰ", Odia: "ତୁମର ସ୍କୋର", Urdu: "آپ کا سکور",
+  },
+  opponentScore: {
+    English: "Opponent", Hindi: "प्रतिद्वंद्वी", Gujarati: "પ્રતિસ્પર્ધી", Marathi: "प्रतिस्पर्धी",
+    Tamil: "எதிரி", Telugu: "ప్రత్యర్థి", Kannada: "ಎದುರಾಳಿ", Bengali: "প্রতিপক্ষ",
+    Punjabi: "ਵਿਰੋਧੀ", Odia: "ପ୍ରତିପକ୍ଷ", Urdu: "حریف",
+  },
+  xpEarned: {
+    English: "XP Earned", Hindi: "XP मिला", Gujarati: "XP મળ્યું", Marathi: "XP मिळाले",
+    Tamil: "XP பெற்றது", Telugu: "XP సంపాదించారు", Kannada: "XP ಗಳಿಸಿದ್ದೀರಿ", Bengali: "XP অর্জিত",
+    Punjabi: "XP ਪ੍ਰਾਪਤ", Odia: "XP ପାଇଲ", Urdu: "XP حاصل کیا",
+  },
+  goodFight: {
+    English: "Good Fight!", Hindi: "अच्छी लड़ाई!", Gujarati: "સારી લડાઈ!", Marathi: "चांगली लढाई!",
+    Tamil: "நல்ல போட்டி!", Telugu: "మంచి పోరాటం!", Kannada: "ಒಳ್ಳೆಯ ಹೋರಾಟ!", Bengali: "ভালো লড়াই!",
+    Punjabi: "ਵਧੀਆ ਲੜਾਈ!", Odia: "ଭଲ ଯୁଦ୍ଧ!", Urdu: "اچھی لڑائی!",
+  },
+  questionOf: {
+    English: "Question {current} of {total}", Hindi: "प्रश्न {current} / {total}", Gujarati: "પ્રશ્ન {current} / {total}", Marathi: "प्रश्न {current} / {total}",
+    Tamil: "கேள்வி {current} / {total}", Telugu: "ప్రశ్న {current} / {total}", Kannada: "ಪ್ರಶ್ನೆ {current} / {total}", Bengali: "প্রশ্ন {current} / {total}",
+    Punjabi: "ਸਵਾਲ {current} / {total}", Odia: "ପ୍ରଶ୍ନ {current} / {total}", Urdu: "سوال {current} / {total}",
+  },
+  waitingOpponentResult: {
+    English: "Waiting for Opponent!", Hindi: "प्रतिद्वंद्वी का इंतजार!", Gujarati: "પ્રતિસ્પર્ધીની રાહ!", Marathi: "प्रतिस्पर्ध्याची वाट!",
+    Tamil: "எதிரிக்காக காத்திருக்கிறோம்!", Telugu: "ప్రత్యర్థి కోసం వేచి ఉన్నాం!", Kannada: "ಎದುರಾಳಿಗಾಗಿ ಕಾಯುತ್ತಿದ್ದೇವೆ!", Bengali: "প্রতিপক্ষের জন্য অপেক্ষা!",
+    Punjabi: "ਵਿਰੋਧੀ ਦੀ ਉਡੀਕ!", Odia: "ପ୍ରତିପକ୍ଷ ପାଇଁ ଅପେକ୍ଷା!", Urdu: "حریف کا انتظار!",
+  },
+  waitingXpNote: {
+    English: "You'll get XP when the battle completes.", Hindi: "बैटल पूरी होने पर XP मिलेगा।", Gujarati: "બેટલ પૂર્ણ થાય ત્યારે XP મળશે.", Marathi: "बॅटल पूर्ण झाल्यावर XP मिळेल.",
+    Tamil: "போட்டி முடிந்ததும் XP கிடைக்கும்.", Telugu: "బ్యాటిల్ పూర్తయినప్పుడు XP వస్తుంది.", Kannada: "ಬ್ಯಾಟಲ್ ಮುಗಿದಾಗ XP ಸಿಗುತ್ತದೆ.", Bengali: "ব্যাটল সম্পন্ন হলে XP পাবেন।",
+    Punjabi: "ਬੈਟਲ ਪੂਰੀ ਹੋਣ 'ਤੇ XP ਮਿਲੇਗਾ।", Odia: "ବ୍ୟାଟଲ ସମ୍ପୂର୍ଣ ହେଲେ XP ମିଳିବ।", Urdu: "بیٹل مکمل ہونے پر XP ملے گا۔",
+  },
+  aiBattleInfo: {
+    English: "📋 AI will generate <strong>5 questions</strong> for this battle. Answer them first, then wait for an opponent to join!",
+    Hindi: "📋 AI इस बैटल के लिए <strong>5 प्रश्न</strong> बनाएगा। पहले उत्तर दें, फिर प्रतिद्वंद्वी का इंतजार करें!",
+    Gujarati: "📋 AI આ બેટલ માટે <strong>5 પ્રશ્નો</strong> બનાવશે. પહેલા જવાબ આપો, પછી પ્રતિસ્પર્ધીની રાહ જુઓ!",
+    Marathi: "📋 AI या बॅटलसाठी <strong>5 प्रश्न</strong> तयार करेल. आधी उत्तर द्या, मग प्रतिस्पर्ध्याची वाट पहा!",
+    Tamil: "📋 AI இந்த போட்டிக்கு <strong>5 கேள்விகள்</strong> உருவாக்கும். முதலில் பதிலளிக்கவும், பின்னர் எதிரி சேரும்வரை காத்திருக்கவும்!",
+    Telugu: "📋 AI ఈ బ్యాటిల్ కోసం <strong>5 ప్రశ్నలు</strong> తయారు చేస్తుంది. ముందుగా సమాధానం ఇవ్వండి, తర్వాత ప్రత్యర్థి చేరే వరకు వేచి ఉండండి!",
+    Kannada: "📋 AI ಈ ಬ್ಯಾಟಲ್‌ಗೆ <strong>5 ಪ್ರಶ್ನೆಗಳನ್ನು</strong> ರಚಿಸುತ್ತದೆ. ಮೊದಲು ಉತ್ತರಿಸಿ, ನಂತರ ಎದುರಾಳಿ ಸೇರುವವರೆಗೆ ಕಾಯಿರಿ!",
+    Bengali: "📋 AI এই ব্যাটলের জন্য <strong>5টি প্রশ্ন</strong> তৈরি করবে। প্রথমে উত্তর দিন, তারপর প্রতিপক্ষের জন্য অপেক্ষা করুন!",
+    Punjabi: "📋 AI ਇਸ ਬੈਟਲ ਲਈ <strong>5 ਸਵਾਲ</strong> ਬਣਾਏਗਾ। ਪਹਿਲਾਂ ਜਵਾਬ ਦਿਓ, ਫਿਰ ਵਿਰੋਧੀ ਦੀ ਉਡੀਕ ਕਰੋ!",
+    Odia: "📋 AI ଏହି ବ୍ୟାଟଲ ପାଇଁ <strong>5ଟି ପ୍ରଶ୍ନ</strong> ତିଆରି କରିବ। ପ୍ରଥମେ ଉତ୍ତର ଦିଅ, ତାପରେ ପ୍ରତିପକ୍ଷ ଯୋଗ ଦେବାକୁ ଅପେକ୍ଷା କର!",
+    Urdu: "📋 AI اس بیٹل کے لیے <strong>5 سوالات</strong> بنائے گا۔ پہلے جواب دیں، پھر حریف کے شامل ہونے کا انتظار کریں!",
+  },
+  statusWaitingOpponent: {
+    English: "✅ Waiting for opponent", Hindi: "✅ प्रतिद्वंद्वी का इंतजार", Gujarati: "✅ પ્રતિસ્પર્ધીની રાહ", Marathi: "✅ प्रतिस्पर्ध्याची वाट",
+    Tamil: "✅ எதிரிக்காக காத்திருக்கிறது", Telugu: "✅ ప్రత్యర్థి కోసం వేచి ఉంది", Kannada: "✅ ಎದುರಾಳಿಗಾಗಿ ಕಾಯುತ್ತಿದೆ", Bengali: "✅ প্রতিপক্ষের জন্য অপেক্ষা",
+    Punjabi: "✅ ਵਿਰੋਧੀ ਦੀ ਉਡੀਕ", Odia: "✅ ପ୍ରତିପକ୍ଷ ପାଇଁ ଅପେକ୍ଷା", Urdu: "✅ حریف کا انتظار",
+  },
+  statusYourTurn: {
+    English: "⚡ Your Turn!", Hindi: "⚡ आपकी बारी!", Gujarati: "⚡ તમારો વારો!", Marathi: "⚡ तुमची पाळी!",
+    Tamil: "⚡ உங்கள் முறை!", Telugu: "⚡ మీ వంతు!", Kannada: "⚡ ನಿಮ್ಮ ಸರದಿ!", Bengali: "⚡ আপনার পালা!",
+    Punjabi: "⚡ ਤੁਹਾਡੀ ਵਾਰੀ!", Odia: "⚡ ତୁମର ପାଳି!", Urdu: "⚡ آپ کی باری!",
+  },
+  statusExpired: {
+    English: "⏰ Expired", Hindi: "⏰ समय समाप्त", Gujarati: "⏰ સમય સમાપ્ત", Marathi: "⏰ कालबाह्य",
+    Tamil: "⏰ காலாவதியானது", Telugu: "⏰ గడువు ముగిసింది", Kannada: "⏰ ಅವಧಿ ಮುಗಿದಿದೆ", Bengali: "⏰ মেয়াদ শেষ",
+    Punjabi: "⏰ ਸਮਾਂ ਖਤਮ", Odia: "⏰ ସମୟ ସମାପ୍ତ", Urdu: "⏰ مدت ختم",
+  },
+  statusDeclined: {
+    English: "❌ Declined", Hindi: "❌ अस्वीकार", Gujarati: "❌ નકારેલ", Marathi: "❌ नाकारले",
+    Tamil: "❌ நிராகரிக்கப்பட்டது", Telugu: "❌ తిరస్కరించబడింది", Kannada: "❌ ತಿರಸ್ಕರಿಸಲಾಗಿದೆ", Bengali: "❌ প্রত্যাখ্যান",
+    Punjabi: "❌ ਅਸਵੀਕਾਰ", Odia: "❌ ଅସ୍ୱୀକୃତ", Urdu: "❌ مسترد",
+  },
+  statusActive: {
+    English: "⚡ Active", Hindi: "⚡ सक्रिय", Gujarati: "⚡ સક્રિય", Marathi: "⚡ सक्रिय",
+    Tamil: "⚡ செயலில்", Telugu: "⚡ యాక్టివ్", Kannada: "⚡ ಸಕ್ರಿಯ", Bengali: "⚡ সক্রিয়",
+    Punjabi: "⚡ ਸਰਗਰਮ", Odia: "⚡ ସକ୍ରିୟ", Urdu: "⚡ فعال",
+  },
 }

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { COLORS, SUBS, getBhoolStats, parseAIArray, getDisplayLang } from '../../shared.js'
-import { apiGetMastery, apiGetMySquad, apiGetPendingMuqabalaBattles, apiGetDailyContent, apiSaveDailyContent, apiGenerateDailyQuestions, apiGenerateDailyBrief, apiGenerateStudyPlan, apiGenerateExamOracle, apiGenerateDeepDive } from '../../api.js'
+import { SUBS, getBhoolStats, getDisplayLang } from '../../shared.js'
+import { apiGetMastery, apiGetPendingMuqabalaBattles, apiGetDailyContent, apiGenerateDailyQuestions, apiGenerateDailyBrief } from '../../api.js'
 import { li } from '../../i18n/index.js'
+import { BookOpen, Target, Microphone, PlayCircle, Flower, Lightning, Fire, Brain, SunHorizon, Sparkle, Lightbulb, CheckCircle, DiceFive, HandWaving, Plant, Circle } from '@phosphor-icons/react'
 
 // ── Bhool Curve stats (reads localStorage) ───────────────────
 function useBhoolStats() {
@@ -12,57 +13,29 @@ function useBhoolStats() {
   return stats
 }
 
-// Subject emoji map for visual flair
-const SUB_ICONS = {
-  Mathematics: "📐", Science: "🔬", Physics: "⚡", Chemistry: "🧪",
-  Biology: "🌿", English: "📝", Hindi: "🇮🇳", History: "🏛️",
-  Geography: "🌍", "Social Science": "🌐", "Social Studies": "🌐",
-  Economics: "📊", Accountancy: "📒", "Business Studies": "💼",
-  Computer: "💻", "Computer Science": "💻", IT: "💻", Sanskrit: "📜",
-  EVS: "🌱", Drawing: "🎨", Punjabi: "📖",
-}
-
-function subIcon(sub) {
-  for (const [key, icon] of Object.entries(SUB_ICONS)) {
-    if (sub.toLowerCase().includes(key.toLowerCase())) return icon
-  }
-  return "📚"
-}
-
 function masteryColor(pct) {
   if (pct >= 75) return '#00E5A0'
   if (pct >= 45) return '#FFD166'
   return '#FF6B6B'
 }
 
-function masteryLabel(pct, lang) {
-  const ui = li(lang)
-  if (pct === 0)  return ui.notStarted
-  if (pct >= 75)  return ui.mastered
-  if (pct >= 45)  return ui.learning
-  return ui.needsWork
-}
-
 // ── Quick action cards config (labels come from i18n) ────────
+const QUICK_ACTION_ICONS = { smartNotes: BookOpen, takeQuiz: Target, aiPodcast: Microphone, findVideos: PlayCircle, wellnessCoach: Flower }
 const QUICK_ACTION_KEYS = [
-  { icon: "📖", labelKey: "smartNotes",    tab: "notebook", grad: "linear-gradient(135deg,#7B9CFF22,#7B9CFF08)", accent: "#7B9CFF" },
-  { icon: "🎯", labelKey: "takeQuiz",      tab: "labs",     grad: "linear-gradient(135deg,#FF6B6B22,#FF6B6B08)", accent: "#FF6B6B" },
-  { icon: "🎙️", labelKey: "aiPodcast",    tab: "labs",     grad: "linear-gradient(135deg,#FFD16622,#FFD16608)", accent: "#FFD166" },
-  { icon: "🎬", labelKey: "findVideos",    tab: "videos",   grad: "linear-gradient(135deg,#FF6B3522,#FF6B3508)", accent: "#FF6B35" },
-  { icon: "🧘", labelKey: "wellnessCoach", tab: "labs",     grad: "linear-gradient(135deg,#00E5A022,#7B9CFF08)", accent: "#00E5A0" },
+  { iconKey: "smartNotes",    labelKey: "smartNotes",    tab: "notebook", grad: "linear-gradient(135deg,#7B9CFF22,#7B9CFF08)", accent: "#7B9CFF" },
+  { iconKey: "takeQuiz",      labelKey: "takeQuiz",      tab: "labs",     grad: "linear-gradient(135deg,#FF6B6B22,#FF6B6B08)", accent: "#FF6B6B" },
+  { iconKey: "aiPodcast",     labelKey: "aiPodcast",     tab: "labs",     grad: "linear-gradient(135deg,#FFD16622,#FFD16608)", accent: "#FFD166" },
+  { iconKey: "findVideos",    labelKey: "findVideos",    tab: "videos",   grad: "linear-gradient(135deg,#FF6B3522,#FF6B3508)", accent: "#FF6B35" },
+  { iconKey: "wellnessCoach", labelKey: "wellnessCoach", tab: "labs",     grad: "linear-gradient(135deg,#00E5A022,#7B9CFF08)", accent: "#00E5A0" },
 ]
 
 export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) {
   const [briefLoading, setBriefLoading]   = useState(false)
   const [brief, setBrief]                 = useState("")
   const [masteries, setMasteries]         = useState({})
-  const [selectedSub, setSelectedSub]     = useState(null)
-  const [subPlan, setSubPlan]             = useState("")
-  const [subLoading, setSubLoading]       = useState(false)
   
-  // ── Notifications & Squad ───────────────────────────────────
+  // ── Notifications ───────────────────────────────────────────
   const [pendingBattles, setPendingBattles] = useState([])
-  const [mySquad, setMySquad]               = useState(null)
   const [lastTab, setLastTab]               = useState(null)
 
   // ── Mood Check ──────────────────────────────────────────────
@@ -95,13 +68,6 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
     localStorage.setItem('eduvyai_dailyq_xp', JSON.stringify(newState))
   }
 
-  // ── Exam Oracle ─────────────────────────────────────────────
-  const [oracleTopics, setOracleTopics] = useState([])
-  const [oracleLoading, setOracleLoading] = useState(false)
-  const [oracleSel, setOracleSel] = useState(null)
-  const [oracleDeep, setOracleDeep] = useState("")
-  const [deepLoading, setDeepLoading] = useState(false)
-
   // ── Bhool Curve ─────────────────────────────────────────────
   const bhool = useBhoolStats()
   const bhoolDue = bhool.overdue.length + bhool.soon.length
@@ -128,11 +94,6 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
     apiGetPendingMuqabalaBattles()
       .then(data => { if (data?.battles?.length) setPendingBattles(data.battles) })
       .catch(() => {})
-
-    // My squad info
-    apiGetMySquad()
-      .then(data => { if (data?.squad) setMySquad(data.squad) })
-      .catch(() => {})
   }, [])
 
   // Overall mastery average (0% for untouched subjects)
@@ -148,7 +109,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
   const generateBrief = async () => {
     const lang = profile.language || 'English'
     
-    // Check if already generated today in database
+    // Check if already generated today in database for current language
     if (!brief) {
       try {
         const existing = await apiGetDailyContent('brief', lang)
@@ -186,13 +147,14 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
     setBriefLoading(false)
   }
 
-  // Load brief from database on mount
+  // Load brief from database on mount and when language changes
   useEffect(() => {
+    setBrief('')
     const lang = profile.language || 'English'
     apiGetDailyContent('brief', lang)
       .then(data => { if (data?.exists && data.content) setBrief(data.content) })
       .catch(() => {})
-  }, [])
+  }, [profile.language])
 
   // ── Mera Sawaal: daily challenges (2 per day, generated by backend) ─────
   const generateDailyQ = async () => {
@@ -231,8 +193,10 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
     setDailyQLoad(false)
   }
 
-  // Load daily questions from database on mount
+  // Load daily questions from database on mount and when language changes
   useEffect(() => {
+    setDailyQs([])
+    setDailyAns({})
     const weakTopics = [...bhool.overdue, ...bhool.soon].map(b => b.concept).slice(0, 5)
     
     apiGenerateDailyQuestions({
@@ -248,108 +212,13 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
       .then(result => {
         if (result?.questions?.length > 0) {
           setDailyQs(result.questions.slice(0, 2))
-          // Restore revealed answers from localStorage (show = { 0: true, 1: true })
           if (dailyXpAwarded.show) {
             setDailyAns(dailyXpAwarded.show)
           }
         }
       })
       .catch(() => {})
-  }, [mood, masteries])
-
-  // ── Subject mastery tap ────────────────────────────────────
-  const tapSubject = async (sub) => {
-    if (subLoading) return
-    // Toggle collapse: tap same subject again to dismiss plan
-    if (selectedSub === sub) {
-      setSelectedSub(null)
-      setSubPlan("")
-      return
-    }
-    setSelectedSub(sub)
-    setSubPlan("")
-    setSubLoading(true)
-    
-    try {
-      const pct = masteries[sub] ?? 0
-      const result = await apiGenerateStudyPlan({
-        subject: sub,
-        mastery: pct,
-        standard: profile.standard,
-        board: profile.board || 'CBSE',
-        language: profile.language || 'English'
-      })
-      
-      setSubPlan(result?.plan || ui.noPlanGenerated || "No plan generated. Please try again.")
-      // Only award XP if freshly generated
-      if (!result?.saved) {
-        addXp(3)
-      }
-    } catch (err) {
-      console.error('Study plan error:', err)
-      setSubPlan(ui.noPlanGenerated || "No plan generated. Please try again.")
-    }
-    
-    setSubLoading(false)
-  }
-
-  // ── Exam Oracle: predict important topics (backend) ──────────────────
-  const generateOracle = async () => {
-    setOracleLoading(true)
-    setOracleTopics([])
-    setOracleSel(null)
-    setOracleDeep("")
-    
-    try {
-      const result = await apiGenerateExamOracle({
-        standard: profile.standard,
-        board: profile.board || 'CBSE',
-        language: profile.language || 'English',
-        subjects: subjects.slice(0, 4)
-      })
-      
-      if (result?.topics?.length) {
-        setOracleTopics(result.topics)
-        // Only award XP if freshly generated
-        if (!result?.saved) {
-          addXp(5)
-        }
-      }
-    } catch (err) {
-      console.error('Oracle error:', err)
-    }
-    
-    setOracleLoading(false)
-  }
-
-  // ── Deep Dive (backend) ─────────────────────────────────────
-  const deepDive = async (topic) => {
-    if (deepLoading) return
-    setOracleSel(topic)
-    setOracleDeep("")
-    setDeepLoading(true)
-    
-    try {
-      const result = await apiGenerateDeepDive({
-        topic: topic.topic,
-        subject: topic.subject,
-        standard: profile.standard,
-        board: profile.board || 'CBSE',
-        language: profile.language || 'English'
-      })
-      
-      setOracleDeep(result?.content || ui.noPlanGenerated || "Could not generate content. Please try again.")
-      // Only award XP if freshly generated
-      if (!result?.saved) {
-        addXp(3)
-      }
-    } catch (err) {
-      console.error('Deep dive error:', err)
-      setOracleDeep(ui.noPlanGenerated || "Could not generate content. Please try again.")
-    }
-    
-    setDeepLoading(false)
-  }
+  }, [mood, masteries, profile.language])
 
   const greeting = getTimeGreeting(getDisplayLang(profile))
   const ui = li(getDisplayLang(profile))
@@ -360,8 +229,8 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
       {/* ── Mood Check (fresh each day) ───────────────────── */}
       {!mood ? (
         <div className="bg-app-card border border-app-border rounded-[18px] pt-4 px-4 pb-3.5 mb-3.5">
-          <div className="text-sm font-bold text-app-text mb-3">
-            {ui.moodCheck} 🌱
+          <div className="text-sm font-bold text-app-text mb-3 flex items-center gap-1.5">
+            {ui.moodCheck} <Plant size={16} weight="duotone" className="text-app-green" />
           </div>
           <div className="flex gap-2">
             {[
@@ -405,8 +274,8 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
         <div className="text-[13px] text-app-muted mb-1">
           {greeting}
         </div>
-        <h2 className="text-[22px] font-black text-app-text m-0 mb-0.5">
-          {profile.name || ui.student || "Student"} 👋
+        <h2 className="text-lg sm:text-[22px] font-black text-app-text m-0 mb-0.5">
+          {profile.name || ui.student || "Student"} <HandWaving size={20} weight="fill" className="inline text-app-yellow" />
         </h2>
         <p className="text-xs text-app-muted m-0 mb-4">
           {profile.standard} &nbsp;·&nbsp; {profile.board} &nbsp;·&nbsp; {profile.language}
@@ -414,15 +283,15 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
 
         {/* Stats row */}
         <div className="flex gap-2">
-          <StatChip icon="⚡" value={`${xp} ${ui.xpLabel || 'XP'}`} color={'#FFD166'} />
-          <StatChip icon="🔥" value={`${streak} ${ui.streakLabel || 'day streak'}`} color={'#FF6B35'} />
-          <StatChip icon="🧠" value={`${avgMastery}% ${ui.avgLabel || 'avg'}`} color={masteryColor(avgMastery)} />
+          <StatChip icon={<Lightning size={14} weight="fill" />} value={`${xp} ${ui.xpLabel || 'XP'}`} color={'#FFD166'} />
+          <StatChip icon={<Fire size={14} weight="fill" />} value={`${streak} ${ui.streakLabel || 'day streak'}`} color={'#FF6B35'} />
+          <StatChip icon={<Brain size={14} weight="fill" />} value={`${avgMastery}% ${ui.avgLabel || 'avg'}`} color={masteryColor(avgMastery)} />
         </div>
       </div>
 
       {/* ── Quick Actions ─────────────────────────────────── */}
-      <Section title={`⚡ ${ui.quickActions || 'Quick Actions'}`}>
-        <div className="grid grid-cols-3 gap-2.5">
+      <Section title={<><Lightning size={16} weight="fill" className="inline text-app-yellow" /> {ui.quickActions || 'Quick Actions'}</>}>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
           {QUICK_ACTION_KEYS.map(btn => (
             <button
               key={btn.labelKey}
@@ -430,7 +299,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
               className="rounded-[14px] py-3.5 px-2 flex flex-col items-center justify-center gap-1.5 cursor-pointer font-[Sora,sans-serif] min-h-[76px] border"
               style={{ background: btn.grad, borderColor: `${btn.accent}30` }}
             >
-              <span className="text-2xl">{btn.icon}</span>
+              <span>{(() => { const Icon = QUICK_ACTION_ICONS[btn.iconKey]; return Icon ? <Icon size={24} weight="duotone" color={btn.accent} /> : null })()}</span>
               <span className="text-[11px] font-bold text-center leading-tight" style={{ color: btn.accent }}>
                 {ui[btn.labelKey] || btn.labelKey}
               </span>
@@ -440,10 +309,10 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
       </Section>
 
       {/* ── Daily Brain Brief ─────────────────────────────── */}
-      <Section title={`🌅 ${ui.dailyBrief?.replace(/^📋\s*/, '') || 'Daily Brain Brief'}`}>
+      <Section title={<><SunHorizon size={16} weight="duotone" className="inline text-app-orange" /> {ui.dailyBrief?.replace(/^📋\s*/, '') || 'Daily Brain Brief'}</>}>
         {!brief ? (
           <button onClick={generateBrief} disabled={briefLoading} className="primary-btn">
-            {briefLoading ? `✨ ${ui.generating || 'Generating'}…` : ui.generateBrief || '✨ Generate Today\'s Brief'}
+            {briefLoading ? <><Sparkle size={14} weight="fill" className="inline" /> {ui.generating || 'Generating'}…</> : <><Sparkle size={14} weight="fill" className="inline" /> {ui.generateBrief || 'Generate Today\'s Brief'}</>}
           </button>
         ) : (
           <div className="ai-card">
@@ -454,28 +323,28 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
 
       {/* ── Bhool Curve Memory Health ─────────────────────── */}
       {bhoolDue > 0 && (
-        <Section title={`🧠 ${ui.memoryHealth || 'Memory Health — Bhool Curve'}`}>
+        <Section title={<><Brain size={16} weight="duotone" className="inline text-app-blue" /> {ui.memoryHealth || 'Memory Health — Spaced Review'}</>}>
           <p className="text-xs text-app-muted mb-3">
             {ui.basedOnScience || 'Based on spaced repetition science — these concepts need review before you forget them'}
           </p>
           <div className="flex gap-2 mb-3.5">
             {bhool.overdue.length > 0 && (
               <div className="flex-1 bg-app-red/10 border border-app-red/30 rounded-xl py-2.5 px-3 text-center">
-                <div className="text-xl mb-1">🔴</div>
+                <div className="text-xl mb-1"><Circle size={20} weight="fill" className="text-app-red" /></div>
                 <div className="text-lg font-black text-app-red">{bhool.overdue.length}</div>
                 <div className="text-[10px] text-app-muted mt-0.5">{ui.forgetToday || 'Forget today'}</div>
               </div>
             )}
             {bhool.soon.length > 0 && (
               <div className="flex-1 bg-app-yellow/10 border border-app-yellow/30 rounded-xl py-2.5 px-3 text-center">
-                <div className="text-xl mb-1">🟡</div>
+                <div className="text-xl mb-1"><Circle size={20} weight="fill" className="text-app-yellow" /></div>
                 <div className="text-lg font-black text-app-yellow">{bhool.soon.length}</div>
                 <div className="text-[10px] text-app-muted mt-0.5">{ui.dueIn48h || 'Due in 48h'}</div>
               </div>
             )}
             {bhool.fresh.length > 0 && (
               <div className="flex-1 bg-app-green/10 border border-app-green/20 rounded-xl py-2.5 px-3 text-center">
-                <div className="text-xl mb-1">🟢</div>
+                <div className="text-xl mb-1"><Circle size={20} weight="fill" className="text-app-green" /></div>
                 <div className="text-lg font-black text-app-green">{bhool.fresh.length}</div>
                 <div className="text-[10px] text-app-muted mt-0.5">{ui.freshLabel || 'Fresh'}</div>
               </div>
@@ -494,19 +363,19 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
             ))}
           </div>
           <button onClick={() => setTab('labs')} className="primary-btn">
-            {ui.quickReviseNow || '⚡ Quick Revise Now'}
+            {ui.quickReviseNow || <><Lightning size={14} weight="fill" className="inline" /> Quick Revise Now</>}
           </button>
         </Section>
       )}
 
       {/* ── Mera Sawaal — 2 Daily Problems ────────────── */}
-      <Section title={ui.todaysChallenge || "🎯 My Questions — Today's Challenge"}>
+      <Section title={<><Target size={16} weight="duotone" className="inline text-app-blue" /> {ui.todaysChallenge || "My Questions — Today's Challenge"}</>}>
         <p className="text-xs text-app-muted mb-3">
           {ui.realWorldProblem || 'Two real-world problems using examples from your own state and culture'}
         </p>
         {dailyQs.length === 0 ? (
           <button onClick={generateDailyQ} disabled={dailyQLoad} className="primary-btn">
-            {dailyQLoad ? `🎲 ${ui.generating || 'Generating'}…` : (ui.getTodaysProblem || "🎲 Get Today's Problems")}
+            {dailyQLoad ? <><DiceFive size={14} weight="fill" className="inline" /> {ui.generating || 'Generating'}…</> : (ui.getTodaysProblem || <><DiceFive size={14} weight="fill" className="inline" /> Get Today's Problems</>)}
           </button>
         ) : (
           <div className="flex flex-col gap-4">
@@ -538,147 +407,16 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
                     }} 
                     className="primary-btn bg-app-yellow/20 border border-app-yellow/40 !text-app-yellow"
                   >
-                    {dailyXpAwarded.show?.[idx] ? (ui.showSolution || '💡 Show Solution') : (ui.showSolutionXp?.replace('8', '4') || '💡 Show Solution (+4 XP)')}
+                    {dailyXpAwarded.show?.[idx] ? (ui.showSolution || <><Lightbulb size={14} weight="fill" className="inline" /> Show Solution</>) : (ui.showSolutionXp?.replace('8', '4') || <><Lightbulb size={14} weight="fill" className="inline" /> Show Solution (+4 XP)</>)}
                   </button>
                 ) : (
                   <div className="bg-app-green/10 border border-app-green/20 rounded-xl p-3.5">
-                    <div className="text-xs font-bold text-app-green mb-1.5">{ui.solution || '✅ Solution'}</div>
+                    <div className="text-xs font-bold text-app-green mb-1.5 flex items-center gap-1"><CheckCircle size={14} weight="fill" /> {ui.solution || 'Solution'}</div>
                     <p className="text-[13px] text-app-text leading-[1.7] whitespace-pre-wrap m-0">{q.a}</p>
                   </div>
                 )}
               </div>
             ))}
-          </div>
-        )}
-      </Section>
-
-      {/* ── Subject Mastery ───────────────────────────────── */}
-      <Section title={`📚 ${ui.subjectMastery || 'Subject Mastery'}`}>
-        <p className="text-xs text-app-muted mb-3">
-          {ui.tapSubjectForPlan || 'Tap a subject to get a personalised study plan'}
-        </p>
-        <div className="flex flex-col gap-2">
-          {subjects.map(sub => {
-            const pct = masteries[sub] ?? 0
-            const color = pct === 0 ? '#6868a0' : masteryColor(pct)
-            const isSelected = selectedSub === sub
-            return (
-              <button
-                key={sub}
-                onClick={() => tapSubject(sub)}
-                className="rounded-[14px] py-3 px-3.5 cursor-pointer font-[Sora,sans-serif] text-left transition-all duration-150 border"
-                style={{
-                  background: isSelected ? `${color}12` : '#101022',
-                  borderColor: isSelected ? `${color}50` : 'rgba(255,255,255,0.03)',
-                }}
-              >
-                {/* Top row */}
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{subIcon(sub)}</span>
-                    <span className="text-[13px] font-bold text-app-text">{sub}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-bold" style={{ color }}>{masteryLabel(pct, getDisplayLang(profile))}</span>
-                    <span 
-                      className="text-xs font-black rounded-lg py-0.5 px-2"
-                      style={{ color, background: `${color}15` }}
-                    >{pct}%</span>
-                  </div>
-                </div>
-                {/* Progress bar */}
-                <div className="h-[5px] bg-white/5 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full rounded-full transition-[width] duration-[600ms] ease-out"
-                    style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${color}, ${color}bb)` }}
-                  />
-                </div>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Study plan output */}
-        {(subLoading || subPlan) && (
-          <div className="mt-3">
-            {subLoading
-              ? <LoadingDots label={`${ui.generatingFor || 'Generating plan for'} ${selectedSub}…`} />
-              : (
-                <div className="ai-card" style={{ borderColor: `${masteryColor(masteries[selectedSub] ?? 0)}30` }}>
-                  <div className="text-xs font-bold mb-1.5" style={{ color: masteryColor(masteries[selectedSub] ?? 0) }}>
-                    {ui.studyPlanFor || '📋 Study Plan —'} {selectedSub}
-                  </div>
-                  <p className="text-[13px] text-app-text leading-[1.8] whitespace-pre-wrap m-0">{subPlan}</p>
-                </div>
-              )
-            }
-          </div>
-        )}
-      </Section>
-
-      {/* ── Exam Oracle ───────────────────────────────────── */}
-      <Section title={`🔮 ${ui.examOracle || 'Exam Oracle'}`}>
-        <p className="text-xs text-app-muted mb-3">
-          {ui.examOracleDesc || `AI predicts the most likely topics for your exam`} — {profile.board} {profile.standard}
-        </p>
-        {!oracleTopics.length ? (
-          <button onClick={generateOracle} disabled={oracleLoading} className="primary-btn">
-            {oracleLoading ? (ui.predicting || "🔮 Predicting…") : (ui.predictTopics || "⚡ Predict This Year's Topics")}
-          </button>
-        ) : (
-          <>
-            <div className="flex flex-col gap-2">
-              {oracleTopics.map((t, i) => {
-                const topicColor = t.pct >= 80 ? '#FF6B6B' : t.pct >= 60 ? '#FFD166' : '#00E5A0'
-                return (
-                  <button
-                    key={i}
-                    onClick={() => deepDive(t)}
-                    className="rounded-xl py-3 px-3.5 flex items-center justify-between cursor-pointer font-[Sora,sans-serif] text-left border"
-                    style={{
-                      background: oracleSel?.topic === t.topic ? `${topicColor}12` : '#101022',
-                      borderColor: oracleSel?.topic === t.topic ? `${topicColor}50` : 'rgba(255,255,255,0.03)',
-                    }}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span 
-                        className="text-[11px] font-extrabold rounded-md py-0.5 px-1.5 min-w-[20px] text-center"
-                        style={{ color: topicColor, background: `${topicColor}15` }}
-                      >{i + 1}</span>
-                      <span className="text-[13px] text-app-text font-semibold">{t.topic}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <div className="w-12 h-1 bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${t.pct}%`, background: topicColor }} />
-                      </div>
-                      <span className="text-xs font-black min-w-[32px] text-right" style={{ color: topicColor }}>{t.pct}%</span>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-            <button
-              onClick={generateOracle}
-              disabled={oracleLoading}
-              className="ghost-btn mt-2.5"
-            >
-              {oracleLoading ? (ui.predicting || "🔮 Predicting…") : (ui.rePredict || "↺ Re-predict")}
-            </button>
-          </>
-        )}
-
-        {(deepLoading || oracleDeep) && (
-          <div className="mt-3">
-            {deepLoading
-              ? <LoadingDots label={`${ui.deepDiving || 'Deep diving into'} ${oracleSel?.topic}…`} />
-              : (
-                <div className="ai-card border-app-yellow/30">
-                  <div className="text-xs font-bold text-app-yellow mb-1.5">
-                    {ui.deepDive || '🔮 Deep Dive —'} {oracleSel?.topic}
-                  </div>
-                  <p className="text-[13px] text-app-text leading-[1.8] whitespace-pre-wrap m-0">{oracleDeep}</p>
-                </div>
-              )}
           </div>
         )}
       </Section>
@@ -695,21 +433,21 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
                 {lastTab === 'notebook' && '📖'}
                 {lastTab === 'videos' && '🎬'}
                 {lastTab === 'labs' && '🧪'}
-                {lastTab === 'sathi' && '👥'}
-                {lastTab === 'bhool' && '🧠'}
-                {lastTab === 'muqabla' && '⚔️'}
-                {!['notebook','videos','labs','sathi','bhool','muqabla'].includes(lastTab) && '📌'}
+                {lastTab === 'squads' && '👥'}
+                {lastTab === 'mistakes' && '🧠'}
+                {lastTab === 'battles' && '⚔️'}
+                {!['notebook','videos','labs','squads','mistakes','battles'].includes(lastTab) && '📌'}
               </span>
               <div>
                 <div className="text-[13px] font-bold text-app-text">
                   {lastTab === 'notebook' && (ui.notebookTab?.replace(/^📓\s*/, '') || 'Notebook')}
                   {lastTab === 'videos' && (ui.videosTab?.replace(/^🎬\s*/, '') || 'Videos')}
                   {lastTab === 'labs' && (ui.labsTab?.replace(/^🧪\s*/, '') || 'Labs')}
-                  {lastTab === 'sathi' && (ui.sathiTab?.replace(/^🤝\s*/, '') || 'Companion')}
-                  {lastTab === 'bhool' && (ui.bhoolTab?.replace(/^📛\s*/, '') || 'Mistakes')}
-                  {lastTab === 'muqabla' && (ui.muqablaTab?.replace(/^⚔️\s*/, '') || 'Battle')}
+                  {lastTab === 'squads' && (ui.sathiTab?.replace(/^🤝\s*/, '') || 'Study Squads')}
+                  {lastTab === 'mistakes' && (ui.bhoolTab?.replace(/^📛\s*/, '') || 'Mistakes')}
+                  {lastTab === 'battles' && (ui.muqablaTab?.replace(/^⚔️\s*/, '') || 'Battles')}
                   {lastTab === 'learntv' && (ui.learntvTab?.replace(/^📺\s*/, '') || 'Learn TV')}
-                  {!['notebook','videos','labs','sathi','bhool','muqabla','learntv'].includes(lastTab) && lastTab}
+                  {!['notebook','videos','labs','squads','mistakes','battles','learntv'].includes(lastTab) && lastTab}
                 </div>
                 <div className="text-[11px] text-app-muted">{ui.pickUpWhereLeftOff || 'Pick up where you left off'}</div>
               </div>
@@ -726,7 +464,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
             {pendingBattles.slice(0, 3).map((battle, i) => (
               <button
                 key={battle.id || i}
-                onClick={() => setTab('muqabla')}
+                onClick={() => setTab('battles')}
                 className="w-full rounded-xl py-3 px-3.5 flex items-center gap-3 cursor-pointer font-[Sora,sans-serif] text-left border bg-app-red/10 border-app-red/30"
               >
                 <span className="text-lg">⚔️</span>
@@ -742,34 +480,6 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
               </button>
             ))}
           </div>
-        </Section>
-      )}
-
-      {/* ── Squad Activity ───────────────────────────────────── */}
-      {mySquad && (
-        <Section title={`👥 ${ui.yourSquad || 'Your Squad'}`}>
-          <button
-            onClick={() => setTab('sathi')}
-            className="w-full rounded-[14px] py-3.5 px-4 flex items-center justify-between cursor-pointer font-[Sora,sans-serif] border bg-gradient-to-r from-app-green/10 to-app-blue/10 border-app-green/30 hover:border-app-green/50 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">👥</span>
-              <div>
-                <div className="text-[13px] font-bold text-app-text">{mySquad.name || ui.studySquad || 'Study Squad'}</div>
-                <div className="text-[11px] text-app-muted">
-                  {mySquad.member_count || mySquad.members?.length || '?'} {ui.members || 'members'} • {mySquad.focus_subject || 'General'}
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col items-end gap-0.5">
-              {mySquad.message_count > 0 && (
-                <span className="text-[10px] font-bold text-white bg-app-green rounded-full py-0.5 px-2">
-                  {mySquad.message_count} {ui.newMessages || 'new'}
-                </span>
-              )}
-              <span className="text-app-green text-lg">→</span>
-            </div>
-          </button>
         </Section>
       )}
 

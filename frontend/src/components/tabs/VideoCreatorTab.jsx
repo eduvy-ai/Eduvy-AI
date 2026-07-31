@@ -10,6 +10,7 @@ import {
 } from '../../api.js'
 import { li } from '../../i18n/index.js'
 import { mediaUrl } from '../../shared/utils/helpers'
+import { getDisplayLang } from '../../shared.js'
 import StylePicker from '../video/StylePicker'
 import SceneEditor from '../video/SceneEditor'
 import VideoPlayer from '../video/VideoPlayer'
@@ -37,7 +38,7 @@ const TIMINGS = [
 export default function VideoCreatorTab({ profile = null }) {
   const [step, setStep] = useState(0)
   const lang = profile?.language || 'English'
-  const ui = li(lang)
+  const ui = li(getDisplayLang(profile))
 
   // Step 1 form
   const [topic, setTopic] = useState('')
@@ -267,7 +268,7 @@ export default function VideoCreatorTab({ profile = null }) {
   // ────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-full bg-app-bg px-4 md:px-6 lg:px-8 py-6">
+    <div className="bg-app-bg px-4 md:px-6 lg:px-8 py-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -433,7 +434,7 @@ function StepInput({ topic, setTopic, grade, setGrade, subject, setSubject,
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="label">{ui.vcGrade || 'Grade'}</label>
           <select
@@ -456,7 +457,7 @@ function StepInput({ topic, setTopic, grade, setGrade, subject, setSubject,
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="label">{ui.vcNarrationLang || 'Narration Language'}</label>
           <select
@@ -479,7 +480,7 @@ function StepInput({ topic, setTopic, grade, setGrade, subject, setSubject,
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="label">{ui.vcVideoLength || 'Video Length'}</label>
           <select

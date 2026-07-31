@@ -131,7 +131,7 @@ export default function QuestionInput({
           {showModeDropdown && (
             <div 
               className={`
-                absolute left-0 w-56 bg-app-card border border-app-border rounded-xl shadow-2xl z-[100]
+                absolute left-0 w-[min(14rem,calc(100vw-2rem))] bg-app-card border border-app-border rounded-xl shadow-2xl z-[100]
                 max-h-64 overflow-y-auto
                 ${openUpward ? 'bottom-full mb-2' : 'top-full mt-2'}
               `}
@@ -170,6 +170,20 @@ export default function QuestionInput({
             </div>
           )}
         </div>
+
+        {/* Mic Button */}
+        <button
+          onClick={async () => {
+            try {
+              const { startVoiceInput } = await import('../../shared.js')
+              const text = await startVoiceInput('en-IN')
+              if (text) onChange(value ? value + ' ' + text : text)
+            } catch {}
+          }}
+          className="mic-btn shrink-0"
+          title="Voice input"
+          type="button"
+        ><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="1" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
 
         {/* Send Button */}
         <button

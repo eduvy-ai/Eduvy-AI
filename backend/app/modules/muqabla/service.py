@@ -354,12 +354,26 @@ class MuqablaService:
             cur.execute("""
                 SELECT u.id, u.name, u.school, u.standard, u.xp,
                     (SELECT COUNT(*) FROM muqabla_battles 
-                     WHERE winner_id = u.id AND completed_at > NOW() - INTERVAL '7 days') AS wins
+                     WHERE winner_id = u.id AND completed_at > NOW() - INTERVAL '7 days') AS wins,
+                    (SELECT COUNT(*) FROM muqabla_battles
+                     WHERE (challenger_id = u.id OR opponent_id = u.id) AND status = 'completed'
+                       AND completed_at > NOW() - INTERVAL '7 days') AS total_battles
                 FROM users u
-                ORDER BY xp DESC
+                WHERE u.id IN (
+                    SELECT DISTINCT challenger_id FROM muqabla_battles WHERE completed_at > NOW() - INTERVAL '7 days'
+                    UNION
+                    SELECT DISTINCT opponent_id FROM muqabla_battles WHERE opponent_id IS NOT NULL AND completed_at > NOW() - INTERVAL '7 days'
+                )
+                ORDER BY wins DESC, u.xp DESC
                 LIMIT %s
             """, (limit,))
-            return [dict(r) for r in cur.fetchall()]
+            rows = cur.fetchall()
+            result = []
+            for i, r in enumerate(rows):
+                d = dict(r)
+                d["rank"] = i + 1
+                result.append(d)
+            return result
         finally:
             conn.close()
 
@@ -408,16 +422,24 @@ class MuqablaService:
             cur = conn.cursor()
             cur.execute("""
                 SELECT school,
-                       COUNT(*) AS students,
+                       COUNT(*) AS member_count,
                        SUM(xp) AS total_xp,
-                       AVG(xp)::int AS avg_xp
-                FROM users
+                       (SELECT COUNT(*) FROM muqabla_battles mb
+                        WHERE mb.winner_id IN (SELECT id FROM users u2 WHERE u2.school = u.school)
+                          AND mb.completed_at > NOW() - INTERVAL '7 days') AS total_wins
+                FROM users u
                 WHERE school IS NOT NULL AND school <> ''
                 GROUP BY school
-                ORDER BY total_xp DESC
+                ORDER BY total_wins DESC, total_xp DESC
                 LIMIT %s
             """, (limit,))
-            return [dict(r) for r in cur.fetchall()]
+            rows = cur.fetchall()
+            result = []
+            for i, r in enumerate(rows):
+                d = dict(r)
+                d["rank"] = i + 1
+                result.append(d)
+            return result
         finally:
             conn.close()
 

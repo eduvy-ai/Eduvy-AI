@@ -5,6 +5,7 @@ import React, { useEffect } from 'react'
 import { useAuth } from './modules/auth/hooks'
 import AppRoutes from './routes'
 import Loader from './shared/components/Loader'
+import { GraduationCap } from '@phosphor-icons/react'
 
 const App: React.FC = () => {
   const { initialize, isInitialized } = useAuth()
@@ -29,7 +30,7 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-app-bg flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="text-[48px]">🎓</div>
+          <GraduationCap size={48} weight="duotone" className="text-app-green" />
           <Loader size="lg" />
           <p className="text-app-muted text-sm">Loading Eduvy-AI...</p>
         </div>

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { BOARDS, LANGS, PLANS, getDisplayLang } from '../shared.js'
-import { apiGetParentPin, apiCreateParentPin, apiRevokeParentPin, apiGetMyReferralCode } from '../api.js'
+import { apiGetParentPin, apiCreateParentPin, apiRevokeParentPin, apiGetMyReferralCode, apiGetAiUsage } from '../api.js'
 import { li } from '../i18n/index.js'
+import { APP_URL } from '../config'
 import UpgradePlanModal from './UpgradePlanModal.jsx'
+import { GearSix, X, CheckCircle, XCircle, ShareNetwork, UsersThree, ClipboardText, Clock, Trash, Link, ArrowUp, Lock, Warning, Robot, SignOut } from '@phosphor-icons/react'
 
 const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
 
@@ -18,7 +20,7 @@ const PLAN_MODEL_LABEL = {
   premium: 'Your chosen model',
 }
 
-export default function SettingsModal({ config, savedKeys = {}, onSave, onClose, onLogout, profile, onProfileSave }) {
+export default function SettingsModal({ onClose, onLogout, profile, onProfileSave }) {
   const [activeTab, setActiveTab] = useState('ai')
   const [showUpgrade, setShowUpgrade] = useState(false)
 
@@ -41,6 +43,8 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
   const [pDisplayLang, setPDisplayLang] = useState(profile?.displayLanguage || "medium")  // "english" or "medium"
   const [pSchool, setPSchool] = useState(profile?.school || "")
   const [profileSaved, setProfileSaved] = useState(false)
+  const [profileError, setProfileError]   = useState('')
+  const [profileSaving, setProfileSaving] = useState(false)
 
   // ── Parent PIN state ─────────────────────────────────────────
   const [parentPin,     setParentPin]     = useState(null)
@@ -48,11 +52,21 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
   const [pinLoading,    setPinLoading]    = useState(false)
   const [pinCopied,     setPinCopied]     = useState(false)
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
     if (!pName.trim()) return
-    onProfileSave?.({ name: pName.trim(), standard: pStd, board: pBoard, language: pLang, displayLanguage: pDisplayLang, school: pSchool.trim() })
-    setProfileSaved(true)
-    setTimeout(() => setProfileSaved(false), 2000)
+    setProfileError('')
+    setProfileSaving(true)
+    try {
+      await onProfileSave?.({ name: pName.trim(), standard: pStd, board: pBoard, language: pLang, displayLanguage: pDisplayLang, school: pSchool.trim() })
+      setProfileSaved(true)
+      setTimeout(() => setProfileSaved(false), 2000)
+    } catch (e) {
+      console.error('Save profile error:', e)
+      setProfileError(e?.message || 'unknown')
+      setTimeout(() => setProfileError(''), 5000)
+    } finally {
+      setProfileSaving(false)
+    }
   }
 
   // Fetch usage when AI tab is active
@@ -71,20 +85,31 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
   useEffect(() => {
     if (activeTab !== 'ai') return
     setUsageLoading(true)
-    const token = localStorage.getItem('eduvyai_token')
-    fetch('/api/ai/usage', {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-      signal: AbortSignal.timeout(5000),
-    })
-      .then(r => r.ok ? r.json() : null)
+    apiGetAiUsage()
       .then(data => { setUsage(data); setUsageLoading(false) })
       .catch(() => setUsageLoading(false))
   }, [activeTab])
 
+  // ── Handle hardware/browser back button ──────────────────────
+  useEffect(() => {
+    // Push a state so back button can pop it
+    window.history.pushState({ modal: 'settings' }, '')
+    const handlePop = () => onClose()
+    window.addEventListener('popstate', handlePop)
+    return () => {
+      window.removeEventListener('popstate', handlePop)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Close via X button: also go back in history to remove pushed state
+  const handleClose = () => {
+    window.history.back()
+  }
+
   return (
     <>
-    <div className="fixed inset-0 bg-black/75 z-[999] flex items-end justify-center" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="w-full max-w-[480px] bg-[#0e0e20] rounded-t-[20px] border border-app-border max-h-[92vh] overflow-y-auto pb-6">
+    <div className="fixed inset-0 bg-black/75 z-[999] flex items-end justify-center" onClick={e => e.target === e.currentTarget && handleClose()}>
+      <div className="w-full max-w-[480px] bg-[#0e0e20] rounded-t-[20px] border border-app-border max-h-[92dvh] overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         {/* Handle */}
         <div className="flex justify-center py-3 pb-1">
           <div className="w-9 h-1 rounded-sm bg-white/10" />
@@ -93,9 +118,9 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
         <div className="px-[18px] pt-2">
           <div className="flex items-center justify-between mb-3.5">
             <div>
-              <h2 className="text-[17px] font-extrabold text-app-text">⚙️ {ui.settings}</h2>
+              <h2 className="text-[17px] font-extrabold text-app-text flex items-center gap-2"><GearSix size={18} weight="duotone" /> {ui.settings}</h2>
             </div>
-            <button onClick={onClose} className="bg-transparent border-none text-app-muted text-xl cursor-pointer font-[Sora,sans-serif]">✕</button>
+            <button onClick={handleClose} className="bg-transparent border-none text-app-muted cursor-pointer font-[Sora,sans-serif]"><X size={20} /></button>
           </div>
 
           {/* Tab switcher */}
@@ -149,107 +174,25 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                 <label className={labelClass}>{ui.schoolName}</label>
                 <input className={inputClass} type="text" value={pSchool} onChange={e => setPSchool(e.target.value)} placeholder={ui.schoolPlaceholder} maxLength={100} />
               </div>
-              <button onClick={saveProfile} className="w-full bg-gradient-to-br from-app-green to-emerald-500 text-app-bg border-none rounded-xl py-3 px-4 text-sm font-extrabold cursor-pointer font-[Sora,sans-serif]">
-                {profileSaved ? `✅ ${ui.saved}` : ui.saveProfile}
+              <button onClick={saveProfile} disabled={profileSaving} className="w-full bg-gradient-to-br from-app-green to-emerald-500 text-app-bg border-none rounded-xl py-3 px-4 text-sm font-extrabold cursor-pointer font-[Sora,sans-serif] disabled:opacity-60">
+                {profileSaving ? 'Saving...' : profileSaved ? <><CheckCircle size={14} weight="fill" className="inline" /> {ui.saved}</> : profileError ? <><XCircle size={14} weight="fill" className="inline" /> {ui.saveFailed}</> : ui.saveProfile}
               </button>
+              {profileError && <p className="text-app-red text-[11px] mt-1 mb-0">{profileError}</p>}
 
-              {/* ── Refer Friends ── */}
-              <div className="mt-2 bg-app-blue/5 border border-app-blue/20 rounded-[14px] p-4">
+              {/* ── Refer Friends — Coming Soon ── */}
+              <div className="mt-2 bg-app-blue/5 border border-app-blue/20 rounded-[14px] p-4 opacity-60">
                 <div className="font-bold text-app-blue text-sm mb-1.5">
                   {ui.referFriends}
                 </div>
-                <p className="text-app-muted text-xs m-0 mb-3">
-                  {ui.referDescription}
-                </p>
-                {referral ? (
-                  <div className="flex items-center gap-2.5 bg-app-card2 rounded-[10px] py-2.5 px-3.5">
-                    <div className="flex-1">
-                      <div className="text-app-muted text-[10px] mb-0.5">{ui.yourReferralCode}</div>
-                      <div className="font-mono text-xl font-black text-app-blue tracking-[4px]">
-                        {referral.code}
-                      </div>
-                      {referral.referred_count > 0 && (
-                        <div className="text-app-green text-[11px] mt-0.5">
-                          ✓ {referral.referred_count} {ui.friendsJoined}
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => {
-                        const shareText = `Join VidyAI — AI tutor in your language! Use my code ${referral.code} to get +200 XP bonus. ${window.location.origin}`
-                        if (navigator.share) {
-                          navigator.share({ title: 'Join VidyAI', text: shareText }).catch(() => {})
-                        } else {
-                          navigator.clipboard?.writeText(shareText)
-                          setRefCopied(true)
-                          setTimeout(() => setRefCopied(false), 2000)
-                        }
-                      }}
-                      className={`rounded-[10px] py-1.5 px-3 text-xs cursor-pointer font-bold ${refCopied ? 'bg-app-green/15 border border-app-green/30 text-app-green' : 'bg-app-blue/15 border border-app-blue/30 text-app-blue'}`}
-                    >{refCopied ? `✅ ${ui.copied}` : `📲 ${ui.share}`}</button>
-                  </div>
-                ) : (
-                  <div className="text-app-muted text-xs">{ui.loading}...</div>
-                )}
+                <p className="text-app-muted text-xs m-0">🚀 Coming Soon</p>
               </div>
 
-              {/* ── Share with Parent ── */}
-              <div className="mt-2 bg-app-green/5 border border-app-green/20 rounded-[14px] p-4">
-                <div className="font-bold text-app-green text-sm mb-1.5">
-                  👨‍👩‍👦 {ui.shareWithParent}
+              {/* ── Share with Parent — Coming Soon ── */}
+              <div className="mt-2 bg-app-green/5 border border-app-green/20 rounded-[14px] p-4 opacity-60">
+                <div className="font-bold text-app-green text-sm mb-1.5 flex items-center gap-1.5">
+                  <UsersThree size={16} weight="fill" /> {ui.shareWithParent}
                 </div>
-                <p className="text-app-muted text-xs m-0 mb-3">
-                  {ui.parentPinDescription}
-                </p>
-                {parentPin ? (
-                  <>
-                    <div className="bg-app-card2 rounded-[10px] py-2.5 px-3.5 flex items-center justify-between mb-2">
-                      <div>
-                        <div className="text-app-muted text-[10px] mb-0.5">{ui.parentLink}</div>
-                        <div className="font-mono text-base font-black text-app-yellow tracking-[3px]">{parentPin}</div>
-                        <div className="text-app-muted text-[10px] mt-0.5">
-                          {window.location.origin}/parent/{parentPin}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard?.writeText(`${window.location.origin}/parent/${parentPin}`)
-                          setPinCopied(true)
-                          setTimeout(() => setPinCopied(false), 2000)
-                        }}
-                        className={`rounded-[10px] py-1.5 px-3 text-xs cursor-pointer ${pinCopied ? 'bg-app-green/15 border border-app-green text-app-green' : 'bg-app-card border border-app-border text-app-text'}`}
-                      >{pinCopied ? `✅ ${ui.copied}` : `📋 ${ui.copy}`}</button>
-                    </div>
-                    {parentExpires && (
-                      <div className="text-app-muted text-[11px] mb-2">
-                        ⏰ {ui.validUntil} {new Date(parentExpires).toLocaleDateString()}
-                      </div>
-                    )}
-                    <button
-                      disabled={pinLoading}
-                      onClick={async () => {
-                        setPinLoading(true)
-                        try {
-                          const r = await apiRevokeParentPin()
-                          if (r.revoked) { setParentPin(null); setParentExpires(null) }
-                        } finally { setPinLoading(false) }
-                      }}
-                      className="w-full bg-app-red/10 border border-app-red/20 text-app-red rounded-[10px] py-1.5 px-3.5 text-xs cursor-pointer"
-                    >{pinLoading ? `${ui.revoking}...` : `🗑 ${ui.revokeAccess}`}</button>
-                  </>
-                ) : (
-                  <button
-                    disabled={pinLoading}
-                    onClick={async () => {
-                      setPinLoading(true)
-                      try {
-                        const r = await apiCreateParentPin()
-                        setParentPin(r.pin); setParentExpires(r.expires_at)
-                      } finally { setPinLoading(false) }
-                    }}
-                    className="w-full bg-app-green/15 border border-app-green/30 text-app-green rounded-[10px] py-2.5 text-sm font-bold cursor-pointer"
-                  >{pinLoading ? `${ui.generating}...` : `🔗 ${ui.generateParentLink}`}</button>
-                )}
+                <p className="text-app-muted text-xs m-0">🚀 Coming Soon</p>
               </div>
             </div>
           )}
@@ -271,8 +214,8 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                     <div className="text-lg font-black" style={{ color: currentPlanInfo.color }}>{currentPlanInfo.label}</div>
                     <div className="text-xs text-app-muted mt-0.5">{ui.yourCurrentPlan}</div>
                     {profile?.plan_expires_at && (
-                      <div className="text-[11px] text-app-yellow mt-1">
-                        ⏰ Expires: {profile.plan_expires_at}
+                      <div className="text-[11px] text-app-yellow mt-1 flex items-center gap-1">
+                        <Clock size={11} /> {ui.expires}: {new Date(profile.plan_expires_at).toLocaleDateString()}
                       </div>
                     )}
                   </div>
@@ -300,11 +243,11 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                           {isActive && <span className="ml-auto text-[10px] font-bold rounded-md py-0.5 px-2" style={{ color: info.color, background: `${info.color}20` }}>{ui.active}</span>}
                         </div>
                         <div className="text-[11px] text-app-muted leading-relaxed">
-                          Tabs: {info.tabs.join(" · ")}
+                          {ui.tabsLabel}: {info.tabs.join(" · ")}
                         </div>
                         {info.labs.length > 0 && (
                           <div className="text-[11px] text-app-muted mt-0.5">
-                            Labs: {info.labs.join(" · ")}
+                            {ui.labsLabel}: {info.labs.join(" · ")}
                           </div>
                         )}
                         <div className="text-[11px] text-app-muted mt-0.5">
@@ -322,7 +265,7 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                     onClick={() => setShowUpgrade(true)}
                     className="w-full py-3 rounded-[14px] mt-1 bg-gradient-to-br from-app-green to-app-blue border-none text-app-bg text-sm font-black cursor-pointer font-[Sora,sans-serif]"
                   >
-                    ⬆️ {ui.upgradePlan}
+                    <ArrowUp size={14} weight="bold" className="inline" /> {ui.upgradePlan}
                   </button>
                 )}
               </div>
@@ -333,9 +276,9 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
           {activeTab === "ai" && (() => {
             const userPlan = profile?.plan || 'free'
             const planInfo = PLANS[userPlan] || PLANS.free
-            const used  = usage?.today?.calls || 0
-            const limit = usage?.daily_quota  || planInfo.aiCallsPerDay || 10
-            const remaining = usage?.today?.remaining ?? Math.max(0, limit - used)
+            const used  = usage?.today_calls || 0
+            const limit = usage?.daily_limit  || planInfo.aiCallsPerDay || 10
+            const remaining = Math.max(0, limit - used)
             const pct = Math.min(100, limit > 0 ? Math.round((used / limit) * 100) : 0)
             const barColor = pct >= 90 ? '#FF6B6B' : pct >= 70 ? '#FFD166' : '#00E5A0'
             return (
@@ -343,25 +286,25 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
 
                 {/* Managed AI notice */}
                 <div className="bg-app-green/5 border border-app-green/20 rounded-[14px] py-3.5 px-4 flex items-center gap-3">
-                  <span className="text-[28px] shrink-0">🔐</span>
+                  <Lock size={28} weight="duotone" className="text-app-green shrink-0" />
                   <div>
-                    <div className="text-[13px] font-extrabold text-app-green">AI Managed by Eduvy-AI</div>
+                    <div className="text-[13px] font-extrabold text-app-green">{ui.aiManagedTitle}</div>
                     <div className="text-[11px] text-app-muted mt-0.5 leading-relaxed">
-                      Everything is handled on our servers. No API keys needed.
+                      {ui.aiManagedDesc}
                     </div>
                   </div>
                 </div>
 
                 {/* Today's usage meter */}
                 <div className="bg-app-card border border-app-border rounded-[14px] py-4 px-[18px]">
-                  <div className="text-[11px] font-bold text-app-muted mb-3 tracking-wider">TODAY'S AI CALLS</div>
+                  <div className="text-[11px] font-bold text-app-muted mb-3 tracking-wider">{ui.todaysAiCalls}</div>
                   {usageLoading ? (
-                    <div className="text-xs text-app-muted">Loading…</div>
+                    <div className="text-xs text-app-muted">{ui.loading}</div>
                   ) : (
                     <>
                       <div className="flex items-baseline gap-1.5 mb-2.5">
-                        <span className="text-[32px] font-black" style={{ color: barColor }}>{used}</span>
-                        <span className="text-sm text-app-muted">/ {limit === Infinity ? '∞' : limit} calls</span>
+                        <span className="text-2xl sm:text-[32px] font-black" style={{ color: barColor }}>{used}</span>
+                        <span className="text-sm text-app-muted">/ {limit === Infinity ? '∞' : limit} {ui.calls}</span>
                       </div>
                       <div className="h-2 rounded bg-app-card2 overflow-hidden mb-2">
                         <div 
@@ -371,18 +314,18 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
                       </div>
                       <div className="flex justify-between">
                         <span className="text-[11px] text-app-muted">
-                          {remaining} remaining today
+                          {remaining} {ui.remainingToday}
                         </span>
-                        {usage?.today?.tokens > 0 && (
+                        {usage?.today_tokens > 0 && (
                           <span className="text-[11px] text-app-muted">
-                            ~{((usage.today.tokens) / 1000).toFixed(1)}K tokens used
+                            ~{((usage.today_tokens) / 1000).toFixed(1)}K {ui.tokensUsed}
                           </span>
                         )}
                       </div>
                       {pct >= 90 && (
                         <div className="mt-2.5 text-xs text-app-red bg-app-red/10 rounded-lg py-2 px-2.5 leading-relaxed">
-                          ⚠️ Almost at your daily limit. Resets at midnight.
-                          {userPlan !== 'premium' && " Upgrade your plan for more calls."}
+                          <Warning size={12} weight="fill" className="inline" /> {ui.dailyLimitWarning}
+                          {userPlan !== 'premium' && ` ${ui.upgradeForMore}`}
                         </div>
                       )}
                     </>
@@ -391,32 +334,32 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
 
                 {/* Active model info */}
                 <div className="bg-app-card border border-app-border rounded-[14px] py-3.5 px-4 flex items-center gap-3">
-                  <span className="text-[22px] shrink-0">🤖</span>
+                  <Robot size={22} weight="duotone" className="text-app-blue shrink-0" />
                   <div>
-                    <div className="text-[11px] font-bold text-app-muted mb-0.5">YOUR AI MODEL</div>
+                    <div className="text-[11px] font-bold text-app-muted mb-0.5">{ui.yourAiModel}</div>
                     <div className="text-[13px] font-bold text-app-text">
-                      {PLAN_MODEL_LABEL[userPlan] || 'Auto-selected'}
+                      {PLAN_MODEL_LABEL[userPlan] || ui.autoSelected}
                     </div>
                     <div className="text-[11px] text-app-muted mt-0.5">
-                      Assigned by your {planInfo.icon} {planInfo.label} plan
+                      {ui.assignedByPlan} {planInfo.icon} {planInfo.label} {ui.plan}
                     </div>
                   </div>
                 </div>
 
                 {/* Monthly usage */}
-                {usage?.this_month && (
+                {usage?.month_calls > 0 && (
                   <div className="bg-app-card border border-app-border rounded-[14px] py-3.5 px-4">
-                    <div className="text-[11px] font-bold text-app-muted mb-2.5 tracking-wider">THIS MONTH</div>
+                    <div className="text-[11px] font-bold text-app-muted mb-2.5 tracking-wider">{ui.thisMonth}</div>
                     <div className="flex gap-5">
                       <div>
-                        <div className="text-lg font-black text-app-blue">{usage.this_month.calls}</div>
-                        <div className="text-[10px] text-app-muted">total calls</div>
+                        <div className="text-lg font-black text-app-blue">{usage.month_calls}</div>
+                        <div className="text-[10px] text-app-muted">{ui.totalCalls}</div>
                       </div>
                       <div>
                         <div className="text-lg font-black text-app-blue">
-                          {((usage.this_month.tokens || 0) / 1000).toFixed(1)}K
+                          {((usage.month_tokens || 0) / 1000).toFixed(1)}K
                         </div>
-                        <div className="text-[10px] text-app-muted">tokens</div>
+                        <div className="text-[10px] text-app-muted">{ui.tokens}</div>
                       </div>
                     </div>
                   </div>
@@ -435,7 +378,7 @@ export default function SettingsModal({ config, savedKeys = {}, onSave, onClose,
               onClick={onLogout}
               className="w-full bg-app-red/10 border border-app-red/25 text-app-red rounded-xl py-3 text-sm font-bold cursor-pointer font-[Sora,sans-serif] hover:bg-app-red/20 active:scale-[0.97] transition-all"
             >
-              🚪 {ui.logout || 'Log Out'}
+              <SignOut size={16} weight="bold" className="inline" /> {ui.logout}
             </button>
           </div>
         )}

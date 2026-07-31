@@ -1,6 +1,6 @@
 // ─── Study Coach Page ───────────────────────────────────────
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useStudyCoach } from '../../modules/studycoach'
 import { useAuth } from '../../modules/auth'
 import { li, getDisplayLang } from '../../shared.js'
@@ -29,6 +29,11 @@ export default function StudyCoachPage() {
   const userLanguage = user?.language || 'English'
   const ui = useMemo(() => li(getDisplayLang(user)), [user])
 
+  // Clear old response when language changes so stale content doesn't persist
+  useEffect(() => {
+    clear()
+  }, [userLanguage]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSubmit = useCallback(async () => {
     if (!question.trim()) return
     await ask({ question: question.trim() })
@@ -40,7 +45,7 @@ export default function StudyCoachPage() {
   }, [clear])
 
   return (
-    <div className="min-h-full bg-app-bg text-app-text p-4 md:p-6">
+    <div className="bg-app-bg text-app-text p-4 pb-6 md:p-6">
       <div className="max-w-4xl mx-auto space-y-5">
         {/* Header */}
         <header className="text-center space-y-1">

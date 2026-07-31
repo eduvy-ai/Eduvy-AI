@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { callAI, parseAIObject, SUBS } from '../../shared.js'
+import { callAI, parseAIObject, SUBS, getDisplayLang } from '../../shared.js'
+import { li } from '../../i18n/index.js'
 import { getDeviceId, apiSaveQuizResult, apiGetQuizStats } from '../../api.js'
 
 
@@ -36,6 +37,7 @@ const ERROR_TYPE_LABELS = {
 }
 
 export default function QuizLab({ profile, addXp, userId, onBack }) {
+  const ui = li(getDisplayLang(profile))
   const uid            = userId || getDeviceId()
   const subjects       = profile.subjects?.length ? profile.subjects : (SUBS[profile.standard] || [])
   const [selSub, setSelSub]         = useState(subjects[0] || "")
@@ -78,7 +80,7 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
     if (parsed?.q && parsed?.o?.length === 4) {
       setQuestion(parsed)
     } else {
-      setError("Could not generate question. Please try again.")
+      setError(ui.couldNotGenerate)
     }
     setLoading(false)
   }
@@ -129,21 +131,21 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
   const accuracyColor = accuracy >= 70 ? "#00E5A0" : accuracy >= 40 ? "#FFD166" : "#FF6B6B"
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-130px)]">
+    <div className="flex flex-col h-full min-h-0">
       {/* Header */}
       <div className="bg-app-card border-b border-app-border px-4 py-3 flex items-center gap-2.5 shrink-0">
-        <button onClick={onBack} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">← Back</button>
-        <span className="text-[15px] font-extrabold text-app-text">⚡ Quiz Arena</span>
+        <button onClick={onBack} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">{ui.backBtn}</button>
+        <span className="text-[15px] font-extrabold text-app-text">{ui.quizArenaTitle}</span>
         <div className="ml-auto text-xs text-app-muted">{score.correct}/{score.total} · {accuracy}%</div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 pb-6">
         {/* Score bar */}
         {score.total > 0 && (
           <div className="bg-app-card border border-app-border rounded-xl px-3.5 py-2.5 mb-3.5 flex items-center gap-3">
             <span className="text-xl">📊</span>
             <div className="flex-1">
-              <div className="text-xs text-app-muted mb-1">Accuracy</div>
+              <div className="text-xs text-app-muted mb-1">{ui.accuracy}</div>
               <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
                 <div className="h-full rounded-full transition-all duration-300" style={{ width: `${accuracy}%`, background: accuracyColor }} />
               </div>
@@ -181,7 +183,7 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
         {/* Generate button */}
         <button onClick={generateQuestion} disabled={loading}
           className="w-full bg-gradient-to-r from-app-green to-[#33cc88] text-app-bg text-[13px] font-extrabold rounded-xl py-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] transition-all">
-          {loading ? "Generating…" : "⚡ Generate Question"}
+          {loading ? ui.generatingQ : ui.generateQuestion}
         </button>
 
         {error && <p className="text-app-red text-[13px] mt-3">{error}</p>}
@@ -229,13 +231,13 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
                         className="bg-app-orange/10 border border-app-orange/25 rounded-xl px-3.5 py-2.5 w-full text-[13px] font-bold text-app-orange cursor-pointer text-left flex items-center gap-2 hover:bg-app-orange/15 active:scale-[0.99] transition-all">
                         <span className="text-lg">🩺</span>
                         <div>
-                          <div>Galti Doctor</div>
-                          <div className="text-[11px] font-medium text-app-muted">Why did I get this wrong?</div>
+                          <div>{ui.mistakeDoctor}</div>
+                          <div className="text-[11px] font-medium text-app-muted">{ui.whyWrongQuiz}</div>
                         </div>
                       </button>
                     )}
                     {galtiLoad && (
-                      <div className="text-center text-app-muted text-xs py-3.5">🩺 Diagnosing your mistake…</div>
+                      <div className="text-center text-app-muted text-xs py-3.5">{ui.diagnosingMistake}</div>
                     )}
                     {galtiDiag && (() => {
                       const typeInfo = ERROR_TYPE_LABELS[galtiDiag.type] || { label: galtiDiag.type, color: "#6868a0" }
@@ -243,22 +245,22 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
                         <div className="rounded-xl p-3.5 border" style={{ background: `${typeInfo.color}10`, borderColor: `${typeInfo.color}30` }}>
                           <div className="flex items-center gap-2 mb-2.5">
                             <span className="text-lg">🩺</span>
-                            <span className="text-[13px] font-extrabold" style={{ color: typeInfo.color }}>Galti Doctor</span>
+                            <span className="text-[13px] font-extrabold" style={{ color: typeInfo.color }}>{ui.mistakeDoctor}</span>
                             <span className="text-[10px] font-bold text-white rounded-md px-2 py-0.5" style={{ background: typeInfo.color }}>
                               {typeInfo.label}
                             </span>
                           </div>
                           <p className="text-[13px] text-app-text leading-relaxed mb-2">
-                            <strong>What went wrong:</strong> {galtiDiag.diagnosis}
+                            <strong>{ui.whatWentWrongLabel}</strong> {galtiDiag.diagnosis}
                           </p>
                           {galtiDiag.fix && (
                             <p className="text-[13px] text-app-green leading-relaxed mb-2">
-                              ✅ <strong>Fix:</strong> {galtiDiag.fix}
+                              ✅ <strong>{ui.fixLabel}</strong> {galtiDiag.fix}
                             </p>
                           )}
                           {galtiDiag.similar && (
                             <p className="text-xs text-app-muted leading-relaxed italic">
-                              🎯 Try this: {galtiDiag.similar}
+                              {ui.tryThisLabel} {galtiDiag.similar}
                             </p>
                           )}
                         </div>

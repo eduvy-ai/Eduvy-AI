@@ -3,6 +3,7 @@
 
 import { FC, useState, useRef } from 'react'
 import { studyCoachApi } from '../../modules/studycoach/api'
+import { fetchAudioBlobUrl } from '../../shared/utils/helpers'
 
 interface Props {
   /** Content to explain */
@@ -57,7 +58,8 @@ export const InlineExplainButton: FC<Props> = ({
       if (response.beats.length > 0) {
         const firstBeat = response.beats[0]
         if (audioRef.current) {
-          audioRef.current.src = firstBeat.audio_url
+          const blobUrl = await fetchAudioBlobUrl(firstBeat.audio_url)
+          audioRef.current.src = blobUrl
           audioRef.current.load()
           await audioRef.current.play()
           setIsPlaying(true)

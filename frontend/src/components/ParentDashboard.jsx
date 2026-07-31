@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { apiGetParentView } from '../api.js'
+import { GraduationCap, LockSimple, UsersThree, Lightning, Fire, CalendarBlank, Robot, ChartBar, Exam, Target, Brain, Circle, Warning, CoinVertical, Sword, ClipboardText, Gift, Star, RocketLaunch, Crown } from '@phosphor-icons/react'
 
 // Standalone color tokens — no import from App.jsx (public page, no auth)
 const C = {
@@ -18,10 +19,10 @@ const C = {
 }
 
 const PLAN_INFO = {
-  free:    { label: 'Free',    icon: '🆓', color: '#6868a0' },
-  basic:   { label: 'Basic',   icon: '⭐', color: '#FFD166' },
-  pro:     { label: 'Pro',     icon: '🚀', color: '#7B9CFF' },
-  premium: { label: 'Premium', icon: '👑', color: '#00E5A0' },
+  free:    { label: 'Free',    Icon: Gift,         color: '#6868a0' },
+  basic:   { label: 'Basic',   Icon: Star,         color: '#FFD166' },
+  pro:     { label: 'Pro',     Icon: RocketLaunch, color: '#7B9CFF' },
+  premium: { label: 'Premium', Icon: Crown,        color: '#00E5A0' },
 }
 
 // ── Helpers ────────────────────────────────────────────────────
@@ -33,18 +34,18 @@ function Card({ children, className = '' }) {
   )
 }
 
-function SectionTitle({ icon, title }) {
+function SectionTitle({ icon: Icon, title }) {
   return (
     <h3 className="text-app-text text-[15px] font-extrabold m-0 mb-3 flex items-center gap-2">
-      <span>{icon}</span>{title}
+      {typeof Icon === 'function' ? <Icon size={18} weight="duotone" className="text-app-green" /> : <span>{Icon}</span>}{title}
     </h3>
   )
 }
 
-function StatBox({ label, value, color = C.text, icon }) {
+function StatBox({ label, value, color = C.text, icon: Icon }) {
   return (
     <div className="bg-app-card2 rounded-xl py-3 px-3.5 flex flex-col gap-1 flex-1">
-      {icon && <span className="text-xl">{icon}</span>}
+      {Icon && (typeof Icon === 'function' ? <Icon size={20} weight="duotone" style={{ color }} /> : <span className="text-xl">{Icon}</span>)}
       <div className="text-[22px] font-black" style={{ color }}>{value}</div>
       <div className="text-app-muted text-[11px]">{label}</div>
     </div>
@@ -120,7 +121,7 @@ export default function ParentDashboard() {
   if (loading) {
     return (
       <div className="min-h-screen bg-app-bg flex items-center justify-center flex-col gap-4 font-[Sora,sans-serif]">
-        <div className="text-5xl">🎓</div>
+        <div className="flex justify-center"><GraduationCap size={48} weight="duotone" className="text-app-green" /></div>
         <p className="text-app-muted text-sm">Loading dashboard…</p>
       </div>
     )
@@ -129,7 +130,7 @@ export default function ParentDashboard() {
   if (err) {
     return (
       <div className="min-h-screen bg-app-bg flex items-center justify-center flex-col gap-4 font-[Sora,sans-serif] p-6 text-center">
-        <div className="text-6xl">🔒</div>
+        <div className="flex justify-center"><LockSimple size={56} weight="duotone" className="text-app-muted" /></div>
         <h2 className="text-app-text m-0">Link Not Found</h2>
         <p className="text-app-muted text-sm max-w-[380px]">{err}</p>
         <div className="text-app-muted text-xs">Powered by Eduvy-AI</div>
@@ -152,10 +153,10 @@ export default function ParentDashboard() {
       >
         <div className="max-w-[720px] mx-auto">
           <div className="flex items-center gap-2.5 mb-4">
-            <span className="text-[28px]">🎓</span>
+            <GraduationCap size={28} weight="duotone" className="text-app-green" />
             <span className="font-black text-lg text-app-green">Eduvy-AI</span>
             <span className="ml-auto bg-app-muted/15 border border-app-border text-app-muted rounded-[10px] py-0.5 px-2.5 text-[11px]">
-              👨‍👩‍👦 Parent View • Read Only
+              <UsersThree size={12} weight="fill" className="inline" /> Parent View • Read Only
             </span>
           </div>
 
@@ -178,12 +179,12 @@ export default function ParentDashboard() {
                 <span 
                   className="text-[11px] rounded-[10px] py-0.5 px-2 font-bold"
                   style={{ background: `${planInfo.color}20`, border: `1px solid ${planInfo.color}40`, color: planInfo.color }}
-                >{planInfo.icon} {planInfo.label}</span>
-                <span className="bg-app-yellow/10 border border-app-yellow/20 text-app-yellow text-[11px] rounded-[10px] py-0.5 px-2 font-bold">
-                  ⚡ {profile.xp} XP
+                >{planInfo.Icon && <planInfo.Icon size={11} weight="fill" className="inline" />} {planInfo.label}</span>
+                <span className="bg-app-yellow/10 border border-app-yellow/20 text-app-yellow text-[11px] rounded-[10px] py-0.5 px-2 font-bold flex items-center gap-0.5">
+                  <Lightning size={11} weight="fill" /> {profile.xp} XP
                 </span>
-                <span className="bg-app-orange/10 border border-app-orange/20 text-app-orange text-[11px] rounded-[10px] py-0.5 px-2 font-bold">
-                  🔥 {profile.streak} day streak
+                <span className="bg-app-orange/10 border border-app-orange/20 text-app-orange text-[11px] rounded-[10px] py-0.5 px-2 font-bold flex items-center gap-0.5">
+                  <Fire size={11} weight="fill" /> {profile.streak} day streak
                 </span>
               </div>
             </div>
@@ -196,7 +197,7 @@ export default function ParentDashboard() {
 
         {/* ── Activity 7-day ── */}
         <Card>
-          <SectionTitle icon="📅" title="7-Day Activity" />
+          <SectionTitle icon={CalendarBlank} title="7-Day Activity" />
           <ActivityDots activity={activity} />
           <p className="text-app-muted text-xs mt-2 m-0">
             Quizzes attempted per day this week
@@ -205,12 +206,12 @@ export default function ParentDashboard() {
 
         {/* ── Quick stats ── */}
         <div className="flex gap-2.5 flex-wrap">
-          <StatBox icon="🤖" label="AI Calls Today"  value={ai_today.call_count || 0} color={C.blue}   />
-          <StatBox icon="📊" label="AI Calls (Month)" value={monthly_calls || 0}      color={C.blue}   />
-          <StatBox icon="📝" label="Quizzes Taken"    value={quizzes.length}          color={C.yellow} />
+          <StatBox icon={Robot} label="AI Calls Today"  value={ai_today.call_count || 0} color={C.blue}   />
+          <StatBox icon={ChartBar} label="AI Calls (Month)" value={monthly_calls || 0}      color={C.blue}   />
+          <StatBox icon={Exam} label="Quizzes Taken"    value={quizzes.length}          color={C.yellow} />
           {avgQuizScore !== null && (
             <StatBox
-              icon="🎯" label="Avg Quiz Score"
+              icon={Target} label="Avg Quiz Score"
               value={`${avgQuizScore}%`}
               color={avgQuizScore >= 70 ? C.green : avgQuizScore >= 50 ? C.yellow : C.red}
             />
@@ -220,12 +221,12 @@ export default function ParentDashboard() {
         {/* ── Mastery ── */}
         {mastery.length > 0 && (
           <Card>
-            <SectionTitle icon="🧠" title="Subject Mastery" />
+            <SectionTitle icon={Brain} title="Subject Mastery" />
             {[...mastery].sort((a, b) => a.score - b.score).map(m => (
               <MasteryBar key={m.subject} subject={m.subject} score={m.score} />
             ))}
-            <p className="text-app-muted text-[11px] mt-2 m-0">
-              🔴 Below 50 = needs attention · 🟡 50–74 = improving · 🟢 75+ = strong
+            <p className="text-app-muted text-[11px] mt-2 m-0 flex items-center gap-1 flex-wrap">
+              <Circle size={10} weight="fill" className="text-app-red" /> Below 50 = needs attention · <Circle size={10} weight="fill" className="text-app-yellow" /> 50–74 = improving · <Circle size={10} weight="fill" className="text-app-green" /> 75+ = strong
             </p>
           </Card>
         )}
@@ -233,7 +234,7 @@ export default function ParentDashboard() {
         {/* ── Recent Quizzes ── */}
         {quizzes.length > 0 && (
           <Card>
-            <SectionTitle icon="📝" title="Recent Quizzes" />
+            <SectionTitle icon={Exam} title="Recent Quizzes" />
             <div className="flex flex-col gap-2">
               {quizzes.map((q, i) => {
                 const pct = Math.round((q.correct / q.total) * 100)
@@ -260,10 +261,10 @@ export default function ParentDashboard() {
           </Card>
         )}
 
-        {/* ── Bhool + Muqabla stats side by side ── */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* ── Mistakes + Battles stats side by side ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Card>
-            <SectionTitle icon="📛" title="Bhool Bazaar" />
+            <SectionTitle icon={Warning} title="Mistake Cards" />
             <div className="flex flex-col gap-2">
               <div className="flex justify-between">
                 <span className="text-app-muted text-[13px]">Cards saved</span>
@@ -278,14 +279,14 @@ export default function ParentDashboard() {
                 <span className="text-app-blue font-bold">{bhool.collected}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-app-muted text-[13px]">🪙 Coins</span>
+                <span className="text-app-muted text-[13px] flex items-center gap-0.5"><CoinVertical size={12} weight="fill" /> Coins</span>
                 <span className="text-app-orange font-bold">{bhool.coins}</span>
               </div>
             </div>
           </Card>
 
           <Card>
-            <SectionTitle icon="⚔️" title="Muqabla" />
+            <SectionTitle icon={Sword} title="Battles" />
             <div className="flex flex-col gap-2">
               <div className="flex justify-between">
                 <span className="text-app-muted text-[13px]">Battles</span>
@@ -309,8 +310,8 @@ export default function ParentDashboard() {
 
         {/* ── Footer ── */}
         <div className="text-center pt-2">
-          <div className="text-app-muted text-[11px]">
-            📋 Last updated: {new Date(data.fetched_at).toLocaleString()}
+          <div className="text-app-muted text-[11px] flex items-center justify-center gap-1">
+            <ClipboardText size={11} /> Last updated: {new Date(data.fetched_at).toLocaleString()}
           </div>
           <div className="text-app-muted text-[11px] mt-1">
             Powered by <span className="text-app-green font-bold">Eduvy-AI</span> · Read-only parent view

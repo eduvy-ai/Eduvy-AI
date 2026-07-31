@@ -1,6 +1,7 @@
-﻿import { useState, useEffect, useRef, useCallback } from 'react'
-import { callAI, LANG_RULES } from '../../shared.js'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { callAI, LANG_RULES, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
+import { ChatCircle, Question, CalendarBlank, CheckCircle, Warning as WarningIcon, XCircle, Lightbulb, Brain, UsersThree, Lightning, Sparkle, Lock, ArrowCounterClockwise, ThumbsUp, PaperPlaneTilt } from '@phosphor-icons/react'
 import {
   apiGetMySquad, apiMatchSquad,
   apiGetSquadMessages, apiSendSquadMessage,
@@ -14,11 +15,11 @@ import {
 } from '../../api.js'
 
 const POLL_MS      = 4000   // message poll interval
-const SILENCE_MS   = 120000 // 2 min silence → show AI Peer button
+const SILENCE_MS   = 120000 // 2 min silence ? show AI Peer button
 
-// ── Avatar initials ───────────────────────────────────────────
+// -- Avatar initials -------------------------------------------
 function Avatar({ name = '?', size = 32, online = false, isAI = false }) {
-  const initials = isAI ? '🦉' : name.charAt(0).toUpperCase()
+  const initials = isAI ? 'AI' : name.charAt(0).toUpperCase()
   const bg = isAI
     ? 'linear-gradient(135deg,#7B9CFF,#a04dff)'
     : `hsl(${((name.charCodeAt(0) || 65) * 37) % 360},55%,38%)`
@@ -37,7 +38,7 @@ function Avatar({ name = '?', size = 32, online = false, isAI = false }) {
   )
 }
 
-// ── Single chat bubble ────────────────────────────────────────
+// -- Single chat bubble ----------------------------------------
 function Bubble({ msg, isMine, memberName }) {
   const isSystem    = msg.msg_type === 'system'
   const isChallenge = msg.msg_type === 'challenge'
@@ -53,18 +54,18 @@ function Bubble({ msg, isMine, memberName }) {
   )
 
   if (isChallenge) return (
-    <div className="bg-app-yellow/[0.07] border border-app-yellow/25 rounded-[14px] px-3.5 py-2.5 my-2 text-[13px] text-app-yellow font-semibold">🏆 {msg.content}</div>
+    <div className="bg-app-yellow/[0.07] border border-app-yellow/25 rounded-[14px] px-3.5 py-2.5 my-2 text-[13px] text-app-yellow font-semibold flex items-center gap-1.5"><Lightning size={14} weight="fill" /> {msg.content}</div>
   )
 
   return (
     <div className="flex gap-2 my-1"
       style={{ flexDirection: isMine ? 'row-reverse' : 'row', alignItems: 'flex-end' }}>
       {!isMine && <Avatar name={isAIPeer ? 'AI' : (memberName || msg.display_name)} size={28} isAI={isAIPeer} />}
-      <div className="max-w-[72%] flex flex-col gap-0.5"
+      <div className="max-w-[85%] sm:max-w-[72%] flex flex-col gap-0.5"
         style={{ alignItems: isMine ? 'flex-end' : 'flex-start' }}>
         {!isMine && (
           <span className="text-[10.5px] text-app-muted font-semibold ml-1">
-            {isAIPeer ? '🦉 Gyaani (AI Peer)' : (memberName || msg.display_name)}
+            {isAIPeer ? <><Sparkle size={12} weight="fill" className="inline text-app-blue" /> Owl (AI Peer)</> : (memberName || msg.display_name)}
           </span>
         )}
         <div className="px-3.5 py-2.5 text-[13.5px] leading-[1.55]"
@@ -87,8 +88,8 @@ function Bubble({ msg, isMine, memberName }) {
   )
 }
 
-// ── Challenge banner ──────────────────────────────────────────
-function ChallengeBanner({ challenge, onSubmit, onDismiss }) {
+// -- Challenge banner ------------------------------------------
+function ChallengeBanner({ challenge, onSubmit, onDismiss, ui }) {
   const [text, setText] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
@@ -108,8 +109,8 @@ function ChallengeBanner({ challenge, onSubmit, onDismiss }) {
   }
 
   if (done) return (
-    <div className="bg-app-green/[0.08] border border-app-green/25 rounded-[14px] px-4 py-3 mb-2.5 text-[13px] text-app-green font-bold text-center">
-      🎓 Challenge complete! +50 Teaching XP earned!
+    <div className="bg-app-green/[0.08] border border-app-green/25 rounded-[14px] px-4 py-3 mb-2.5 text-[13px] text-app-green font-bold text-center flex items-center justify-center gap-1.5">
+      <CheckCircle size={16} weight="fill" /> Challenge complete! +50 Teaching XP earned!
     </div>
   )
 
@@ -117,20 +118,20 @@ function ChallengeBanner({ challenge, onSubmit, onDismiss }) {
     <div className="bg-app-yellow/[0.05] border-[1.5px] border-app-yellow/30 rounded-2xl px-4 py-3.5 mb-2.5">
       <div className="flex justify-between items-start mb-2">
         <div>
-          <div className="text-[11px] font-extrabold text-app-yellow tracking-[0.06em] mb-0.5">
-            📚 YOUR CHALLENGE — 50 Teaching XP
+          <div className="text-[11px] font-extrabold text-app-yellow tracking-[0.06em] mb-0.5 flex items-center gap-1">
+            <Lightning size={12} weight="fill" /> YOUR CHALLENGE · 50 Teaching XP
           </div>
           <div className="text-[14px] font-bold text-app-text">
             Explain: <span className="text-app-yellow">{challenge.concept}</span>
           </div>
           <div className="text-[11px] text-app-muted mt-0.5">{challenge.subject}</div>
         </div>
-        <button onClick={onDismiss} className="bg-transparent border-none cursor-pointer text-app-muted text-[18px] px-1">×</button>
+        <button onClick={onDismiss} className="bg-transparent border-none cursor-pointer text-app-muted text-[18px] px-1"></button>
       </div>
       <textarea
         value={text}
         onChange={e => setText(e.target.value)}
-        placeholder="Explain this concept to your squad in simple words…"
+        placeholder={ui.challengePlaceholder}
         rows={3}
         className="w-full bg-app-card2 border border-app-border rounded-[10px] px-2.5 py-2 text-app-text text-[13px] resize-y outline-none box-border"
       />
@@ -144,14 +145,14 @@ function ChallengeBanner({ challenge, onSubmit, onDismiss }) {
           cursor: text.trim() ? 'pointer' : 'default',
         }}
       >
-        {submitting ? 'Submitting…' : 'Submit Explanation 🚀'}
+        {submitting ? 'Submitting' : <><PaperPlaneTilt size={14} weight="fill" className="inline" /> Submit Explanation</>}
       </button>
     </div>
   )
 }
 
-// ── Members strip ─────────────────────────────────────────────
-function MembersStrip({ members, currentUserId }) {
+// -- Members strip ---------------------------------------------
+function MembersStrip({ members, currentUserId, ui }) {
   return (
     <div className="flex gap-3 px-3.5 py-2.5 overflow-x-auto border-b border-app-border bg-app-card">
       {members.map(m => (
@@ -159,30 +160,31 @@ function MembersStrip({ members, currentUserId }) {
           <Avatar name={m.name} size={36} online={m.online} />
           <span className="text-[10px] max-w-[50px] overflow-hidden text-ellipsis whitespace-nowrap"
             style={{ color: m.user_id === currentUserId ? '#00E5A0' : '#6868a0', fontWeight: m.user_id === currentUserId ? 800 : 500 }}
-          >{m.user_id === currentUserId ? 'You' : m.name.split(' ')[0]}</span>
+          >{m.user_id === currentUserId ? ui.youLabel : m.name.split(' ')[0]}</span>
           <span className="text-[9px] font-bold"
             style={{ color: m.role === 'teacher' ? '#FFD166' : '#6868a0' }}
-          >{m.role === 'teacher' ? '⭐ teacher' : '📖 learner'}</span>
+          >{m.role === 'teacher' ? ui.teacherRole : ui.learnerRole}</span>
         </div>
       ))}
     </div>
   )
 }
 
-// ── No-squad landing screen ───────────────────────────────────
-function NoSquadScreen({ onMatch, matching }) {
+// -- No-squad landing screen -----------------------------------
+function NoSquadScreen({ onMatch, matching, ui }) {
+  const StepIcons = [UsersThree, Brain, Lightning]
   const steps = [
-    { icon: '🧠', title: 'AI reads your mastery', desc: 'Looks at your quiz history to find your weak & strong subjects' },
-    { icon: '🔗', title: 'Finds your complement', desc: 'Matches you with students whose strengths fill your gaps' },
-    { icon: '🏆', title: 'Teach & learn together', desc: 'Complete challenges, earn Teaching XP, and grow together' },
+    { title: ui.step1Title, desc: ui.step1Desc },
+    { title: ui.step2Title, desc: ui.step2Desc },
+    { title: ui.step3Title, desc: ui.step3Desc },
   ]
   return (
     <div className="flex flex-col items-center px-4 py-8 gap-7">
       {/* Hero */}
       <div className="text-center">
-        <div className="text-[56px] mb-3">🤝</div>
+        <div className="mb-3 flex justify-center"><UsersThree size={56} weight="duotone" className="text-app-green" /></div>
         <h2 className="text-[22px] font-black m-0 mb-2 tracking-tight">
-          Sathi <span className="text-app-green">Study Squads</span>
+          <span className="text-app-green">{ui.studySquadsTitle}</span>
         </h2>
         <p className="text-[14px] text-app-muted m-0 leading-[1.6] max-w-[320px]">
           AI matches you with students who have <strong className="text-app-text">complementary strengths</strong> — you teach what you know, learn what you don't.
@@ -191,22 +193,25 @@ function NoSquadScreen({ onMatch, matching }) {
 
       {/* How it works */}
       <div className="flex flex-col gap-3 w-full max-w-[380px]">
-        {steps.map((s, i) => (
-          <div key={i} className="bg-app-card border border-app-border rounded-[14px] px-4 py-3.5 flex gap-3.5 items-start">
-            <span className="text-[26px] flex-shrink-0">{s.icon}</span>
-            <div>
-              <div className="text-[13px] font-extrabold text-app-text mb-0.5">{s.title}</div>
-              <div className="text-[12px] text-app-muted leading-[1.5]">{s.desc}</div>
+        {steps.map((s, i) => {
+          const Icon = StepIcons[i]
+          return (
+            <div key={i} className="bg-app-card border border-app-border rounded-[14px] px-4 py-3.5 flex gap-3.5 items-start">
+              <span className="flex-shrink-0"><Icon size={26} weight="duotone" className="text-app-green" /></span>
+              <div>
+                <div className="text-[13px] font-extrabold text-app-text mb-0.5">{s.title}</div>
+                <div className="text-[12px] text-app-muted leading-[1.5]">{s.desc}</div>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Teaching XP callout */}
       <div className="bg-app-yellow/[0.06] border border-app-yellow/20 rounded-[14px] px-4 py-3 w-full max-w-[380px] flex gap-3 items-center">
-        <span className="text-[28px]">🏆</span>
+        <Lightning size={28} weight="duotone" className="text-app-yellow shrink-0" />
         <div>
-          <div className="text-[13px] font-extrabold text-app-yellow">Teaching XP</div>
+          <div className="text-[13px] font-extrabold text-app-yellow">{ui.teachingXpTitle}</div>
           <div className="text-[12px] text-app-muted leading-[1.5]">
             Earn <strong className="text-app-yellow">50 XP</strong> every time you successfully explain a concept to your squad — more than answering quizzes!
           </div>
@@ -225,49 +230,53 @@ function NoSquadScreen({ onMatch, matching }) {
         }}
       >
         {matching
-          ? <><span className="w-[18px] h-[18px] border-[3px] border-app-green border-t-transparent rounded-full animate-spin inline-block" /> Finding your squad…</>
-          : '🤝 Find My Study Squad'}
+          ? <><span className="w-[18px] h-[18px] border-[3px] border-app-green border-t-transparent rounded-full animate-spin inline-block" /> Finding your squad</>
+          : <><UsersThree size={18} weight="fill" /> Find My Study Squad</>}
       </button>
       <p className="text-[11px] text-app-muted -mt-4 text-center">
-        Squads are based on your quiz mastery scores
+        {ui.masteryNote}
       </p>
     </div>
   )
 }
 
-// ── Sub-tab nav bar ───────────────────────────────────────────
-function SubNav({ active, onChange }) {
+// -- Sub-tab nav bar -------------------------------------------
+const SUBNAV_ICONS = { chat: ChatCircle, doubts: Question, daily: CalendarBlank }
+function SubNav({ active, onChange, ui }) {
   const tabs = [
-    { key: 'chat',   icon: '💬', label: 'Chat'   },
-    { key: 'doubts', icon: '❓', label: 'Doubts'  },
-    { key: 'daily',  icon: '📅', label: 'Daily'   },
+    { key: 'chat',   label: ui.subNavChat   },
+    { key: 'doubts', label: ui.subNavDoubts  },
+    { key: 'daily',  label: ui.subNavDaily   },
   ]
   return (
     <div className="flex border-b border-app-border bg-app-card flex-shrink-0">
-      {tabs.map(t => (
-        <button key={t.key} onClick={() => onChange(t.key)}
-          className="flex-1 bg-transparent border-none px-1 pt-2.5 pb-2 text-[12px] cursor-pointer flex flex-col items-center gap-0.5"
-          style={{
-            borderBottom: active === t.key ? `2px solid #00E5A0` : `2px solid transparent`,
-            color: active === t.key ? '#00E5A0' : '#6868a0',
-            fontWeight: active === t.key ? 700 : 500,
-          }}>
-          <span className="text-[16px]">{t.icon}</span>
-          {t.label}
-        </button>
-      ))}
+      {tabs.map(t => {
+        const Icon = SUBNAV_ICONS[t.key]
+        return (
+          <button key={t.key} onClick={() => onChange(t.key)}
+            className="flex-1 bg-transparent border-none px-1 pt-2.5 pb-2 text-[12px] cursor-pointer flex flex-col items-center gap-0.5"
+            style={{
+              borderBottom: active === t.key ? `2px solid #00E5A0` : `2px solid transparent`,
+              color: active === t.key ? '#00E5A0' : '#6868a0',
+              fontWeight: active === t.key ? 700 : 500,
+            }}>
+            {Icon && <Icon size={16} weight={active === t.key ? 'fill' : 'regular'} />}
+            {t.label}
+          </button>
+        )
+      })}
     </div>
   )
 }
 
-// ── Doubts Board ─────────────────────────────────────────────
+// -- Doubts Board ---------------------------------------------
 const VERDICT_COLORS = {
-  correct:   { bg: '#00E5A020', border: '#00E5A060', text: '#00E5A0', label: '✓ Correct' },
-  partial:   { bg: '#FFD16620', border: '#FFD16660', text: '#FFD166', label: '⚠ Partial' },
-  incorrect: { bg: '#FF6B6B20', border: '#FF6B6B60', text: '#FF6B6B', label: '✗ Incorrect' },
+  correct:   { bg: '#00E5A020', border: '#00E5A060', text: '#00E5A0', label: 'Correct' },
+  partial:   { bg: '#FFD16620', border: '#FFD16660', text: '#FFD166', label: 'Partial' },
+  incorrect: { bg: '#FF6B6B20', border: '#FF6B6B60', text: '#FF6B6B', label: 'Incorrect' },
 }
 
-function DoubtsPanel({ squadId, userId, profileName, profile }) {
+function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
   const [doubts,      setDoubts]      = useState([])
   const [loading,     setLoading]     = useState(true)
   const [view,        setView]        = useState('list')   // list | post | answers
@@ -326,11 +335,11 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
       setAnswers(d.answers || [])
       load() // refresh list so answer_count updates
 
-      // ── AI Verification (plan-gated + word-count guard) ────
+      // -- AI Verification (plan-gated + word-count guard) ----
       const wordCount = newAns.trim().split(/\s+/).length
       const canVerify = profile?.plan && profile.plan !== 'free' && wordCount >= 15
       if (canVerify && result?.id) {
-        // fire-and-forget — don't block the UI
+        // fire-and-forget  don't block the UI
         runAIVerdict(result.id, openDoubt.question, openDoubt.subject, newAns.trim())
       }
     } catch (err) { alert(err.message) }
@@ -352,7 +361,7 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
       // Refresh answers to show the badge
       const d = await apiGetDoubtAnswers(squadId, openDoubt.id)
       setAnswers(d.answers || [])
-    } catch { /* best-effort — never break UI */ }
+    } catch { /* best-effort  never break UI */ }
   }
 
   const handleUpvote = async (answer) => {
@@ -366,44 +375,44 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
     finally { setUpvoting(null) }
   }
 
-  // ── VIEW: Post a new doubt ────────────────────────────────
+  // -- VIEW: Post a new doubt --------------------------------
   const atLimit = quota && quota.remaining <= 0
   if (view === 'post') return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* Header */}
       <div className="px-4 py-3 border-b border-app-border bg-app-card flex-shrink-0 flex items-center gap-2.5">
         <button onClick={() => setView('list')} className="bg-transparent border-none text-app-muted text-[20px] cursor-pointer leading-none">←</button>
-        <span className="text-[15px] font-extrabold text-app-text flex-1">❓ Post a Doubt</span>
+        <span className="text-[15px] font-extrabold text-app-text flex-1 flex items-center gap-1.5"><Question size={16} weight="bold" className="text-app-blue" /> {ui.postADoubt}</span>
         {quota && (
           <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-[20px]"
             style={{ background: atLimit ? '#FF6B6B20' : '#00E5A020', color: atLimit ? '#FF6B6B' : '#00E5A0' }}>
-            {atLimit ? 'Limit reached' : `${quota.remaining} left today`}
+            {atLimit ? ui.limitReached : `${quota.remaining} left today`}
           </span>
         )}
       </div>
 
       {atLimit ? (
         <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 text-center">
-          <div className="text-[48px] mb-3">🚫</div>
-          <div className="text-[16px] font-extrabold text-app-text mb-2">Daily limit reached</div>
+          <div className="mb-3 flex justify-center"><Lock size={48} weight="duotone" className="text-app-muted" /></div>
+          <div className="text-[16px] font-extrabold text-app-text mb-2">{ui.dailyLimitReached}</div>
           <div className="text-[13px] text-app-muted leading-[1.7]">
             You've used all <strong className="text-app-text">{quota.limit}</strong> doubts for today on the <strong className="text-app-blue">{quota.plan}</strong> plan.<br />
-            Come back tomorrow — or upgrade for more!
+            Come back tomorrow  or upgrade for more!
           </div>
           {quota.plan !== 'premium' && (
             <div className="mt-5 text-[11px] text-app-muted">
-              Free: 2/day · Basic: 5/day · Pro: 15/day · Premium: unlimited
+              Free: 2/day  Basic: 5/day  Pro: 15/day  Premium: unlimited
             </div>
           )}
         </div>
       ) : (
         <>
-          <div className="flex-1 overflow-y-auto px-4 py-5">
-            <div className="text-[12px] font-bold text-app-muted mb-2 tracking-[0.04em]">YOUR DOUBT</div>
+          <div className="flex-1 overflow-y-auto px-4 py-5 pb-4">
+            <div className="text-[12px] font-bold text-app-muted mb-2 tracking-[0.04em]">{ui.yourDoubt}</div>
             <textarea
               value={newQ}
               onChange={e => setNewQ(e.target.value)}
-              placeholder="What are you stuck on? Write your doubt clearly so your squad can help…"
+              placeholder="What are you stuck on? Write your doubt clearly so your squad can help"
               rows={5}
               autoFocus
               className="w-full bg-app-card rounded-[14px] px-3.5 py-3 text-app-text text-[14px] resize-none leading-[1.6] outline-none box-border"
@@ -413,8 +422,8 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
               {newQ.trim().length} / 500 characters
             </div>
             <div className="bg-app-card2 rounded-[12px] px-3.5 py-3 mt-4 text-[12px] text-app-muted leading-[1.7]">
-              💡 <strong className="text-app-text">Tips for a good doubt:</strong><br />
-              • Be specific — "I don't understand step 3 of…"<br />
+              <strong className="text-app-text">Tips for a good doubt:</strong><br />
+              • Be specific — "I don't understand step 3 of..."<br />
               • Mention what you already tried<br />
               • Add the topic or chapter name
             </div>
@@ -429,14 +438,14 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
                 color: newQ.trim() ? '#fff' : '#6868a0',
                 cursor: newQ.trim() ? 'pointer' : 'default',
               }}
-            >{posting ? 'Posting…' : '📤 Post to Squad'}</button>
+            >{posting ? ui.submitting : ui.postToSquad}</button>
           </div>
         </>
       )}
     </div>
   )
 
-  // ── VIEW: Answers for a specific doubt ────────────────────
+  // -- VIEW: Answers for a specific doubt --------------------
   if (view === 'answers') return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* Header */}
@@ -445,29 +454,29 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
         <div className="flex-1">
           <div className="text-[13.5px] font-bold text-app-text leading-[1.4]">{openDoubt?.question}</div>
           <div className="text-[11px] text-app-muted mt-0.5">
-            Asked by <strong className="text-app-blue">{openDoubt?.display_name}</strong> · {openDoubt?.subject}
+            Asked by <strong className="text-app-blue">{openDoubt?.display_name}</strong>  {openDoubt?.subject}
           </div>
         </div>
       </div>
 
       {/* Answers list */}
-      <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col gap-2.5">
+      <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col gap-2.5 pb-4">
         {answers.length === 0 ? (
           <div className="text-center px-5 py-10">
-            <div className="text-[40px] mb-2.5">🙋</div>
-            <div className="text-[14px] font-bold text-app-text mb-1.5">No answers yet</div>
-            <div className="text-[12px] text-app-muted">Be the first squadmate to help out!</div>
+            <div className="mb-2.5 flex justify-center"><ChatCircle size={40} weight="duotone" className="text-app-muted" /></div>
+            <div className="text-[14px] font-bold text-app-text mb-1.5">{ui.noAnswersYet}</div>
+            <div className="text-[12px] text-app-muted">{ui.beFirstToHelp}</div>
           </div>
         ) : answers.map((a, idx) => (
           <div key={a.id}
             className="bg-app-card rounded-[14px] px-3.5 py-3"
             style={{ border: `1px solid ${idx === 0 && a.upvotes > 0 ? '#00E5A040' : 'rgba(255,255,255,0.03)'}` }}>
             {idx === 0 && a.upvotes > 0 && (
-              <div className="text-[10px] font-extrabold text-app-green tracking-[0.05em] mb-1.5">⭐ TOP ANSWER</div>
+              <div className="text-[10px] font-extrabold text-app-green tracking-[0.05em] mb-1.5 flex items-center gap-1"><CheckCircle size={10} weight="fill" /> TOP ANSWER</div>
             )}
             <div className="flex justify-between items-center mb-1.5">
               <span className="text-[12px] font-bold" style={{ color: a.user_id === userId ? '#00E5A0' : '#7B9CFF' }}>
-                {a.user_id === userId ? '✨ You' : a.display_name}
+                {a.user_id === userId ? <><CheckCircle size={10} weight="fill" className="inline" /> You</> : a.display_name}
               </span>
               {a.ai_verdict && (() => {
                 const v = VERDICT_COLORS[a.ai_verdict]
@@ -480,8 +489,8 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
             </div>
             <div className="text-[13.5px] text-app-text leading-[1.6]">{a.answer}</div>
             {a.ai_note && (
-              <div className="text-[11.5px] text-app-muted mt-1.5 px-2.5 py-1.5 bg-app-card2 rounded-lg leading-[1.55]">
-                🤖 {a.ai_note}
+              <div className="text-[11.5px] text-app-muted mt-1.5 px-2.5 py-1.5 bg-app-card2 rounded-lg leading-[1.55] flex items-start gap-1">
+                <Brain size={12} weight="fill" className="shrink-0 mt-0.5" /> {a.ai_note}
               </div>
             )}
             <div className="flex justify-end mt-2.5">
@@ -497,7 +506,7 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
                   opacity: a.user_id === userId ? 0.45 : 1,
                 }}
               >
-                👍 {a.upvotes}
+              <ThumbsUp size={12} weight={a.i_upvoted ? 'fill' : 'regular'} /> {a.upvotes}
                 {!a.i_upvoted && a.user_id !== userId && (
                   <span className="text-[10px] text-app-green font-extrabold">+15 XP</span>
                 )}
@@ -511,13 +520,13 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
 
       {/* Write answer bar */}
       <div className="px-3 pt-2.5 pb-3.5 border-t border-app-border bg-app-bg flex-shrink-0">
-        <div className="text-[11px] font-bold text-app-muted mb-1.5">WRITE YOUR ANSWER</div>
+        <div className="text-[11px] font-bold text-app-muted mb-1.5">{ui.writeYourAnswer}</div>
         <div className="flex gap-2">
           <input
             value={newAns}
             onChange={e => setNewAns(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleAnswer()}
-            placeholder="Help your squadmate…"
+            placeholder="Help your squadmate"
             className="flex-1 bg-app-card rounded-[12px] px-3.5 py-3 text-app-text text-[13.5px] outline-none"
             style={{ border: `1.5px solid ${newAns.trim() ? '#7B9CFF' : 'rgba(255,255,255,0.03)'}` }}
           />
@@ -526,24 +535,24 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
             disabled={!newAns.trim() || ansPosting}
             className="border-none rounded-[12px] px-4 font-extrabold text-[13px] flex-shrink-0"
             style={{ background: newAns.trim() ? `linear-gradient(135deg,#7B9CFF,#5577ee)` : '#0b0b1c', color: newAns.trim() ? '#fff' : '#6868a0', cursor: newAns.trim() ? 'pointer' : 'default' }}
-          >{ansPosting ? '…' : 'Send'}</button>
+          >{ansPosting ? ui.submitting : ui.sendBtn}</button>
         </div>
       </div>
     </div>
   )
 
-  // ── VIEW: Doubts list ─────────────────────────────────────
+  // -- VIEW: Doubts list -------------------------------------
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* Header with Ask button */}
       <div className="px-3.5 py-3 border-b border-app-border bg-app-card flex-shrink-0 flex justify-between items-center">
         <div>
-          <div className="text-[14px] font-extrabold text-app-text">❓ Doubts Board</div>
+          <div className="text-[14px] font-extrabold text-app-text flex items-center gap-1.5"><Question size={16} weight="bold" className="text-app-blue" /> {ui.doubtsBoard}</div>
           <div className="text-[11px] text-app-muted mt-0.5">
             {doubts.length} doubt{doubts.length !== 1 ? 's' : ''}
             {quota && (
               <span className="ml-2 font-bold" style={{ color: atLimit ? '#FF6B6B' : '#00E5A0' }}>
-                · {atLimit ? '0 left' : `${quota.remaining}/${quota.limit} left today`}
+                 {atLimit ? '0 left' : `${quota.remaining}/${quota.limit} left today`}
               </span>
             )}
           </div>
@@ -556,23 +565,23 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
             border: atLimit ? `1px solid rgba(255,255,255,0.03)` : 'none',
             color: atLimit ? '#6868a0' : '#fff',
           }}
-        >{atLimit ? '🚫 Limit' : '+ Ask'}</button>
+        >{atLimit ? <><Lock size={13} weight="fill" className="inline" /> Limit</> : '+ Ask'}</button>
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto px-3 py-2.5">
+      <div className="flex-1 overflow-y-auto px-3 py-2.5 pb-4">
         {loading ? (
           <div className="text-center mt-[60px]">
             <div className="w-8 h-8 border-[3px] border-app-blue border-t-transparent rounded-full animate-spin mx-auto" />
           </div>
         ) : doubts.length === 0 ? (
           <div className="text-center px-6 py-12">
-            <div className="text-[48px] mb-3">🤔</div>
-            <div className="text-[16px] font-extrabold text-app-text mb-2">No doubts yet!</div>
+            <div className="mb-3 flex justify-center"><Question size={48} weight="duotone" className="text-app-muted" /></div>
+            <div className="text-[16px] font-extrabold text-app-text mb-2">{ui.noDoubtsYet}</div>
             <div className="text-[13px] text-app-muted mb-6 leading-[1.6]">
-              Stuck on something? Post your doubt and your squadmates will help.
+              {ui.stuckPostDoubt}
             </div>
-            <button onClick={() => setView('post')} className="bg-gradient-to-br from-app-blue to-['#5577ee'] border-none rounded-[14px] px-8 py-3.5 text-white font-extrabold text-[14px] cursor-pointer">❓ Post First Doubt</button>
+            <button onClick={() => setView('post')} className="bg-gradient-to-br from-app-blue to-['#5577ee'] border-none rounded-[14px] px-8 py-3.5 text-white font-extrabold text-[14px] cursor-pointer"><Question size={14} weight="bold" className="inline" /> Post First Doubt</button>
           </div>
         ) : doubts.map(d => (
           <button
@@ -590,13 +599,13 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
                 style={{
                   background: d.status === 'answered' ? '#00E5A020' : '#FFD16620',
                   color: d.status === 'answered' ? '#00E5A0' : '#FFD166',
-                }}>{d.status === 'answered' ? '✓ Answered' : 'Open'}</span>
+                }}>{d.status === 'answered' ? 'Answered' : 'Open'}</span>
             </div>
             <div className="text-[11px] text-app-muted mt-1.5 flex gap-2">
               <span>{d.display_name}</span>
-              <span>·</span>
+              <span></span>
               <span className="text-app-blue">{d.subject}</span>
-              <span>·</span>
+              <span></span>
               <span>{d.answer_count} answer{d.answer_count !== 1 ? 's' : ''}</span>
             </div>
           </button>
@@ -606,14 +615,14 @@ function DoubtsPanel({ squadId, userId, profileName, profile }) {
   )
 }
 
-// ── Daily Concept Panel ───────────────────────────────────────
+// -- Daily Concept Panel ---------------------------------------
 const DAILY_VERDICT = {
-  correct:   { bg: `#00E5A015`,  border: `#00E5A040`,  text: '#00E5A0',  icon: '✅', label: 'Great understanding!',   xp: 30 },
-  partial:   { bg: `#FFD16615`, border: `#FFD16640`, text: '#FFD166', icon: '⚠️', label: 'Partially correct.',      xp: 15 },
-  incorrect: { bg: `#FF6B6B15`,    border: `#FF6B6B40`,    text: '#FF6B6B',    icon: '✗',  label: 'Needs more accuracy.',    xp:  5 },
+  correct:   { bg: `#00E5A015`,  border: `#00E5A040`,  text: '#00E5A0',  label: 'Great understanding!',   xp: 30 },
+  partial:   { bg: `#FFD16615`, border: `#FFD16640`, text: '#FFD166', label: 'Partially correct.',      xp: 15 },
+  incorrect: { bg: `#FF6B6B15`,    border: `#FF6B6B40`,    text: '#FF6B6B',    label: 'Needs more accuracy.',    xp:  5 },
 }
 
-function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
+function DailyPanel({ squadId, userId, profileName, addXp, profile, ui }) {
   const [data,       setData]       = useState(null)
   const [loading,    setLoading]    = useState(true)
   const [text,       setText]       = useState('')
@@ -626,6 +635,7 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
   useEffect(() => {
     apiGetDailyConcept(squadId)
       .then(d => {
+        if (!d) return  // API returned null/empty — keep data as null
         setData(d)
         if (d.my_explanation) {
           setDone(true)
@@ -644,12 +654,12 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
     setSubmitting(true)
     setReviewing(true)
 
-    // ── AI Review (best-effort) ────────────────────────────
+    // -- AI Review (best-effort) ----------------------------
     let aiVerdict = null, aiNote = null, xpOverride = null
     try {
       const lang = profile?.language || 'English'
       const sysPrompt = `You are a strict education evaluator. ${LANG_RULES[lang] || ''} Reply ONLY with valid JSON, nothing else.`
-      const userMsg = `Concept: ${data?.concept} (Subject: ${data?.subject})\nStudent explanation: ${text.trim()}\n\nEvaluate accuracy. Reply ONLY: {"verdict":"correct"|"partial"|"incorrect","note":"one sentence feedback","xp":30|15|5}\nRules: correct=full understanding→30, partial=some gaps→15, incorrect=misunderstood→5`
+      const userMsg = `Concept: ${data?.concept} (Subject: ${data?.subject})\nStudent explanation: ${text.trim()}\n\nEvaluate accuracy. Reply ONLY: {"verdict":"correct"|"partial"|"incorrect","note":"one sentence feedback","xp":30|15|5}\nRules: correct=full understanding?30, partial=some gaps?15, incorrect=misunderstood?5`
       const raw = await callAI(userMsg, sysPrompt, [], 2, 400)
       const match = raw.match(/\{[\s\S]*?\}/)
       if (match) {
@@ -660,18 +670,20 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
           xpOverride = [5, 15, 30].includes(obj.xp) ? obj.xp : null
         }
       }
-    } catch { /* AI unavailable → backend uses fallback 20 XP */ }
+    } catch { /* AI unavailable ? backend uses fallback 20 XP */ }
     setReviewing(false)
 
-    // ── Submit to backend ──────────────────────────────────
+    // -- Submit to backend ----------------------------------
     try {
       const res = await apiSubmitDailyExplain(squadId, text.trim(), xpOverride, aiVerdict, aiNote)
       if (res.submitted) {
         setDone(true)
         if (aiVerdict) setVerdict({ verdict: aiVerdict, note: aiNote, xp: res.xp_awarded })
         if (addXp) addXp(res.xp_awarded)
-        const fresh = await apiGetDailyConcept(squadId)
-        setData(fresh)
+        try {
+          const fresh = await apiGetDailyConcept(squadId)
+          if (fresh) setData(fresh)
+        } catch { /* ignore refresh failure */ }
       }
     } catch (err) { alert(err.message) }
     finally { setSubmitting(false) }
@@ -683,16 +695,24 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
     </div>
   )
 
+  if (!data) return (
+    <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+      <CalendarBlank size={48} weight="duotone" className="text-app-muted mb-3" />
+      <div className="text-[15px] font-bold text-app-text mb-1">{ui.noDailyConcept || 'No daily concept yet'}</div>
+      <div className="text-[12px] text-app-muted">{ui.checkBackLater || 'Check back later — your squad needs more activity.'}</div>
+    </div>
+  )
+
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })
   const v = verdict ? DAILY_VERDICT[verdict.verdict] : null
 
   return (
-    <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-4 pb-6">
+    <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-4 pb-4">
       {/* Header */}
       <div className="bg-app-yellow/[0.06] border border-app-yellow/20 rounded-2xl px-4 py-3.5 mb-4">
-        <div className="text-[11px] font-extrabold text-app-yellow tracking-[0.06em] mb-1.5">📅 DAILY CONCEPT · {today.toUpperCase()}</div>
+        <div className="text-[11px] font-extrabold text-app-yellow tracking-[0.06em] mb-1.5 flex items-center gap-1"><CalendarBlank size={12} weight="fill" /> {ui.dailyConceptHeader} · {today.toUpperCase()}</div>
         <div className="text-[18px] font-black text-app-text">{data?.concept}</div>
-        <div className="text-[12px] text-app-muted mt-1">{data?.subject} · Explain in your own words · AI grades your answer</div>
+        <div className="text-[12px] text-app-muted mt-1">{data?.subject}  {ui.explainInOwnWords}  {ui.explainInOwnWords}</div>
       </div>
 
       {/* AI Reviewing spinner */}
@@ -700,8 +720,8 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
         <div className="bg-app-card border border-app-border rounded-[14px] p-4 mb-4 flex items-center gap-3">
           <div className="w-[22px] h-[22px] border-[3px] border-app-blue border-t-transparent rounded-full animate-spin flex-shrink-0" />
           <div>
-            <div className="text-[13px] font-bold text-app-text">AI is reviewing your explanation…</div>
-            <div className="text-[11px] text-app-muted mt-0.5">XP will be based on accuracy</div>
+            <div className="text-[13px] font-bold text-app-text">{ui.aiReviewing}</div>
+            <div className="text-[11px] text-app-muted mt-0.5">{ui.xpBasedOnAccuracy}</div>
           </div>
         </div>
       )}
@@ -710,20 +730,19 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
       {done && v && (
         <div style={{ background: v.bg, border: `1px solid ${v.border}`, borderRadius: 14, padding: '13px 15px', marginBottom: 16 }}>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-[18px]">{v.icon}</span>
             <span className="text-[13px] font-extrabold" style={{ color: v.text }}>{v.label}</span>
             <span className="ml-auto text-[13px] font-extrabold text-app-yellow">+{verdict.xp ?? v.xp} XP</span>
           </div>
           {verdict.note && (
-            <div className="text-[12.5px] text-app-text leading-[1.6] pl-[26px]">🤖 {verdict.note}</div>
+            <div className="text-[12.5px] text-app-text leading-[1.6] flex items-start gap-1"><Brain size={12} weight="fill" className="shrink-0 mt-0.5" /> {verdict.note}</div>
           )}
         </div>
       )}
 
-      {/* Already submitted — show their explanation */}
+      {/* Already submitted  show their explanation */}
       {done && data?.my_explanation && (
         <div className="border border-app-green/20 rounded-[14px] px-3.5 py-3 mb-4" style={{ background: '#00E5A008' }}>
-          <div className="text-[11px] font-extrabold text-app-green mb-1.5">✅ YOUR EXPLANATION</div>
+          <div className="text-[11px] font-extrabold text-app-green mb-1.5 flex items-center gap-1"><CheckCircle size={12} weight="fill" /> {ui.yourExplanation}</div>
           <div className="text-[13.5px] text-app-text leading-[1.6]">{data.my_explanation.explanation}</div>
         </div>
       )}
@@ -732,13 +751,13 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
       {!done && !reviewing && (
         <div className="mb-4">
           <textarea value={text} onChange={e => setText(e.target.value)}
-            placeholder={`Explain "${data?.concept}" in simple words…`}
+            placeholder={`Explain "${data?.concept}" in simple words`}
             rows={4}
             className="w-full bg-app-card rounded-[14px] px-3.5 py-3 text-app-text text-[13.5px] resize-none leading-[1.55] box-border outline-none"
             style={{ border: `1.5px solid ${wordCount >= 10 ? '#FFD166' : 'rgba(255,255,255,0.03)'}` }} />
           <div className="flex justify-between items-center mt-1.5">
-            <span className="text-[11px]" style={{ color: wordCount >= 10 ? '#00E5A0' : '#6868a0' }}>{wordCount}/10 words minimum</span>
-            <span className="text-[11px] text-app-muted">AI grades: ✅30 / ⚠️15 / ✗5 XP</span>
+            <span className="text-[11px]" style={{ color: wordCount >= 10 ? '#00E5A0' : '#6868a0' }}>{wordCount}/10 {ui.wordsMinimum}</span>
+            <span className="text-[11px] text-app-muted">AI grades: 30 / 15 / 5 XP</span>
           </div>
           <button onClick={handleSubmit} disabled={submitting || wordCount < 10}
             className="mt-2.5 w-full border-none rounded-[12px] py-3 font-extrabold text-[14px]"
@@ -747,17 +766,17 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
               color: wordCount >= 10 ? '#04040e' : '#6868a0',
               cursor: wordCount >= 10 ? 'pointer' : 'default',
             }}>
-            {submitting && !reviewing ? 'Submitting…' : '📤 Submit for AI Review'}
+            {submitting && !reviewing ? 'Submitting' : <><Sparkle size={14} weight="fill" className="inline" /> Submit for AI Review</>}
           </button>
         </div>
       )}
 
       {/* Squad explanations */}
       <div className="text-[12px] font-extrabold text-app-muted tracking-[0.05em] mb-2.5">
-        SQUAD'S EXPLANATIONS ({data?.explanations?.length || 0})
+        {ui.squadExplanations} ({data?.explanations?.length || 0})
       </div>
       {(!data?.explanations || data.explanations.length === 0) ? (
-        <div className="text-center text-app-muted text-[13px] py-5">No one has explained yet today. Be the first! 🌟</div>
+        <div className="text-center text-app-muted text-[13px] py-5">{ui.noOneExplainedYet}</div>
       ) : data.explanations.map(ex => {
         const ev = ex.ai_verdict ? DAILY_VERDICT[ex.ai_verdict] : null
         return (
@@ -765,15 +784,15 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
             <div className="flex justify-between items-center mb-1.5">
               <div className="flex items-center gap-1.5">
                 <span className="text-[12px] font-bold" style={{ color: ex.user_id === userId ? '#00E5A0' : '#7B9CFF' }}>
-                  {ex.user_id === userId ? '✨ You' : ex.display_name}
+                  {ex.user_id === userId ? <><CheckCircle size={10} weight="fill" className="inline" /> You</> : ex.display_name}
                 </span>
-                {ev && <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-[20px]" style={{ background: ev.bg, color: ev.text }}>{ev.icon}</span>}
+                {ev && <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-[20px]" style={{ background: ev.bg, color: ev.text }}>{ev.label}</span>}
               </div>
               <span className="text-[11px] text-app-yellow font-bold">+{ex.xp_awarded} XP</span>
             </div>
             <div className="text-[13.5px] text-app-text leading-[1.6]">{ex.explanation}</div>
             {ex.ai_note && (
-              <div className="text-[11.5px] text-app-muted mt-1.5 px-2.5 py-1.5 bg-app-card2 rounded-lg">🤖 {ex.ai_note}</div>
+              <div className="text-[11.5px] text-app-muted mt-1.5 px-2.5 py-1.5 bg-app-card2 rounded-lg flex items-start gap-1"><Brain size={12} weight="fill" className="shrink-0 mt-0.5" /> {ex.ai_note}</div>
             )}
           </div>
         )
@@ -782,8 +801,9 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile }) {
   )
 }
 
-// ── Main SathiTab ─────────────────────────────────────────────
+// -- Main SathiTab ---------------------------------------------
 export default function SathiTab({ profile, userId, addXp }) {
+  const ui = li(getDisplayLang(profile))
   const [loading,        setLoading]        = useState(true)
   const [squad,          setSquad]          = useState(null)      // full squad object
   const [matching,       setMatching]       = useState(false)
@@ -806,12 +826,12 @@ export default function SathiTab({ profile, userId, addXp }) {
   const inputRef      = useRef(null)
   const lastMsgIdRef  = useRef(0)  // always-current value for polling closure
 
-  // ── Scroll to bottom ───────────────────────────────────────
+  // -- Scroll to bottom ---------------------------------------
   const scrollBottom = useCallback(() => {
     setTimeout(() => messagesEnd.current?.scrollIntoView({ behavior: 'smooth' }), 80)
   }, [])
 
-  // ── Load squad on mount ────────────────────────────────────
+  // -- Load squad on mount ------------------------------------
   useEffect(() => {
     let cancelled = false
     async function load() {
@@ -829,7 +849,7 @@ export default function SathiTab({ profile, userId, addXp }) {
     return () => { cancelled = true }
   }, [])
 
-  // ── Initial message load when squad arrives ────────────────
+  // -- Initial message load when squad arrives ----------------
   useEffect(() => {
     if (!squad) return
     loadMessages(squad.id, 0, true)
@@ -837,23 +857,23 @@ export default function SathiTab({ profile, userId, addXp }) {
     apiGetSquadStreak(squad.id).then(d => setSquadStreak(d.streak || 0)).catch(() => {})
   }, [squad?.id])  // eslint-disable-line
 
-  // ── Polling ────────────────────────────────────────────────
+  // -- Polling ------------------------------------------------
   useEffect(() => {
     if (!squad) return
     pollTimer.current = setInterval(() => {
       pollMessages(squad.id)
     }, POLL_MS)
     return () => clearInterval(pollTimer.current)
-  }, [squad?.id])  // eslint-disable-line — uses lastMsgIdRef to avoid stale closures
+  }, [squad?.id])  // eslint-disable-line  uses lastMsgIdRef to avoid stale closures
 
-  // ── Silence tick — forces re-render every 15s so AI Peer button can appear ──
+  // -- Silence tick  forces re-render every 15s so AI Peer button can appear --
   useEffect(() => {
     if (!squad) return
     const t = setInterval(() => setSilenceTick(n => n + 1), 15000)
     return () => clearInterval(t)
   }, [!!squad])  // eslint-disable-line
 
-  // ── Helpers ───────────────────────────────────────────────
+  // -- Helpers -----------------------------------------------
   const loadMessages = async (squadId, since, initial = false) => {
     try {
       const data = await apiGetSquadMessages(squadId, since)
@@ -910,7 +930,7 @@ export default function SathiTab({ profile, userId, addXp }) {
     } catch { /* silent */ }
   }
 
-  // ── Match into a squad ─────────────────────────────────────
+  // -- Match into a squad -------------------------------------
   const handleMatch = async () => {
     setMatching(true)
     try {
@@ -929,7 +949,7 @@ export default function SathiTab({ profile, userId, addXp }) {
     }
   }
 
-  // ── Send message ───────────────────────────────────────────
+  // -- Send message -------------------------------------------
   const sendMessage = async (e) => {
     e?.preventDefault()
     const content = input.trim()
@@ -950,11 +970,11 @@ export default function SathiTab({ profile, userId, addXp }) {
     try {
       await apiSendSquadMessage(squad.id, content, profile?.name || 'Student')
       setSilentSince(Date.now())
-    } catch { /* message might have sent — poll will sync */ }
+    } catch { /* message might have sent  poll will sync */ }
     finally { setSending(false) }
   }
 
-  // ── AI Peer (Gyaani) ───────────────────────────────────────
+  // -- AI Peer (Owl) ---------------------------------------
   const invokeAIPeer = async () => {
     if (!squad || aiPeerLoading) return
     setAiPeerLoading(true)
@@ -967,12 +987,12 @@ export default function SathiTab({ profile, userId, addXp }) {
 
       const lang = profile?.language || 'English'
       const langRule = LANG_RULES[lang] || LANG_RULES['English']
-      const sysPrompt = `🚨 LANGUAGE RULE — MANDATORY — NEVER BREAK:
+      const sysPrompt = `LANGUAGE RULE - MANDATORY - NEVER BREAK:
 ${langRule}
 YOU MUST write your ENTIRE response in ${lang} ONLY.
 NEVER mix languages.
 
-You are Gyaani, a confused but curious Class ${(profile?.standard || 'Class 10').replace('Class ', '')} student studying ${squad.focus_subject}. You ask thoughtful follow-up questions, admit when you don't understand, and sometimes make small mistakes that show you're genuinely learning. You NEVER act like a teacher. Keep responses short (2-3 sentences max). Use simple, friendly language a student would use.`
+You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').replace('Class ', '')} student studying ${squad.focus_subject}. You ask thoughtful follow-up questions, admit when you don't understand, and sometimes make small mistakes that show you're genuinely learning. You NEVER act like a teacher. Keep responses short (2-3 sentences max). Use simple, friendly language a student would use.`
 
       const prompt = recent
         ? `The squad was just discussing:\n${recent}\n\nAs a confused student, react to this conversation or ask a follow-up question.`
@@ -980,14 +1000,14 @@ You are Gyaani, a confused but curious Class ${(profile?.standard || 'Class 10')
 
       const reply = await callAI(prompt, sysPrompt, [], 2, 200)
 
-      await apiSendSquadMessage(squad.id, reply, 'Gyaani', 'ai_peer')
+      await apiSendSquadMessage(squad.id, reply, 'Owl', 'ai_peer')
       setSilentSince(Date.now())
       // poll will pick it up
     } catch { /* silent */ }
     finally { setAiPeerLoading(false) }
   }
 
-  // ── Create challenge ───────────────────────────────────────
+  // -- Create challenge ---------------------------------------
   const handleCreateChallenge = async () => {
     if (!squad || (showChallenge && challenge)) return
     try {
@@ -998,11 +1018,11 @@ You are Gyaani, a confused but curious Class ${(profile?.standard || 'Class 10')
     }
   }
 
-  // ── Submit challenge ───────────────────────────────────────
+  // -- Submit challenge ---------------------------------------
   const handleSubmitChallenge = async (explanation) => {
     if (!challenge) return null
-    // Don’t clear challenge/banner here — let ChallengeBanner show the
-    // “Challenge complete!” feedback for 2.5s then call onDismiss.
+    // Dont clear challenge/banner here  let ChallengeBanner show the
+    // Challenge complete! feedback for 2.5s then call onDismiss.
     const res = await apiSubmitChallenge(squad.id, challenge.id, explanation)
     if (res?.completed && res?.xp_awarded && addXp) {
       addXp(res.xp_awarded)
@@ -1010,9 +1030,9 @@ You are Gyaani, a confused but curious Class ${(profile?.standard || 'Class 10')
     return res
   }
 
-  // ── Leave squad ────────────────────────────────────────────
+  // -- Leave squad --------------------------------------------
   const handleLeave = async () => {
-    if (!squad || !window.confirm('Leave this squad? You can find a new one anytime.')) return
+    if (!squad || !window.confirm(ui.leaveConfirm)) return
     setLeaving(true)
     try {
       await apiLeaveSquad(squad.id)
@@ -1025,80 +1045,81 @@ You are Gyaani, a confused but curious Class ${(profile?.standard || 'Class 10')
     finally { setLeaving(false) }
   }
 
-  // ── Silence timer for AI peer button ──────────────────────
+  // -- Silence timer for AI peer button ----------------------
   const silenceMs = Date.now() - silentSince
   const showAIPeerBtn = squad && messages.length > 0 && silenceMs >= SILENCE_MS
 
-  // ─────────────────────────────────────────────────────────
+  // ---------------------------------------------------------
   // RENDER: loading
   if (loading) return (
-    <div className="tab-content flex items-center justify-center min-h-[300px]">
+    <div className="flex items-center justify-center min-h-[300px]">
       <div className="w-9 h-9 border-[3px] border-app-green border-t-transparent rounded-full animate-spin" />
     </div>
   )
 
   // RENDER: no squad
   if (!squad) return (
-    <div className="tab-content">
-      <NoSquadScreen onMatch={handleMatch} matching={matching} />
+    <div className="overflow-y-auto">
+      <NoSquadScreen onMatch={handleMatch} matching={matching} ui={ui} />
     </div>
   )
 
-  // RENDER: in squad → full chat
+  // RENDER: in squad ? full chat
   const memberMap = Object.fromEntries(members.map(m => [m.user_id, m]))
 
   return (
-    <div className="tab-content flex flex-col h-full p-0">
+    <div className="flex flex-col h-full min-h-0">
 
-      {/* ── Header ── */}
+      {/* -- Header -- */}
       <div className="px-4 py-2.5 border-b border-app-border bg-app-card flex items-center justify-between flex-shrink-0">
         <div>
           <div className="text-[14px] font-black text-app-text">
-            🤝 {squad.name}
+            <UsersThree size={16} weight="duotone" className="inline text-app-green" /> {squad.name}
           </div>
           <div className="text-[11px] text-app-muted mt-0.5 flex gap-2 items-center">
             <span><span className="text-app-blue font-bold">{squad.focus_subject}</span></span>
-            <span>·</span>
-            <span>{members.filter(m => m.online).length}/{members.length} online</span>
-            {squadStreak > 0 && <><span>·</span><span className="text-app-orange font-bold">🔥 {squadStreak}d streak</span></>}
+            <span></span>
+            <span>{members.filter(m => m.online).length}/{members.length} {ui.onlineLabel}</span>
+            {squadStreak > 0 && <><span></span><span className="text-app-orange font-bold"><Lightning size={12} weight="fill" className="inline" /> {squadStreak}{ui.streakSuffix}</span></>}
           </div>
         </div>
         <div className="flex gap-1.5">
           <button onClick={handleCreateChallenge} title="Get a teach-this challenge"
-            className="bg-app-yellow/[0.08] border border-app-yellow/25 rounded-[10px] px-2.5 py-1.5 text-[13px] cursor-pointer text-app-yellow font-bold">📚</button>
+            className="bg-app-yellow/[0.08] border border-app-yellow/25 rounded-[10px] px-2.5 py-1.5 text-[13px] cursor-pointer text-app-yellow font-bold"><Lightning size={14} weight="fill" /></button>
           <button onClick={handleLeave} disabled={leaving}
-            className="bg-app-red/[0.08] border border-app-red/25 rounded-[10px] px-2.5 py-1.5 text-[11px] cursor-pointer text-app-red font-bold">Leave</button>
+            className="bg-app-red/[0.08] border border-app-red/25 rounded-[10px] px-2.5 py-1.5 text-[11px] cursor-pointer text-app-red font-bold">{ui.leaveBtn}</button>
         </div>
       </div>
 
-      {/* ── Members strip ── */}
-      <MembersStrip members={members} currentUserId={userId} />
+      {/* -- Members strip -- */}
+      <MembersStrip members={members} currentUserId={userId} ui={ui} />
 
-      {/* ── Sub-tab nav ── */}
-      <SubNav active={activePanel} onChange={setActivePanel} />
+      {/* -- Sub-tab nav -- */}
+      <SubNav active={activePanel} onChange={setActivePanel} ui={ui} />
 
-      {/* ── Challenge banner (chat tab only) ── */}
+      {/* -- Challenge banner (chat tab only) -- */}
       {activePanel === 'chat' && showChallenge && challenge && (
         <div className="px-3.5 pt-2.5 flex-shrink-0">
           <ChallengeBanner
             challenge={challenge}
             onSubmit={handleSubmitChallenge}
             onDismiss={() => { setShowChallenge(false); setChallenge(null) }}
+            ui={ui}
           />
         </div>
       )}
 
-      {/* ── Panel content ── */}
+      {/* -- Panel content -- */}
       <div className="flex-1 flex flex-col min-h-0">
 
         {/* CHAT */}
         {activePanel === 'chat' && (
           <>
-            <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col">
+            <div className="flex-1 overflow-y-auto px-3.5 py-3 pb-4 flex flex-col">
               {messages.length === 0 && (
         <div className="text-center text-app-muted text-[13px] mt-10">
-                  <div className="text-[40px] mb-2.5">👋</div>
-                  Say hi to your squad!
+                  <div className="mb-2.5 flex justify-center"><ChatCircle size={40} weight="duotone" className="text-app-muted" /></div>
+                  {ui.sayHiToSquad}
                 </div>
               )}
               {messages.map(m => (
@@ -1111,30 +1132,37 @@ You are Gyaani, a confused but curious Class ${(profile?.standard || 'Class 10')
                 <button onClick={invokeAIPeer} disabled={aiPeerLoading}
                   className="bg-app-blue/[0.08] border border-app-blue/25 rounded-[20px] px-4 py-1.5 text-[12px] font-bold cursor-pointer text-app-blue inline-flex items-center gap-1.5">
                   {aiPeerLoading
-                    ? <><span className="w-3 h-3 border-2 border-app-blue border-t-transparent rounded-full animate-spin inline-block" /> Gyaani is thinking…</>
-                    : '🦉 Ask Gyaani (AI Study Peer)'}
+                    ? <><span className="w-3 h-3 border-2 border-app-blue border-t-transparent rounded-full animate-spin inline-block" /> Owl is thinking</>
+                    : <><Sparkle size={12} weight="fill" /> Ask Owl (AI Study Peer)</>}
                 </button>
-                <div className="text-[10.5px] text-app-muted mt-1">Squad's been quiet — Gyaani can spark discussion</div>
+                <div className="text-[10.5px] text-app-muted mt-1">Squad's been quiet  Owl can spark discussion</div>
               </div>
             )}
-            <form onSubmit={sendMessage} className="px-3 pb-3 pt-2.5 border-t border-app-border flex gap-2 flex-shrink-0 bg-app-bg">
-              <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} placeholder="Message your squad…"
+            <form onSubmit={sendMessage} className="px-3 pb-2 pt-2.5 border-t border-app-border flex gap-2 flex-shrink-0 bg-app-bg">
+              <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} placeholder={ui.chatPlaceholder}
                 className="flex-1 bg-app-card border border-app-border rounded-[14px] px-3.5 py-2.5 text-app-text text-[14px] outline-none" />
+              <button type="button" onClick={async () => {
+                try {
+                  const { startVoiceInput, LANG_TO_SPEECH_CODE } = await import('../../shared.js')
+                  const text = await startVoiceInput(LANG_TO_SPEECH_CODE[profile?.language] || 'en-IN')
+                  if (text) setInput(prev => prev ? prev + ' ' + text : text)
+                } catch {}
+              }} className="mic-btn shrink-0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="1" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
               <button type="submit" disabled={!input.trim() || sending}
                 className="border-none rounded-[14px] px-4 text-[18px] font-black flex-shrink-0"
-                style={{ background: input.trim() ? `linear-gradient(135deg,#00E5A0,#33cc88)` : '#0b0b1c', color: input.trim() ? '#04040e' : '#6868a0', cursor: input.trim() ? 'pointer' : 'default' }}>➤</button>
+                style={{ background: input.trim() ? `linear-gradient(135deg,#00E5A0,#33cc88)` : '#0b0b1c', color: input.trim() ? '#04040e' : '#6868a0', cursor: input.trim() ? 'pointer' : 'default' }}>?</button>
             </form>
           </>
         )}
 
         {/* DOUBTS */}
         {activePanel === 'doubts' && (
-          <DoubtsPanel squadId={squad.id} userId={userId} profileName={profile?.name} profile={profile} />
+          <DoubtsPanel squadId={squad.id} userId={userId} profileName={profile?.name} profile={profile} ui={ui} />
         )}
 
         {/* DAILY */}
         {activePanel === 'daily' && (
-          <DailyPanel squadId={squad.id} userId={userId} profileName={profile?.name} addXp={addXp} profile={profile} />
+          <DailyPanel squadId={squad.id} userId={userId} profileName={profile?.name} addXp={addXp} profile={profile} ui={ui} />
         )}
 
       </div>

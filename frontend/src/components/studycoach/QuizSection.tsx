@@ -91,7 +91,7 @@ export default function QuizSection({ questions, ui }: QuizSectionProps) {
       </div>
 
       {/* Question */}
-      <p className="text-white text-lg mb-6">{currentQuestion.question}</p>
+      <p className="text-white text-base sm:text-lg mb-6">{currentQuestion.question}</p>
 
       {/* Options */}
       <div className="space-y-3">
@@ -116,7 +116,7 @@ export default function QuizSection({ questions, ui }: QuizSectionProps) {
               onClick={() => handleAnswer(option)}
               disabled={selectedAnswer !== null}
               className={`
-                w-full p-4 rounded-xl border text-left transition-all
+                w-full p-3 sm:p-4 rounded-xl border text-left transition-all
                 ${bgClass}
                 ${selectedAnswer === null ? 'cursor-pointer' : 'cursor-default'}
               `}

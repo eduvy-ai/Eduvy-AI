@@ -86,10 +86,13 @@ async def get_history(
 
 
 @router.get("/leaderboard")
-async def get_leaderboard(limit: int = Query(50, le=100)):
+async def get_leaderboard(limit: int = Query(50, le=100), current_user: str = Depends(get_current_user)):
     """Get weekly leaderboard."""
     leaders = await asyncio.to_thread(MuqablaService.get_leaderboard, limit)
-    return {"leaders": leaders}
+    # Tag which entry is the current user
+    for entry in leaders:
+        entry["is_me"] = entry.get("id") == current_user
+    return {"leaderboard": leaders}
 
 
 @router.get("/pending")
@@ -107,8 +110,23 @@ async def get_active(current_user: str = Depends(get_current_user)):
 
 
 @router.get("/school-leaderboard")
-async def get_school_leaderboard(limit: int = Query(50, le=100)):
+async def get_school_leaderboard(limit: int = Query(50, le=100), current_user: str = Depends(get_current_user)):
     """Get school-level leaderboard."""
-    leaders = await asyncio.to_thread(MuqablaService.get_school_leaderboard, limit)
-    return {"leaders": leaders}
+    schools = await asyncio.to_thread(MuqablaService.get_school_leaderboard, limit)
+    # Tag which school is the current user's
+    user_school = None
+    try:
+        from app.db.connection import get_db
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT school FROM users WHERE id = %s", (current_user,))
+        row = cur.fetchone()
+        if row:
+            user_school = row["school"]
+        conn.close()
+    except Exception:
+        pass
+    for entry in schools:
+        entry["is_mine"] = (user_school and entry.get("school") == user_school)
+    return {"schools": schools}
 

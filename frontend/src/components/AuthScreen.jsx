@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BOARDS, LANGS, SUBS } from '../shared.js'
 import { apiLogin, apiRegister, setAuthToken } from '../api.js'
 import { li } from '../i18n/index.js'
+import { GraduationCap, Eye, EyeSlash } from '@phosphor-icons/react'
 
 const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
 
@@ -32,7 +33,7 @@ export default function AuthScreen({ onAuth }) {
 
   // ── Login ──
   const doLogin = async () => {
-    if (!email.trim() || !password) { setError('Enter email and password'); return }
+    if (!email.trim() || !password) { setError(ui.enterEmailPassword); return }
     setError('')
     setLoading(true)
     try {
@@ -41,9 +42,9 @@ export default function AuthScreen({ onAuth }) {
       onAuth(profile)
     } catch (e) {
       if (e.name === 'TimeoutError' || e.name === 'AbortError') {
-        setError('Server is starting up, please try again in a moment.')
+        setError(ui.serverStarting)
       } else {
-        setError(e.message || 'Login failed')
+        setError(e.message || ui.loginFailed)
       }
     }
     setLoading(false)
@@ -51,9 +52,9 @@ export default function AuthScreen({ onAuth }) {
 
   // ── Register step 1 → step 2 ──
   const goStep2 = () => {
-    if (!name.trim()) { setError('Enter your name'); return }
-    if (!email.trim() || !email.includes('@')) { setError('Enter a valid email'); return }
-    if (password.length < 6) { setError('Password must be at least 6 characters'); return }
+    if (!name.trim()) { setError(ui.enterName); return }
+    if (!email.trim() || !email.includes('@')) { setError(ui.validEmail); return }
+    if (password.length < 6) { setError(ui.passwordMinLength); return }
     setError('')
     setSubs([...allSubs]) // auto-select all subjects
     setRegStep(2)
@@ -79,20 +80,20 @@ export default function AuthScreen({ onAuth }) {
       onAuth(profile)
     } catch (e) {
       if (e.name === 'TimeoutError' || e.name === 'AbortError') {
-        setError('Server is starting up, please try again in a moment.')
+        setError(ui.serverStarting)
       } else {
-        setError(e.message || 'Registration failed')
+        setError(e.message || ui.registerFailed)
       }
     }
     setLoading(false)
   }
 
   return (
-    <div className="min-h-screen bg-app-bg flex items-center justify-center p-4 font-sans">
+    <div className="min-h-screen bg-app-bg flex items-start justify-center overflow-y-auto p-4 pt-8 font-sans">
       <div className="w-full max-w-[420px]">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="text-[42px] mb-2">🎓</div>
+          <div className="mb-2 flex justify-center"><GraduationCap size={42} weight="duotone" className="text-app-green" /></div>
           <div className="text-2xl font-extrabold text-app-text">Eduvy-AI</div>
           <div className="text-sm text-app-muted mt-1">{ui.tagline}</div>
         </div>
@@ -145,9 +146,9 @@ export default function AuthScreen({ onAuth }) {
                   />
                   <button
                     onClick={() => setShowPw(p => !p)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-app-muted text-base"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-app-muted"
                   >
-                    {showPw ? '🙈' : '👁️'}
+                    {showPw ? <EyeSlash size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>
@@ -215,9 +216,9 @@ export default function AuthScreen({ onAuth }) {
                   />
                   <button
                     onClick={() => setShowPw(p => !p)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-app-muted text-base"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-app-muted"
                   >
-                    {showPw ? '🙈' : '👁️'}
+                    {showPw ? <EyeSlash size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>

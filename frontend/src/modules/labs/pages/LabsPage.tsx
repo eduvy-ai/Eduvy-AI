@@ -24,6 +24,7 @@ const LabsPage: React.FC = () => {
     // XP is added via backend when actions complete
   }
 
+  if (!user) return null
   return (
     <LabsTabLegacy
       profile={user}
