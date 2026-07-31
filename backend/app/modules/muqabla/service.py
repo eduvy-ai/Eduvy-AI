@@ -403,14 +403,26 @@ class MuqablaService:
             cur = conn.cursor()
             cur.execute("""
                 SELECT id, challenger_id, challenger_name, opponent_id, opponent_name,
-                       subject, difficulty, status,
+                       subject, difficulty, status, questions_json,
                        created_at::text AS created_at
                 FROM muqabla_battles
                 WHERE (challenger_id = %s OR opponent_id = %s)
-                  AND status = 'active'
+                  AND status IN ('active', 'challenger_done')
                 ORDER BY created_at DESC LIMIT 20
             """, (user_id, user_id))
-            return [dict(r) for r in cur.fetchall()]
+            result = []
+            for r in cur.fetchall():
+                d = dict(r)
+                # Compute question_count from questions_json
+                try:
+                    qs = json.loads(d.get('questions_json') or '[]')
+                    d['question_count'] = len(qs) if qs else 5
+                except:
+                    d['question_count'] = 5
+                # Don't send full questions_json in list view
+                d.pop('questions_json', None)
+                result.append(d)
+            return result
         finally:
             conn.close()
 

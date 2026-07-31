@@ -655,6 +655,16 @@ export default function MuqablaTab({ profile, userId }) {
             </div>
           )}
 
+          {/* Battles where I'm opponent and need to answer (challenger_done) */}
+          {active.filter(b => !b.is_challenger && b.status === 'challenger_done').length > 0 && (
+            <div className="mb-5">
+              <h3 className="text-app-orange text-sm mb-2.5">{ui.yourTurn || 'Your Turn'} ({active.filter(b => !b.is_challenger && b.status === 'challenger_done').length})</h3>
+              {active.filter(b => !b.is_challenger && b.status === 'challenger_done').map(b => (
+                <BattleCard key={b.id} battle={b} onAction={handleAction} myId={myId} ui={ui} />
+              ))}
+            </div>
+          )}
+
           {active.filter(b => b.is_challenger && b.status === 'open' && b.challenger_score === null).length > 0 && (
             <div className="mb-5">
               <h3 className="text-app-yellow text-sm mb-2.5">{ui.answerFirst}</h3>
