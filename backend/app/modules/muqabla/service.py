@@ -91,6 +91,24 @@ class MuqablaService:
             pass
         
         hide = not questions_visible
+        
+        # Include viewer's answers when they have already answered
+        viewer_answers = None
+        status = row["status"]
+        show_answers = status in ("completed", "waiting_for_opponent", "challenger_done", "opponent_done")
+        if questions_visible and show_answers:
+            answers_json = None
+            if row["challenger_id"] == viewer_id:
+                answers_json = row.get("challenger_answers")
+            elif row.get("opponent_id") == viewer_id:
+                answers_json = row.get("opponent_answers")
+            
+            if answers_json:
+                try:
+                    viewer_answers = json.loads(answers_json)
+                except (json.JSONDecodeError, ValueError):
+                    viewer_answers = None
+        
         return {
             "id": row["id"],
             "challenger_id": row["challenger_id"],
@@ -112,6 +130,7 @@ class MuqablaService:
             "question_count": len(qs),
             "questions": _safe_questions(qs, hide),
             "is_challenger": row["challenger_id"] == viewer_id,
+            "my_answers": viewer_answers,
         }
     
     @staticmethod

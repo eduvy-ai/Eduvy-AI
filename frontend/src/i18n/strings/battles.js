@@ -515,11 +515,38 @@ export const BATTLES = {
   statusDeclined: {
     English: "❌ Declined", Hindi: "❌ अस्वीकार", Gujarati: "❌ નકારેલ", Marathi: "❌ नाकारले",
     Tamil: "❌ நிராகரிக்கப்பட்டது", Telugu: "❌ తిరస్కరించబడింది", Kannada: "❌ ತಿರಸ್ಕರಿಸಲಾಗಿದೆ", Bengali: "❌ প্রত্যাখ্যান",
-    Punjabi: "❌ ਅਸਵੀਕਾਰ", Odia: "❌ ଅସ୍ୱୀକୃତ", Urdu: "❌ مسترد",
+    Punjabi: "❌ ਅਸਵੀਕਾਰ", Odia: "❌ ਅਸ੍ਵੀਕৃत", Urdu: "❌ مسترد",
   },
   statusActive: {
     English: "⚡ Active", Hindi: "⚡ सक्रिय", Gujarati: "⚡ સક્રિય", Marathi: "⚡ सक्रिय",
     Tamil: "⚡ செயலில்", Telugu: "⚡ యాక్టివ్", Kannada: "⚡ ಸಕ್ರಿಯ", Bengali: "⚡ সক্রিয়",
     Punjabi: "⚡ ਸਰਗਰਮ", Odia: "⚡ ସକ୍ରିୟ", Urdu: "⚡ فعال",
+  },
+
+  // Question Review Section
+  questionReview: {
+    English: "Question Review", Hindi: "प्रश्न समीक्षा", Gujarati: "પ્રશ્ન સમીક્ષા", Marathi: "प्रश्न पुनरावलोकन",
+    Tamil: "கேள்வி மதிப்பாய்வு", Telugu: "ప్రశ్న సమీక్ష", Kannada: "ಪ್ರಶ್ನೆ ವಿಮರ್ಶೆ", Bengali: "প্রশ্ন পর্যালোচনা",
+    Punjabi: "ਸਵਾਲ ਸਮੀਖਿਆ", Odia: "ପ୍ରଶ୍ନ ସମୀକ୍ଷା", Urdu: "سوال کا جائزہ",
+  },
+  yourAnswer: {
+    English: "Your answer", Hindi: "आपका जवाब", Gujarati: "તમારો જવાબ", Marathi: "तुमचे उत्तर",
+    Tamil: "உங்கள் பதில்", Telugu: "మీ సమాధానం", Kannada: "ನಿಮ್ಮ ಉತ್ತರ", Bengali: "আপনার উত্তর",
+    Punjabi: "ਤੁਹਾਡਾ ਜਵਾਬ", Odia: "ତୁମର ଉତ୍ତର", Urdu: "آپ کا جواب",
+  },
+  correctAnswer: {
+    English: "Correct answer", Hindi: "सही जवाब", Gujarati: "સાચો જવાબ", Marathi: "बरोबर उत्तर",
+    Tamil: "சரியான பதில்", Telugu: "సరైన సమాధానం", Kannada: "ಸರಿಯಾದ ಉತ್ತರ", Bengali: "সঠিক উত্তর",
+    Punjabi: "ਸਹੀ ਜਵਾਬ", Odia: "ସଠିକ ଉତ୍ତର", Urdu: "صحیح جواب",
+  },
+  explanation: {
+    English: "Explanation", Hindi: "स्पष्टीकरण", Gujarati: "સ્પષ્ટીકરણ", Marathi: "स्पष्टीकरण",
+    Tamil: "விளக்கம்", Telugu: "వివరణ", Kannada: "ವಿವರಣೆ", Bengali: "ব্যাখ্যা",
+    Punjabi: "ਸਪੱਸ਼ਟੀਕਰਨ", Odia: "ସ୍ପଷ୍ଟୀକରଣ", Urdu: "وضاحت",
+  },
+  skipped: {
+    English: "Skipped", Hindi: "छोड़ा", Gujarati: "છોડ્યું", Marathi: "वगळले",
+    Tamil: "தவிர்க்கப்பட்டது", Telugu: "దాటవేయబడింది", Kannada: "ಬಿಟ್ಟಿದ್ದೀರಿ", Bengali: "এড়ানো হয়েছে",
+    Punjabi: "ਛੱਡਿਆ", Odia: "ଛାଡିଦେଲ", Urdu: "چھوڑ دیا",
   },
 }

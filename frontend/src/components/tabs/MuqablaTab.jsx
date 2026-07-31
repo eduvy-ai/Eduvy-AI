@@ -549,6 +549,35 @@ export default function MuqablaTab({ profile, userId }) {
     if (view === 'history') loadHistory()
   }, [view]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Handle device/browser back button for modals ─────────────
+  const modalOpenRef = useRef(false)
+  
+  useEffect(() => {
+    if (quizBattle && !modalOpenRef.current) {
+      // Modal just opened - push history state
+      modalOpenRef.current = true
+      window.history.pushState({ muqablaModal: true }, '')
+    } else if (!quizBattle && modalOpenRef.current) {
+      // Modal just closed
+      modalOpenRef.current = false
+    }
+  }, [quizBattle])
+  
+  useEffect(() => {
+    const handlePopState = () => {
+      if (modalOpenRef.current) {
+        setQuizBattle(null)
+        loadArena()
+        modalOpenRef.current = false
+      }
+    }
+    
+    window.addEventListener('popstate', handlePopState)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+    }
+  }, [loadArena])
+
   // ── Actions ──────────────────────────────────────────────────
   async function handleAction(type, battle) {
     if (type === 'answer') {
@@ -613,8 +642,9 @@ export default function MuqablaTab({ profile, userId }) {
   }
 
   function onQuizDone() {
-    setQuizBattle(null)
-    loadArena()
+    // Use history.back() to properly pop the state we pushed
+    // The popstate handler will call setQuizBattle(null) and loadArena()
+    window.history.back()
   }
 
   // ── Render ───────────────────────────────────────────────────
@@ -742,30 +772,104 @@ export default function MuqablaTab({ profile, userId }) {
       )}
 
       {quizBattle?.showResultsOnly && (
-        <div className="fixed inset-0 bg-app-bg z-[200] flex items-center justify-center p-5 flex-col overflow-y-auto">
-          <div className="bg-app-card rounded-3xl px-6 py-8 max-w-[420px] w-full text-center">
-            <div className="text-[48px] mb-3 flex justify-center">
-              {quizBattle.winner_id === myId ? <Trophy size={48} weight="duotone" className="text-app-yellow" /> : quizBattle.winner_id === 'draw' ? <Handshake size={48} weight="duotone" className="text-app-blue" /> : <Barbell size={48} weight="duotone" className="text-app-text" />}
-            </div>
-            <h2 className="mb-4" style={{ color: quizBattle.winner_id === myId ? '#FFD166' : quizBattle.winner_id === 'draw' ? '#7B9CFF' : '#eeeeff' }}>
-              {quizBattle.winner_id === myId ? ui.youWonShort : quizBattle.winner_id === 'draw' ? ui.drawResult : quizBattle.status === 'waiting_for_opponent' ? ui.waitingForOpponent : ui.goodFight}
-            </h2>
-            <div className="bg-app-card2 rounded-2xl p-4 mb-5 flex justify-around">
-              <div>
-                <div className="text-app-muted text-[12px]">{ui.yourScore}</div>
-                <div className="text-app-green text-[22px] font-extrabold">
-                  {quizBattle.challenger_id === myId ? quizBattle.challenger_score : quizBattle.opponent_score ?? '?'}/{quizBattle.question_count ?? quizBattle.total_questions ?? '?'}
+        <div className="fixed inset-0 bg-app-bg z-[200] flex flex-col overflow-y-auto">
+          <div className="flex-1 p-5 flex flex-col items-center">
+            <div className="bg-app-card rounded-3xl px-6 py-8 max-w-[520px] w-full text-center mb-6">
+              <div className="text-[48px] mb-3 flex justify-center">
+                {quizBattle.winner_id === myId ? <Trophy size={48} weight="duotone" className="text-app-yellow" /> : quizBattle.winner_id === 'draw' ? <Handshake size={48} weight="duotone" className="text-app-blue" /> : <Barbell size={48} weight="duotone" className="text-app-text" />}
+              </div>
+              <h2 className="mb-4" style={{ color: quizBattle.winner_id === myId ? '#FFD166' : quizBattle.winner_id === 'draw' ? '#7B9CFF' : '#eeeeff' }}>
+                {quizBattle.winner_id === myId ? ui.youWonShort : quizBattle.winner_id === 'draw' ? ui.drawResult : quizBattle.status === 'waiting_for_opponent' ? ui.waitingForOpponent : ui.goodFight}
+              </h2>
+              <div className="bg-app-card2 rounded-2xl p-4 mb-5 flex justify-around">
+                <div>
+                  <div className="text-app-muted text-[12px]">{ui.yourScore}</div>
+                  <div className="text-app-green text-[22px] font-extrabold">
+                    {quizBattle.challenger_id === myId ? quizBattle.challenger_score : quizBattle.opponent_score ?? '?'}/{quizBattle.question_count ?? quizBattle.total_questions ?? '?'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-app-muted text-[12px]">{ui.opponentScore}</div>
+                  <div className="text-app-red text-[22px] font-extrabold">
+                    {quizBattle.challenger_id === myId ? quizBattle.opponent_score ?? '?' : quizBattle.challenger_score ?? '?'}/{quizBattle.question_count ?? quizBattle.total_questions ?? '?'}
+                  </div>
                 </div>
               </div>
-              <div>
-                <div className="text-app-muted text-[12px]">{ui.opponentScore}</div>
-                <div className="text-app-red text-[22px] font-extrabold">
-                  {quizBattle.challenger_id === myId ? quizBattle.opponent_score ?? '?' : quizBattle.challenger_score ?? '?'}/{quizBattle.question_count ?? quizBattle.total_questions ?? '?'}
+            </div>
+
+            {/* Question Review Section */}
+            {quizBattle.questions?.length > 0 && quizBattle.my_answers && (
+              <div className="bg-app-card rounded-3xl px-5 py-6 max-w-[520px] w-full mb-6">
+                <h3 className="text-app-text text-[16px] font-bold mb-4 text-left">{ui.questionReview || 'Question Review'}</h3>
+                <div className="space-y-4">
+                  {quizBattle.questions.map((q, idx) => {
+                    const userAnswer = quizBattle.my_answers?.[idx]
+                    const correctIdx = q.correct
+                    const isCorrect = userAnswer === correctIdx
+                    const wasSkipped = userAnswer === undefined || userAnswer === null || userAnswer === -1
+                    
+                    return (
+                      <div key={idx} className="bg-app-card2 rounded-2xl p-4 text-left">
+                        <div className="flex items-start gap-2 mb-3">
+                          <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[12px] font-bold ${isCorrect ? 'bg-app-green/20 text-app-green' : 'bg-app-red/20 text-app-red'}`}>
+                            {isCorrect ? <CheckCircle size={16} weight="bold" /> : <XCircle size={16} weight="bold" />}
+                          </span>
+                          <span className="text-app-text text-[14px] font-medium">Q{idx + 1}. {q.q}</span>
+                        </div>
+                        
+                        <div className="ml-8 space-y-2">
+                          {q.options?.map((opt, optIdx) => {
+                            const isUserAnswer = optIdx === userAnswer
+                            const isCorrectOption = optIdx === correctIdx
+                            let bgColor = 'bg-app-bg/50'
+                            let textColor = 'text-app-muted'
+                            let borderColor = 'border-transparent'
+                            
+                            if (isCorrectOption) {
+                              bgColor = 'bg-app-green/15'
+                              textColor = 'text-app-green'
+                              borderColor = 'border-app-green/40'
+                            } else if (isUserAnswer && !isCorrect) {
+                              bgColor = 'bg-app-red/15'
+                              textColor = 'text-app-red'
+                              borderColor = 'border-app-red/40'
+                            }
+                            
+                            return (
+                              <div key={optIdx} className={`${bgColor} ${textColor} border ${borderColor} rounded-lg px-3 py-2 text-[13px] flex items-center gap-2`}>
+                                <span className="font-bold">{String.fromCharCode(65 + optIdx)}.</span>
+                                <span>{opt}</span>
+                                {isCorrectOption && <CheckCircle size={14} weight="bold" className="ml-auto text-app-green" />}
+                                {isUserAnswer && !isCorrect && <XCircle size={14} weight="bold" className="ml-auto text-app-red" />}
+                              </div>
+                            )
+                          })}
+                          
+                          {wasSkipped && (
+                            <div className="text-app-muted text-[12px] italic mt-1">
+                              {ui.skipped || 'Skipped'}
+                            </div>
+                          )}
+                          
+                          {q.explanation && (
+                            <div className="mt-3 bg-app-blue/10 border border-app-blue/20 rounded-lg px-3 py-2">
+                              <div className="flex items-center gap-1 text-app-blue text-[11px] font-semibold mb-1">
+                                <Lightbulb size={12} weight="bold" />
+                                {ui.explanation || 'Explanation'}
+                              </div>
+                              <p className="text-app-text/80 text-[12px]">{q.explanation}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
-            </div>
-            <button onClick={() => setQuizBattle(null)}
-              className="w-full bg-app-orange text-white border-none rounded-2xl py-3 text-[15px] font-extrabold cursor-pointer active:scale-[0.99] transition-all">
+            )}
+
+            <button onClick={() => window.history.back()}
+              className="max-w-[520px] w-full bg-app-orange text-white border-none rounded-2xl py-3 text-[15px] font-extrabold cursor-pointer active:scale-[0.99] transition-all">
               {ui.backToArena}
             </button>
           </div>
