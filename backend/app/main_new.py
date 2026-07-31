@@ -45,6 +45,7 @@ from app.modules.video.router import router as video_router
 from app.modules.home.router import router as home_router
 from app.modules.storage.router import router as storage_router
 from app.modules.upload.router import router as upload_router
+from app.modules.coach.router import router as coach_router
 
 load_dotenv()
 
@@ -171,6 +172,7 @@ app.include_router(video_router, prefix="/api")
 app.include_router(home_router, prefix="/api")
 app.include_router(storage_router, prefix="/api")
 app.include_router(upload_router, prefix="/api")
+app.include_router(coach_router, prefix="/api")
 
 # ── Static Files — generated videos ──────────────────────────
 _VIDEOS_DIR = os.path.abspath(

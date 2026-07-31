@@ -44,6 +44,10 @@ const studyCoachSlice = createSlice({
     setMode: (state, action: PayloadAction<StudyCoachMode>) => {
       state.currentMode = action.payload
     },
+    setResponse: (state, action: PayloadAction<StudyCoachResponse>) => {
+      state.response = action.payload
+      state.error = null
+    },
     clearResponse: (state) => {
       state.response = null
       state.error = null
@@ -82,5 +86,5 @@ const studyCoachSlice = createSlice({
   },
 })
 
-export const { setMode, clearResponse, clearError, clearHistory } = studyCoachSlice.actions
+export const { setMode, setResponse, clearResponse, clearError, clearHistory } = studyCoachSlice.actions
 export default studyCoachSlice.reducer

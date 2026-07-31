@@ -512,6 +512,21 @@ def create_all_tables():
         )
     """)
 
+    # ── Coach Sessions (Study Coach history) ──────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS coach_sessions (
+            id           SERIAL PRIMARY KEY,
+            user_id      TEXT NOT NULL,
+            question     TEXT NOT NULL,
+            title        TEXT NOT NULL DEFAULT '',
+            subject      TEXT NOT NULL DEFAULT 'General',
+            mode         TEXT NOT NULL DEFAULT 'study_coach',
+            response_json TEXT NOT NULL DEFAULT '{}',
+            is_bookmarked BOOLEAN DEFAULT FALSE,
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     # ── Idempotent column additions ───────────────────────────
     # Add ai_admin_override to users if not present
     cur.execute("""

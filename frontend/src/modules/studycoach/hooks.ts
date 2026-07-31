@@ -3,8 +3,8 @@
 import { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import type { RootState, AppDispatch } from '../../redux/store'
-import { askStudyCoach, setMode, clearResponse, clearError, clearHistory } from './slice'
-import type { StudyCoachMode, StudyCoachRequest } from './types'
+import { askStudyCoach, setMode, setResponse, clearResponse, clearError, clearHistory } from './slice'
+import type { StudyCoachMode, StudyCoachRequest, StudyCoachResponse } from './types'
 
 /**
  * Hook for using Study Coach functionality.
@@ -40,6 +40,13 @@ export function useStudyCoach() {
     [dispatch]
   )
 
+  const updateResponse = useCallback(
+    (response: StudyCoachResponse) => {
+      dispatch(setResponse(response))
+    },
+    [dispatch]
+  )
+
   const clear = useCallback(() => {
     dispatch(clearResponse())
   }, [dispatch])
@@ -62,6 +69,7 @@ export function useStudyCoach() {
     // Actions
     ask,
     setMode: changeMode,
+    setResponse: updateResponse,
     clear,
     dismissError,
     resetHistory,
