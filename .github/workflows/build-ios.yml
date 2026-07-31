@@ -7,11 +7,14 @@ on:
 
 jobs:
   build-ios:
-    runs-on: macos-latest
+    runs-on: macos-15
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Select Xcode 16.4
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -32,20 +35,13 @@ jobs:
         working-directory: frontend
         run: rm -rf ios
 
-      - name: Add iOS platform (generates macOS-compatible paths)
+      - name: Add iOS platform
         working-directory: frontend
-        run: npx cap add ios
+        run: npx cap add ios --packagemanager SPM
 
       - name: Sync Capacitor
         working-directory: frontend
         run: npx cap sync ios
-
-      - name: Resolve Swift packages
-        working-directory: frontend/ios/App
-        run: |
-          xcodebuild -resolvePackageDependencies \
-            -project App.xcodeproj \
-            -scheme App
 
       - name: Build iOS app for Simulator
         working-directory: frontend/ios/App
@@ -54,14 +50,28 @@ jobs:
             -project App.xcodeproj \
             -scheme App \
             -configuration Debug \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO
+            -skipPackagePluginValidation \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee build.log | tail -50
+          # Check if build succeeded
+          if grep -q "BUILD SUCCEEDED" build.log; then
+            echo "✅ Build succeeded"
+          else
+            echo "❌ Build failed. Last 100 lines:"
+            tail -100 build.log
+            exit 1
+          fi
 
       - name: Compress .app bundle
         working-directory: frontend/ios/App
         run: |
           APP_PATH=$(find build -name "*.app" -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app bundle found"
+            exit 1
+          fi
           zip -r eduvy-ai-simulator.zip "$APP_PATH"
 
       - name: Upload iOS Simulator build
