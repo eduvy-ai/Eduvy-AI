@@ -388,12 +388,12 @@ function LeaderboardView({ myId, ui }) {
     setLoading(true)
     if (tab === 'students') {
       apiGetMuqabalaLeaderboard()
-        .then(r => { if (!cancelled) setStudents(r.leaderboard || []) })
+        .then(r => { if (!cancelled) setStudents(r?.leaderboard || []) })
         .catch(() => {})
         .finally(() => { if (!cancelled) setLoading(false) })
     } else {
       apiGetMuqabalaSchoolLeaderboard()
-        .then(r => { if (!cancelled) setSchools(r.schools || []) })
+        .then(r => { if (!cancelled) setSchools(r?.schools || []) })
         .catch(() => {})
         .finally(() => { if (!cancelled) setLoading(false) })
     }
@@ -477,7 +477,7 @@ export default function MuqablaTab({ profile, userId }) {
   const [pending,   setPending]   = useState([])
   const [active,    setActive]    = useState([])
   const [history,   setHistory]   = useState([])
-  const [loading,   setLoading]   = useState(false)
+  const [loading,   setLoading]   = useState(true)
   const [err,       setErr]       = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [quizBattle, setQuizBattle] = useState(null) // battle to answer
@@ -493,34 +493,34 @@ export default function MuqablaTab({ profile, userId }) {
         apiGetPendingMuqabalaBattles(),
         apiGetActiveMuqabalaBattles(),
       ])
-      setOpen(openR.battles || [])
-      setPending(pendR.battles || [])
-      setActive(actR.battles || [])
-    } catch {
-      setErr(ui.couldNotLoadBattles || 'Could not load battles')
+      setOpen(openR?.battles || [])
+      setPending(pendR?.battles || [])
+      setActive(actR?.battles || [])
+    } catch (e) {
+      console.error('loadArena error:', e)
+      setErr('Could not load battles. Pull down to retry.')
     } finally {
       setLoading(false)
     }
-  }, [ui.couldNotLoadBattles])
+  }, [])
 
   const loadHistory = useCallback(async () => {
     setLoading(true)
     try {
       const r = await apiGetMuqabalaHistory()
-      setHistory(r.battles || [])
-    } catch {
-      setErr(ui.couldNotLoadHistory || 'Could not load history')
+      setHistory(r?.battles || [])
+    } catch (e) {
+      console.error('loadHistory error:', e)
+      setErr('Could not load history.')
     } finally {
       setLoading(false)
     }
-  }, [ui.couldNotLoadHistory])
+  }, [])
 
   useEffect(() => {
-    let cancelled = false
     if (view === 'arena')   loadArena()
     if (view === 'history') loadHistory()
-    return () => { cancelled = true }
-  }, [view, loadArena, loadHistory])
+  }, [view]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Actions ──────────────────────────────────────────────────
   async function handleAction(type, battle) {
@@ -613,7 +613,15 @@ export default function MuqablaTab({ profile, userId }) {
         })}
       </div>
 
-      {err && <div className="bg-app-red/10 border border-app-red/25 rounded-xl px-3.5 py-2.5 mb-3 text-app-red text-[13px]">{err}</div>}
+      {err && (
+        <div className="bg-app-red/10 border border-app-red/25 rounded-xl px-3.5 py-2.5 mb-3 text-app-red text-[13px] flex items-center justify-between">
+          <span>{err}</span>
+          <button onClick={() => { setErr(''); view === 'arena' ? loadArena() : loadHistory() }}
+            className="bg-app-red/15 border border-app-red/30 text-app-red rounded-lg px-3 py-1 text-[12px] font-bold cursor-pointer ml-2 shrink-0">
+            Retry
+          </button>
+        </div>
+      )}
 
       {loading && <p className="text-app-muted text-center py-6">Loading…</p>}
 

@@ -1035,7 +1035,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
 
         {/* ════ CHAT VIEW ════ */}
         {view === "chat" && (
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col flex-1 min-h-0">
             {/* Loading state */}
             {!sourcesLoaded ? (
               <div className="flex-1 flex flex-col items-center justify-center">
@@ -1154,7 +1154,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
 
         {/* ════ STUDIO VIEW ════ */}
         {view === "studio" && (
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col flex-1 min-h-0">
 
             {/* Loading sources */}
             {!sourcesLoaded ? (
