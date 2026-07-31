@@ -148,12 +148,24 @@ class NotebookService:
         conn = get_db()
         try:
             cur = conn.cursor()
-            cur.execute("""
-                SELECT id, type, output_json, created_at::text AS created_at
-                FROM notebook_studio
-                WHERE user_id = %s
-                ORDER BY id DESC LIMIT 50
-            """, (user_id,))
+            # Try with is_bookmarked column, fall back without
+            try:
+                cur.execute("""
+                    SELECT id, type, output_json, created_at::text AS created_at,
+                           COALESCE(is_bookmarked, FALSE) AS is_bookmarked
+                    FROM notebook_studio
+                    WHERE user_id = %s
+                    ORDER BY id DESC LIMIT 50
+                """, (user_id,))
+            except Exception:
+                conn.rollback()  # Clear failed transaction state before retry
+                cur.execute("""
+                    SELECT id, type, output_json, created_at::text AS created_at,
+                           FALSE AS is_bookmarked
+                    FROM notebook_studio
+                    WHERE user_id = %s
+                    ORDER BY id DESC LIMIT 50
+                """, (user_id,))
             return [dict(r) for r in cur.fetchall()]
         finally:
             conn.close()
@@ -173,6 +185,59 @@ class NotebookService:
             """, (user_id, output_type, output_json))
             conn.commit()
             return dict(cur.fetchone())
+        finally:
+            conn.close()
+
+    @staticmethod
+    def delete_studio_output(user_id: str, current_user: str, output_id: int) -> Dict:
+        """Delete a studio output."""
+        _require_own(user_id, current_user)
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                DELETE FROM notebook_studio
+                WHERE id = %s AND user_id = %s
+                RETURNING id
+            """, (output_id, user_id))
+            deleted = cur.fetchone()
+            conn.commit()
+            if not deleted:
+                from fastapi import HTTPException
+                raise HTTPException(status_code=404, detail="Output not found")
+            return {"deleted": True, "id": output_id}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def toggle_studio_bookmark(user_id: str, current_user: str, output_id: int) -> Dict:
+        """Toggle bookmark on a studio output."""
+        _require_own(user_id, current_user)
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            # Try to add column if it doesn't exist
+            try:
+                cur.execute("""
+                    ALTER TABLE notebook_studio ADD COLUMN IF NOT EXISTS is_bookmarked BOOLEAN DEFAULT FALSE
+                """)
+                conn.commit()
+            except Exception:
+                pass
+            
+            # Toggle the bookmark
+            cur.execute("""
+                UPDATE notebook_studio
+                SET is_bookmarked = NOT COALESCE(is_bookmarked, FALSE)
+                WHERE id = %s AND user_id = %s
+                RETURNING id, is_bookmarked
+            """, (output_id, user_id))
+            result = cur.fetchone()
+            conn.commit()
+            if not result:
+                from fastapi import HTTPException
+                raise HTTPException(status_code=404, detail="Output not found")
+            return {"id": output_id, "is_bookmarked": result["is_bookmarked"]}
         finally:
             conn.close()
 

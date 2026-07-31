@@ -832,4 +832,71 @@ export const NOTEBOOK = {
     Odia: "📷 ଏହା ସ୍କାନ କରାଯାଇଥିବା PDF। ପେଜର ସ୍ପଷ୍ଟ ଫଟୋ ନିଅ!",
     Urdu: "📷 یہ سکین شدہ PDF ہے۔ صفحے کی صاف تصویر لیں!",
   },
+
+  // ── Studio History ─────────────────────────────────────────
+  studioHistory: {
+    English: "Studio History", Hindi: "स्टूडियो इतिहास", Gujarati: "સ્ટૂડિયો ઇતિહાસ", Marathi: "स्टुडिओ इतिहास",
+    Tamil: "ஸ்டூடியோ வரலாறு", Telugu: "స్టూడియో చరిత్ర", Kannada: "ಸ್ಟುಡಿಯೊ ಇತಿಹಾಸ", Bengali: "স্টুডিও ইতিহাস",
+    Punjabi: "ਸਟੂਡੀਓ ਇਤਿਹਾਸ", Odia: "ଷ୍ଟୁଡିଓ ଇତିହାସ", Urdu: "اسٹوڈیو تاریخ",
+  },
+  noStudioHistory: {
+    English: "No studio outputs yet. Generate something!", Hindi: "अभी तक कोई स्टूडियो आउटपुट नहीं। कुछ बनाएं!", Gujarati: "હજી કોઈ સ્ટૂડિયો આઉટપુટ નથી. કંઈક બનાવો!", Marathi: "अद्याप स्टुडिओ आउटपुट नाही. काहीतरी बनवा!",
+    Tamil: "இன்னும் ஸ்டூடியோ வெளியீடுகள் இல்லை. ஏதாவது உருவாக்குங்கள்!", Telugu: "ఇంకా స్టూడియో అవుట్‌పుట్‌లు లేవు. ఏదైనా సృష్టించండి!", Kannada: "ಇನ್ನೂ ಸ್ಟುಡಿಯೊ ಔಟ್‌ಪುಟ್‌ಗಳಿಲ್ಲ. ಏನಾದರೂ ರಚಿಸಿ!", Bengali: "এখনও কোনো স্টুডিও আউটপুট নেই। কিছু তৈরি করুন!",
+    Punjabi: "ਹਾਲੇ ਕੋਈ ਸਟੂਡੀਓ ਆਉਟਪੁੱਟ ਨਹੀਂ। ਕੁਝ ਬਣਾਓ!", Odia: "ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ଷ୍ଟୁଡିଓ ଆଉଟପୁଟ ନାହିଁ। କିଛି ତିଆରି କର!", Urdu: "ابھی تک کوئی اسٹوڈیو آؤٹ پٹ نہیں۔ کچھ بنائیں!",
+  },
+  viewOutput: {
+    English: "View", Hindi: "देखें", Gujarati: "જુઓ", Marathi: "पहा",
+    Tamil: "பார்", Telugu: "చూడండి", Kannada: "ನೋಡು", Bengali: "দেখুন",
+    Punjabi: "ਵੇਖੋ", Odia: "ଦେଖ", Urdu: "دیکھیں",
+  },
+  today: {
+    English: "Today", Hindi: "आज", Gujarati: "આજે", Marathi: "आज",
+    Tamil: "இன்று", Telugu: "ఈ రోజు", Kannada: "ಇಂದು", Bengali: "আজ",
+    Punjabi: "ਅੱਜ", Odia: "ଆଜି", Urdu: "آج",
+  },
+  yesterday: {
+    English: "Yesterday", Hindi: "कल", Gujarati: "ગઈકાલે", Marathi: "काल",
+    Tamil: "நேற்று", Telugu: "నిన్న", Kannada: "ನಿನ್ನೆ", Bengali: "গতকাল",
+    Punjabi: "ਕੱਲ੍ਹ", Odia: "ଗତକାଲି", Urdu: "کل",
+  },
+  daysAgo: {
+    English: "days ago", Hindi: "दिन पहले", Gujarati: "દિવસ પહેલા", Marathi: "दिवसांपूर्वी",
+    Tamil: "நாட்களுக்கு முன்", Telugu: "రోజుల క్రితం", Kannada: "ದಿನಗಳ ಹಿಂದೆ", Bengali: "দিন আগে",
+    Punjabi: "ਦਿਨ ਪਹਿਲਾਂ", Odia: "ଦିନ ଆଗେ", Urdu: "دن پہلے",
+  },
+  bookmark: {
+    English: "Bookmark", Hindi: "बुकमार्क", Gujarati: "બુકમાર્ક", Marathi: "बुकमार्क",
+    Tamil: "புக்மார்க்", Telugu: "బుక్‌మార్క్", Kannada: "ಬುಕ್‌ಮಾರ್ಕ್", Bengali: "বুকমার্ক",
+    Punjabi: "ਬੁੱਕਮਾਰਕ", Odia: "ବୁକମାର୍କ", Urdu: "بک مارک",
+  },
+  bookmarked: {
+    English: "Bookmarked", Hindi: "बुकमार्क किया", Gujarati: "બુકમાર્ક કર્યું", Marathi: "बुकमार्क केले",
+    Tamil: "புக்மார்க் செய்யப்பட்டது", Telugu: "బుక్‌మార్క్ చేయబడింది", Kannada: "ಬುಕ್‌ಮಾರ್ಕ್ ಮಾಡಲಾಗಿದೆ", Bengali: "বুকমার্ক করা হয়েছে",
+    Punjabi: "ਬੁੱਕਮਾਰਕ ਕੀਤਾ", Odia: "ବୁକମାର୍କ କରାଯାଇଛି", Urdu: "بک مارک کیا گیا",
+  },
+  noBookmarks: {
+    English: "No bookmarked outputs yet", Hindi: "अभी तक कोई बुकमार्क नहीं", Gujarati: "હજી કોઈ બુકમાર્ક નથી", Marathi: "अद्याप कोणतेही बुकमार्क नाहीत",
+    Tamil: "இன்னும் புக்மார்க் செய்யப்படவில்லை", Telugu: "ఇంకా బుక్‌మార్క్‌లు లేవు", Kannada: "ಇನ್ನೂ ಬುಕ್‌ಮಾರ್ಕ್‌ಗಳಿಲ್ಲ", Bengali: "এখনও কোনো বুকমার্ক নেই",
+    Punjabi: "ਹਾਲੇ ਕੋਈ ਬੁੱਕਮਾਰਕ ਨਹੀਂ", Odia: "ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ବୁକମାର୍କ ନାହିଁ", Urdu: "ابھی تک کوئی بک مارک نہیں",
+  },
+  allTypes: {
+    English: "All Types", Hindi: "सभी प्रकार", Gujarati: "બધા પ્રકાર", Marathi: "सर्व प्रकार",
+    Tamil: "அனைத்து வகைகள்", Telugu: "అన్ని రకాలు", Kannada: "ಎಲ್ಲಾ ಪ್ರಕಾರಗಳು", Bengali: "সব ধরন",
+    Punjabi: "ਸਾਰੀਆਂ ਕਿਸਮਾਂ", Odia: "ସମସ୍ତ ପ୍ରକାର", Urdu: "تمام اقسام",
+  },
+  clearFilters: {
+    English: "Clear", Hindi: "साफ़ करें", Gujarati: "સાફ કરો", Marathi: "साफ करा",
+    Tamil: "அழி", Telugu: "క్లియర్", Kannada: "ತೆರವುಗೊಳಿಸಿ", Bengali: "পরিষ্কার করুন",
+    Punjabi: "ਸਾਫ਼ ਕਰੋ", Odia: "ସଫା କର", Urdu: "صاف کریں",
+  },
+  confirmDelete: {
+    English: "Delete this output?", Hindi: "यह आउटपुट हटाएं?", Gujarati: "આ આઉટપુટ કાઢી નાખો?", Marathi: "हे आउटपुट हटवायचे?",
+    Tamil: "இந்த வெளியீட்டை நீக்கவா?", Telugu: "ఈ అవుట్‌పుట్ తొలగించాలా?", Kannada: "ಈ ಔಟ್‌ಪುಟ್ ಅಳಿಸಬೇಕೇ?", Bengali: "এই আউটপুট মুছে ফেলবেন?",
+    Punjabi: "ਇਹ ਆਉਟਪੁੱਟ ਮਿਟਾਓ?", Odia: "ଏହି ଆଉଟପୁଟ ଡିଲିଟ କର?", Urdu: "یہ آؤٹ پٹ حذف کریں؟",
+  },
+  delete: {
+    English: "Delete", Hindi: "हटाएं", Gujarati: "કાઢી નાખો", Marathi: "हटवा",
+    Tamil: "நீக்கு", Telugu: "తొలగించు", Kannada: "ಅಳಿಸು", Bengali: "মুছুন",
+    Punjabi: "ਮਿਟਾਓ", Odia: "ଡିଲିଟ", Urdu: "حذف کریں",
+  },
 }

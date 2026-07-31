@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
 import { COLORS, callAI, parseAIArray, parseAIObject, SUBS, checkStudentQuery, validateSourceContent, checkContentRelevance, generateSmartSummary, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
-import { Microphone, Books, ClipboardText, Question, CalendarBlank, MapTrifold, Target, Cards, Warning, Trash } from '@phosphor-icons/react'
+import { Microphone, Books, ClipboardText, Question, CalendarBlank, MapTrifold, Target, Cards, Warning, Trash, ClockCounterClockwise } from '@phosphor-icons/react'
 import {
   apiGetSources, apiSaveSource, apiDeleteSource,
   apiGetNotebookChat, apiSaveChatMessage, apiClearNotebookChat,
   apiSaveStudioOutput, apiGetStudioOutputs, apiGetUploadStatus, apiReportViolation,
   apiExtractImageContent,
 } from '../../api.js'
+import StudioHistory from '../notebook/StudioHistory.jsx'
 
 // ── Max limits ─────────────────────────────────────────────────
 const MAX_SOURCES = 15
@@ -162,6 +163,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
   const [studioOutput, setStudioOutput] = useState("")
   const [studioLoading, setStudioLoading] = useState(false)
   const [selectedStudioSource, setSelectedStudioSource] = useState(null) // null = all sources
+  const [showStudioHistory, setShowStudioHistory] = useState(false) // History modal
   // Podcast
   const [episode, setEpisode]       = useState(null)
   const [lineIdx, setLineIdx]       = useState(0)
@@ -1265,6 +1267,16 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                     </select>
                   </div>
                   
+                  {/* History button */}
+                  <button
+                    onClick={() => setShowStudioHistory(true)}
+                    className="text-[11px] text-app-muted hover:text-app-green px-2.5 py-1.5 h-[34px] rounded-lg border border-app-border hover:border-app-green/30 cursor-pointer font-[Sora,sans-serif] transition-colors flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap"
+                    title={ui.studioHistory || 'Studio History'}
+                  >
+                    <ClockCounterClockwise size={14} weight="duotone" />
+                    <span className="hidden sm:inline">{ui.studioHistory || 'History'}</span>
+                  </button>
+                  
                   {/* Reset button - when a type is selected */}
                   {studioType && (
                     <button
@@ -1663,6 +1675,43 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
           </div>
         )}
       </div>
+
+      {/* ═══ Studio History Modal ═══ */}
+      {showStudioHistory && (
+        <StudioHistory
+          userId={userId}
+          onClose={() => setShowStudioHistory(false)}
+          onSelectOutput={(type, parsed, rawJson) => {
+            stopPodcast()
+            setStudioType(type)
+            // Reset all outputs first
+            setStudioOutput("")
+            setEpisode(null)
+            setMindMap(null)
+            setCards([])
+            setQuizQ(null)
+            setLineIdx(0)
+            setCardIdx(0)
+            setCardFlipped(false)
+            setQuizSel(null)
+            // Set the selected output based on type
+            if (type === 'podcast' && parsed?.exchanges?.length) {
+              setEpisode(parsed)
+            } else if (type === 'mindmap' && parsed?.center) {
+              setMindMap(parsed)
+            } else if (type === 'flashcards' && Array.isArray(parsed) && parsed.length) {
+              setCards(parsed)
+            } else if (type === 'quiz' && parsed?.q) {
+              setQuizQ(parsed)
+            } else {
+              // Text outputs (guide, brief, faq, timeline)
+              setStudioOutput(typeof parsed === 'string' ? parsed : rawJson)
+            }
+          }}
+          ui={ui}
+          lang={lang}
+        />
+      )}
     </div>
   )
 }

@@ -325,11 +325,12 @@ def create_all_tables():
     # ── Notebook Studio ────────────────────────────────────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS notebook_studio (
-            id          SERIAL PRIMARY KEY,
-            user_id     TEXT NOT NULL,
-            type        TEXT NOT NULL,
-            output_json TEXT NOT NULL DEFAULT '{}',
-            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            id            SERIAL PRIMARY KEY,
+            user_id       TEXT NOT NULL,
+            type          TEXT NOT NULL,
+            output_json   TEXT NOT NULL DEFAULT '{}',
+            is_bookmarked BOOLEAN DEFAULT FALSE,
+            created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
 

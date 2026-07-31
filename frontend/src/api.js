@@ -708,7 +708,7 @@ export async function apiGetStudioOutputs(userId) {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return safeJson(res)   // [{ id, type, output_json, created_at }, ...]
+  return safeJson(res)   // [{ id, type, output_json, created_at, is_bookmarked }, ...]
 }
 
 export async function apiSaveStudioOutput(userId, type, outputJson) {
@@ -716,6 +716,26 @@ export async function apiSaveStudioOutput(userId, type, outputJson) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify({ type, output_json: outputJson }),
+    signal: AbortSignal.timeout(5000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}
+
+export async function apiDeleteStudioOutput(userId, outputId) {
+  const res = await fetch(`${API_BASE_URL}/api/notebook/${userId}/studio/${outputId}`, {
+    method: 'DELETE',
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(5000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}
+
+export async function apiToggleStudioBookmark(userId, outputId) {
+  const res = await fetch(`${API_BASE_URL}/api/notebook/${userId}/studio/${outputId}/bookmark`, {
+    method: 'PATCH',
+    headers: _authHeaders(),
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)

@@ -120,3 +120,29 @@ async def save_studio(
         user_id, current_user, data.type, data.output_json,
     )
 
+
+@router.delete("/{user_id}/studio/{output_id}")
+async def delete_studio_output(
+    user_id: str,
+    output_id: int,
+    current_user: str = Depends(get_current_user),
+):
+    """Delete a studio output."""
+    return await asyncio.to_thread(
+        NotebookService.delete_studio_output,
+        user_id, current_user, output_id,
+    )
+
+
+@router.patch("/{user_id}/studio/{output_id}/bookmark")
+async def toggle_studio_bookmark(
+    user_id: str,
+    output_id: int,
+    current_user: str = Depends(get_current_user),
+):
+    """Toggle bookmark on a studio output."""
+    return await asyncio.to_thread(
+        NotebookService.toggle_studio_bookmark,
+        user_id, current_user, output_id,
+    )
+
