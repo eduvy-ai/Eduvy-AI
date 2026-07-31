@@ -815,7 +815,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
       </div>
 
       {/* ── Content area ── */}
-      <div className="flex-1 overflow-y-auto min-h-0 pb-4">
+      <div className={`flex-1 min-h-0 ${view === 'chat' || view === 'studio' ? 'flex flex-col' : 'overflow-y-auto pb-4'}`}>
 
         {/* ════ SOURCES VIEW ════ */}
         {view === "sources" && (
@@ -1117,7 +1117,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
               </div>
             </div>
 
-            <div className="py-2.5 px-3.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] bg-app-card border-t border-app-border flex gap-2 shrink-0">
+            <div className="py-2.5 px-3.5 pb-2 bg-app-card border-t border-app-border flex gap-2 shrink-0">
               <input
                 className="tutor-input flex-1 py-2.5 px-3.5"
                 type="text"

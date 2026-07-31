@@ -43,7 +43,8 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
   const [pDisplayLang, setPDisplayLang] = useState(profile?.displayLanguage || "medium")  // "english" or "medium"
   const [pSchool, setPSchool] = useState(profile?.school || "")
   const [profileSaved, setProfileSaved] = useState(false)
-  const [profileError, setProfileError]   = useState(false)
+  const [profileError, setProfileError]   = useState('')
+  const [profileSaving, setProfileSaving] = useState(false)
 
   // ── Parent PIN state ─────────────────────────────────────────
   const [parentPin,     setParentPin]     = useState(null)
@@ -53,14 +54,18 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
 
   const saveProfile = async () => {
     if (!pName.trim()) return
-    setProfileError(false)
+    setProfileError('')
+    setProfileSaving(true)
     try {
       await onProfileSave?.({ name: pName.trim(), standard: pStd, board: pBoard, language: pLang, displayLanguage: pDisplayLang, school: pSchool.trim() })
       setProfileSaved(true)
       setTimeout(() => setProfileSaved(false), 2000)
-    } catch {
-      setProfileError(true)
-      setTimeout(() => setProfileError(false), 3000)
+    } catch (e) {
+      console.error('Save profile error:', e)
+      setProfileError(e?.message || 'unknown')
+      setTimeout(() => setProfileError(''), 5000)
+    } finally {
+      setProfileSaving(false)
     }
   }
 
@@ -85,9 +90,25 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
       .catch(() => setUsageLoading(false))
   }, [activeTab])
 
+  // ── Handle hardware/browser back button ──────────────────────
+  useEffect(() => {
+    // Push a state so back button can pop it
+    window.history.pushState({ modal: 'settings' }, '')
+    const handlePop = () => onClose()
+    window.addEventListener('popstate', handlePop)
+    return () => {
+      window.removeEventListener('popstate', handlePop)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Close via X button: also go back in history to remove pushed state
+  const handleClose = () => {
+    window.history.back()
+  }
+
   return (
     <>
-    <div className="fixed inset-0 bg-black/75 z-[999] flex items-end justify-center" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="fixed inset-0 bg-black/75 z-[999] flex items-end justify-center" onClick={e => e.target === e.currentTarget && handleClose()}>
       <div className="w-full max-w-[480px] bg-[#0e0e20] rounded-t-[20px] border border-app-border max-h-[92dvh] overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         {/* Handle */}
         <div className="flex justify-center py-3 pb-1">
@@ -99,7 +120,7 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
             <div>
               <h2 className="text-[17px] font-extrabold text-app-text flex items-center gap-2"><GearSix size={18} weight="duotone" /> {ui.settings}</h2>
             </div>
-            <button onClick={onClose} className="bg-transparent border-none text-app-muted cursor-pointer font-[Sora,sans-serif]"><X size={20} /></button>
+            <button onClick={handleClose} className="bg-transparent border-none text-app-muted cursor-pointer font-[Sora,sans-serif]"><X size={20} /></button>
           </div>
 
           {/* Tab switcher */}
@@ -153,117 +174,25 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
                 <label className={labelClass}>{ui.schoolName}</label>
                 <input className={inputClass} type="text" value={pSchool} onChange={e => setPSchool(e.target.value)} placeholder={ui.schoolPlaceholder} maxLength={100} />
               </div>
-              <button onClick={saveProfile} className="w-full bg-gradient-to-br from-app-green to-emerald-500 text-app-bg border-none rounded-xl py-3 px-4 text-sm font-extrabold cursor-pointer font-[Sora,sans-serif]">
-                {profileSaved ? <><CheckCircle size={14} weight="fill" className="inline" /> {ui.saved}</> : profileError ? <><XCircle size={14} weight="fill" className="inline" /> {ui.saveFailed}</> : ui.saveProfile}
+              <button onClick={saveProfile} disabled={profileSaving} className="w-full bg-gradient-to-br from-app-green to-emerald-500 text-app-bg border-none rounded-xl py-3 px-4 text-sm font-extrabold cursor-pointer font-[Sora,sans-serif] disabled:opacity-60">
+                {profileSaving ? 'Saving...' : profileSaved ? <><CheckCircle size={14} weight="fill" className="inline" /> {ui.saved}</> : profileError ? <><XCircle size={14} weight="fill" className="inline" /> {ui.saveFailed}</> : ui.saveProfile}
               </button>
+              {profileError && <p className="text-app-red text-[11px] mt-1 mb-0">{profileError}</p>}
 
-              {/* ── Refer Friends ── */}
-              <div className="mt-2 bg-app-blue/5 border border-app-blue/20 rounded-[14px] p-4">
+              {/* ── Refer Friends — Coming Soon ── */}
+              <div className="mt-2 bg-app-blue/5 border border-app-blue/20 rounded-[14px] p-4 opacity-60">
                 <div className="font-bold text-app-blue text-sm mb-1.5">
                   {ui.referFriends}
                 </div>
-                <p className="text-app-muted text-xs m-0 mb-3">
-                  {ui.referDescription}
-                </p>
-                {referral ? (
-                  <div className="flex items-center gap-2.5 bg-app-card2 rounded-[10px] py-2.5 px-3.5">
-                    <div className="flex-1">
-                      <div className="text-app-muted text-[10px] mb-0.5">{ui.yourReferralCode}</div>
-                      <div className="font-mono text-xl font-black text-app-blue tracking-[4px]">
-                        {referral.code}
-                      </div>
-                      {referral.referred_count > 0 && (
-                        <div className="text-app-green text-[11px] mt-0.5">
-                          ✓ {referral.referred_count} {ui.friendsJoined}
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      onClick={async () => {
-                        const shareText = `Join VidyAI — AI tutor in your language! Use my code ${referral.code} to get +200 XP bonus. ${window.location.origin}`
-                        try {
-                          const { Capacitor } = await import('@capacitor/core')
-                          if (Capacitor.isNativePlatform()) {
-                            const { Share } = await import('@capacitor/share')
-                            await Share.share({ title: 'Join VidyAI', text: shareText })
-                          } else if (navigator.share) {
-                            await navigator.share({ title: 'Join VidyAI', text: shareText })
-                          } else {
-                            navigator.clipboard?.writeText(shareText)
-                            setRefCopied(true)
-                            setTimeout(() => setRefCopied(false), 2000)
-                          }
-                        } catch {
-                          navigator.clipboard?.writeText(shareText)
-                          setRefCopied(true)
-                          setTimeout(() => setRefCopied(false), 2000)
-                        }
-                      }}
-                      className={`rounded-[10px] py-1.5 px-3 text-xs cursor-pointer font-bold ${refCopied ? 'bg-app-green/15 border border-app-green/30 text-app-green' : 'bg-app-blue/15 border border-app-blue/30 text-app-blue'}`}
-                    >{refCopied ? <><CheckCircle size={12} weight="fill" /> {ui.copied}</> : <><ShareNetwork size={12} /> {ui.share}</>}</button>
-                  </div>
-                ) : (
-                  <div className="text-app-muted text-xs">{ui.loading}...</div>
-                )}
+                <p className="text-app-muted text-xs m-0">🚀 Coming Soon</p>
               </div>
 
-              {/* ── Share with Parent ── */}
-              <div className="mt-2 bg-app-green/5 border border-app-green/20 rounded-[14px] p-4">
+              {/* ── Share with Parent — Coming Soon ── */}
+              <div className="mt-2 bg-app-green/5 border border-app-green/20 rounded-[14px] p-4 opacity-60">
                 <div className="font-bold text-app-green text-sm mb-1.5 flex items-center gap-1.5">
                   <UsersThree size={16} weight="fill" /> {ui.shareWithParent}
                 </div>
-                <p className="text-app-muted text-xs m-0 mb-3">
-                  {ui.parentPinDescription}
-                </p>
-                {parentPin ? (
-                  <>
-                    <div className="bg-app-card2 rounded-[10px] py-2.5 px-3.5 flex items-center justify-between mb-2">
-                      <div>
-                        <div className="text-app-muted text-[10px] mb-0.5">{ui.parentLink}</div>
-                        <div className="font-mono text-base font-black text-app-yellow tracking-[3px]">{parentPin}</div>
-                        <div className="text-app-muted text-[10px] mt-0.5">
-                          {APP_URL}/parent/{parentPin}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard?.writeText(`${APP_URL}/parent/${parentPin}`)
-                          setPinCopied(true)
-                          setTimeout(() => setPinCopied(false), 2000)
-                        }}
-                        className={`rounded-[10px] py-1.5 px-3 text-xs cursor-pointer ${pinCopied ? 'bg-app-green/15 border border-app-green text-app-green' : 'bg-app-card border border-app-border text-app-text'}`}
-                      >{pinCopied ? <><CheckCircle size={12} weight="fill" /> {ui.copied}</> : <><ClipboardText size={12} /> {ui.copy}</>}</button>
-                    </div>
-                    {parentExpires && (
-                      <div className="text-app-muted text-[11px] mb-2 flex items-center gap-1">
-                        <Clock size={11} /> {ui.validUntil} {new Date(parentExpires).toLocaleDateString()}
-                      </div>
-                    )}
-                    <button
-                      disabled={pinLoading}
-                      onClick={async () => {
-                        setPinLoading(true)
-                        try {
-                          const r = await apiRevokeParentPin()
-                          if (r.revoked) { setParentPin(null); setParentExpires(null) }
-                        } finally { setPinLoading(false) }
-                      }}
-                      className="w-full bg-app-red/10 border border-app-red/20 text-app-red rounded-[10px] py-1.5 px-3.5 text-xs cursor-pointer"
-                    >{pinLoading ? `${ui.revoking}...` : <><Trash size={12} /> {ui.revokeAccess}</>}</button>
-                  </>
-                ) : (
-                  <button
-                    disabled={pinLoading}
-                    onClick={async () => {
-                      setPinLoading(true)
-                      try {
-                        const r = await apiCreateParentPin()
-                        setParentPin(r.pin); setParentExpires(r.expires_at)
-                      } finally { setPinLoading(false) }
-                    }}
-                    className="w-full bg-app-green/15 border border-app-green/30 text-app-green rounded-[10px] py-2.5 text-sm font-bold cursor-pointer"
-                  >{pinLoading ? `${ui.generating}...` : <><Link size={14} /> {ui.generateParentLink}</>}</button>
-                )}
+                <p className="text-app-muted text-xs m-0">🚀 Coming Soon</p>
               </div>
             </div>
           )}

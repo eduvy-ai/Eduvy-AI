@@ -95,14 +95,29 @@ export async function apiCreateProfile(data) {
 }
 
 export async function apiUpdateProfile(userId, data) {
-  const res = await fetch(`${API_BASE_URL}/api/profile/${userId}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
-    body: JSON.stringify(data),
-    signal: AbortSignal.timeout(8000),
-  })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return safeJson(res)
+  // Retry once on timeout (Render cold start can take 15-30s)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/profile/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+        body: JSON.stringify(data),
+        signal: AbortSignal.timeout(attempt === 0 ? 15000 : 25000),
+      })
+      if (!res.ok) {
+        const body = await res.text().catch(() => '')
+        console.error('Profile update failed:', res.status, body)
+        throw new Error(`HTTP ${res.status}`)
+      }
+      return safeJson(res)
+    } catch (e) {
+      if (attempt === 0 && (e.name === 'TimeoutError' || e.name === 'AbortError')) {
+        console.warn('Profile update timed out, retrying...')
+        continue
+      }
+      throw e
+    }
+  }
 }
 
 // ── XP ────────────────────────────────────────────────────────

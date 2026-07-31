@@ -1138,7 +1138,7 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
                 <div className="text-[10.5px] text-app-muted mt-1">Squad's been quiet  Owl can spark discussion</div>
               </div>
             )}
-            <form onSubmit={sendMessage} className="px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2.5 border-t border-app-border flex gap-2 flex-shrink-0 bg-app-bg">
+            <form onSubmit={sendMessage} className="px-3 pb-2 pt-2.5 border-t border-app-border flex gap-2 flex-shrink-0 bg-app-bg">
               <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} placeholder={ui.chatPlaceholder}
                 className="flex-1 bg-app-card border border-app-border rounded-[14px] px-3.5 py-2.5 text-app-text text-[14px] outline-none" />
               <button type="button" onClick={async () => {

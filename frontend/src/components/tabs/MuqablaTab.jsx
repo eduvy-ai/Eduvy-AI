@@ -192,16 +192,35 @@ function QuizScreen({ battle, onDone, userId, ui }) {
   const [submitting, setSubmitting] = useState(false)
   const [result,    setResult]     = useState(null)
   const [err,       setErr]        = useState('')
+  const timerRef = useRef(null)
 
   const questions = battle.questions || []
   const q = questions[current]
+
+  // Cleanup timer on unmount
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
+
+  // Guard: no questions available — show fallback instead of blank screen
+  if (questions.length === 0 && !result && !submitting) {
+    return (
+      <div className="fixed inset-0 bg-app-bg z-[200] flex items-center justify-center flex-col p-5">
+        <Sword size={48} weight="duotone" className="text-app-muted mb-4" />
+        <p className="text-app-text text-base mb-2">{ui.couldNotLoadQuestions || 'Could not load questions'}</p>
+        <p className="text-app-muted text-sm mb-5">{ui.tryAgainLater || 'Please try again later.'}</p>
+        <button onClick={onDone}
+          className="bg-app-orange text-white border-none rounded-2xl px-6 py-3 text-[15px] font-extrabold cursor-pointer active:scale-[0.99] transition-all">
+          {ui.backToArena}
+        </button>
+      </div>
+    )
+  }
 
   function handleSelect(idx) {
     if (selected !== null) return
     setSelected(idx)
     const newAns = [...answers, idx]
 
-    setTimeout(() => {
+    timerRef.current = setTimeout(() => {
       if (current + 1 < questions.length) {
         setCurrent(c => c + 1)
         setSelected(null)
@@ -365,18 +384,20 @@ function LeaderboardView({ myId, ui }) {
   const [loading,  setLoading]  = useState(false)
 
   useEffect(() => {
+    let cancelled = false
     setLoading(true)
     if (tab === 'students') {
       apiGetMuqabalaLeaderboard()
-        .then(r => setStudents(r.leaderboard || []))
+        .then(r => { if (!cancelled) setStudents(r.leaderboard || []) })
         .catch(() => {})
-        .finally(() => setLoading(false))
+        .finally(() => { if (!cancelled) setLoading(false) })
     } else {
       apiGetMuqabalaSchoolLeaderboard()
-        .then(r => setSchools(r.schools || []))
+        .then(r => { if (!cancelled) setSchools(r.schools || []) })
         .catch(() => {})
-        .finally(() => setLoading(false))
+        .finally(() => { if (!cancelled) setLoading(false) })
     }
+    return () => { cancelled = true }
   }, [tab])
 
   return (
@@ -476,11 +497,11 @@ export default function MuqablaTab({ profile, userId }) {
       setPending(pendR.battles || [])
       setActive(actR.battles || [])
     } catch {
-      setErr(ui.couldNotLoadBattles)
+      setErr(ui.couldNotLoadBattles || 'Could not load battles')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [ui.couldNotLoadBattles])
 
   const loadHistory = useCallback(async () => {
     setLoading(true)
@@ -488,16 +509,18 @@ export default function MuqablaTab({ profile, userId }) {
       const r = await apiGetMuqabalaHistory()
       setHistory(r.battles || [])
     } catch {
-      setErr(ui.couldNotLoadHistory)
+      setErr(ui.couldNotLoadHistory || 'Could not load history')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [ui.couldNotLoadHistory])
 
   useEffect(() => {
+    let cancelled = false
     if (view === 'arena')   loadArena()
     if (view === 'history') loadHistory()
-  }, [view]) // eslint-disable-line react-hooks/exhaustive-deps
+    return () => { cancelled = true }
+  }, [view, loadArena, loadHistory])
 
   // ── Actions ──────────────────────────────────────────────────
   async function handleAction(type, battle) {
@@ -516,7 +539,12 @@ export default function MuqablaTab({ profile, userId }) {
             fullBattle = detail
           }
         }
-        setQuizBattle(fullBattle)
+        // Only open quiz if we actually got questions
+        if (!fullBattle.questions || fullBattle.questions.length === 0) {
+          setErr(ui.couldNotLoadQuestions || 'Could not load questions for this battle')
+        } else {
+          setQuizBattle(fullBattle)
+        }
       } catch {
         setErr(ui.couldNotLoadQuestions)
       } finally {
@@ -527,7 +555,9 @@ export default function MuqablaTab({ profile, userId }) {
       try {
         const detail = await apiGetMuqabalaBattle(battle.id)
         setQuizBattle({ ...detail, showResultsOnly: true })
-      } catch {}
+      } catch {
+        setErr(ui.couldNotLoadQuestions || 'Could not load battle details')
+      }
     }
   }
 
@@ -650,7 +680,7 @@ export default function MuqablaTab({ profile, userId }) {
       )}
 
       {quizBattle && !quizBattle.showResultsOnly && (
-        <QuizScreen battle={quizBattle} onDone={onQuizDone} userId={myId} ui={ui} />
+        <QuizScreen battle={quizBattle} onDone={onQuizDone} userId={myId} ui={ui} key={quizBattle.id} />
       )}
 
       {quizBattle?.showResultsOnly && (
