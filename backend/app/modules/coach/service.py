@@ -45,6 +45,7 @@ class CoachService:
                 "title": title,
                 "subject": subject,
                 "mode": mode,
+                "response_json": response_json,
                 "is_bookmarked": False,
                 "created_at": row["created_at"],
             }
