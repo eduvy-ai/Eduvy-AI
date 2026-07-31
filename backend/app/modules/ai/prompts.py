@@ -1745,7 +1745,7 @@ You are Study Coach in Quick Revision Mode - an expert at condensing topics into
 
 def build_system_prompt(profile: dict, mode: str, progress: dict = None) -> str:
     """
-    Build a complete system prompt for Study Coach modes.
+    Build a complete system prompt with language rules and mode instructions.
     
     Combines:
     - Teacher persona based on student's language
@@ -1756,15 +1756,52 @@ def build_system_prompt(profile: dict, mode: str, progress: dict = None) -> str:
     
     Args:
         profile: Dict with keys: name, standard, board, language, subjects
-        mode: One of the Study Coach modes (study_coach, study_coach_eli10, etc.)
+        mode: One of the valid AI modes (study_coach, notebook_chat, etc.)
         progress: Optional dict with mastery scores and weak areas
     
     Returns:
         Complete system prompt string, or empty string if mode not found
     """
-    # Only handle Study Coach modes here
+    # Modes that need language enforcement (notebook modes, video modes, etc.)
+    # These generate content that must be in student's medium/language
+    LANGUAGE_ENFORCED_MODES = {
+        "notebook_chat", "notebook_podcast", "notebook_mindmap",
+        "notebook_flashcard", "notebook_quiz",
+        "notebook_guide", "notebook_brief", "notebook_faq", "notebook_timeline",
+        "video_reexplain", "video_intel", "video_lesson",
+        "learntv_concept", "learntv_brief", "learntv_reel_brief",
+        "learntv_reel_tips", "learntv_analyze", "learntv_create",
+    }
+    
+    # For modes needing language enforcement but not full Study Coach treatment
+    if mode in LANGUAGE_ENFORCED_MODES:
+        mode_instruction = MODE_INSTRUCTIONS.get(mode, "")
+        if not mode_instruction:
+            return ""
+        
+        # Get language from profile
+        language = profile.get("language", "English") if profile else "English"
+        lang_rule = LANG_RULES.get(language, LANG_RULES["English"])
+        standard = profile.get("standard", "10") if profile else "10"
+        board = profile.get("board", "CBSE") if profile else "CBSE"
+        
+        # Build prompt with language rules prepended
+        return f"""══════════════════════════════════════════════════════════════
+CRITICAL LANGUAGE RULES — MUST FOLLOW
+══════════════════════════════════════════════════════════════
+Student's Medium: {language}
+Student's Class: {standard}, {board} board
+
+{lang_rule}
+
+══════════════════════════════════════════════════════════════
+TASK INSTRUCTIONS
+══════════════════════════════════════════════════════════════
+{mode_instruction}
+"""
+    
+    # For other non-study_coach modes (quiz, examiner, etc.), return raw instructions
     if not mode.startswith("study_coach"):
-        # For other modes, return the mode instruction directly if it exists
         return MODE_INSTRUCTIONS.get(mode, "")
     
     # Get mode instructions
