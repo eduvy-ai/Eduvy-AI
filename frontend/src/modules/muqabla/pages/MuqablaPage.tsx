@@ -10,6 +10,47 @@ import type { RootState } from '../../../redux/store'
 // @ts-ignore - JSX component
 import MuqablaTabLegacy from '../../../components/tabs/MuqablaTab'
 
+// ErrorBoundary prevents the entire app from crashing to a black screen
+// when a render error occurs inside the battle tab
+class MuqablaErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error }
+  }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('MuqablaTab crash:', error, info.componentStack)
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 32, textAlign: 'center', color: '#eee' }}>
+          <p style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Something went wrong</p>
+          <p style={{ fontSize: 13, color: '#6868a0', marginBottom: 16 }}>
+            {this.state.error?.message || 'An unexpected error occurred'}
+          </p>
+          <button
+            onClick={() => this.setState({ hasError: false, error: null })}
+            style={{
+              background: '#ff6b35', color: '#fff', border: 'none',
+              borderRadius: 12, padding: '10px 24px', fontSize: 14,
+              fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 /**
  * MuqablaPage - Redux-connected wrapper for Battle Arena
  * 
@@ -25,10 +66,12 @@ const MuqablaPage: React.FC = () => {
   // Pass through to legacy component
   if (!user) return null
   return (
-    <MuqablaTabLegacy
-      profile={user}
-      userId={user?.id || ''}
-    />
+    <MuqablaErrorBoundary>
+      <MuqablaTabLegacy
+        profile={user}
+        userId={user?.id || ''}
+      />
+    </MuqablaErrorBoundary>
   )
 }
 

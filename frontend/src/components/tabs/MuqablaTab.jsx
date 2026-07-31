@@ -500,8 +500,8 @@ export default function MuqablaTab({ profile, userId }) {
         apiGetActiveMuqabalaBattles(),
       ])
       setOpen(openR?.battles || [])
-      setPending(pendR?.battles || [])
-      setActive(actR?.battles || [])
+      setPending((pendR?.battles || []).map(b => ({ ...b, is_challenger: b.challenger_id === userId, question_count: b.question_count || 5 })))
+      setActive((actR?.battles || []).map(b => ({ ...b, is_challenger: b.challenger_id === userId, question_count: b.question_count || 5 })))
     } catch (e) {
       console.error('loadArena error:', e)
       setErr('Could not load battles. Pull down to retry.')
@@ -564,6 +564,10 @@ export default function MuqablaTab({ profile, userId }) {
     if (type === 'results') {
       try {
         const detail = await apiGetMuqabalaBattle(battle.id)
+        if (!detail) {
+          setErr(ui.couldNotLoadQuestions || 'Could not load battle details')
+          return
+        }
         setQuizBattle({ ...detail, showResultsOnly: true })
       } catch {
         setErr(ui.couldNotLoadQuestions || 'Could not load battle details')
@@ -573,9 +577,14 @@ export default function MuqablaTab({ profile, userId }) {
 
   async function onChallengeCreated(battleId) {
     setShowCreate(false)
+    if (!battleId) { loadArena(); return }
     // Load the new battle so user can answer it
     try {
       const detail = await apiGetMuqabalaBattle(battleId)
+      if (!detail || !detail.questions || detail.questions.length === 0) {
+        loadArena()
+        return
+      }
       setQuizBattle(detail)
     } catch {
       loadArena()
@@ -714,13 +723,13 @@ export default function MuqablaTab({ profile, userId }) {
               <div>
                 <div className="text-app-muted text-[12px]">{ui.yourScore}</div>
                 <div className="text-app-green text-[22px] font-extrabold">
-                  {quizBattle.challenger_id === myId ? quizBattle.challenger_score : quizBattle.opponent_score ?? '?'}/{quizBattle.total_questions ?? '?'}
+                  {quizBattle.challenger_id === myId ? quizBattle.challenger_score : quizBattle.opponent_score ?? '?'}/{quizBattle.question_count ?? quizBattle.total_questions ?? '?'}
                 </div>
               </div>
               <div>
                 <div className="text-app-muted text-[12px]">{ui.opponentScore}</div>
                 <div className="text-app-red text-[22px] font-extrabold">
-                  {quizBattle.challenger_id === myId ? quizBattle.opponent_score ?? '?' : quizBattle.challenger_score ?? '?'}/{quizBattle.total_questions ?? '?'}
+                  {quizBattle.challenger_id === myId ? quizBattle.opponent_score ?? '?' : quizBattle.challenger_score ?? '?'}/{quizBattle.question_count ?? quizBattle.total_questions ?? '?'}
                 </div>
               </div>
             </div>
