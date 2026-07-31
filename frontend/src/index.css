@@ -463,9 +463,6 @@ input, textarea, select { outline: none; border: none; }
     /* already set inline above; this rule kept for older browsers */
     padding-bottom: env(safe-area-inset-bottom);
   }
-  .tab-content {
-    padding-bottom: calc(56px + env(safe-area-inset-bottom));
-  }
 }
 
 /* ═══════════════════════════════════════════════════════════

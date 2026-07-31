@@ -7,7 +7,7 @@ from typing import Optional
 
 class BhoolCardCreate(BaseModel):
     subject: str
-    standard: str = "Class 10"
+    standard: Optional[str] = "Class 10"
     question: str
     wrong_answer: str
     correct_answer: str

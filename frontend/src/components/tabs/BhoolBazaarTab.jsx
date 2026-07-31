@@ -169,7 +169,7 @@ In 1-2 short sentences, explain WHY a student would make this mistake and what c
     setSaving(true); setErr('')
     try {
       await apiCreateBhoolCard({
-        subject, standard: profile.standard,
+        subject, standard: profile.standard || 'Class 10',
         question: question.trim(),
         wrong_answer: wrongAns.trim(),
         correct_answer: correctAns.trim(),

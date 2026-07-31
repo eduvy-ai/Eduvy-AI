@@ -24,7 +24,7 @@ async def create_card(
         question=data.question,
         wrong_answer=data.wrong_answer,
         correct_answer=data.correct_answer,
-        standard=data.standard,
+        standard=data.standard or "Class 10",
         why_wrong=data.why_wrong,
         is_published=data.is_published,
     )

@@ -239,9 +239,14 @@ function QuizScreen({ battle, onDone, userId, ui }) {
         answers: ans,
         time_seconds: timeSec,
       })
+      if (!res) {
+        setErr(ui.couldNotSubmit || 'Could not submit answers')
+        return
+      }
       setResult(res)
     } catch {
       setErr(ui.couldNotSubmit)
+    } finally {
       setSubmitting(false)
     }
   }
@@ -536,6 +541,10 @@ export default function MuqablaTab({ profile, userId }) {
             fullBattle = { ...battle, ...joined, id: battle.id }
           } else {
             const detail = await apiGetMuqabalaBattle(battle.id)
+            if (!detail) {
+              setErr(ui.couldNotLoadQuestions || 'Could not load questions for this battle')
+              return
+            }
             fullBattle = detail
           }
         }
