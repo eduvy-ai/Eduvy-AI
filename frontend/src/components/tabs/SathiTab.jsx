@@ -659,7 +659,7 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile, ui }) {
     try {
       const lang = profile?.language || 'English'
       const sysPrompt = `You are a strict education evaluator. ${LANG_RULES[lang] || ''} Reply ONLY with valid JSON, nothing else.`
-      const userMsg = `Concept: ${data?.concept} (Subject: ${data?.subject})\nStudent explanation: ${text.trim()}\n\nEvaluate accuracy. Reply ONLY: {"verdict":"correct"|"partial"|"incorrect","note":"one sentence feedback","xp":30|15|5}\nRules: correct=full understanding?30, partial=some gaps?15, incorrect=misunderstood?5`
+      const userMsg = `Concept: ${data?.concept?.concept} (Subject: ${data?.concept?.subject})\nStudent explanation: ${text.trim()}\n\nEvaluate accuracy. Reply ONLY: {"verdict":"correct"|"partial"|"incorrect","note":"one sentence feedback","xp":30|15|5}\nRules: correct=full understanding?30, partial=some gaps?15, incorrect=misunderstood?5`
       const raw = await callAI(userMsg, sysPrompt, [], 2, 400)
       const match = raw.match(/\{[\s\S]*?\}/)
       if (match) {
@@ -711,8 +711,8 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile, ui }) {
       {/* Header */}
       <div className="bg-app-yellow/[0.06] border border-app-yellow/20 rounded-2xl px-4 py-3.5 mb-4">
         <div className="text-[11px] font-extrabold text-app-yellow tracking-[0.06em] mb-1.5 flex items-center gap-1"><CalendarBlank size={12} weight="fill" /> {ui.dailyConceptHeader} · {today.toUpperCase()}</div>
-        <div className="text-[18px] font-black text-app-text">{data?.concept}</div>
-        <div className="text-[12px] text-app-muted mt-1">{data?.subject}  {ui.explainInOwnWords}  {ui.explainInOwnWords}</div>
+        <div className="text-[18px] font-black text-app-text">{data?.concept?.concept}</div>
+        <div className="text-[12px] text-app-muted mt-1">{data?.concept?.subject}  {ui.explainInOwnWords}</div>
       </div>
 
       {/* AI Reviewing spinner */}
@@ -751,7 +751,7 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile, ui }) {
       {!done && !reviewing && (
         <div className="mb-4">
           <textarea value={text} onChange={e => setText(e.target.value)}
-            placeholder={`Explain "${data?.concept}" in simple words`}
+            placeholder={`Explain "${data?.concept?.concept}" in simple words`}
             rows={4}
             className="w-full bg-app-card rounded-[14px] px-3.5 py-3 text-app-text text-[13.5px] resize-none leading-[1.55] box-border outline-none"
             style={{ border: `1.5px solid ${wordCount >= 10 ? '#FFD166' : 'rgba(255,255,255,0.03)'}` }} />
