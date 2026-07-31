@@ -31,6 +31,8 @@ export default function StudyCoachPage() {
   
   // Track if we already saved the current response
   const savedResponseRef = useRef<string | null>(null)
+  // Track if we're viewing a loaded session (to prevent re-saving)
+  const loadedSessionIdRef = useRef<number | null>(null)
 
   // Use user's medium (instruction language) for TTS
   const userLanguage = user?.language || 'English'
@@ -44,6 +46,11 @@ export default function StudyCoachPage() {
   // Auto-save session when we get a new response
   useEffect(() => {
     if (response && !isLoading && question.trim()) {
+      // Skip saving if this is a loaded session from history
+      if (loadedSessionIdRef.current !== null) {
+        return
+      }
+      
       const responseKey = `${question}:${response.title}`
       
       // Only save if we haven't saved this exact response yet
@@ -69,6 +76,7 @@ export default function StudyCoachPage() {
   const handleSubmit = useCallback(async () => {
     if (!question.trim()) return
     savedResponseRef.current = null // Reset so we save the new response
+    loadedSessionIdRef.current = null // Clear loaded session - this is a new question
     await ask({ question: question.trim() })
   }, [question, ask])
 
@@ -76,15 +84,17 @@ export default function StudyCoachPage() {
     clear()
     setQuestion('')
     savedResponseRef.current = null
+    loadedSessionIdRef.current = null // Clear loaded session
   }, [clear])
 
   // Load a session from history
   const handleSelectSession = useCallback((session: CoachSession) => {
     if (session.response_json) {
+      loadedSessionIdRef.current = session.id // Mark as loaded from history (prevents re-saving)
+      savedResponseRef.current = `${session.question}:${session.response_json.title}` // Also mark the response key
       setQuestion(session.question)
       setMode(session.mode as any)
       setResponse(session.response_json)
-      savedResponseRef.current = `${session.question}:${session.response_json.title}` // Mark as already saved
     }
     setShowHistory(false)
   }, [setMode, setResponse])
