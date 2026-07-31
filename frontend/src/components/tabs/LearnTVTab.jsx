@@ -187,7 +187,8 @@ export default function LearnTVTab({ profile }) {
     setConceptLoading(true)
     try {
       const std = profile.standard || 'Class 10'
-      const res = await callAI(`Explain the concept "${topic}" to a Class ${std} Indian student.`, "", [], 3, 1500, "learntv_concept")
+      const lang = profile.language || 'English'
+      const res = await callAI(`Explain the concept "${topic}" to a Class ${std} Indian student. [IMPORTANT: Answer in ${lang}]`, "", [], 3, 1500, "learntv_concept")
       const parsed = parseAIObject(res)
       if (parsed) setConceptSummary(parsed)
     } catch { /* best-effort */ }
@@ -197,8 +198,9 @@ export default function LearnTVTab({ profile }) {
   // ── AI Brief for videos ────────────────────────────────────
   const generateBriefs = async (vids) => {
     try {
+      const lang = profile.language || 'English'
       const titles = vids.map((v, i) => `${i + 1}. "${v.title}" by ${v.channel} (${fmtDuration(v.duration)})`).join('\n')
-      const res = await callAI(`Here are ${vids.length} educational videos:\n${titles}\n\nGenerate a student-friendly brief for each video.`, "", [], 3, 2000, "learntv_brief")
+      const res = await callAI(`Here are ${vids.length} educational videos:\n${titles}\n\nGenerate a student-friendly brief for each video. [IMPORTANT: Answer in ${lang}]`, "", [], 3, 2000, "learntv_brief")
       const parsed = parseAIArray(res)
       if (parsed?.length) {
         const newBriefs = { ...videoBriefs }
@@ -215,7 +217,8 @@ export default function LearnTVTab({ profile }) {
     if (videoBriefs[video.id]) { setExpandedId(video.id); return }
     setBriefLoading(video.id)
     try {
-      const res = await callAI(`Analyze this educational video:\nTitle: "${video.title}"\nChannel: ${video.channel}\nDuration: ${fmtDuration(video.duration)}`, "", [], 3, 1200, "learntv_brief")
+      const lang = profile.language || 'English'
+      const res = await callAI(`Analyze this educational video:\nTitle: "${video.title}"\nChannel: ${video.channel}\nDuration: ${fmtDuration(video.duration)}\n\n[IMPORTANT: Answer in ${lang}]`, "", [], 3, 1200, "learntv_brief")
       const parsed = parseAIObject(res)
       if (parsed) {
         setVideoBriefs(prev => ({ ...prev, [video.id]: parsed }))
@@ -230,10 +233,11 @@ export default function LearnTVTab({ profile }) {
   // ── AI Smart Summaries for reels ─────────────────────────
   const generateReelBriefs = async (vids, topic) => {
     try {
+      const lang = profile.language || 'English'
       const titles = vids.map((v, i) =>
         `${i + 1}. "${v.title}" — ${v.channel} (${fmtDuration(v.duration)})`
       ).join('\n')
-      const res = await callAI(`A student searched for "${topic}". Here are ${vids.length} short educational videos:\n${titles}`, "", [], 3, 1800, "learntv_reel_brief")
+      const res = await callAI(`A student searched for "${topic}". Here are ${vids.length} short educational videos:\n${titles}\n\n[IMPORTANT: Answer in ${lang}]`, "", [], 3, 1800, "learntv_reel_brief")
       const parsed = parseAIArray(res)
       if (parsed?.length) {
         setReelBriefs(prev => {
@@ -248,7 +252,8 @@ export default function LearnTVTab({ profile }) {
   // ── Background: AI Content Tips for Reels ────────────────
   const generateAiReelContent = async (query, std) => {
     try {
-      const res = await callAI(`A Class ${std || 'Class 10'} student wants to learn "${query}" through short videos.`, "", [], 3, 1200, "learntv_reel_tips")
+      const lang = profile.language || 'English'
+      const res = await callAI(`A Class ${std || 'Class 10'} student wants to learn "${query}" through short videos. [IMPORTANT: Answer in ${lang}]`, "", [], 3, 1200, "learntv_reel_tips")
       const parsed = parseAIObject(res)
       if (parsed) setAiReelContent(parsed)
     } catch { /* best-effort */ }
@@ -314,7 +319,8 @@ export default function LearnTVTab({ profile }) {
 
       if (info) setAnalyzeVideo({ id: vid, ...info })
 
-      const res = await callAI(`Analyze this video and create educational content:\n\n${context}`, "", [], 3, 2000, "learntv_analyze")
+      const lang = profile.language || 'English'
+      const res = await callAI(`Analyze this video and create educational content:\n\n${context}\n\n[IMPORTANT: Answer in ${lang}]`, "", [], 3, 2000, "learntv_analyze")
       const parsed = parseAIObject(res)
       if (parsed) {
         setAnalysis(parsed)
@@ -339,7 +345,7 @@ export default function LearnTVTab({ profile }) {
     const lang = profile.language || 'English'
 
     const [res, vids] = await Promise.all([
-      callAI(`Create a comprehensive educational lesson on "${topic}" for a Class ${std} student.`, "", [], 3, 2500, "learntv_create"),
+      callAI(`Create a comprehensive educational lesson on "${topic}" for a Class ${std} student. [IMPORTANT: Answer in ${lang}]`, "", [], 3, 2500, "learntv_create"),
       searchYouTube(`${topic} ${std} ${lang} education India`),
     ])
 

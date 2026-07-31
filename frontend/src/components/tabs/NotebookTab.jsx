@@ -76,7 +76,7 @@ async function extractPdfText(file) {
     const pdfjsLib = window.pdfjsLib
     if (!pdfjsLib) {
       console.warn("pdf.js not loaded - check if CDN script loaded properly")
-      return null
+      return { text: null, pdf: null }
     }
     
     console.log("Extracting PDF:", file.name, "Size:", file.size)
@@ -96,9 +96,30 @@ async function extractPdfText(file) {
     }
     
     console.log("Total extracted text length:", fullText.trim().length)
-    return fullText.trim().slice(0, 15000) // Limit to 15k chars
+    return { text: fullText.trim().slice(0, 15000), pdf } // Return pdf object for fallback
   } catch (err) {
     console.error("PDF extraction error:", err)
+    return { text: null, pdf: null }
+  }
+}
+
+// ─── Render PDF page as image for Vision API fallback ─────────
+async function renderPdfPageAsImage(pdf, pageNum = 1, scale = 1.5) {
+  try {
+    const page = await pdf.getPage(pageNum)
+    const viewport = page.getViewport({ scale })
+    
+    const canvas = document.createElement('canvas')
+    canvas.width = viewport.width
+    canvas.height = viewport.height
+    const ctx = canvas.getContext('2d')
+    
+    await page.render({ canvasContext: ctx, viewport }).promise
+    
+    // Convert to base64 (JPEG for smaller size)
+    return canvas.toDataURL('image/jpeg', 0.85).split(',')[1]
+  } catch (err) {
+    console.error("PDF page render error:", err)
     return null
   }
 }
@@ -441,39 +462,83 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
     } else if (file.name.match(/\.(pdf)$/i)) {
       // PDF files - extract text content
       icon = "📕"
-      const extractedText = await extractPdfText(file)
+      const { text: extractedText, pdf: pdfDoc } = await extractPdfText(file)
       console.log("PDF extraction result:", extractedText ? `${extractedText.length} chars` : "null/empty")
       
-      if (extractedText === null || extractedText.length < 20) {
-        // Could not extract text - show simple message
-        setValidationError(ui.cantReadPdf)
-        setValidating(false)
-        e.target.value = ""
-        return
+      // If text extraction fails or returns minimal text, try Vision API on first page
+      if (extractedText === null || extractedText.length < 50) {
+        console.log("Text extraction insufficient, trying Vision API fallback...")
+        
+        if (!pdfDoc) {
+          // PDF.js completely failed to load - check if it's a network issue
+          setValidationError(ui.cantReadPdf)
+          setValidating(false)
+          e.target.value = ""
+          return
+        }
+        
+        // Try to render first page as image and use Vision API
+        try {
+          const pageImage = await renderPdfPageAsImage(pdfDoc, 1)
+          if (pageImage) {
+            const visionResult = await apiExtractImageContent(pageImage, 'image/jpeg', '', lang)
+            
+            if (visionResult.content?.startsWith('⚠️') || !visionResult.content || visionResult.content.length < 30) {
+              setValidationError(ui.cantReadPdfScanned)
+              setValidating(false)
+              e.target.value = ""
+              return
+            }
+            
+            if (!visionResult.is_educational) {
+              await handleValidationFailure(visionResult.content || "This PDF doesn't appear to be study material.")
+              setValidating(false)
+              e.target.value = ""
+              return
+            }
+            
+            // Vision worked - use its content
+            content = visionResult.content
+            summary = visionResult.summary || ""
+            icon = "📄" // Different icon for scanned PDF
+          } else {
+            setValidationError(ui.cantReadPdfScanned)
+            setValidating(false)
+            e.target.value = ""
+            return
+          }
+        } catch (visionErr) {
+          console.error("Vision fallback failed:", visionErr)
+          setValidationError(ui.cantReadPdfScanned)
+          setValidating(false)
+          e.target.value = ""
+          return
+        }
+      } else {
+        // Text extraction worked
+        content = extractedText
+        
+        // Validate PDF content (same as text files)
+        const contentCheck = validateSourceContent({ content, type: 'file' }, profile)
+        if (!contentCheck.valid) {
+          await handleValidationFailure(contentCheck.message)
+          setValidating(false)
+          e.target.value = ""
+          return
+        }
+        
+        // AI content relevance check
+        const relevance = await checkContentRelevance(content, profile)
+        if (!relevance.relevant) {
+          await handleValidationFailure(relevance.reason || "Content not relevant to studies")
+          setValidating(false)
+          e.target.value = ""
+          return
+        }
+        
+        // Generate summary
+        summary = await generateSmartSummary(content, profile)
       }
-      
-      content = extractedText
-      
-      // Validate PDF content (same as text files)
-      const contentCheck = validateSourceContent({ content, type: 'file' }, profile)
-      if (!contentCheck.valid) {
-        await handleValidationFailure(contentCheck.message)
-        setValidating(false)
-        e.target.value = ""
-        return
-      }
-      
-      // AI content relevance check
-      const relevance = await checkContentRelevance(content, profile)
-      if (!relevance.relevant) {
-        await handleValidationFailure(relevance.reason || "Content not relevant to studies")
-        setValidating(false)
-        e.target.value = ""
-        return
-      }
-      
-      // Generate summary
-      summary = await generateSmartSummary(content, profile)
     } else {
       // Other files - just use filename
       content = `[File: ${file.name}]`
@@ -650,8 +715,11 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
     const sourceLabel = selectedSource 
       ? sources.find(s => s.id === selectedSource)?.name || "selected source"
       : "all sources"
+    
+    // Include language instruction so AI responds in user's preferred language
+    const userLang = profile?.language || 'English'
     const res = await callAI(
-      `${chatInput.trim()}\n\n[Answering from: ${sourceLabel}]\n\nSources:\n${ctx.slice(0, 6000)}`,
+      `[IMPORTANT: Answer in ${userLang} language ONLY. Do NOT use any other language.]\n\nQuestion: ${chatInput.trim()}\n\n[Student: Class ${profile?.standard || '10'}, ${profile?.board || 'CBSE'}]\n[Answering from: ${sourceLabel}]\n\nSources:\n${ctx.slice(0, 6000)}`,
       "", newMsgs, 3, 1500, "notebook_chat"
     )
     setMessages(m => [...m, { role: "assistant", content: res }])
@@ -1046,31 +1114,33 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
               <>
             {/* Chat header with source filter and clear */}
             {sources.length > 0 && (
-              <div className="px-3.5 py-2.5 bg-app-card border-b border-app-border flex items-center gap-2 shrink-0">
+              <div className="px-3 py-2 bg-app-card border-b border-app-border flex items-center gap-2 shrink-0">
                 {/* Source selector */}
-                <div className="flex-1 flex items-center gap-2">
-                  <span className="text-[11px] text-app-muted whitespace-nowrap">{ui.askFrom}</span>
+                <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                  <span className="text-[10px] text-app-muted whitespace-nowrap hidden sm:inline">{ui.askFrom}</span>
                   <select
                     value={selectedSource || ""}
                     onChange={e => setSelectedSource(e.target.value || null)}
-                    className="flex-1 bg-app-bg border border-app-border rounded-lg py-1.5 px-2.5 text-[12px] text-app-text font-[Sora,sans-serif] cursor-pointer"
+                    className="flex-1 min-w-0 bg-app-bg border border-app-border rounded-lg py-1.5 px-2 text-[11px] text-app-text font-[Sora,sans-serif] cursor-pointer truncate"
                   >
                     <option value="">{ui.allSources} ({sources.length})</option>
                     {sources.map(s => (
                       <option key={s.id} value={s.id}>
-                        {s.icon} {s.name.slice(0, 30)}{s.name.length > 30 ? "…" : ""}
+                        {s.icon} {s.name.slice(0, 20)}{s.name.length > 20 ? "…" : ""}
                       </option>
                     ))}
                   </select>
                 </div>
                 
-                {/* Clear chat button */}
+                {/* Clear chat button - always visible with guaranteed size */}
                 {messages.length > 0 && (
                   <button
                     onClick={clearChat}
-                    className="text-[12px] text-app-muted hover:text-red-400 px-3 py-1.5 min-h-[32px] min-w-[32px] rounded-lg border border-app-border hover:border-red-400/30 cursor-pointer font-[Sora,sans-serif] transition-colors flex items-center justify-center shrink-0"
+                    className="text-[11px] text-app-muted hover:text-red-400 px-2.5 py-1.5 h-[34px] rounded-lg border border-app-border hover:border-red-400/30 cursor-pointer font-[Sora,sans-serif] transition-colors flex items-center justify-center shrink-0 whitespace-nowrap"
+                    title={ui.clearChat}
                   >
-                    {ui.clearChat}
+                    <span className="hidden sm:inline">{ui.clearChat}</span>
+                    <span className="sm:hidden">🗑️</span>
                   </button>
                 )}
               </div>
@@ -1178,18 +1248,18 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
             ) : (
               <>
                 {/* Studio header with source filter */}
-                <div className="px-3.5 py-2.5 bg-app-card border-b border-app-border flex items-center gap-2 shrink-0">
-                  <div className="flex-1 flex items-center gap-2">
-                    <span className="text-[11px] text-app-muted whitespace-nowrap">{ui.generateFrom}</span>
+                <div className="px-3 py-2 bg-app-card border-b border-app-border flex items-center gap-2 shrink-0">
+                  <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                    <span className="text-[10px] text-app-muted whitespace-nowrap hidden sm:inline">{ui.generateFrom}</span>
                     <select
                       value={selectedStudioSource || ""}
                       onChange={e => setSelectedStudioSource(e.target.value || null)}
-                      className="flex-1 bg-app-bg border border-app-border rounded-lg py-1.5 px-2.5 text-[12px] text-app-text font-[Sora,sans-serif] cursor-pointer"
+                      className="flex-1 min-w-0 bg-app-bg border border-app-border rounded-lg py-1.5 px-2 text-[11px] text-app-text font-[Sora,sans-serif] cursor-pointer truncate"
                     >
                       <option value="">{ui.allSources} ({sources.length})</option>
                       {sources.map(s => (
                         <option key={s.id} value={s.id}>
-                          {s.icon} {s.name.slice(0, 30)}{s.name.length > 30 ? "…" : ""}
+                          {s.icon} {s.name.slice(0, 20)}{s.name.length > 20 ? "…" : ""}
                         </option>
                       ))}
                     </select>
@@ -1204,9 +1274,11 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                         setMindMap(null); setCards([]); setQuizQ(null)
                         setLineIdx(0); setCardIdx(0); setCardFlipped(false); setQuizSel(null)
                       }}
-                      className="text-[12px] text-app-muted hover:text-red-400 px-3 py-1.5 min-h-[32px] min-w-[32px] rounded-lg border border-app-border hover:border-red-400/30 cursor-pointer font-[Sora,sans-serif] transition-colors flex items-center justify-center shrink-0"
+                      className="text-[11px] text-app-muted hover:text-red-400 px-2.5 py-1.5 h-[34px] rounded-lg border border-app-border hover:border-red-400/30 cursor-pointer font-[Sora,sans-serif] transition-colors flex items-center justify-center shrink-0 whitespace-nowrap"
+                      title={ui.clearChat}
                     >
-                      {ui.clearChat}
+                      <span className="hidden sm:inline">{ui.clearChat}</span>
+                      <span className="sm:hidden">🗑️</span>
                     </button>
                   )}
                 </div>
