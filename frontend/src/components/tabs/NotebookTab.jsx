@@ -1068,7 +1068,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                 {messages.length > 0 && (
                   <button
                     onClick={clearChat}
-                    className="text-[11px] text-app-muted hover:text-red-400 px-2 py-1 rounded-lg border border-transparent hover:border-red-400/30 cursor-pointer font-[Sora,sans-serif] transition-colors"
+                    className="text-[12px] text-app-muted hover:text-red-400 px-3 py-1.5 min-h-[32px] min-w-[32px] rounded-lg border border-app-border hover:border-red-400/30 cursor-pointer font-[Sora,sans-serif] transition-colors flex items-center justify-center shrink-0"
                   >
                     {ui.clearChat}
                   </button>
@@ -1204,7 +1204,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                         setMindMap(null); setCards([]); setQuizQ(null)
                         setLineIdx(0); setCardIdx(0); setCardFlipped(false); setQuizSel(null)
                       }}
-                      className="text-[11px] text-app-muted hover:text-red-400 px-2 py-1 rounded-lg border border-transparent hover:border-red-400/30 cursor-pointer font-[Sora,sans-serif] transition-colors"
+                      className="text-[12px] text-app-muted hover:text-red-400 px-3 py-1.5 min-h-[32px] min-w-[32px] rounded-lg border border-app-border hover:border-red-400/30 cursor-pointer font-[Sora,sans-serif] transition-colors flex items-center justify-center shrink-0"
                     >
                       {ui.clearChat}
                     </button>
