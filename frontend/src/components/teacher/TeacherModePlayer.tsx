@@ -8,6 +8,7 @@ import { BeatControls } from './BeatControls'
 import { studyCoachApi } from '../../modules/studycoach/api'
 import { fetchAudioBlobUrl } from '../../shared/utils/helpers'
 import type { TeacherAudioResponse, TeacherBeat, StudyCoachResponse } from '../../modules/studycoach/types'
+import { BookOpen, Lightbulb, GlobeHemisphereWest, ClipboardText, Books } from '@phosphor-icons/react'
 
 interface Props {
   /** Study Coach response to explain */
@@ -20,12 +21,14 @@ interface Props {
   ui: Record<string, string>
 }
 
-const SECTION_ICON: Record<string, string> = {
-  overview: '📖',
-  takeaways: '💡',
-  example: '🌍',
-  exam_notes: '📝',
+const SECTION_ICON: Record<string, FC<{ size?: number; weight?: string; className?: string }>> = {
+  overview: BookOpen,
+  takeaways: Lightbulb,
+  example: GlobeHemisphereWest,
+  exam_notes: ClipboardText,
 }
+
+const SECTION_ICON_DEFAULT = Books
 
 const SECTION_LABEL_KEYS: Record<string, string> = {
   overview: 'sectionOverview',
@@ -284,7 +287,10 @@ export const TeacherModePlayer: FC<Props> = ({
             <div className="space-y-6">
               {/* Section Label */}
               <div className="flex items-center gap-2">
-                <span className="text-2xl">{SECTION_ICON[currentBeat.section] ?? '📚'}</span>
+                {(() => {
+                  const IconComponent = SECTION_ICON[currentBeat.section] ?? SECTION_ICON_DEFAULT
+                  return <IconComponent size={24} weight="duotone" className="text-app-green" />
+                })()}
                 <span className="text-sm font-semibold text-app-green">
                   {ui[SECTION_LABEL_KEYS[currentBeat.section]] ?? ui.sectionLearning}
                 </span>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { callAI, parseAIObject, updateBhool, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
+import { Warning, XCircle, Target, PencilLine, ArrowsClockwise } from '@phosphor-icons/react'
 
 // ── Feynman Score ring
 function ScoreRing({ label, value, color }) {
@@ -205,7 +206,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
           )}
           {(score?.missing || []).length > 0 && (
             <div className="bg-app-yellow/[0.05] border border-app-yellow/20 rounded-2xl p-4 mb-3.5">
-              <div className="text-[13px] font-extrabold text-app-yellow mb-2">⚠️ What you missed</div>
+              <div className="text-[13px] font-extrabold text-app-yellow mb-2 flex items-center gap-1.5"><Warning size={16} weight="fill" /> What you missed</div>
               {score.missing.map((p, i) => (
                 <div key={i} className="flex gap-2 mb-1.5 items-start">
                   <span className="text-app-yellow text-[13px] mt-0.5">•</span>
@@ -216,7 +217,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
           )}
           {(score?.wrong || []).length > 0 && (
             <div className="bg-app-red/[0.05] border border-app-red/20 rounded-2xl p-4 mb-3.5">
-              <div className="text-[13px] font-extrabold text-app-red mb-2">❌ Incorrect points</div>
+              <div className="text-[13px] font-extrabold text-app-red mb-2 flex items-center gap-1.5"><XCircle size={16} weight="fill" /> Incorrect points</div>
               {score.wrong.map((p, i) => (
                 <div key={i} className="flex gap-2 mb-1.5 items-start">
                   <span className="text-app-red text-[13px] mt-0.5">•</span>
@@ -227,18 +228,18 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
           )}
           {score?.gapLesson && (
             <div className="bg-app-blue/[0.05] border border-app-blue/25 rounded-2xl p-4 mb-3.5">
-              <div className="text-[13px] font-extrabold text-app-blue mb-2">🎯 Gap Lesson — just what you missed</div>
+              <div className="text-[13px] font-extrabold text-app-blue mb-2 flex items-center gap-1.5"><Target size={16} weight="fill" /> Gap Lesson — just what you missed</div>
               <div className="text-[13px] text-app-text leading-relaxed">{score.gapLesson}</div>
             </div>
           )}
           <div className="flex flex-col sm:flex-row gap-3 mt-2">
             <button onClick={reset}
-              className="flex-1 bg-transparent border border-app-border text-app-text text-[13px] font-semibold rounded-xl py-3 cursor-pointer hover:bg-white/[0.03] active:scale-[0.99] transition-all">
-              🔄 Try Again
+              className="flex-1 bg-transparent border border-app-border text-app-text text-[13px] font-semibold rounded-xl py-3 cursor-pointer hover:bg-white/[0.03] active:scale-[0.99] transition-all flex items-center justify-center gap-1.5">
+              <ArrowsClockwise size={16} weight="bold" /> Try Again
             </button>
             <button onClick={() => setPhase("explain")}
-              className="flex-1 bg-gradient-to-r from-app-blue to-['#5a82ff'] text-white text-[13px] font-bold rounded-xl py-3 cursor-pointer active:scale-[0.99] transition-all">
-              ✏️ Improve Answer
+              className="flex-1 bg-gradient-to-r from-app-blue to-['#5a82ff'] text-white text-[13px] font-bold rounded-xl py-3 cursor-pointer active:scale-[0.99] transition-all flex items-center justify-center gap-1.5">
+              <PencilLine size={16} weight="fill" /> Improve Answer
             </button>
           </div>
         </div>

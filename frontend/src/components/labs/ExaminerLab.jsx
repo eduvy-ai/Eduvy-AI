@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { callAI, parseAIObject, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
+import { CheckCircle, XCircle, BookOpen, Key, ClipboardText, ArrowsClockwise } from '@phosphor-icons/react'
 
 // ── Mark options ──────────────────────────────────────────────
 const MARK_OPTIONS = [
@@ -213,10 +214,10 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
             <div className="text-[13px] text-app-text leading-relaxed">{qData?.question}</div>
           </div>
           <div className="bg-app-card border border-app-border rounded-2xl p-4 mb-3.5">
-            <div className="text-[13px] font-extrabold text-app-text mb-3">🔑 Keyword Analysis</div>
+            <div className="text-[13px] font-extrabold text-app-text mb-3 flex items-center gap-1.5"><Key size={16} weight="fill" /> Keyword Analysis</div>
             {(result?.breakdown || []).map((item, i) => (
               <div key={i} className={`flex items-start gap-2.5 rounded-xl px-3 py-2 mb-1.5 border ${item.found ? 'bg-app-green/[0.05] border-app-green/20' : 'bg-app-red/[0.05] border-app-red/20'}`}>
-                <span className="text-base mt-0.5">{item.found ? "✅" : "❌"}</span>
+                <span className="text-base mt-0.5">{item.found ? <CheckCircle size={18} weight="fill" className="text-app-green" /> : <XCircle size={18} weight="fill" className="text-app-red" />}</span>
                 <div className="flex-1">
                   <div className={`text-[13px] font-bold ${item.found ? 'text-app-green' : 'text-app-red'}`}>{item.keyword}</div>
                   {item.note && <div className="text-[11px] text-app-muted mt-0.5">{item.note}</div>}
@@ -232,29 +233,29 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
           </div>
           {result?.strengthNote && (
             <div className="bg-app-green/[0.05] border border-app-green/20 rounded-2xl p-4 mb-3.5">
-              <div className="text-xs font-bold text-app-green mb-1">✅ What you did well</div>
+              <div className="text-xs font-bold text-app-green mb-1 flex items-center gap-1.5"><CheckCircle size={14} weight="fill" /> What you did well</div>
               <div className="text-[13px] text-app-text leading-relaxed">{result.strengthNote}</div>
             </div>
           )}
           {result?.presentationNote && (
             <div className="bg-app-yellow/[0.05] border border-app-yellow/20 rounded-2xl p-4 mb-3.5">
-              <div className="text-xs font-bold text-app-yellow mb-1">📋 Presentation</div>
+              <div className="text-xs font-bold text-app-yellow mb-1 flex items-center gap-1.5"><ClipboardText size={14} weight="fill" /> Presentation</div>
               <div className="text-[13px] text-app-text leading-relaxed">{result.presentationNote}</div>
             </div>
           )}
           <button onClick={() => setShowModel(v => !v)}
             className={`w-full border rounded-xl py-2.5 text-[13px] font-semibold cursor-pointer mb-2 transition-all active:scale-[0.99] ${showModel ? 'bg-app-blue/10 border-app-blue/40 text-app-blue' : 'bg-transparent border-app-border text-app-muted hover:bg-white/[0.03]'}`}>
-            {showModel ? "▲ Hide Model Answer" : "📖 Show Model Answer"}
+            {showModel ? "▲ Hide Model Answer" : <><BookOpen size={14} weight="fill" /> Show Model Answer</>}
           </button>
           {showModel && result?.modelAnswer && (
             <div className="bg-app-card border border-app-border rounded-2xl p-4 mb-3.5">
-              <div className="text-xs font-bold text-app-muted mb-2">📖 Model Answer</div>
+              <div className="text-xs font-bold text-app-muted mb-2 flex items-center gap-1.5"><BookOpen size={14} weight="fill" /> Model Answer</div>
               <div className="text-[13px] text-app-text leading-relaxed whitespace-pre-wrap">{result.modelAnswer}</div>
             </div>
           )}
           <button onClick={reset}
-            className="w-full bg-gradient-to-r from-app-green to-[#00c48a] text-app-bg text-[15px] font-bold rounded-2xl py-3.5 cursor-pointer active:scale-[0.99] transition-all mt-2">
-            🔄 Try Another Question
+            className="w-full bg-gradient-to-r from-app-green to-[#00c48a] text-app-bg text-[15px] font-bold rounded-2xl py-3.5 cursor-pointer active:scale-[0.99] transition-all mt-2 flex items-center justify-center gap-2">
+            <ArrowsClockwise size={18} weight="bold" /> Try Another Question
           </button>
         </div>
       </div>

@@ -148,7 +148,7 @@ export default function AuthScreen({ onAuth }) {
                     onClick={() => setShowPw(p => !p)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-app-muted"
                   >
-                    {showPw ? <EyeSlash size={18} /> : <Eye size={18} />}
+                    {showPw ? <EyeSlash size={18} weight="fill" /> : <Eye size={18} weight="fill" />}
                   </button>
                 </div>
               </div>
@@ -218,7 +218,7 @@ export default function AuthScreen({ onAuth }) {
                     onClick={() => setShowPw(p => !p)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-app-muted"
                   >
-                    {showPw ? <EyeSlash size={18} /> : <Eye size={18} />}
+                    {showPw ? <EyeSlash size={18} weight="fill" /> : <Eye size={18} weight="fill" />}
                   </button>
                 </div>
               </div>

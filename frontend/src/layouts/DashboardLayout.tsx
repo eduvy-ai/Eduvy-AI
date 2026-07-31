@@ -207,7 +207,7 @@ const DashboardLayout: React.FC = () => {
             onClick={() => setShowSettings(true)}
             className="rounded-xl py-2.5 px-3 flex items-center gap-2 cursor-pointer font-[Sora,sans-serif] w-full border bg-app-card2 border-app-border hover:border-app-green/30 active:scale-[0.97] transition-all duration-150"
           >
-            <GearSix size={18} className="text-app-text" />
+            <GearSix size={18} weight="fill" className="text-app-text" />
             <span className="text-sm font-medium text-app-text">{ui.settings || 'Settings'}</span>
           </button>
           
@@ -216,7 +216,7 @@ const DashboardLayout: React.FC = () => {
             onClick={handleLogout}
             className="rounded-xl py-2.5 px-3 flex items-center gap-2 cursor-pointer font-[Sora,sans-serif] w-full border bg-app-red/10 border-app-red/30 hover:bg-app-red/20 active:scale-[0.97] transition-all duration-150"
           >
-            <SignOut size={18} className="text-app-red" />
+            <SignOut size={18} weight="fill" className="text-app-red" />
             <span className="text-sm font-medium text-app-red">{ui.logout || 'Logout'}</span>
           </button>
         </div>
@@ -249,7 +249,7 @@ const DashboardLayout: React.FC = () => {
           onClick={() => setShowSettings(true)}
           className="flex-shrink-0 min-w-[64px] h-14 flex flex-col items-center justify-center gap-0.5 py-0 px-1 bg-transparent border-none cursor-pointer text-app-muted"
         >
-          <GearSix size={22} />
+          <GearSix size={22} weight="fill" />
           <span className="text-[10px] font-medium leading-tight mt-0.5">{ui.more || 'More'}</span>
         </button>
       </nav>

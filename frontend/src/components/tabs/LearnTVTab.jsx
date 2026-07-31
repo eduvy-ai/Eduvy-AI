@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { callAI, parseAIObject, parseAIArray, checkStudentQuery, getDisplayLang } from '../../shared.js'
 import { apiYouTubeSearch, apiYouTubeSmartSearch, apiYouTubeEduReels, apiYouTubeGetVideo } from '../../api.js'
 import { li } from '../../i18n/index.js'
-import { MonitorPlay, MagnifyingGlass, FilmReel, MagnifyingGlassPlus, Sparkle, Books, Brain, Lightbulb, GlobeHemisphereWest, Exam, Play, Robot, Target, ClipboardText, Prohibit, Hourglass } from '@phosphor-icons/react'
+import { MonitorPlay, MagnifyingGlass, FilmReel, MagnifyingGlassPlus, Sparkle, Books, Brain, Lightbulb, GlobeHemisphereWest, Exam, Play, Robot, Target, ClipboardText, Prohibit, Hourglass, ChartBar, Diamond, Flask, Link, FilmSlate, CheckCircle, XCircle } from '@phosphor-icons/react'
 
 // ── Backend YouTube API (uses yt-dlp on server) ──────────────
 
@@ -670,7 +670,7 @@ export default function LearnTVTab({ profile }) {
               onClick={() => searchReels()}
               disabled={reelsLoading || !reelsQ.trim()}
               className={pBtnCls + ' !w-auto !min-w-[80px] !px-4 !py-2.5'}
-            >{reelsLoading ? '⏳ Searching…' : '🔍 Search'}</button>
+            >{reelsLoading ? <><Hourglass size={14} weight="fill" className="animate-spin" /> Searching…</> : <><MagnifyingGlass size={14} weight="fill" /> Search</>}</button>
           </div>
 
           {/* Quick topic chips */}
@@ -798,8 +798,8 @@ export default function LearnTVTab({ profile }) {
             <div className="mb-5">
               {aiReelContent.keyConceptsToFind?.length > 0 && (
                 <div className="mb-3.5">
-                  <div className="text-[12px] font-bold text-app-text mb-2">
-                    🎯 Search these concepts too
+                  <div className="text-[12px] font-bold text-app-text mb-2 flex items-center gap-1.5">
+                    <Target size={14} weight="fill" className="text-app-green" /> Search these concepts too
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {aiReelContent.keyConceptsToFind.map((concept, i) => (
@@ -807,14 +807,14 @@ export default function LearnTVTab({ profile }) {
                         key={i}
                         onClick={() => { setReelsQ(concept); searchReels(concept) }}
                         className="bg-app-green/5 border border-app-green/20 text-app-green rounded-full px-3 py-1.5 text-[11px] cursor-pointer hover:bg-app-green/10 transition-all active:scale-95"
-                      >🔍 {concept}</button>
+                      ><MagnifyingGlass size={12} weight="fill" className="inline mr-1" />{concept}</button>
                     ))}
                   </div>
                 </div>
               )}
               {aiReelContent.contentTips?.length > 0 && (
                 <div className={cardCls + ' !border-app-green/20 mb-3.5'} style={{ background: '#00E5A006' }}>
-                  <div className="text-[12px] font-bold text-app-green mb-1.5">💡 Study Tips</div>
+                  <div className="text-[12px] font-bold text-app-green mb-1.5 flex items-center gap-1.5"><Lightbulb size={14} weight="fill" /> Study Tips</div>
                   {aiReelContent.contentTips.map((tip, i) => (
                     <div key={i} className="mb-1.5">
                       <div className="text-[11px] font-bold text-app-text">{tip.title}</div>
@@ -825,7 +825,7 @@ export default function LearnTVTab({ profile }) {
               )}
               {aiReelContent.watchOrder && (
                 <div className={cardCls + ' !border-app-blue/20 mb-3.5'} style={{ background: '#7B9CFF06' }}>
-                  <div className="text-[12px] font-bold text-app-blue mb-1">📋 Suggested watch order</div>
+                  <div className="text-[12px] font-bold text-app-blue mb-1 flex items-center gap-1.5"><ClipboardText size={12} weight="fill" /> Suggested watch order</div>
                   <div className="text-[11px] text-app-text leading-[1.6]">{aiReelContent.watchOrder}</div>
                 </div>
               )}
@@ -927,7 +927,7 @@ export default function LearnTVTab({ profile }) {
               {/* Summary */}
               {analysis.summary && (
                 <div className={cardCls}>
-                  <div className={sectionTitleCls}>📝 Summary</div>
+                  <div className={sectionTitleCls + ' flex items-center gap-1.5'}><ClipboardText size={14} weight="fill" /> Summary</div>
                   <div className="text-[13px] text-app-text leading-[1.7] whitespace-pre-wrap">
                     {analysis.summary}
                   </div>
@@ -936,15 +936,15 @@ export default function LearnTVTab({ profile }) {
 
               {/* Difficulty */}
               {analysis.difficulty && (
-                <div className={chipCls + ' inline-block self-start'}>
-                  📊 {analysis.difficulty}
+                <div className={chipCls + ' inline-flex items-center gap-1.5 self-start'}>
+                  <ChartBar size={14} weight="fill" /> {analysis.difficulty}
                 </div>
               )}
 
               {/* Key Points */}
               {analysis.keyPoints?.length > 0 && (
                 <div className={cardCls}>
-                  <div className={sectionTitleCls}>🎯 Key Points</div>
+                  <div className={sectionTitleCls + ' flex items-center gap-1.5'}><Target size={14} weight="fill" /> Key Points</div>
                   {analysis.keyPoints.map((p, i) => (
                     <div key={i} className={`text-[13px] text-app-text py-1.5 leading-[1.5] ${i < analysis.keyPoints.length - 1 ? 'border-b border-app-border' : ''}`}>
                       <span className="text-app-green font-bold mr-2">{i + 1}.</span>
@@ -957,10 +957,10 @@ export default function LearnTVTab({ profile }) {
               {/* Study tips (Instagram) */}
               {analysis.studyTips?.length > 0 && (
                 <div className={cardCls}>
-                  <div className={sectionTitleCls}>💡 Study Tips</div>
+                  <div className={sectionTitleCls + ' flex items-center gap-1.5'}><Lightbulb size={14} weight="fill" /> Study Tips</div>
                   {analysis.studyTips.map((t, i) => (
-                    <div key={i} className="text-[13px] text-app-text py-1.5 leading-[1.5]">
-                      💡 {t}
+                    <div key={i} className="text-[13px] text-app-text py-1.5 leading-[1.5] flex items-start gap-1.5">
+                      <Lightbulb size={14} weight="fill" className="text-app-green shrink-0 mt-0.5" /> {t}
                     </div>
                   ))}
                 </div>
@@ -969,8 +969,8 @@ export default function LearnTVTab({ profile }) {
               {/* Takeaway */}
               {analysis.takeaway && (
                 <div className={cardCls + ' !border-app-green/20'} style={{ background: '#00E5A010' }}>
-                  <div className="text-[13px] font-bold text-app-green">
-                    💎 {analysis.takeaway}
+                  <div className="text-[13px] font-bold text-app-green flex items-center gap-1.5">
+                    <Diamond size={16} weight="fill" /> {analysis.takeaway}
                   </div>
                 </div>
               )}
@@ -978,7 +978,7 @@ export default function LearnTVTab({ profile }) {
               {/* Quiz */}
               {analysis.quiz && (
                 <div className={cardCls}>
-                  <div className={sectionTitleCls}>🧪 Quick Quiz</div>
+                  <div className={sectionTitleCls + ' flex items-center gap-1.5'}><Flask size={14} weight="fill" /> Quick Quiz</div>
                   <div className="text-[13px] font-semibold text-app-text mb-2.5">
                     {analysis.quiz.question}
                   </div>
@@ -1007,8 +1007,8 @@ export default function LearnTVTab({ profile }) {
                         }}
                       >
                         {String.fromCharCode(65 + i)}. {opt}
-                        {showResult && isCorrect && ' ✅'}
-                        {showResult && selected && !isCorrect && ' ❌'}
+                        {showResult && isCorrect && <CheckCircle size={16} weight="fill" className="inline ml-1.5 text-app-green" />}
+                        {showResult && selected && !isCorrect && <XCircle size={16} weight="fill" className="inline ml-1.5 text-app-red" />}
                       </button>
                     )
                   })}
@@ -1018,7 +1018,7 @@ export default function LearnTVTab({ profile }) {
               {/* Related topics */}
               {analysis.relatedTopics?.length > 0 && (
                 <div className={cardCls}>
-                  <div className={sectionTitleCls}>🔗 Explore More</div>
+                  <div className={sectionTitleCls + ' flex items-center gap-1.5'}><Link size={14} weight="fill" /> Explore More</div>
                   <div className="flex flex-wrap gap-2">
                     {analysis.relatedTopics.map((t, i) => (
                       <button
@@ -1036,7 +1036,7 @@ export default function LearnTVTab({ profile }) {
           {/* Empty state */}
           {!analyzing && !analysis && !analyzeVideo && (
             <div className="text-center px-5 py-10 text-app-muted">
-              <div className="text-[40px] mb-3">🎬</div>
+              <FilmSlate size={48} weight="duotone" className="mx-auto mb-3 text-app-muted" />
               <div className="text-[14px] font-semibold mb-1.5 text-app-text">Analyze any video</div>
               <div className="text-[12px] leading-[1.6]">
                 Paste a YouTube video or Shorts URL above.<br />
@@ -1065,14 +1065,14 @@ export default function LearnTVTab({ profile }) {
                 onClick={doCreate}
                 disabled={creating || !createTopic.trim()}
                 className={pBtnCls + ' !w-auto !min-w-[80px] !px-4 !py-2.5'}
-              >{creating ? '⏳' : '✨ Create'}</button>
+              >{creating ? <Hourglass size={16} weight="fill" className="animate-spin" /> : <><Sparkle size={16} weight="fill" /> Create</>}</button>
             </div>
           </div>
 
           {/* Loading */}
           {creating && (
             <div className="text-center p-10 text-app-muted">
-              <div className="text-[28px] mb-2.5">✨</div>
+              <Sparkle size={32} weight="duotone" className="mx-auto mb-2.5 text-app-green animate-pulse" />
               <div className="mb-1.5">{ui.creatingAiLesson}…</div>
               <div className="text-[11px]">This may take a few seconds</div>
             </div>
@@ -1127,7 +1127,7 @@ export default function LearnTVTab({ profile }) {
               {/* Summary */}
               {aiContent.summary && (
                 <div className={cardCls + ' !border-app-green/20'} style={{ background: '#00E5A010' }}>
-                  <div className={sectionTitleCls}>📋 Summary</div>
+                  <div className={sectionTitleCls + ' flex items-center gap-1.5'}><ClipboardText size={14} weight="fill" /> Summary</div>
                   <div className="text-[13px] text-app-text leading-[1.7] whitespace-pre-wrap">
                     {aiContent.summary}
                   </div>
@@ -1137,7 +1137,7 @@ export default function LearnTVTab({ profile }) {
               {/* Related Videos */}
               {relatedVids.length > 0 && (
                 <div>
-                  <div className={sectionTitleCls + ' !mb-2.5'}>🎬 Related Videos</div>
+                  <div className={sectionTitleCls + ' !mb-2.5 flex items-center gap-1.5'}><FilmSlate size={14} weight="fill" /> Related Videos</div>
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-2.5">
                     {relatedVids.map(v => (
                       <div key={v.id} className={cardCls}>
@@ -1187,7 +1187,7 @@ export default function LearnTVTab({ profile }) {
           {/* Empty state */}
           {!creating && !aiContent && (
             <div className="text-center px-5 py-10 text-app-muted">
-              <div className="text-[40px] mb-3">✨</div>
+              <Sparkle size={48} weight="duotone" className="mx-auto mb-3 text-app-green" />
               <div className="text-[14px] font-semibold mb-1.5 text-app-text">AI-Powered Lessons</div>
               <div className="text-[12px] leading-[1.6]">
                 Enter any topic above. AI will create a<br />

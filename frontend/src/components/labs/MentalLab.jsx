@@ -3,6 +3,7 @@ import { callAI, checkStudentQuery, startVoiceInput, LANG_TO_SPEECH_CODE } from 
 import { li } from '../../i18n/index.js'
 import { getStarters, getDisplayLang } from '../../shared.js'
 import { getDeviceId, apiGetSession, apiSaveToSession } from '../../api.js'
+import { Lock, ChatCircleDots } from '@phosphor-icons/react'
 
 
 const _MENTAL_GREET = {
@@ -102,15 +103,15 @@ export default function MentalLab({ profile, addXp, onBack }) {
             </div>
           ))}
           {loading && (
-            <div className="ai-bubble text-app-muted">💭 Thinking…</div>
+            <div className="ai-bubble text-app-muted flex items-center gap-1.5"><ChatCircleDots size={16} weight="fill" className="animate-pulse" /> Thinking…</div>
           )}
           <div ref={chatEndRef} />
         </div>
       </div>
 
       {/* Disclaimer */}
-      <div className="px-3.5 py-1.5 bg-app-orange/[0.05] border-t border-app-orange/20 text-[10px] text-app-orange text-center shrink-0">
-        🔒 This is an AI wellness tool, not a substitute for professional mental health care
+      <div className="px-3.5 py-1.5 bg-app-orange/[0.05] border-t border-app-orange/20 text-[10px] text-app-orange text-center shrink-0 flex items-center justify-center gap-1">
+        <Lock size={12} weight="fill" /> This is an AI wellness tool, not a substitute for professional mental health care
       </div>
 
       {/* Input */}

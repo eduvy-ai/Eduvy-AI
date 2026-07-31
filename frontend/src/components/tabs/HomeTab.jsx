@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { SUBS, getBhoolStats, getDisplayLang } from '../../shared.js'
 import { apiGetMastery, apiGetPendingMuqabalaBattles, apiGetDailyContent, apiGenerateDailyQuestions, apiGenerateDailyBrief } from '../../api.js'
 import { li } from '../../i18n/index.js'
-import { BookOpen, Target, Microphone, PlayCircle, Flower, Lightning, Fire, Brain, SunHorizon, Sparkle, Lightbulb, CheckCircle, DiceFive, HandWaving, Plant, Circle } from '@phosphor-icons/react'
+import { BookOpen, Target, Microphone, PlayCircle, Flower, Lightning, Fire, Brain, SunHorizon, Sparkle, Lightbulb, CheckCircle, DiceFive, HandWaving, Plant, Circle, Sword, Flask, UsersThree, Bell, Notebook, FilmSlate, MapPin, Sun, CloudSun } from '@phosphor-icons/react'
 
 // ── Bhool Curve stats (reads localStorage) ───────────────────
 function useBhoolStats() {
@@ -271,8 +271,8 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
         {/* Decorative glow */}
         <div className="absolute -top-10 -right-10 w-[120px] h-[120px] bg-[radial-gradient(circle,_#00E5A020,_transparent_70%)] pointer-events-none" />
 
-        <div className="text-[13px] text-app-muted mb-1">
-          {greeting}
+        <div className="text-[13px] text-app-muted mb-1 flex items-center gap-1.5">
+          {greeting.text} <greeting.Icon size={16} weight="fill" style={{ color: greeting.color }} />
         </div>
         <h2 className="text-lg sm:text-[22px] font-black text-app-text m-0 mb-0.5">
           {profile.name || ui.student || "Student"} <HandWaving size={20} weight="fill" className="inline text-app-yellow" />
@@ -430,13 +430,13 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
           >
             <div className="flex items-center gap-3">
               <span className="text-xl">
-                {lastTab === 'notebook' && '📖'}
-                {lastTab === 'videos' && '🎬'}
-                {lastTab === 'labs' && '🧪'}
-                {lastTab === 'squads' && '👥'}
-                {lastTab === 'mistakes' && '🧠'}
-                {lastTab === 'battles' && '⚔️'}
-                {!['notebook','videos','labs','squads','mistakes','battles'].includes(lastTab) && '📌'}
+                {lastTab === 'notebook' && <Notebook size={24} weight="duotone" className="text-app-blue" />}
+                {lastTab === 'videos' && <FilmSlate size={24} weight="duotone" className="text-app-yellow" />}
+                {lastTab === 'labs' && <Flask size={24} weight="duotone" className="text-app-green" />}
+                {lastTab === 'squads' && <UsersThree size={24} weight="duotone" className="text-app-blue" />}
+                {lastTab === 'mistakes' && <Brain size={24} weight="duotone" className="text-app-red" />}
+                {lastTab === 'battles' && <Sword size={24} weight="duotone" className="text-app-orange" />}
+                {!['notebook','videos','labs','squads','mistakes','battles'].includes(lastTab) && <MapPin size={24} weight="duotone" className="text-app-muted" />}
               </span>
               <div>
                 <div className="text-[13px] font-bold text-app-text">
@@ -459,7 +459,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
 
       {/* ── Notifications ────────────────────────────────────── */}
       {pendingBattles.length > 0 && (
-        <Section title={`🔔 ${ui.notifications || 'Notifications'}`}>
+        <Section title={<span className="flex items-center gap-1.5"><Bell size={16} weight="fill" className="text-app-yellow" /> {ui.notifications || 'Notifications'}</span>}>
           <div className="flex flex-col gap-2">
             {pendingBattles.slice(0, 3).map((battle, i) => (
               <button
@@ -467,7 +467,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
                 onClick={() => setTab('battles')}
                 className="w-full rounded-xl py-3 px-3.5 flex items-center gap-3 cursor-pointer font-[Sora,sans-serif] text-left border bg-app-red/10 border-app-red/30"
               >
-                <span className="text-lg">⚔️</span>
+                <span className="text-lg"><Sword size={20} weight="duotone" className="text-app-orange" /></span>
                 <div className="flex-1">
                   <div className="text-[13px] font-bold text-app-text">
                     {battle.challenger_name || ui.someone || 'Someone'} {ui.challengedYou || 'challenged you!'}
@@ -492,10 +492,10 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
 function getTimeGreeting(lang) {
   const h = new Date().getHours()
   const ui = li(lang)
-  if (h < 12) return `${ui.goodMorning} ☀️`
-  if (h < 17) return `${ui.goodAfternoon} 🌤️`
-  if (h < 21) return `${ui.goodEvening} 🌙`
-  return `${ui.lateNightStudy} 🌟`
+  if (h < 12) return { text: ui.goodMorning, Icon: Sun, color: '#FFD166' }
+  if (h < 17) return { text: ui.goodAfternoon, Icon: CloudSun, color: '#FF9F1C' }
+  if (h < 21) return { text: ui.goodEvening, Icon: SunHorizon, color: '#7B9CFF' }
+  return { text: ui.lateNightStudy, Icon: Sparkle, color: '#A78BFA' }
 }
 
 function StatChip({ icon, value, color }) {

@@ -97,7 +97,7 @@ export default function LabsTab(props) {
                   <div className="text-[15px] font-extrabold text-app-muted mb-1">{lab.label}</div>
                   <div className="text-xs text-app-muted leading-relaxed">{lab.desc}</div>
                 </div>
-                <Lock size={16} className="text-app-muted shrink-0" />
+                <Lock size={16} weight="fill" className="text-app-muted shrink-0" />
               </div>
             ))}
           </>

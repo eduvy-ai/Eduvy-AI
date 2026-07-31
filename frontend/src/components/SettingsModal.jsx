@@ -215,7 +215,7 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
                     <div className="text-xs text-app-muted mt-0.5">{ui.yourCurrentPlan}</div>
                     {profile?.plan_expires_at && (
                       <div className="text-[11px] text-app-yellow mt-1 flex items-center gap-1">
-                        <Clock size={11} /> {ui.expires}: {new Date(profile.plan_expires_at).toLocaleDateString()}
+                        <Clock size={11} weight="fill" /> {ui.expires}: {new Date(profile.plan_expires_at).toLocaleDateString()}
                       </div>
                     )}
                   </div>

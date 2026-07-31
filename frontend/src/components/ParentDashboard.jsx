@@ -311,7 +311,7 @@ export default function ParentDashboard() {
         {/* ── Footer ── */}
         <div className="text-center pt-2">
           <div className="text-app-muted text-[11px] flex items-center justify-center gap-1">
-            <ClipboardText size={11} /> Last updated: {new Date(data.fetched_at).toLocaleString()}
+            <ClipboardText size={11} weight="fill" /> Last updated: {new Date(data.fetched_at).toLocaleString()}
           </div>
           <div className="text-app-muted text-[11px] mt-1">
             Powered by <span className="text-app-green font-bold">Eduvy-AI</span> · Read-only parent view

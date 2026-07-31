@@ -122,7 +122,7 @@ function MistakeCard({ card, isMine = false, onCollect, onReact, onPublish, onDe
         {isMine && (
           <button onClick={() => onDelete(card.id)}
             className={`${!card.is_published ? 'ml-2' : 'ml-auto'} bg-transparent border border-app-red/30 text-app-red rounded-2xl px-3 py-1 text-xs cursor-pointer hover:bg-app-red/10 active:scale-95 transition-all`}>
-            <Trash size={14} />
+            <Trash size={14} weight="fill" />
           </button>
         )}
       </div>

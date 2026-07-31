@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useRef, useCallback } from 'react'
 import { li } from '../../i18n/index.js'
 import { getDisplayLang } from '../../shared.js'
-import { Sword, Trophy, Scroll, Hourglass, Handshake, Barbell, CheckCircle, XCircle, Lightning, Buildings, Medal } from '@phosphor-icons/react'
+import { Sword, Trophy, Scroll, Hourglass, Handshake, Barbell, CheckCircle, XCircle, Lightning, Buildings, Medal, Lightbulb } from '@phosphor-icons/react'
 import {
   apiCreateMuqablaChallenge, apiJoinMuqabalaBattle,
   apiSubmitMuqablaAnswers, apiGetMuqabalaBattle,
@@ -282,8 +282,8 @@ function QuizScreen({ battle, onDone, userId, ui }) {
                   )}
                 </div>
                 {q.explanation && (
-                  <p className="text-app-muted text-[11px] m-0 leading-relaxed bg-app-card2 rounded-lg px-2.5 py-1.5">
-                    💡 {q.explanation}
+                  <p className="text-app-muted text-[11px] m-0 leading-relaxed bg-app-card2 rounded-lg px-2.5 py-1.5 flex items-start gap-1.5">
+                    <Lightbulb size={14} weight="fill" className="shrink-0 mt-0.5 text-app-yellow" /> {q.explanation}
                   </p>
                 )}
               </div>

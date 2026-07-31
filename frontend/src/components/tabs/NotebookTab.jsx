@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { COLORS, callAI, parseAIArray, parseAIObject, SUBS, checkStudentQuery, validateSourceContent, checkContentRelevance, generateSmartSummary, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
-import { Microphone, Books, ClipboardText, Question, CalendarBlank, MapTrifold, Target, Cards, Warning } from '@phosphor-icons/react'
+import { Microphone, Books, ClipboardText, Question, CalendarBlank, MapTrifold, Target, Cards, Warning, Trash } from '@phosphor-icons/react'
 import {
   apiGetSources, apiSaveSource, apiDeleteSource,
   apiGetNotebookChat, apiSaveChatMessage, apiClearNotebookChat,
@@ -1140,7 +1140,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                     title={ui.clearChat}
                   >
                     <span className="hidden sm:inline">{ui.clearChat}</span>
-                    <span className="sm:hidden">🗑️</span>
+                    <span className="sm:hidden"><Trash size={14} weight="fill" /></span>
                   </button>
                 )}
               </div>
@@ -1278,7 +1278,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                       title={ui.clearChat}
                     >
                       <span className="hidden sm:inline">{ui.clearChat}</span>
-                      <span className="sm:hidden">🗑️</span>
+                      <span className="sm:hidden"><Trash size={14} weight="fill" /></span>
                     </button>
                   )}
                 </div>

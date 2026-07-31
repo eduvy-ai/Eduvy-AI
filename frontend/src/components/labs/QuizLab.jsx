@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { callAI, parseAIObject, SUBS, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import { getDeviceId, apiSaveQuizResult, apiGetQuizStats } from '../../api.js'
+import { ChartBar, CheckCircle, XCircle, Brain } from '@phosphor-icons/react'
 
 
 const DIFFICULTIES = ["Easy", "Medium", "Hard"]
@@ -143,7 +144,7 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
         {/* Score bar */}
         {score.total > 0 && (
           <div className="bg-app-card border border-app-border rounded-xl px-3.5 py-2.5 mb-3.5 flex items-center gap-3">
-            <span className="text-xl">📊</span>
+            <ChartBar size={24} weight="duotone" className="text-app-blue" />
             <div className="flex-1">
               <div className="text-xs text-app-muted mb-1">{ui.accuracy}</div>
               <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
@@ -217,8 +218,10 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
             {selected && (
               <>
                 <div className={`rounded-xl p-3.5 border ${selected === question.c ? 'bg-app-green/10 border-app-green/25' : 'bg-app-red/10 border-app-red/25'}`}>
-                  <div className={`text-xs font-bold mb-1.5 ${selected === question.c ? 'text-app-green' : 'text-app-red'}`}>
-                    {selected === question.c ? "✅ Correct!" : `❌ Incorrect — Correct answer: ${question.c}`}
+                  <div className={`text-xs font-bold mb-1.5 flex items-center gap-1.5 ${selected === question.c ? 'text-app-green' : 'text-app-red'}`}>
+                    {selected === question.c 
+                      ? <><CheckCircle size={16} weight="fill" /> Correct!</>
+                      : <><XCircle size={16} weight="fill" /> Incorrect — Correct answer: {question.c}</>}
                   </div>
                   <p className="text-[13px] text-app-text leading-relaxed">{question.e}</p>
                 </div>
@@ -254,8 +257,8 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
                             <strong>{ui.whatWentWrongLabel}</strong> {galtiDiag.diagnosis}
                           </p>
                           {galtiDiag.fix && (
-                            <p className="text-[13px] text-app-green leading-relaxed mb-2">
-                              ✅ <strong>{ui.fixLabel}</strong> {galtiDiag.fix}
+                            <p className="text-[13px] text-app-green leading-relaxed mb-2 flex items-start gap-1.5">
+                              <CheckCircle size={16} weight="fill" className="shrink-0 mt-0.5" /> <span><strong>{ui.fixLabel}</strong> {galtiDiag.fix}</span>
                             </p>
                           )}
                           {galtiDiag.similar && (
