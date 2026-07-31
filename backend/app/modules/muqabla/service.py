@@ -245,7 +245,14 @@ class MuqablaService:
                     WHERE id=%s
                 """, (score, ans_json, time_seconds, battle_id))
                 conn.commit()
-                return {"score": score, "total": len(questions), "status": "waiting_for_opponent"}
+                # Return questions with explanations so challenger can review
+                return {
+                    "score": score,
+                    "total": len(questions),
+                    "status": "waiting_for_opponent",
+                    "questions": questions,
+                    "answers": answers,
+                }
             
             if is_opponent:
                 if status not in ("active", "challenger_done"):
@@ -410,13 +417,17 @@ class MuqablaService:
         conn = get_db()
         try:
             cur = conn.cursor()
+            # Include 'open' for challenger's own battles, 'active'/'challenger_done' for all
             cur.execute("""
                 SELECT id, challenger_id, challenger_name, opponent_id, opponent_name,
                        subject, difficulty, status, questions_json,
+                       challenger_score,
                        created_at::text AS created_at
                 FROM muqabla_battles
-                WHERE (challenger_id = %s OR opponent_id = %s)
-                  AND status IN ('active', 'challenger_done')
+                WHERE (
+                    (challenger_id = %s AND status IN ('open', 'active', 'challenger_done'))
+                    OR (opponent_id = %s AND status IN ('active', 'challenger_done'))
+                )
                 ORDER BY created_at DESC LIMIT 20
             """, (user_id, user_id))
             result = []

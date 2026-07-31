@@ -261,6 +261,38 @@ function QuizScreen({ battle, onDone, userId, ui }) {
     const draw  = result.winner_id === 'draw'
     const waiting = result.status === 'waiting_for_opponent'
 
+    // Helper to render question review
+    const renderQuestionReview = () => (
+      result.questions && result.questions.length > 0 && (
+        <div className="max-h-[280px] overflow-y-auto mb-4 text-left">
+          <h4 className="text-app-muted text-[12px] mb-2 text-center">{ui.reviewAnswers || 'Review Your Answers'}</h4>
+          {result.questions.map((q, i) => {
+            const myAns = (result.answers || [])[i]
+            const correct = myAns === q.correct
+            return (
+              <div key={i} className={`border rounded-xl px-3 py-2.5 mb-2 ${correct ? 'bg-app-green/5 border-app-green/25' : 'bg-app-red/5 border-app-red/25'}`}>
+                <p className="text-app-text text-[13px] m-0 mb-1.5 font-medium">{q.q}</p>
+                <div className={`text-[12px] mb-1.5 flex items-center gap-1.5 flex-wrap ${correct ? 'text-app-green' : 'text-app-red'}`}>
+                  {correct ? <CheckCircle size={14} weight="fill" /> : <XCircle size={14} weight="fill" />}
+                  <span>{ui.yourAnswerLabel || 'You:'} <strong>{q.options[myAns]}</strong></span>
+                  {!correct && (
+                    <span className="text-app-green flex items-center gap-1">
+                      → <CheckCircle size={12} weight="fill" /> <strong>{q.options[q.correct]}</strong>
+                    </span>
+                  )}
+                </div>
+                {q.explanation && (
+                  <p className="text-app-muted text-[11px] m-0 leading-relaxed bg-app-card2 rounded-lg px-2.5 py-1.5">
+                    💡 {q.explanation}
+                  </p>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )
+    )
+
     return (
       <div className="fixed inset-0 bg-app-bg z-[200] flex items-center justify-center p-5 flex-col overflow-y-auto">
         <div className="bg-app-card rounded-3xl px-6 py-8 max-w-[420px] w-full text-center">
@@ -268,10 +300,11 @@ function QuizScreen({ battle, onDone, userId, ui }) {
             <>
               <div className="mb-3 flex justify-center"><Hourglass size={56} weight="duotone" className="text-app-yellow" /></div>
               <h2 className="text-app-yellow mb-2">{ui.waitingOpponentResult}</h2>
-              <p className="text-app-muted text-sm">
-                {ui.yourScore}: <strong className="text-app-green">{result.score}/{questions.length}</strong>
+              <p className="text-app-muted text-sm mb-4">
+                {ui.yourScore}: <strong className="text-app-green">{result.score}/{result.total || questions.length}</strong>
                 <br />{ui.waitingXpNote}
               </p>
+              {renderQuestionReview()}
             </>
           ) : won ? (
             <>
@@ -308,20 +341,7 @@ function QuizScreen({ battle, onDone, userId, ui }) {
           )}
 
           {result.questions && (
-            <div className="max-h-[200px] overflow-y-auto mb-4 text-left">
-              {result.questions.map((q, i) => {
-                const myAns = (result.answers || [])[i]
-                const correct = myAns === q.correct
-                return (
-                  <div key={i} className={`border rounded-xl px-2.5 py-2 mb-1.5 ${correct ? 'bg-app-green/5 border-app-green/25' : 'bg-app-red/5 border-app-red/25'}`}>
-                    <p className="text-app-text text-[12px] m-0 mb-1">{q.q}</p>
-                    <p className={`text-[11px] m-0 flex items-center gap-1 ${correct ? 'text-app-green' : 'text-app-red'}`}>
-                      {correct ? <CheckCircle size={12} weight="fill" /> : <XCircle size={12} weight="fill" />} {q.options[myAns]} → <CheckCircle size={12} weight="fill" className="text-app-green" /> {q.options[q.correct]}
-                    </p>
-                  </div>
-                )
-              })}
-            </div>
+            renderQuestionReview()
           )}
 
           <button onClick={onDone}
