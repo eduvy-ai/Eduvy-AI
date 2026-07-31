@@ -194,19 +194,32 @@ class MuqablaService:
                 raise HTTPException(status_code=400, detail="Cannot join your own battle")
             
             info = MuqablaService._get_user_info(cur, user_id)
+            
+            # If challenger already answered, set status to challenger_done, else active
+            new_status = 'challenger_done' if row.get("challenger_answers") is not None else 'active'
+            
             cur.execute("""
                 UPDATE muqabla_battles
-                SET opponent_id = %s, opponent_name = %s, opponent_school = %s, status = 'active'
+                SET opponent_id = %s, opponent_name = %s, opponent_school = %s, status = %s
                 WHERE id = %s
-            """, (user_id, info["name"], info.get("school", ""), battle_id))
+            """, (user_id, info["name"], info.get("school", ""), new_status, battle_id))
             conn.commit()
             
             questions = json.loads(row["questions_json"] or "[]")
             return {
                 "id": battle_id,
                 "subject": row["subject"],
+                "standard": row["standard"],
                 "difficulty": row["difficulty"],
                 "questions": _safe_questions(questions, False),
+                "question_count": len(questions),
+                "status": new_status,
+                "challenger_id": row["challenger_id"],
+                "challenger_name": row["challenger_name"],
+                "challenger_school": row.get("challenger_school", ""),
+                "opponent_id": user_id,
+                "opponent_name": info["name"],
+                "opponent_school": info.get("school", ""),
             }
         finally:
             conn.close()
@@ -255,14 +268,19 @@ class MuqablaService:
             status = row["status"]
             
             if is_challenger:
+                # Check if challenger already answered (not just status)
+                if row.get("challenger_answers") is not None:
+                    raise HTTPException(status_code=400, detail="You already submitted your answers")
                 if status not in ("open", "active"):
-                    raise HTTPException(status_code=400, detail="Challenger already answered")
+                    raise HTTPException(status_code=400, detail="Battle is no longer accepting submissions")
                 cur.execute("""
                     UPDATE muqabla_battles
                     SET challenger_score=%s, challenger_answers=%s, challenger_time=%s,
                         status = CASE WHEN opponent_id IS NOT NULL THEN 'challenger_done' ELSE 'open' END
-                    WHERE id=%s
+                    WHERE id=%s AND challenger_answers IS NULL
                 """, (score, ans_json, time_seconds, battle_id))
+                if cur.rowcount == 0:
+                    raise HTTPException(status_code=400, detail="Submission failed - already answered")
                 conn.commit()
                 # Return questions with explanations so challenger can review
                 return {
@@ -274,6 +292,9 @@ class MuqablaService:
                 }
             
             if is_opponent:
+                # Check if opponent already answered
+                if row.get("opponent_answers") is not None:
+                    raise HTTPException(status_code=400, detail="You already submitted your answers")
                 if status not in ("active", "challenger_done"):
                     raise HTTPException(status_code=400, detail="Battle is not active")
                 
@@ -296,12 +317,15 @@ class MuqablaService:
                     c_xp = BATTLE_XP_WIN
                     o_xp = BATTLE_XP_LOSE
                 
+                # Use atomic update with opponent_answers IS NULL check
                 cur.execute("""
                     UPDATE muqabla_battles
                     SET opponent_score=%s, opponent_answers=%s, opponent_time=%s,
                         winner_id=%s, xp_awarded=%s, status='completed', completed_at=NOW()
-                    WHERE id=%s
+                    WHERE id=%s AND opponent_answers IS NULL
                 """, (score, ans_json, time_seconds, winner_id, c_xp + o_xp, battle_id))
+                if cur.rowcount == 0:
+                    raise HTTPException(status_code=400, detail="Submission failed - already answered")
                 cur.execute("UPDATE users SET xp = xp + %s WHERE id = %s", (c_xp, row["challenger_id"]))
                 cur.execute("UPDATE users SET xp = xp + %s WHERE id = %s", (o_xp, user_id))
                 conn.commit()
@@ -337,7 +361,7 @@ class MuqablaService:
     
     @staticmethod
     def get_open_battles(user_id: str, limit: int = 20) -> List[Dict]:
-        """Get open battles to join."""
+        """Get open battles to join (list view - no questions)."""
         conn = get_db()
         try:
             cur = conn.cursor()
@@ -355,12 +379,29 @@ class MuqablaService:
             standard = user["standard"] if user else "Class 10"
             
             cur.execute("""
-                SELECT * FROM muqabla_battles
+                SELECT id, challenger_id, challenger_name, challenger_school,
+                       subject, standard, difficulty, status,
+                       created_at::text AS created_at, questions_json
+                FROM muqabla_battles
                 WHERE status = 'open' AND standard = %s AND challenger_id != %s
+                      AND opponent_id IS NULL
                 ORDER BY created_at DESC LIMIT %s
             """, (standard, user_id, limit))
             
-            return [MuqablaService._fmt_battle(dict(r), user_id, False) for r in cur.fetchall()]
+            result = []
+            for r in cur.fetchall():
+                d = dict(r)
+                # Count questions but don't include them (user must join first)
+                try:
+                    qs = json.loads(d.get('questions_json') or '[]')
+                    d['question_count'] = len(qs) if qs else 5
+                except:
+                    d['question_count'] = 5
+                d.pop('questions_json', None)
+                d['questions'] = []  # Empty - must join to get questions
+                d['is_challenger'] = False
+                result.append(d)
+            return result
         finally:
             conn.close()
     

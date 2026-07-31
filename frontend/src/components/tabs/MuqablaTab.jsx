@@ -585,28 +585,57 @@ export default function MuqablaTab({ profile, userId }) {
       try {
         setLoading(true)
         let fullBattle = battle
-        if (!battle.questions || battle.questions.length === 0) {
-          // Open battle: join first
-          if (!battle.is_challenger && battle.status === 'open') {
-            const joined = await apiJoinMuqabalaBattle(battle.id)
-            fullBattle = { ...battle, ...joined, id: battle.id }
-          } else {
-            const detail = await apiGetMuqabalaBattle(battle.id)
-            if (!detail) {
-              setErr(ui.couldNotLoadQuestions || 'Could not load questions for this battle')
-              return
-            }
-            fullBattle = detail
+        
+        // Check if we need to join or fetch full battle data
+        // Open battles from list have empty questions array - must join first
+        const needsJoin = !battle.is_challenger && battle.status === 'open' && battle.opponent_id !== userId
+        const needsFullData = !battle.questions || battle.questions.length === 0 || !battle.questions[0]?.correct
+        
+        if (needsJoin) {
+          // Join the battle first
+          const joined = await apiJoinMuqabalaBattle(battle.id)
+          if (!joined || !joined.questions || joined.questions.length === 0) {
+            setErr(ui.couldNotJoinBattle || 'Could not join this battle. It may have been taken.')
+            loadArena() // Refresh the list
+            return
           }
+          fullBattle = { ...battle, ...joined, id: battle.id, opponent_id: userId }
+        } else if (needsFullData) {
+          // Already a participant, just need full data
+          const detail = await apiGetMuqabalaBattle(battle.id)
+          if (!detail) {
+            setErr(ui.couldNotLoadQuestions || 'Could not load questions for this battle')
+            return
+          }
+          fullBattle = detail
         }
+        
+        // Verify user is a participant and hasn't already answered
+        const isChallenger = fullBattle.challenger_id === userId
+        const isOpponent = fullBattle.opponent_id === userId
+        if (!isChallenger && !isOpponent) {
+          setErr(ui.notPartOfBattle || 'You are not part of this battle')
+          loadArena()
+          return
+        }
+        
+        // Check if user already answered
+        if (fullBattle.my_answers && fullBattle.my_answers.length > 0) {
+          setErr(ui.alreadyAnswered || 'You have already submitted answers for this battle')
+          loadArena()
+          return
+        }
+        
         // Only open quiz if we actually got questions
         if (!fullBattle.questions || fullBattle.questions.length === 0) {
           setErr(ui.couldNotLoadQuestions || 'Could not load questions for this battle')
         } else {
           setQuizBattle(fullBattle)
         }
-      } catch {
-        setErr(ui.couldNotLoadQuestions)
+      } catch (e) {
+        console.error('handleAction error:', e)
+        setErr(ui.couldNotLoadQuestions || 'Could not load questions')
+        loadArena() // Refresh to get current state
       } finally {
         setLoading(false)
       }
@@ -724,10 +753,17 @@ export default function MuqablaTab({ profile, userId }) {
             </div>
           )}
 
-          {active.filter(b => b.is_challenger && ['active','challenger_done'].includes(b.status)).length > 0 && (
+          {/* Challenger's battles waiting for opponent - includes answered open battles and active/challenger_done */}
+          {active.filter(b => b.is_challenger && (
+            ['active', 'challenger_done'].includes(b.status) || 
+            (b.status === 'open' && b.challenger_score !== null)
+          )).length > 0 && (
             <div className="mb-5">
               <h3 className="text-app-muted text-sm mb-2.5">{ui.waitingForOpponent}</h3>
-              {active.filter(b => b.is_challenger && ['active','challenger_done'].includes(b.status)).map(b => (
+              {active.filter(b => b.is_challenger && (
+                ['active', 'challenger_done'].includes(b.status) || 
+                (b.status === 'open' && b.challenger_score !== null)
+              )).map(b => (
                 <BattleCard key={b.id} battle={b} onAction={handleAction} myId={myId} ui={ui} />
               ))}
             </div>
