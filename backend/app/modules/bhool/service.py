@@ -1,7 +1,6 @@
 """
 Bhool Service - Business logic for Bhool Bazaar.
 """
-import uuid
 from typing import Dict, List, Optional
 from fastapi import HTTPException
 
@@ -40,16 +39,15 @@ class BhoolService:
             
             coins = BHOOL_COINS_PER_PUBLISH if is_published else 0
             image_url = ""
-            card_id = str(uuid.uuid4())
             
             cur.execute("""
                 INSERT INTO bhool_cards 
-                (id, user_id, subject, standard, question,
+                (user_id, subject, standard, question,
                  wrong_answer, correct_answer, why_wrong, is_published, bhool_coins, image_url)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING *
             """, (
-                card_id, user_id, subject, standard,
+                user_id, subject, standard,
                 question, wrong_answer, correct_answer, why_wrong, is_published, coins, image_url
             ))
             conn.commit()

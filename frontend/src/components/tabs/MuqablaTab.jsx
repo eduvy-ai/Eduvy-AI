@@ -49,14 +49,15 @@ function StatusBadge({ status, isChallenger, ui }) {
 }
 
 function Avatar({ name = '?', size = 36 }) {
-  const bg = `hsl(${((name.charCodeAt(0) || 65) * 37) % 360},55%,38%)`
+  const safeName = name || '?'
+  const bg = `hsl(${((safeName.charCodeAt(0) || 65) * 37) % 360},55%,38%)`
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%',
       background: bg, flexShrink: 0,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: size * 0.42, fontWeight: 900, color: '#fff',
-    }}>{name.charAt(0).toUpperCase()}</div>
+    }}>{safeName.charAt(0).toUpperCase()}</div>
   )
 }
 
@@ -65,7 +66,7 @@ function BattleCard({ battle, onAction, myId, ui }) {
   const isChallenger = battle.challenger_id === myId
   const opponent = isChallenger
     ? (battle.opponent_name || '— waiting —')
-    : battle.challenger_name
+    : (battle.challenger_name || '?')
   const opponentSchool = isChallenger ? battle.opponent_school : battle.challenger_school
 
   const canJoin     = !isChallenger && battle.status === 'open'
