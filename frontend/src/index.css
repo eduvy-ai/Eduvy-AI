@@ -337,6 +337,11 @@ input, textarea, select { outline: none; border: none; }
     height: 100% !important;
   }
 
+  /* NotebookTab full-height fix on desktop + tablet */
+  .tab-content .notebook-shell {
+    height: 100% !important;
+  }
+
   /* App header spans full width on desktop */
   .app-header {
     width: 100%;
