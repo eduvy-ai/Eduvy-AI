@@ -113,6 +113,7 @@ export default function CoachHistory({ onClose, onSelectSession, ui }: Props) {
   // Toggle bookmark
   const handleToggleBookmark = async (session: CoachSession, e: React.MouseEvent) => {
     e.stopPropagation()
+    e.preventDefault()
     try {
       await studyCoachApi.toggleBookmark(session.id, !session.is_bookmarked)
       setSessions(prev => prev.map(s => 
@@ -126,6 +127,7 @@ export default function CoachHistory({ onClose, onSelectSession, ui }: Props) {
   // Delete session
   const handleDelete = async (session: CoachSession, e: React.MouseEvent) => {
     e.stopPropagation()
+    e.preventDefault()
     if (!confirm(ui.confirmDeleteSession || 'Delete this session?')) return
     try {
       await studyCoachApi.deleteSession(session.id)
@@ -304,8 +306,11 @@ export default function CoachHistory({ onClose, onSelectSession, ui }: Props) {
                               </div>
                             </div>
 
-                            {/* Actions */}
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {/* Actions - always visible */}
+                            <div 
+                              className="flex items-center gap-1 shrink-0"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <button
                                 onClick={(e) => handleToggleBookmark(session, e)}
                                 className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
