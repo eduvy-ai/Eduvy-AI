@@ -9,7 +9,6 @@ import {
   Trash,
   X,
   Funnel,
-  CaretLeft,
   Brain,
   Lightbulb,
   GraduationCap,
@@ -324,7 +323,7 @@ export default function CoachHistory({ onClose, onSelectSession, ui }: Props) {
                                 onClick={(e) => handleDelete(session, e)}
                                 className="w-8 h-8 flex items-center justify-center rounded-lg bg-app-card text-app-muted hover:text-app-red hover:bg-app-red/10 transition-colors"
                               >
-                                <Trash size={16} />
+                                <Trash size={16} weight="fill" />
                               </button>
                             </div>
                           </div>
