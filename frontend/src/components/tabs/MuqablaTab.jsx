@@ -465,7 +465,8 @@ function LeaderboardView({ myId, ui }) {
 }
 
 function EmptyMsg({ icon, text }) {
-  const Icon = typeof icon === 'function' ? icon : null
+  // Phosphor icons are forwardRef objects (typeof === 'object'), not plain functions
+  const Icon = (typeof icon === 'function' || (icon && icon.$$typeof)) ? icon : null
   return (
     <div className="text-center py-10 px-5">
       <div className="mb-2.5 flex justify-center">{Icon ? <Icon size={48} weight="duotone" className="text-app-muted" /> : <span className="text-[48px]">{icon}</span>}</div>
