@@ -8,7 +8,7 @@ import { BeatControls } from './BeatControls'
 import { studyCoachApi } from '../../modules/studycoach/api'
 import { fetchAudioBlobUrl } from '../../shared/utils/helpers'
 import type { TeacherAudioResponse, TeacherBeat, StudyCoachResponse } from '../../modules/studycoach/types'
-import { BookOpen, Lightbulb, GlobeHemisphereWest, ClipboardText, Books } from '@phosphor-icons/react'
+import { BookOpen, Lightbulb, GlobeHemisphereWest, ClipboardText, Books, type Icon } from '@phosphor-icons/react'
 
 interface Props {
   /** Study Coach response to explain */
@@ -21,14 +21,14 @@ interface Props {
   ui: Record<string, string>
 }
 
-const SECTION_ICON: Record<string, FC<{ size?: number; weight?: string; className?: string }>> = {
+const SECTION_ICON: Record<string, Icon> = {
   overview: BookOpen,
   takeaways: Lightbulb,
   example: GlobeHemisphereWest,
   exam_notes: ClipboardText,
 }
 
-const SECTION_ICON_DEFAULT = Books
+const SECTION_ICON_DEFAULT: Icon = Books
 
 const SECTION_LABEL_KEYS: Record<string, string> = {
   overview: 'sectionOverview',
