@@ -315,6 +315,15 @@ class MuqablaService:
         conn = get_db()
         try:
             cur = conn.cursor()
+            
+            # Auto-expire old open battles (older than 24 hours)
+            cur.execute("""
+                UPDATE muqabla_battles 
+                SET status = 'expired' 
+                WHERE status = 'open' AND created_at < NOW() - INTERVAL '24 hours'
+            """)
+            conn.commit()
+            
             cur.execute("SELECT standard FROM users WHERE id = %s", (user_id,))
             user = cur.fetchone()
             standard = user["standard"] if user else "Class 10"
