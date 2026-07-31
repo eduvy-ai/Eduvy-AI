@@ -147,6 +147,7 @@ export default function StudioHistory({ userId, onClose, onSelectOutput, ui, lan
   // Toggle bookmark
   const handleToggleBookmark = async (output, e) => {
     e.stopPropagation()
+    e.preventDefault()
     try {
       const result = await apiToggleStudioBookmark(userId, output.id)
       setOutputs(prev => prev.map(o => 
@@ -160,6 +161,7 @@ export default function StudioHistory({ userId, onClose, onSelectOutput, ui, lan
   // Delete output
   const handleDelete = async (output, e) => {
     e.stopPropagation()
+    e.preventDefault()
     if (!confirm(ui.confirmDelete || 'Delete this output?')) return
     try {
       await apiDeleteStudioOutput(userId, output.id)
@@ -298,10 +300,13 @@ export default function StudioHistory({ userId, onClose, onSelectOutput, ui, lan
                               </p>
                             </div>
 
-                            {/* Action buttons */}
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                            {/* Action buttons - always visible */}
+                            <div 
+                              className="flex items-center gap-1 shrink-0"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <button
-                                onClick={(e) => handleToggleBookmark(output, e)}
+                                onClick={(e) => { e.stopPropagation(); handleToggleBookmark(output, e); }}
                                 className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
                                   output.is_bookmarked 
                                     ? 'text-app-yellow bg-app-yellow/10' 
@@ -312,7 +317,7 @@ export default function StudioHistory({ userId, onClose, onSelectOutput, ui, lan
                                 <BookmarkSimple size={16} weight={output.is_bookmarked ? 'fill' : 'regular'} />
                               </button>
                               <button
-                                onClick={(e) => handleDelete(output, e)}
+                                onClick={(e) => { e.stopPropagation(); handleDelete(output, e); }}
                                 className="w-8 h-8 flex items-center justify-center rounded-lg text-app-muted hover:text-app-red hover:bg-app-red/10 transition-colors"
                                 title={ui.delete || 'Delete'}
                               >
