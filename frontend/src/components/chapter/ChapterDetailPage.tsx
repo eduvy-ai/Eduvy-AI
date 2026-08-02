@@ -339,7 +339,7 @@ interface UploadedFile {
 
 type NotesViewState = 'home' | 'writing' | 'editing' | 'summary'
 
-const NotesTab: React.FC<{ chapter: any; ui: any; user: any }> = ({ chapter, ui, user }) => {
+const NotesTab: React.FC<{ chapter: any; ui: any; user: any }> = ({ chapter, ui: _ui, user }) => {
   const [viewState, setViewState] = useState<NotesViewState>('home')
   const [notes, setNotes] = useState<ChapterNote[]>([])
   const [summary, setSummary] = useState<ChapterSummary | null>(null)
@@ -351,7 +351,7 @@ const NotesTab: React.FC<{ chapter: any; ui: any; user: any }> = ({ chapter, ui,
   const [uploadError, setUploadError] = useState('')
   const [copied, setCopied] = useState(false)
   const [previewFile, setPreviewFile] = useState<UploadedFile | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [_isLoading, setIsLoading] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Load data from API on mount
@@ -472,6 +472,16 @@ const NotesTab: React.FC<{ chapter: any; ui: any; user: any }> = ({ chapter, ui,
     setIsUploading(false)
     // Reset input
     if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  // Delete upload
+  const handleDeleteUpload = async (uploadId: number) => {
+    try {
+      await apiDeleteChapterUpload(chapter.id, uploadId)
+      setUploads(prev => prev.filter(u => u.id !== uploadId))
+    } catch (err) {
+      console.error('Failed to delete upload:', err)
+    }
   }
 
   // Format file size
@@ -1100,7 +1110,7 @@ const VideosTab: React.FC<{ chapter: any; ui: any; user: any }> = ({ chapter, ui
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [loadingVideo, setLoadingVideo] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [_isLoading, setIsLoading] = useState(true)
 
   // Load history & bookmarks from API on mount
   useEffect(() => {
@@ -1750,7 +1760,7 @@ const FlashcardsTab: React.FC<{ chapter: any; ui: any; user: any }> = ({ chapter
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [cardCount, setCardCount] = useState(10)
-  const [isLoading, setIsLoading] = useState(true)
+  const [_isLoading, setIsLoading] = useState(true)
 
   // Load sets from API on mount
   useEffect(() => {
@@ -1875,7 +1885,10 @@ Return ONLY a valid JSON array starting with [ and ending with ]. Each flashcard
     
     try {
       await apiUpdateChapterFlashcards(chapter.id, currentSet.id, {
-        cards: updatedCards
+        name: currentSet.chapter_name,
+        cards: updatedCards,
+        mastery: currentSet.cards.filter(c => c.mastered).length / currentSet.cards.length,
+        reviewed_count: currentSet.reviewed_count
       })
       setCurrentSet(updatedSet)
     } catch (err) {
@@ -1894,6 +1907,9 @@ Return ONLY a valid JSON array starting with [ and ending with ]. Each flashcard
       const updatedSet = { ...currentSet, reviewed_count: currentSet.reviewed_count + 1 }
       try {
         await apiUpdateChapterFlashcards(chapter.id, currentSet.id, {
+          name: currentSet.chapter_name,
+          cards: currentSet.cards,
+          mastery: currentSet.cards.filter(c => c.mastered).length / currentSet.cards.length,
           reviewed_count: updatedSet.reviewed_count
         })
         setCurrentSet(updatedSet)
@@ -2252,7 +2268,7 @@ const QuizTab: React.FC<{ chapter: any; ui: any; user: any }> = ({ chapter, ui, 
   const [startTime, setStartTime] = useState<number | null>(null)
   const [endTime, setEndTime] = useState<number | null>(null)
   const [askedConcepts, setAskedConcepts] = useState<string[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [_isLoading, setIsLoading] = useState(true)
   
   // Final quiz results (stored when transitioning to summary)
   const [finalStats, setFinalStats] = useState<{
@@ -2302,7 +2318,7 @@ const QuizTab: React.FC<{ chapter: any; ui: any; user: any }> = ({ chapter, ui, 
   }
   
   // Save completed quiz to history
-  const saveToHistory = async (finalAnswers: QuizAnswer[], finalAccuracy: number) => {
+  const saveToHistory = async (finalAnswers: QuizAnswer[], _finalAccuracy: number) => {
     try {
       const timeSpent = startTime && endTime ? Math.round((endTime - startTime) / 1000) : 0
       await apiSaveChapterQuizHistory(chapter.id, {
@@ -2574,8 +2590,6 @@ Return ONLY a single JSON object. The question, options, explanation must all be
   const correctCount = answers.filter((a) => a.correct).length
   const accuracy = answers.length ? Math.round((correctCount / answers.length) * 100) : 0
   const accuracyColor = accuracy >= 70 ? '#00E5A0' : accuracy >= 40 ? '#FFD166' : '#FF6B6B'
-  const timeTaken = endTime && startTime ? Math.round((endTime - startTime) / 1000) : 0
-  const timePerQ = answers.length ? Math.round(timeTaken / answers.length) : 0
 
   // Option styling
   const getOptionClass = (letter: string) => {
@@ -3327,7 +3341,7 @@ const AITutorTab: React.FC<{ chapter: any; ui: any; user: any }> = ({ chapter, u
   const [loading, setLoading] = useState(false)
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null)
   const [history, setHistory] = useState<ChatSession[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [_isLoading, setIsLoading] = useState(true)
 
   // Load history from API on mount
   useEffect(() => {
