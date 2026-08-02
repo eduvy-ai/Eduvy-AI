@@ -108,3 +108,20 @@ class BulkDeleteStr(BaseModel):
 
 class BulkDeleteInt(BaseModel):
     ids: List[int]
+
+
+# ── Community / Squads ────────────────────────────────────────
+
+class SquadCreate(BaseModel):
+    name: str
+    focus_subject: str = "General"
+    standard: str = "Class 10"
+    medium: str = "English"
+
+
+class SquadUpdate(BaseModel):
+    name: Optional[str] = None
+    focus_subject: Optional[str] = None
+    standard: Optional[str] = None
+    medium: Optional[str] = None
+    is_active: Optional[bool] = None

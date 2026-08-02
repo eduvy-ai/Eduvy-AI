@@ -12,6 +12,7 @@ from app.modules.chapters.schema import (
     ChapterUpdate,
     ChapterResponse,
     ChapterWithProgress,
+    ChapterBulkDelete,
 )
 from app.modules.chapters.service import ChapterService
 
@@ -121,3 +122,13 @@ async def bulk_create_chapters(chapters: List[ChapterCreate]):
     """
     count = await asyncio.to_thread(ChapterService.bulk_create_chapters, chapters)
     return {"created": count}
+
+
+@router.post("/bulk-delete")
+async def bulk_delete_chapters(data: ChapterBulkDelete):
+    """
+    Bulk delete chapters by IDs.
+    Returns count of deleted chapters.
+    """
+    count = await asyncio.to_thread(ChapterService.bulk_delete_chapters, data.ids)
+    return {"deleted": count}

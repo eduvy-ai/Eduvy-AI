@@ -418,3 +418,30 @@ class ChapterService:
             raise HTTPException(status_code=500, detail="Bulk create failed")
         finally:
             conn.close()
+
+    @staticmethod
+    def bulk_delete_chapters(ids: List[int]) -> int:
+        """
+        Bulk delete chapters by IDs.
+        Returns count of deleted chapters.
+        """
+        if not ids:
+            return 0
+            
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            # Use ANY to delete all matching IDs in one query
+            cur.execute(
+                "DELETE FROM chapters WHERE id = ANY(%s) RETURNING id",
+                (ids,)
+            )
+            deleted = cur.rowcount
+            conn.commit()
+            return deleted
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Bulk delete failed: {e}")
+            raise HTTPException(status_code=500, detail="Bulk delete failed")
+        finally:
+            conn.close()

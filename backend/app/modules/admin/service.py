@@ -26,6 +26,18 @@ def _verify(plain: str, hashed: str) -> bool:
         return False
 
 
+def _normalize_role(role: str) -> str:
+    """Normalize role name to snake_case."""
+    # Convert legacy formats: superadmin -> super_admin
+    role_map = {
+        'superadmin': 'super_admin',
+        'academicmanager': 'academic_manager',
+        'contentmanager': 'content_manager',
+        'aimanager': 'ai_manager',
+    }
+    return role_map.get(role, role)
+
+
 def _make_admin_token(admin_id: int) -> str:
     exp = datetime.now(timezone.utc) + timedelta(days=_ADMIN_JWT_DAYS)
     return jwt.encode(
@@ -57,14 +69,21 @@ class AdminService:
             
             pw_hash = _hash(password)
             cur.execute(
-                "INSERT INTO admin_users (email, password_hash, name, role) VALUES (%s,%s,%s,'superadmin') RETURNING id",
+                "INSERT INTO admin_users (email, password_hash, name, role) VALUES (%s,%s,%s,'super_admin') RETURNING id, email, name, role, created_at",
                 (email, pw_hash, name.strip())
             )
-            new_id = cur.fetchone()["id"]
+            new_admin = cur.fetchone()
             conn.commit()
             
-            token = _make_admin_token(new_id)
-            return {"token": token, "email": email, "name": name.strip()}
+            token = _make_admin_token(new_admin["id"])
+            user = {
+                "id": new_admin["id"],
+                "email": new_admin["email"],
+                "name": new_admin["name"],
+                "role": _normalize_role(new_admin["role"]),
+                "created_at": str(new_admin["created_at"]) if new_admin["created_at"] else None,
+            }
+            return {"token": token, "user": user}
         finally:
             conn.close()
     
@@ -75,13 +94,26 @@ class AdminService:
         try:
             cur = conn.cursor()
             email = email.strip().lower()
-            cur.execute("SELECT * FROM admin_users WHERE email = %s", (email,))
+            cur.execute("SELECT id, email, name, role, created_at FROM admin_users WHERE email = %s", (email,))
             admin = cur.fetchone()
-            if not admin or not _verify(password, admin["password_hash"]):
+            if not admin:
+                raise HTTPException(status_code=401, detail="Invalid email or password")
+            
+            # Check password
+            cur.execute("SELECT password_hash FROM admin_users WHERE id = %s", (admin["id"],))
+            pw_row = cur.fetchone()
+            if not pw_row or not _verify(password, pw_row["password_hash"]):
                 raise HTTPException(status_code=401, detail="Invalid email or password")
             
             token = _make_admin_token(admin["id"])
-            return {"token": token, "email": admin["email"], "name": admin["name"]}
+            user = {
+                "id": admin["id"],
+                "email": admin["email"],
+                "name": admin["name"],
+                "role": _normalize_role(admin["role"]),
+                "created_at": str(admin["created_at"]) if admin["created_at"] else None,
+            }
+            return {"token": token, "user": user}
         finally:
             conn.close()
     
@@ -95,7 +127,13 @@ class AdminService:
             row = cur.fetchone()
             if not row:
                 raise HTTPException(status_code=404, detail="Admin not found")
-            return dict(row)
+            return {
+                "id": row["id"],
+                "email": row["email"],
+                "name": row["name"],
+                "role": _normalize_role(row["role"]),
+                "created_at": str(row["created_at"]) if row["created_at"] else None,
+            }
         finally:
             conn.close()
     
@@ -1175,6 +1213,473 @@ class AdminService:
                 ORDER BY u.name
             """)
             return [dict(r) for r in cur.fetchall()]
+        finally:
+            conn.close()
+
+    # ── Community / Squads ────────────────────────────────────
+
+    @staticmethod
+    def list_squads() -> List[Dict]:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT s.id, s.name, s.focus_subject, s.standard, s.medium, s.is_active, s.created_at,
+                       COUNT(DISTINCT sm.user_id) AS member_count,
+                       COUNT(DISTINCT msg.id) AS message_count,
+                       COUNT(DISTINCT d.id) AS doubt_count
+                FROM squads s
+                LEFT JOIN squad_members sm ON sm.squad_id = s.id
+                LEFT JOIN squad_messages msg ON msg.squad_id = s.id
+                LEFT JOIN squad_doubts d ON d.squad_id = s.id
+                GROUP BY s.id
+                ORDER BY s.created_at DESC
+            """)
+            return [dict(r) for r in cur.fetchall()]
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_squad(squad_id: int) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT s.id, s.name, s.focus_subject, s.standard, s.medium, s.is_active, s.created_at,
+                       COUNT(DISTINCT sm.user_id) AS member_count
+                FROM squads s
+                LEFT JOIN squad_members sm ON sm.squad_id = s.id
+                WHERE s.id = %s
+                GROUP BY s.id
+            """, (squad_id,))
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Squad not found")
+            return dict(row)
+        finally:
+            conn.close()
+
+    @staticmethod
+    def create_squad(name: str, focus_subject: str, standard: str, medium: str) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """INSERT INTO squads (name, focus_subject, standard, medium, is_active)
+                   VALUES (%s, %s, %s, %s, TRUE) RETURNING *""",
+                (name.strip(), focus_subject.strip(), standard.strip(), medium.strip())
+            )
+            row = cur.fetchone()
+            conn.commit()
+            return dict(row)
+        finally:
+            conn.close()
+
+    @staticmethod
+    def update_squad(squad_id: int, name: str = None, focus_subject: str = None, 
+                     standard: str = None, medium: str = None, is_active: bool = None) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            updates = []
+            params = []
+            if name is not None:
+                updates.append("name = %s")
+                params.append(name.strip())
+            if focus_subject is not None:
+                updates.append("focus_subject = %s")
+                params.append(focus_subject.strip())
+            if standard is not None:
+                updates.append("standard = %s")
+                params.append(standard.strip())
+            if medium is not None:
+                updates.append("medium = %s")
+                params.append(medium.strip())
+            if is_active is not None:
+                updates.append("is_active = %s")
+                params.append(is_active)
+            if not updates:
+                raise HTTPException(status_code=400, detail="No fields to update")
+            params.append(squad_id)
+            cur.execute(f"UPDATE squads SET {', '.join(updates)} WHERE id = %s RETURNING *", params)
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Squad not found")
+            conn.commit()
+            return dict(row)
+        finally:
+            conn.close()
+
+    @staticmethod
+    def delete_squad(squad_id: int) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            # CASCADE will delete members, messages, doubts, answers
+            cur.execute("DELETE FROM squads WHERE id = %s", (squad_id,))
+            conn.commit()
+            return {"ok": True}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def bulk_delete_squads(ids: list) -> Dict:
+        if not ids:
+            return {"deleted": 0}
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM squads WHERE id = ANY(%s)", (ids,))
+            conn.commit()
+            return {"deleted": len(ids)}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_squad_members(squad_id: int) -> List[Dict]:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT sm.user_id, sm.role, sm.joined_at, sm.last_seen_at,
+                       u.name, u.standard, u.board, u.xp, u.streak
+                FROM squad_members sm
+                JOIN users u ON u.id = sm.user_id
+                WHERE sm.squad_id = %s
+                ORDER BY sm.joined_at DESC
+            """, (squad_id,))
+            return [dict(r) for r in cur.fetchall()]
+        finally:
+            conn.close()
+
+    @staticmethod
+    def remove_squad_member(squad_id: int, user_id: str) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM squad_members WHERE squad_id = %s AND user_id = %s", (squad_id, user_id))
+            conn.commit()
+            return {"ok": True}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_squad_messages(squad_id: int, limit: int = 100) -> List[Dict]:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT id, user_id, display_name, content, msg_type, created_at
+                FROM squad_messages
+                WHERE squad_id = %s
+                ORDER BY created_at DESC
+                LIMIT %s
+            """, (squad_id, limit))
+            return [dict(r) for r in cur.fetchall()]
+        finally:
+            conn.close()
+
+    @staticmethod
+    def delete_squad_message(message_id: int) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM squad_messages WHERE id = %s", (message_id,))
+            conn.commit()
+            return {"ok": True}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_squad_doubts(squad_id: int = None, limit: int = 100) -> List[Dict]:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            if squad_id:
+                cur.execute("""
+                    SELECT d.id, d.squad_id, d.user_id, d.display_name, d.subject, d.question, d.created_at,
+                           s.name AS squad_name,
+                           COUNT(a.id) AS answer_count
+                    FROM squad_doubts d
+                    LEFT JOIN squads s ON s.id = d.squad_id
+                    LEFT JOIN squad_doubt_answers a ON a.doubt_id = d.id
+                    WHERE d.squad_id = %s
+                    GROUP BY d.id, s.name
+                    ORDER BY d.created_at DESC
+                    LIMIT %s
+                """, (squad_id, limit))
+            else:
+                cur.execute("""
+                    SELECT d.id, d.squad_id, d.user_id, d.display_name, d.subject, d.question, d.created_at,
+                           s.name AS squad_name,
+                           COUNT(a.id) AS answer_count
+                    FROM squad_doubts d
+                    LEFT JOIN squads s ON s.id = d.squad_id
+                    LEFT JOIN squad_doubt_answers a ON a.doubt_id = d.id
+                    GROUP BY d.id, s.name
+                    ORDER BY d.created_at DESC
+                    LIMIT %s
+                """, (limit,))
+            return [dict(r) for r in cur.fetchall()]
+        finally:
+            conn.close()
+
+    @staticmethod
+    def delete_squad_doubt(doubt_id: int) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            # CASCADE will delete answers
+            cur.execute("DELETE FROM squad_doubts WHERE id = %s", (doubt_id,))
+            conn.commit()
+            return {"ok": True}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def bulk_delete_doubts(ids: list) -> Dict:
+        if not ids:
+            return {"deleted": 0}
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM squad_doubts WHERE id = ANY(%s)", (ids,))
+            conn.commit()
+            return {"deleted": len(ids)}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_community_stats() -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) AS total FROM squads WHERE is_active = TRUE")
+            active_squads = cur.fetchone()["total"]
+            cur.execute("SELECT COUNT(DISTINCT user_id) AS total FROM squad_members")
+            total_members = cur.fetchone()["total"]
+            cur.execute("SELECT COUNT(*) AS total FROM squad_messages WHERE created_at > CURRENT_DATE - INTERVAL '7 days'")
+            messages_week = cur.fetchone()["total"]
+            cur.execute("SELECT COUNT(*) AS total FROM squad_doubts WHERE created_at > CURRENT_DATE - INTERVAL '7 days'")
+            doubts_week = cur.fetchone()["total"]
+            return {
+                "active_squads": active_squads,
+                "total_members": total_members,
+                "messages_this_week": messages_week,
+                "doubts_this_week": doubts_week,
+            }
+        finally:
+            conn.close()
+
+    # ── Analytics ─────────────────────────────────────────────
+
+    @staticmethod
+    def get_analytics_overview() -> Dict:
+        """Get high-level platform analytics."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            
+            # Total users
+            cur.execute("SELECT COUNT(*) AS total FROM users")
+            total_users = cur.fetchone()["total"]
+            
+            # Active today
+            cur.execute("SELECT COUNT(*) AS total FROM users WHERE last_active::date = CURRENT_DATE")
+            active_today = cur.fetchone()["total"]
+            
+            # Active this week
+            cur.execute("SELECT COUNT(*) AS total FROM users WHERE last_active::date > CURRENT_DATE - INTERVAL '7 days'")
+            active_7d = cur.fetchone()["total"]
+            
+            # Active this month
+            cur.execute("SELECT COUNT(*) AS total FROM users WHERE last_active::date > CURRENT_DATE - INTERVAL '30 days'")
+            active_30d = cur.fetchone()["total"]
+            
+            # Signups today
+            cur.execute("SELECT COUNT(*) AS total FROM users WHERE created_at::date = CURRENT_DATE")
+            signups_today = cur.fetchone()["total"]
+            
+            # Signups this week
+            cur.execute("SELECT COUNT(*) AS total FROM users WHERE created_at::date > CURRENT_DATE - INTERVAL '7 days'")
+            signups_7d = cur.fetchone()["total"]
+            
+            # Total AI calls today
+            cur.execute("SELECT COALESCE(SUM(call_count), 0) AS total FROM ai_usage WHERE date = CURRENT_DATE")
+            ai_calls_today = cur.fetchone()["total"]
+            
+            # Total AI calls this week
+            cur.execute("SELECT COALESCE(SUM(call_count), 0) AS total FROM ai_usage WHERE date > CURRENT_DATE - INTERVAL '7 days'")
+            ai_calls_7d = cur.fetchone()["total"]
+            
+            # Paid subscriptions
+            cur.execute("SELECT COUNT(*) AS total FROM users WHERE plan != 'free' AND (plan_expires_at = '' OR plan_expires_at > CURRENT_DATE::text)")
+            paid_subs = cur.fetchone()["total"]
+            
+            # Users by plan
+            cur.execute("SELECT plan, COUNT(*) AS count FROM users GROUP BY plan")
+            by_plan = {r["plan"]: r["count"] for r in cur.fetchall()}
+            
+            # Average streak
+            cur.execute("SELECT COALESCE(AVG(streak), 0) AS avg FROM users")
+            avg_streak = round(cur.fetchone()["avg"], 1)
+            
+            # Total XP
+            cur.execute("SELECT COALESCE(SUM(xp), 0) AS total FROM users")
+            total_xp = cur.fetchone()["total"]
+            
+            return {
+                "total_users": total_users,
+                "active_today": active_today,
+                "active_7d": active_7d,
+                "active_30d": active_30d,
+                "signups_today": signups_today,
+                "signups_7d": signups_7d,
+                "ai_calls_today": ai_calls_today,
+                "ai_calls_7d": ai_calls_7d,
+                "paid_subscriptions": paid_subs,
+                "by_plan": by_plan,
+                "avg_streak": avg_streak,
+                "total_xp": total_xp,
+            }
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_analytics_students() -> Dict:
+        """Get detailed student analytics."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            
+            # By board
+            cur.execute("SELECT board, COUNT(*) AS count FROM users GROUP BY board ORDER BY count DESC")
+            by_board = {r["board"]: r["count"] for r in cur.fetchall()}
+            
+            # By standard
+            cur.execute("SELECT standard, COUNT(*) AS count FROM users GROUP BY standard ORDER BY count DESC")
+            by_standard = {r["standard"]: r["count"] for r in cur.fetchall()}
+            
+            # By language/medium
+            cur.execute("SELECT language, COUNT(*) AS count FROM users GROUP BY language ORDER BY count DESC")
+            by_language = {r["language"]: r["count"] for r in cur.fetchall()}
+            
+            # By school (top 20)
+            cur.execute("""
+                SELECT school, COUNT(*) AS count 
+                FROM users 
+                WHERE school != '' AND school IS NOT NULL
+                GROUP BY school 
+                ORDER BY count DESC 
+                LIMIT 20
+            """)
+            by_school = [{"school": r["school"], "count": r["count"]} for r in cur.fetchall()]
+            
+            # Drishti students
+            cur.execute("SELECT COUNT(*) AS total FROM users WHERE is_drishti = TRUE")
+            drishti_count = cur.fetchone()["total"]
+            
+            # Top 10 by XP
+            cur.execute("""
+                SELECT id, name, xp, streak, plan, standard, board
+                FROM users
+                ORDER BY xp DESC
+                LIMIT 10
+            """)
+            top_by_xp = [dict(r) for r in cur.fetchall()]
+            
+            # Top 10 by streak
+            cur.execute("""
+                SELECT id, name, xp, streak, plan, standard, board
+                FROM users
+                ORDER BY streak DESC
+                LIMIT 10
+            """)
+            top_by_streak = [dict(r) for r in cur.fetchall()]
+            
+            # Growth chart (last 30 days)
+            cur.execute("""
+                SELECT created_at::date AS date, COUNT(*) AS count
+                FROM users
+                WHERE created_at::date > CURRENT_DATE - INTERVAL '30 days'
+                GROUP BY created_at::date
+                ORDER BY date
+            """)
+            growth_chart = [{"date": str(r["date"]), "count": r["count"]} for r in cur.fetchall()]
+            
+            # Activity chart (last 30 days)
+            cur.execute("""
+                SELECT last_active::date AS date, COUNT(*) AS count
+                FROM users
+                WHERE last_active::date > CURRENT_DATE - INTERVAL '30 days'
+                GROUP BY last_active::date
+                ORDER BY date
+            """)
+            activity_chart = [{"date": str(r["date"]), "count": r["count"]} for r in cur.fetchall()]
+            
+            return {
+                "by_board": by_board,
+                "by_standard": by_standard,
+                "by_language": by_language,
+                "by_school": by_school,
+                "drishti_count": drishti_count,
+                "top_by_xp": top_by_xp,
+                "top_by_streak": top_by_streak,
+                "growth_chart": growth_chart,
+                "activity_chart": activity_chart,
+            }
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_analytics_revenue() -> Dict:
+        """Get revenue/subscription analytics."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            
+            # Subscriptions by plan (excluding free)
+            cur.execute("""
+                SELECT plan, COUNT(*) AS count
+                FROM users
+                WHERE plan != 'free'
+                GROUP BY plan
+            """)
+            subs_by_plan = {r["plan"]: r["count"] for r in cur.fetchall()}
+            
+            # Expired subscriptions
+            cur.execute("""
+                SELECT COUNT(*) AS total
+                FROM users
+                WHERE plan != 'free' AND plan_expires_at != '' AND plan_expires_at < CURRENT_DATE::text
+            """)
+            expired_subs = cur.fetchone()["total"]
+            
+            # Expiring soon (next 7 days)
+            cur.execute("""
+                SELECT COUNT(*) AS total
+                FROM users
+                WHERE plan != 'free' 
+                  AND plan_expires_at != ''
+                  AND plan_expires_at >= CURRENT_DATE::text
+                  AND plan_expires_at <= (CURRENT_DATE + INTERVAL '7 days')::text
+            """)
+            expiring_soon = cur.fetchone()["total"]
+            
+            # Estimated MRR (Monthly Recurring Revenue)
+            # Prices: basic=$5, pro=$15, premium=$30
+            plan_prices = {"basic": 5, "pro": 15, "premium": 30}
+            estimated_mrr = sum(
+                subs_by_plan.get(plan, 0) * price 
+                for plan, price in plan_prices.items()
+            )
+            
+            return {
+                "subscriptions_by_plan": subs_by_plan,
+                "expired_subscriptions": expired_subs,
+                "expiring_soon": expiring_soon,
+                "estimated_mrr": estimated_mrr,
+            }
         finally:
             conn.close()
 

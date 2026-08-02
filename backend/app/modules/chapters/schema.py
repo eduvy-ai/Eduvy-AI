@@ -48,6 +48,11 @@ class ChapterListParams(BaseModel):
     is_active: Optional[bool] = True
 
 
+class ChapterBulkDelete(BaseModel):
+    """Schema for bulk deleting chapters."""
+    ids: List[int] = Field(..., min_length=1, description="List of chapter IDs to delete")
+
+
 class ChapterWithProgress(ChapterResponse):
     """Chapter with user-specific progress data."""
     progress_percent: int = 0

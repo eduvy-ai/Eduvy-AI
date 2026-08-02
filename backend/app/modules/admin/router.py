@@ -15,6 +15,7 @@ from app.modules.admin.schemas import (
     AIRoutingUpdate, AIKeyUpsert,
     HelperCreate, HelperUpdate,
     BulkDeleteStr, BulkDeleteInt,
+    SquadCreate, SquadUpdate,
 )
 from app.modules.admin.service import AdminService
 
@@ -370,3 +371,90 @@ async def list_drishti_students(admin_id: int = Depends(get_admin_user)):
     return await asyncio.to_thread(AdminService.list_drishti_students)
 
 
+# ── Community / Squads ────────────────────────────────────────
+
+@router.get("/community/stats")
+async def get_community_stats(admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.get_community_stats)
+
+
+@router.get("/squads")
+async def list_squads(admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.list_squads)
+
+
+@router.get("/squads/{squad_id}")
+async def get_squad(squad_id: int, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.get_squad, squad_id)
+
+
+@router.post("/squads", status_code=201)
+async def create_squad(data: SquadCreate, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.create_squad, data.name, data.focus_subject, data.standard, data.medium)
+
+
+@router.put("/squads/{squad_id}")
+async def update_squad(squad_id: int, data: SquadUpdate, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.update_squad, squad_id, data.name, data.focus_subject, data.standard, data.medium, data.is_active)
+
+
+@router.delete("/squads/{squad_id}")
+async def delete_squad(squad_id: int, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.delete_squad, squad_id)
+
+
+@router.post("/squads/bulk-delete")
+async def bulk_delete_squads(data: BulkDeleteInt, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.bulk_delete_squads, data.ids)
+
+
+@router.get("/squads/{squad_id}/members")
+async def get_squad_members(squad_id: int, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.get_squad_members, squad_id)
+
+
+@router.delete("/squads/{squad_id}/members/{user_id}")
+async def remove_squad_member(squad_id: int, user_id: str, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.remove_squad_member, squad_id, user_id)
+
+
+@router.get("/squads/{squad_id}/messages")
+async def get_squad_messages(squad_id: int, limit: int = Query(default=100), admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.get_squad_messages, squad_id, limit)
+
+
+@router.delete("/squad-messages/{message_id}")
+async def delete_squad_message(message_id: int, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.delete_squad_message, message_id)
+
+
+@router.get("/doubts")
+async def list_doubts(squad_id: int = Query(default=None), limit: int = Query(default=100), admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.get_squad_doubts, squad_id, limit)
+
+
+@router.delete("/doubts/{doubt_id}")
+async def delete_doubt(doubt_id: int, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.delete_squad_doubt, doubt_id)
+
+
+@router.post("/doubts/bulk-delete")
+async def bulk_delete_doubts(data: BulkDeleteInt, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.bulk_delete_doubts, data.ids)
+
+
+# ── Analytics ─────────────────────────────────────────────────
+
+@router.get("/analytics/overview")
+async def get_analytics_overview(admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.get_analytics_overview)
+
+
+@router.get("/analytics/students")
+async def get_analytics_students(admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.get_analytics_students)
+
+
+@router.get("/analytics/revenue")
+async def get_analytics_revenue(admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.get_analytics_revenue)
