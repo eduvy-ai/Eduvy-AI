@@ -31,6 +31,10 @@ const MuqablaPage = lazy(() => import('../modules/muqabla/pages/MuqablaPage'))
 const LabsPage = lazy(() => import('../modules/labs/pages/LabsPage'))
 const VideoCreatorPage = lazy(() => import('../modules/videocreator/pages/VideoCreatorPage'))
 const StudyCoachPage = lazy(() => import('../modules/studycoach/pages/StudyCoachPage'))
+const LearnPage = lazy(() => import('../modules/chapters/pages/LearnPage'))
+const ChapterPage = lazy(() => import('../modules/chapters/pages/ChapterPage'))
+const PracticePage = lazy(() => import('../modules/practice/pages/PracticePage'))
+const ProfilePage = lazy(() => import('../modules/profile/pages/ProfilePage'))
 
 // Loading fallback component
 const PageLoader = () => (
@@ -91,6 +95,10 @@ const AppRoutes: React.FC = () => {
           
           {/* All module pages (Redux-connected) */}
           <Route path="home" element={<HomePage />} />
+          <Route path="learn" element={<LearnPage />} />
+          <Route path="learn/:chapterId" element={<ChapterPage />} />
+          <Route path="practice" element={<PracticePage />} />
+          <Route path="profile" element={<ProfilePage />} />
           <Route path="notebook" element={<NotebookPage />} />
           <Route path="videos" element={<VideosPage />} />
           <Route path="learntv" element={<LearnTVPage />} />

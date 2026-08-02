@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { SUBS, getBhoolStats, getDisplayLang } from '../../shared.js'
 import { apiGetMastery, apiGetPendingMuqabalaBattles, apiGetDailyContent, apiGenerateDailyQuestions, apiGenerateDailyBrief } from '../../api.js'
 import { li } from '../../i18n/index.js'
-import { BookOpen, Target, Microphone, PlayCircle, Flower, Lightning, Fire, Brain, SunHorizon, Sparkle, Lightbulb, CheckCircle, DiceFive, HandWaving, Plant, Circle, Sword, Flask, UsersThree, Bell, Notebook, FilmSlate, MapPin, Sun, CloudSun } from '@phosphor-icons/react'
+import { Lightning, Fire, Brain, SunHorizon, Sparkle, Lightbulb, CheckCircle, DiceFive, HandWaving, Plant, Circle, Sword, Flask, UsersThree, Bell, Notebook, FilmSlate, MapPin, Sun, CloudSun, Target } from '@phosphor-icons/react'
 
 // ── Bhool Curve stats (reads localStorage) ───────────────────
 function useBhoolStats() {
@@ -18,16 +18,6 @@ function masteryColor(pct) {
   if (pct >= 45) return '#FFD166'
   return '#FF6B6B'
 }
-
-// ── Quick action cards config (labels come from i18n) ────────
-const QUICK_ACTION_ICONS = { smartNotes: BookOpen, takeQuiz: Target, aiPodcast: Microphone, findVideos: PlayCircle, wellnessCoach: Flower }
-const QUICK_ACTION_KEYS = [
-  { iconKey: "smartNotes",    labelKey: "smartNotes",    tab: "notebook", grad: "linear-gradient(135deg,#7B9CFF22,#7B9CFF08)", accent: "#7B9CFF" },
-  { iconKey: "takeQuiz",      labelKey: "takeQuiz",      tab: "labs",     grad: "linear-gradient(135deg,#FF6B6B22,#FF6B6B08)", accent: "#FF6B6B" },
-  { iconKey: "aiPodcast",     labelKey: "aiPodcast",     tab: "labs",     grad: "linear-gradient(135deg,#FFD16622,#FFD16608)", accent: "#FFD166" },
-  { iconKey: "findVideos",    labelKey: "findVideos",    tab: "videos",   grad: "linear-gradient(135deg,#FF6B3522,#FF6B3508)", accent: "#FF6B35" },
-  { iconKey: "wellnessCoach", labelKey: "wellnessCoach", tab: "labs",     grad: "linear-gradient(135deg,#00E5A022,#7B9CFF08)", accent: "#00E5A0" },
-]
 
 export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) {
   const [briefLoading, setBriefLoading]   = useState(false)
@@ -288,25 +278,6 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
           <StatChip icon={<Brain size={14} weight="fill" />} value={`${avgMastery}% ${ui.avgLabel || 'avg'}`} color={masteryColor(avgMastery)} />
         </div>
       </div>
-
-      {/* ── Quick Actions ─────────────────────────────────── */}
-      <Section title={<><Lightning size={16} weight="fill" className="inline text-app-yellow" /> {ui.quickActions || 'Quick Actions'}</>}>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-          {QUICK_ACTION_KEYS.map(btn => (
-            <button
-              key={btn.labelKey}
-              onClick={() => setTab(btn.tab)}
-              className="rounded-[14px] py-3.5 px-2 flex flex-col items-center justify-center gap-1.5 cursor-pointer font-[Sora,sans-serif] min-h-[76px] border"
-              style={{ background: btn.grad, borderColor: `${btn.accent}30` }}
-            >
-              <span>{(() => { const Icon = QUICK_ACTION_ICONS[btn.iconKey]; return Icon ? <Icon size={24} weight="duotone" color={btn.accent} /> : null })()}</span>
-              <span className="text-[11px] font-bold text-center leading-tight" style={{ color: btn.accent }}>
-                {ui[btn.labelKey] || btn.labelKey}
-              </span>
-            </button>
-          ))}
-        </div>
-      </Section>
 
       {/* ── Daily Brain Brief ─────────────────────────────── */}
       <Section title={<><SunHorizon size={16} weight="duotone" className="inline text-app-orange" /> {ui.dailyBrief?.replace(/^📋\s*/, '') || 'Daily Brain Brief'}</>}>

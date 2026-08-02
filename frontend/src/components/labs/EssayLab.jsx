@@ -47,8 +47,10 @@ export default function EssayLab({ profile, addXp, onBack }) {
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="bg-app-card border-b border-app-border px-4 py-3 flex items-center gap-2.5 shrink-0">
-        <button onClick={onBack} className="bg-transparent border-none text-app-muted text-[13px] cursor-pointer p-0">{ui.backBtn}</button>
+      <div className="bg-app-card border-b border-app-border px-4 py-3 flex items-center gap-3 shrink-0">
+        <button onClick={onBack} className="w-9 h-9 rounded-xl bg-app-card border border-app-border flex items-center justify-center cursor-pointer hover:border-app-green/30 active:scale-95 transition-all">
+          <CaretLeft size={18} weight="bold" className="text-app-text" />
+        </button>
         <span className="text-[15px] font-extrabold text-app-text">{ui.essayGrader}</span>
       </div>
 

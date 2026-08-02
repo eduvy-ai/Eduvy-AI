@@ -998,6 +998,321 @@ export async function apiSaveDailyContent(contentType, content, language = 'Engl
   return safeJson(res)  // { content_type, content, language, date, exists }
 }
 
+// ── Chapter Progress API ──────────────────────────────────────
+
+// Notes
+export async function apiGetChapterNotes(chapterId) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/notes`, {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res) || []
+}
+
+export async function apiCreateChapterNote(chapterId, content) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/notes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ content }),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}
+
+export async function apiUpdateChapterNote(chapterId, noteId, content) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/notes/${noteId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ content }),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}
+
+export async function apiDeleteChapterNote(chapterId, noteId) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/notes/${noteId}`, {
+    method: 'DELETE',
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+}
+
+// Summary
+export async function apiGetChapterSummary(chapterId) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/summary`, {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}
+
+export async function apiSaveChapterSummary(chapterId, summary, keyPoints = []) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/summary`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ summary: summary || '', key_points: keyPoints || [] }),
+    signal: AbortSignal.timeout(15000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}
+
+// Uploads
+export async function apiGetChapterUploads(chapterId) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/uploads`, {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res) || []
+}
+
+export async function apiCreateChapterUpload(chapterId, { name, url, file_type, file_size }) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/uploads`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ name, url, file_type, file_size }),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}
+
+export async function apiDeleteChapterUpload(chapterId, uploadId) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/uploads/${uploadId}`, {
+    method: 'DELETE',
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+}
+
+export async function apiGetChapterExtractedContent(chapterId) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/uploads/content`, {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(15000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res) || { content: '', has_content: false }
+}
+
+// Quiz History
+export async function apiGetChapterQuizHistory(chapterId) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/quiz/history`, {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res) || []
+}
+
+export async function apiSaveChapterQuizHistory(chapterId, { mode, score, total, time_spent, questions }) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/quiz/history`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ mode, score, total, time_spent, questions }),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}
+
+export async function apiDeleteChapterQuizHistory(chapterId, historyId) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/quiz/history/${historyId}`, {
+    method: 'DELETE',
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+}
+
+// Quiz Bookmarks
+export async function apiGetChapterQuizBookmarks(chapterId) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/quiz/bookmarks`, {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res) || []
+}
+
+export async function apiSaveChapterQuizBookmark(chapterId, { question, options, correct_idx, explanation }) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/quiz/bookmarks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ question, options, correct_idx, explanation }),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}
+
+export async function apiDeleteChapterQuizBookmark(chapterId, bookmarkId) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/quiz/bookmarks/${bookmarkId}`, {
+    method: 'DELETE',
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+}
+
+// Video History
+export async function apiGetChapterVideoHistory(chapterId) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/videos/history`, {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res) || []
+}
+
+export async function apiSaveChapterVideoHistory(chapterId, { video_id, title, search_query, youtube_video_id }) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/videos/history`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ video_id, title, search_query, youtube_video_id }),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}
+
+export async function apiDeleteChapterVideoHistory(chapterId, historyId) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/videos/history/${historyId}`, {
+    method: 'DELETE',
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+}
+
+// Video Bookmarks
+export async function apiGetChapterVideoBookmarks(chapterId) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/videos/bookmarks`, {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res) || []
+}
+
+export async function apiSaveChapterVideoBookmark(chapterId, { video_id, title, description, concept, search_query, youtube_video_id }) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/videos/bookmarks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ video_id, title, description, concept, search_query, youtube_video_id }),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}
+
+export async function apiDeleteChapterVideoBookmark(chapterId, bookmarkId) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/videos/bookmarks/${bookmarkId}`, {
+    method: 'DELETE',
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+}
+
+// Flashcard Sets
+export async function apiGetChapterFlashcards(chapterId) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/flashcards`, {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res) || []
+}
+
+export async function apiSaveChapterFlashcards(chapterId, { chapter_name, cards }) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/flashcards`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ name: chapter_name, cards }),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}
+
+export async function apiUpdateChapterFlashcards(chapterId, setId, { name, cards, mastery, reviewed_count }) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/flashcards/${setId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ name, cards, mastery, reviewed_count }),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}
+
+export async function apiDeleteChapterFlashcards(chapterId, setId) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/flashcards/${setId}`, {
+    method: 'DELETE',
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+}
+
+// AI Chat Sessions
+export async function apiGetChapterChatSessions(chapterId) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/chat/sessions`, {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res) || []
+}
+
+export async function apiCreateChapterChatSession(chapterId, title = 'New Chat') {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/chat/sessions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ title }),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}
+
+export async function apiGetChapterChatMessages(chapterId, sessionId) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/chat/sessions/${sessionId}/messages`, {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res) || []
+}
+
+export async function apiSaveChapterChatMessage(chapterId, sessionId, { role, content }) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/chat/sessions/${sessionId}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ role, content }),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)
+}
+
+export async function apiDeleteChapterChatSession(chapterId, sessionId) {
+  const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/chat/sessions/${sessionId}`, {
+    method: 'DELETE',
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+}
+
 /**
  * Generate daily questions via backend AI - sends full student context.
  * Backend acts like a real teacher who knows the student.

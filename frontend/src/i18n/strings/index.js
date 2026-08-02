@@ -19,6 +19,8 @@ import { SATHI } from './sathi.js'
 import { VIDEOS } from './videos.js'
 import { PARENT } from './parent.js'
 import { COACH } from './coach.js'
+import { PRACTICE } from './practice.js'
+import { CHAPTERS } from './chapters.js'
 
 // Build combined UI_STRINGS object per language
 const LANGUAGES = ['English', 'Hindi', 'Gujarati', 'Marathi', 'Tamil', 'Telugu', 'Kannada', 'Bengali', 'Punjabi', 'Odia', 'Urdu']
@@ -41,6 +43,8 @@ const STRING_MODULES = {
   ...VIDEOS,
   ...PARENT,
   ...COACH,
+  ...PRACTICE,
+  ...CHAPTERS,
 }
 
 // Merge all modules into per-language objects

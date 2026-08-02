@@ -15,6 +15,7 @@ const modes: StudyCoachMode[] = [
   'study_coach_exam',
   'study_coach_coding',
   'study_coach_revision',
+  'study_coach_wellness',
 ]
 
 const MODE_KEYS: Record<StudyCoachMode, { labelKey: string; descKey: string; icon: string }> = {
@@ -23,6 +24,7 @@ const MODE_KEYS: Record<StudyCoachMode, { labelKey: string; descKey: string; ico
   study_coach_exam:     { labelKey: 'modeExam',        descKey: 'modeExamDesc',       icon: '📝' },
   study_coach_coding:   { labelKey: 'modeCoding',      descKey: 'modeCodingDesc',     icon: '💻' },
   study_coach_revision: { labelKey: 'modeRevision',    descKey: 'modeRevisionDesc',   icon: '⚡' },
+  study_coach_wellness: { labelKey: 'modeWellness',    descKey: 'modeWellnessDesc',   icon: '💙' },
 }
 
 export default function ModeSelector({ currentMode, onModeChange, ui }: ModeSelectorProps) {

@@ -81,6 +81,7 @@ export default function QuestionInput({
     study_coach_exam: { label: ui.modeExam, description: ui.modeExamDesc, icon: '📝' },
     study_coach_coding: { label: ui.modeCoding, description: ui.modeCodingDesc, icon: '💻' },
     study_coach_revision: { label: ui.modeRevision, description: ui.modeRevisionDesc, icon: '⚡' },
+    study_coach_wellness: { label: ui.modeWellness, description: ui.modeWellnessDesc, icon: '💙' },
   }
 
   const currentModeInfo = MODE_LABELS[currentMode]

@@ -959,23 +959,63 @@ export function parseAIObject(text) {
 }
 
 export function parseAIArray(text) {
+  if (!text || typeof text !== 'string') return null
   try {
     let clean = text.replace(/```json|```/g, "").trim()
     const start = clean.indexOf("[")
     const end = clean.lastIndexOf("]")
-    if (start === -1 || end === -1) throw new Error("No JSON array found")
+    
+    // If no array brackets, try to parse newline-separated JSON objects
+    if (start === -1 || end === -1) {
+      // Check for newline-separated JSON objects: {...}\n{...}\n{...}
+      const objectRegex = /\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g
+      const matches = clean.match(objectRegex)
+      if (matches && matches.length > 0) {
+        const objects = []
+        for (const m of matches) {
+          try {
+            objects.push(JSON.parse(m))
+          } catch {}
+        }
+        if (objects.length > 0) return objects
+      }
+      return null
+    }
+    
     let json = clean.slice(start, end + 1)
     
-    // Fix common AI mistake: ["q":... instead of [{"q":...
-    json = json.replace(/^\[\s*"q"\s*:/g, '[{"q":')
-    // Fix missing closing } before ]
-    if (json.match(/[^}]\s*\]$/)) {
-      json = json.replace(/\]$/, '}]')
-    }
-    // Fix missing { after commas between objects
-    json = json.replace(/},\s*"q"\s*:/g, '},{"q":')
+    // Try parsing as-is first (most common case)
+    try {
+      return JSON.parse(json)
+    } catch {}
     
-    return JSON.parse(json)
+    // Fix trailing commas
+    json = json.replace(/,(\s*[\]}])/g, '$1')
+    
+    // Fix Python-style booleans
+    json = json.replace(/\bTrue\b/g, 'true')
+         .replace(/\bFalse\b/g, 'false')
+         .replace(/\bNone\b/g, 'null')
+    
+    // Try again after fixes
+    try {
+      return JSON.parse(json)
+    } catch {}
+    
+    // Last resort: try to extract individual objects
+    const objectRegex = /\{[^{}]*\}/g
+    const matches = json.match(objectRegex)
+    if (matches && matches.length > 0) {
+      const objects = []
+      for (const m of matches) {
+        try {
+          objects.push(JSON.parse(m))
+        } catch {}
+      }
+      if (objects.length > 0) return objects
+    }
+    
+    return null
   } catch { return null }
 }
 

@@ -6,6 +6,7 @@ export type StudyCoachMode =
   | 'study_coach_exam'
   | 'study_coach_coding'
   | 'study_coach_revision'
+  | 'study_coach_wellness'
 
 export interface DiagramData {
   type: 'flowchart' | 'mindmap' | 'sequence' | 'classDiagram'
@@ -49,6 +50,21 @@ export interface StudyCoachRequest {
   mode?: StudyCoachMode
   subject_override?: string
   chapter_override?: string
+  chapter_id?: number  // Chapter ID from Learn tab for context
+}
+
+export interface WellnessResponse {
+  title: string
+  validation: string
+  normalisation: string
+  technique: {
+    name: string
+    steps: string[]
+    when_to_use: string
+  }
+  affirmation: string
+  quick_tips: string[]
+  self_care_reminder: string
 }
 
 export interface StudyCoachResponse {
@@ -66,6 +82,7 @@ export interface StudyCoachResponse {
   // Mode-specific fields
   code_examples?: CodeExample[]
   memory_aids?: MemoryAids
+  wellness?: WellnessResponse  // Wellness mode response
   // Metadata
   mode: StudyCoachMode
   usage?: UsageInfo
@@ -150,5 +167,10 @@ export const MODE_INFO: Record<StudyCoachMode, { label: string; description: str
     label: 'Quick Revision',
     description: 'Fast review with mnemonics',
     icon: '⚡',
+  },
+  study_coach_wellness: {
+    label: 'Wellness',
+    description: 'Mental health and stress support',
+    icon: '💙',
   },
 }

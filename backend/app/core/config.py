@@ -85,5 +85,9 @@ class Settings:
         """Check if R2 is properly configured."""
         return bool(self.R2_ACCOUNT_ID and self.R2_ACCESS_KEY_ID and self.R2_SECRET_ACCESS_KEY)
 
+    # ── AI API Keys ───────────────────────────────────────────
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+
 
 settings = Settings()

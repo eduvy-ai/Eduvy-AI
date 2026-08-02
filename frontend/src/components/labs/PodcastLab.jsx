@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { callAI, parseAIObject, checkStudentQuery } from '../../shared.js'
 import { getDeviceId, apiGetDraft, apiSaveDraft } from '../../api.js'
 import { Capacitor } from '@capacitor/core'
+import { CaretLeft } from '@phosphor-icons/react'
 
 const LANG_VOICE = {
   English:'en-IN', Hindi:'hi-IN', Gujarati:'gu-IN', Marathi:'mr-IN',
@@ -183,9 +184,11 @@ export default function PodcastLab({ profile, addXp, docCtx, docName, onBack }) 
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="bg-app-card border-b border-app-border px-4 py-3 flex items-center gap-2.5 shrink-0">
-        <button onClick={onBack} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">? Back</button>
-        <span className="text-[15px] font-extrabold text-app-text">??? AI Podcast Studio</span>
+      <div className="bg-app-card border-b border-app-border px-4 py-3 flex items-center gap-3 shrink-0">
+        <button onClick={onBack} className="w-9 h-9 rounded-xl bg-app-card border border-app-border flex items-center justify-center cursor-pointer hover:border-app-green/30 active:scale-95 transition-all">
+          <CaretLeft size={18} weight="bold" className="text-app-text" />
+        </button>
+        <span className="text-[15px] font-extrabold text-app-text">🎙️ AI Podcast Studio</span>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 pb-6">

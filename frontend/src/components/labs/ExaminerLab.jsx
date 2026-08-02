@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { callAI, parseAIObject, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
-import { CheckCircle, XCircle, BookOpen, Key, ClipboardText, ArrowsClockwise } from '@phosphor-icons/react'
+import { CheckCircle, XCircle, BookOpen, Key, ClipboardText, ArrowsClockwise, CaretLeft } from '@phosphor-icons/react'
 
 // ── Mark options ──────────────────────────────────────────────
 const MARK_OPTIONS = [
@@ -100,8 +100,10 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
 
   if (phase === "setup") return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
-        <button onClick={onBack} className="bg-white/[0.05] border border-app-border text-app-text text-[13px] font-semibold rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/[0.08] active:scale-95 transition-all">{ui.backBtn}</button>
+      <div className="bg-app-card border-b border-app-border px-4 py-3 flex items-center gap-3">
+        <button onClick={onBack} className="w-9 h-9 rounded-xl bg-app-card border border-app-border flex items-center justify-center cursor-pointer hover:border-app-green/30 active:scale-95 transition-all">
+          <CaretLeft size={18} weight="bold" className="text-app-text" />
+        </button>
         <div>
           <div className="font-extrabold text-base text-app-text">{ui.marksHunterTitle}</div>
           <div className="text-[11px] text-app-muted">{ui.boardExaminerPractice}</div>

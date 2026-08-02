@@ -48,8 +48,8 @@ class StudyCoachMode(BaseModel):
     """Valid Study Coach modes."""
     mode: str = Field(
         default="study_coach",
-        pattern="^study_coach(_eli10|_exam|_coding|_revision)?$",
-        description="study_coach | study_coach_eli10 | study_coach_exam | study_coach_coding | study_coach_revision"
+        pattern="^study_coach(_eli10|_exam|_coding|_revision|_wellness)?$",
+        description="study_coach | study_coach_eli10 | study_coach_exam | study_coach_coding | study_coach_revision | study_coach_wellness"
     )
 
 
@@ -58,10 +58,11 @@ class StudyCoachRequest(BaseModel):
     question: str = Field(..., min_length=3, max_length=2000, description="The question or topic to learn about")
     mode: str = Field(
         default="study_coach",
-        description="Learning mode: study_coach, study_coach_eli10, study_coach_exam, study_coach_coding, study_coach_revision"
+        description="Learning mode: study_coach, study_coach_eli10, study_coach_exam, study_coach_coding, study_coach_revision, study_coach_wellness"
     )
     subject_override: Optional[str] = Field(default=None, description="Override the subject from profile")
     chapter_override: Optional[str] = Field(default=None, description="Specific chapter context")
+    chapter_id: Optional[int] = Field(default=None, description="Chapter ID for context (from Learn tab)")
 
 
 class DiagramData(BaseModel):
@@ -99,6 +100,24 @@ class MemoryAids(BaseModel):
     patterns: List[str] = Field(default_factory=list)
 
 
+class WellnessTechnique(BaseModel):
+    """A wellness technique with steps."""
+    name: str = Field(default="")
+    steps: List[str] = Field(default_factory=list)
+    when_to_use: str = Field(default="")
+
+
+class WellnessResponse(BaseModel):
+    """Wellness mode response for mental health support."""
+    title: str = Field(default="")
+    validation: str = Field(default="")
+    normalisation: str = Field(default="")
+    technique: Optional[WellnessTechnique] = None
+    affirmation: str = Field(default="")
+    quick_tips: List[str] = Field(default_factory=list)
+    self_care_reminder: str = Field(default="")
+
+
 class StudyCoachResponse(BaseModel):
     """Complete Study Coach response with all learning sections."""
     title: str
@@ -115,6 +134,7 @@ class StudyCoachResponse(BaseModel):
     # Optional fields for specific modes
     code_examples: Optional[List[CodeExample]] = None  # For coding mode
     memory_aids: Optional[MemoryAids] = None  # For revision mode
+    wellness: Optional[WellnessResponse] = None  # For wellness mode
     # Metadata
     mode: str = Field(default="study_coach")
     usage: Optional[dict] = None
