@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { callAI, parseAIObject, SUBS, getDisplayLang } from '../../shared.js'
+import { callAI, parseAIObject, SUBS, LANG_RULES, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import { getDeviceId, apiSaveQuizResult, apiGetQuizStats } from '../../api.js'
 import { 
@@ -107,10 +107,39 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
       ? `\nIMPORTANT: Do NOT ask about these concepts (already asked): ${askedConcepts.join(', ')}. Pick a DIFFERENT topic.`
       : ''
     
-    const res = await callAI(
-      `Generate a unique ${difficulty} MCQ on ${selSub} for Class ${profile.standard} ${profile.board}.${avoidList}\n[seed:${randomSeed}]`,
-      "", [], 3, 800, "quiz_generate"
-    )
+    const lang = profile.language || 'English'
+    // If subject IS English, always generate in English (it's the subject being tested)
+    const isEnglishSubject = selSub.toLowerCase() === 'english'
+    const effectiveLang = isEnglishSubject ? 'English' : lang
+    const langRule = LANG_RULES[effectiveLang] || LANG_RULES.English
+    
+    // Language-specific instructions for the question
+    let langInstruction
+    if (isEnglishSubject) {
+      langInstruction = 'This is an English subject quiz. Write EVERYTHING in English — question, options, and explanation.'
+    } else if (lang === 'English') {
+      langInstruction = 'Write the question and all options in English.'
+    } else {
+      langInstruction = `Write the question (q) and all 4 options (o) ENTIRELY in ${lang}. Do NOT mix English words into the question or options unless they are technical terms (like "DNA", "pH", "Newton"). ${lang === 'Marathi' ? 'Use ONLY Marathi (मराठी), NEVER Hindi.' : ''}`
+    }
+
+    const systemPrompt = `You are a ${profile.board} Class ${profile.standard} ${selSub} quiz generator.
+
+${langRule}
+
+Output ONLY a valid JSON object. No markdown, no explanation.`
+
+    const prompt = `Generate a unique ${difficulty} MCQ on ${selSub} for Class ${profile.standard} ${profile.board}.
+${langInstruction}
+${avoidList}
+
+Return ONLY this JSON format:
+{"q":"question text in ${effectiveLang}","o":["option A","option B","option C","option D"],"c":"A","concept":"topic name in English","explanation":"brief explanation in ${effectiveLang}"}
+
+"c" must be exactly one of: "A", "B", "C", or "D".
+[seed:${randomSeed}]`
+
+    const res = await callAI(prompt, systemPrompt, [], 3, 800, "quiz_generate")
     const parsed = parseAIObject(res)
     
     // Track this concept to avoid repetition
@@ -119,7 +148,7 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
     }
     
     return parsed
-  }, [difficulty, selSub, profile.standard, profile.board, askedConcepts])
+  }, [difficulty, selSub, profile.standard, profile.board, profile.language, askedConcepts])
 
   // Start a new quiz
   const startQuiz = async () => {
@@ -208,9 +237,13 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
     const correctOpt = currentQ.o[opts.indexOf(currentQ.c)] || ""
     const wrongOpt = currentQ.o[opts.indexOf(selected)] || ""
     
+    const lang = profile.language || 'English'
+    const langRule = LANG_RULES[lang] || LANG_RULES.English
+    
     const res = await callAI(
-      `Question: "${currentQ.q}"\nCorrect answer: ${currentQ.c}) ${correctOpt}\nStudent chose: ${selected}) ${wrongOpt}\nDiagnose my error.`,
-      "", [], 2, 500, "quiz_diagnose"
+      `Question: "${currentQ.q}"\nCorrect answer: ${currentQ.c}) ${correctOpt}\nStudent chose: ${selected}) ${wrongOpt}\n\nDiagnose my error. Respond in ${lang}.`,
+      `You are a mistake diagnosis expert for ${profile.board} ${profile.standard} students.\n${langRule}\nReturn ONLY a JSON object: {"type":"CONCEPT_GAP|CALCULATION_ERROR|MISSING_PREREQUISITE|MISREAD_QUESTION|CARELESS","diagnosis":"why student got it wrong","fix":"how to avoid this","similar":"a similar practice tip"}`,
+      [], 2, 500, "quiz_diagnose"
     )
     const parsed = parseAIObject(res)
     setGaltiDiag(parsed?.type ? parsed : { type: "CONCEPT_GAP", diagnosis: res, fix: "", similar: "" })
