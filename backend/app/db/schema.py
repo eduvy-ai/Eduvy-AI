@@ -406,6 +406,7 @@ def create_all_tables():
             subject         TEXT NOT NULL,
             chapter_number  INTEGER NOT NULL,
             chapter_name    TEXT NOT NULL,
+            chapter_name_local TEXT DEFAULT '',
             description     TEXT DEFAULT '',
             topics          TEXT DEFAULT '[]',
             is_active       BOOLEAN DEFAULT TRUE,
@@ -414,6 +415,11 @@ def create_all_tables():
         )
     """)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_chapters_lookup ON chapters(board, standard, subject)")
+    # Migration: add chapter_name_local if table already exists without it
+    cur.execute("""DO $$ BEGIN
+        ALTER TABLE chapters ADD COLUMN chapter_name_local TEXT DEFAULT '';
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$""")
 
     # ── AI Usage ──────────────────────────────────────────────
     cur.execute("""

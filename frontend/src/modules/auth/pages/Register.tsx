@@ -1,13 +1,14 @@
 // ─── Register Page ────────────────────────────────────────────
-// Two-step registration form
+// Two-step registration form with dynamic curriculum data
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks'
 import AuthLayout from '../../../layouts/AuthLayout'
 import Button from '../../../shared/components/Button'
 import Input from '../../../shared/components/Input'
 import Select from '../../../shared/components/Select'
+import axiosInstance from '../../../services/axios'
 import { BOARDS, LANGUAGES, CLASSES, getSubjectsForClass } from '../../../shared/constants/curriculum'
 
 const Register: React.FC = () => {
@@ -28,7 +29,60 @@ const Register: React.FC = () => {
   const [language, setLanguage] = useState('English')
   const [subjects, setSubjects] = useState<string[]>([])
 
-  const availableSubjects = useMemo(() => getSubjectsForClass(standard), [standard])
+  // Dynamic curriculum data from API
+  const [availableMediums, setAvailableMediums] = useState<string[]>([...LANGUAGES])
+  const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
+  const [loadingCurriculum, setLoadingCurriculum] = useState(false)
+
+  // Fetch mediums when board or standard changes
+  const fetchMediums = useCallback(async (b: string, s: string) => {
+    try {
+      const res = await axiosInstance.get('/api/curriculum/mediums', { params: { board: b, standard: s } })
+      const mediums = Array.isArray(res.data) ? res.data.map((m: { name?: string } | string) => typeof m === 'string' ? m : m.name || '') .filter(Boolean) : []
+      if (mediums.length > 0) {
+        setAvailableMediums(mediums)
+        if (!mediums.includes(language)) setLanguage(mediums[0])
+      }
+    } catch {
+      setAvailableMediums([...LANGUAGES])
+    }
+  }, [language])
+
+  // Fetch subjects when board, standard, or medium changes
+  const fetchSubjects = useCallback(async (b: string, s: string, m: string) => {
+    setLoadingCurriculum(true)
+    try {
+      const res = await axiosInstance.get('/api/curriculum/subjects', { params: { board: b, standard: s, medium: m } })
+      const subjs = Array.isArray(res.data) ? res.data : (res.data?.subjects || [])
+      if (subjs.length > 0) {
+        setAvailableSubjects(subjs)
+        setSubjects([...subjs])
+      } else {
+        const fallback = [...getSubjectsForClass(s)]
+        setAvailableSubjects(fallback)
+        setSubjects([...fallback])
+      }
+    } catch {
+      const fallback = [...getSubjectsForClass(s)]
+      setAvailableSubjects(fallback)
+      setSubjects([...fallback])
+    } finally {
+      setLoadingCurriculum(false)
+    }
+  }, [])
+
+  // Reload mediums + subjects when board/standard/medium changes
+  useEffect(() => {
+    if (step === 2) {
+      fetchMediums(board, standard)
+    }
+  }, [board, standard, step, fetchMediums])
+
+  useEffect(() => {
+    if (step === 2) {
+      fetchSubjects(board, standard, language)
+    }
+  }, [board, standard, language, step, fetchSubjects])
 
   const toggleSubject = (subject: string) => {
     setSubjects((prev) =>
@@ -49,8 +103,6 @@ const Register: React.FC = () => {
       return
     }
 
-    // Auto-select all subjects for the standard
-    setSubjects([...availableSubjects])
     setStep(2)
   }
 
@@ -200,23 +252,29 @@ const Register: React.FC = () => {
             <Select
               label="Board"
               value={board}
-              onChange={(e) => setBoard(e.target.value)}
+              onChange={(e) => {
+                setBoard(e.target.value)
+                setSubjects([])
+              }}
               options={BOARDS}
             />
 
-            {/* Language Selection */}
+            {/* Medium Selection - dynamic from API */}
             <Select
               label="Medium / Language"
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              options={LANGUAGES}
+              options={availableMediums}
             />
 
-            {/* Subjects */}
+            {/* Subjects - dynamic from API */}
             <div>
               <label className="text-[11px] text-app-muted font-semibold block mb-1.5">
-                Subjects (tap to select)
+                Subjects (tap to select/deselect)
               </label>
+              {loadingCurriculum ? (
+                <div className="text-xs text-app-muted py-2">Loading subjects...</div>
+              ) : (
               <div className="flex flex-wrap gap-2">
                 {availableSubjects.map((subject) => (
                   <button
@@ -233,6 +291,7 @@ const Register: React.FC = () => {
                   </button>
                 ))}
               </div>
+              )}
             </div>
 
             {error && (

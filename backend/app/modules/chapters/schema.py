@@ -13,6 +13,7 @@ class ChapterBase(BaseModel):
     subject: str = Field(..., description="Subject name (e.g., Science)")
     chapter_number: int = Field(..., ge=1, le=30, description="Chapter number in textbook")
     chapter_name: str = Field(..., min_length=2, max_length=200, description="Chapter title")
+    chapter_name_local: str = Field("", max_length=300, description="Chapter name in regional language")
     description: Optional[str] = Field(None, max_length=500, description="Brief chapter description")
     topics: Optional[List[str]] = Field(default_factory=list, description="Key topics covered")
     is_active: bool = Field(True, description="Whether chapter is visible")
@@ -26,6 +27,7 @@ class ChapterCreate(ChapterBase):
 class ChapterUpdate(BaseModel):
     """Schema for updating a chapter (all fields optional)."""
     chapter_name: Optional[str] = Field(None, min_length=2, max_length=200)
+    chapter_name_local: Optional[str] = Field(None, max_length=300)
     description: Optional[str] = Field(None, max_length=500)
     topics: Optional[List[str]] = None
     is_active: Optional[bool] = None

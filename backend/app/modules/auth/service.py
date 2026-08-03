@@ -76,29 +76,38 @@ class AuthService:
     def login(email: str, password: str) -> Dict:
         """
         Authenticate user with email and password.
-        Returns: {"token": str, "profile": dict}
+        Also checks admin_users table — if admin, returns is_admin flag.
+        Returns: {"token": str, "profile": dict, "is_admin"?: bool}
         """
         email = email.strip().lower()
         
         # Generic error message to prevent user enumeration
         INVALID = "Invalid email or password"
         
-        # Find user
+        # First try student users table
         user = db.users.get_by_email(email)
-        if not user:
-            raise HTTPException(status_code=401, detail=INVALID)
+        if user:
+            if not user.get("password_hash") or not verify_password(password, user["password_hash"]):
+                raise HTTPException(status_code=401, detail=INVALID)
+            token = create_token(user["id"])
+            user.pop("password_hash", None)
+            return {"token": token, "profile": user}
         
-        # Verify password
-        if not user.get("password_hash") or not verify_password(password, user["password_hash"]):
-            raise HTTPException(status_code=401, detail=INVALID)
+        # If not found in students, try admin_users table
+        from app.modules.admin.service import AdminService
+        try:
+            admin_result = AdminService.login(email, password)
+            # Return admin response with is_admin flag
+            return {
+                "token": admin_result["token"],
+                "profile": admin_result["user"],
+                "is_admin": True,
+            }
+        except HTTPException:
+            pass
         
-        # Generate token
-        token = create_token(user["id"])
-        
-        # Remove sensitive data
-        user.pop("password_hash", None)
-        
-        return {"token": token, "profile": user}
+        # Neither student nor admin found
+        raise HTTPException(status_code=401, detail=INVALID)
     
     @staticmethod
     def get_profile(user_id: str) -> Dict:

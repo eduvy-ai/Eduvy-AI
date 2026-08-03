@@ -47,6 +47,7 @@ export interface RegisterRequest {
 export interface AuthResponse {
   token: string
   profile: UserProfile
+  is_admin?: boolean
 }
 
 // ── Auth State ──

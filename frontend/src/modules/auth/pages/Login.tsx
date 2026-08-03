@@ -27,7 +27,14 @@ const Login: React.FC = () => {
     const result = await login({ email: email.trim(), password })
     
     if (result.meta.requestStatus === 'fulfilled') {
-      navigate('/app/home')
+      const payload = result.payload as { is_admin?: boolean; token?: string }
+      if (payload?.is_admin) {
+        // Store admin token and redirect to admin dashboard
+        localStorage.setItem('eduvyai_admin_token', payload.token || '')
+        navigate('/admin/dashboard')
+      } else {
+        navigate('/app/home')
+      }
     }
   }
 

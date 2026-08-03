@@ -33,7 +33,7 @@ class ChapterService:
             
             query = """
                 SELECT id, board, standard, subject, chapter_number, chapter_name,
-                       description, topics, is_active, created_at
+                       chapter_name_local, description, topics, is_active, created_at
                 FROM chapters
                 WHERE 1=1
             """
@@ -83,7 +83,7 @@ class ChapterService:
             cur = conn.cursor()
             cur.execute(
                 """SELECT id, board, standard, subject, chapter_number, chapter_name,
-                          description, topics, is_active, created_at
+                          chapter_name_local, description, topics, is_active, created_at
                    FROM chapters WHERE id = %s""",
                 (chapter_id,)
             )
@@ -128,11 +128,11 @@ class ChapterService:
             
             cur.execute(
                 """INSERT INTO chapters (board, standard, subject, chapter_number, chapter_name,
-                                         description, topics, is_active)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                                         chapter_name_local, description, topics, is_active)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                    RETURNING id, created_at""",
                 (data.board, data.standard, data.subject, data.chapter_number, data.chapter_name,
-                 data.description, topics_json, data.is_active)
+                 data.chapter_name_local, data.description, topics_json, data.is_active)
             )
             row = cur.fetchone()
             conn.commit()
@@ -144,6 +144,7 @@ class ChapterService:
                 "subject": data.subject,
                 "chapter_number": data.chapter_number,
                 "chapter_name": data.chapter_name,
+                "chapter_name_local": data.chapter_name_local,
                 "description": data.description,
                 "topics": data.topics or [],
                 "is_active": data.is_active,
@@ -177,6 +178,9 @@ class ChapterService:
             if data.chapter_name is not None:
                 updates.append("chapter_name = %s")
                 params.append(data.chapter_name)
+            if data.chapter_name_local is not None:
+                updates.append("chapter_name_local = %s")
+                params.append(data.chapter_name_local)
             if data.description is not None:
                 updates.append("description = %s")
                 params.append(data.description)
@@ -400,10 +404,10 @@ class ChapterService:
                     topics_json = json.dumps(data.topics or [])
                     cur.execute(
                         """INSERT INTO chapters (board, standard, subject, chapter_number, chapter_name,
-                                                 description, topics, is_active)
-                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+                                                 chapter_name_local, description, topics, is_active)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                         (data.board, data.standard, data.subject, data.chapter_number, data.chapter_name,
-                         data.description, topics_json, data.is_active)
+                         data.chapter_name_local, data.description, topics_json, data.is_active)
                     )
                     created += 1
                 except Exception as e:
