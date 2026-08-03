@@ -185,8 +185,7 @@ export function planHasLab(plan, labKey) {
 
 // ─── Boards ──────────────────────────────────────────────────
 export const BOARDS = [
-  "CBSE","ICSE","GSEB","MSBSHSE","RBSE",
-  "UP Board","BSEB","TN Board","KAR Board","PSEB"
+  "CBSE","ICSE","GSEB","MSBSHSE"
 ]
 
 // ─── Languages ───────────────────────────────────────────────
@@ -197,14 +196,6 @@ export const LANGS = [
 
 // ─── Subjects per Class ──────────────────────────────────────
 export const SUBS = {
-  "Class 1":  ["English","Hindi","Mathematics","EVS","Drawing"],
-  "Class 2":  ["English","Hindi","Mathematics","EVS","Drawing"],
-  "Class 3":  ["English","Hindi","Mathematics","EVS","Drawing"],
-  "Class 4":  ["English","Hindi","Mathematics","Science","Social Studies"],
-  "Class 5":  ["English","Hindi","Mathematics","Science","Social Studies"],
-  "Class 6":  ["English","Hindi","Mathematics","Science","Social Science","Sanskrit"],
-  "Class 7":  ["English","Hindi","Mathematics","Science","Social Science","Sanskrit"],
-  "Class 8":  ["English","Hindi","Mathematics","Science","Social Science","Sanskrit"],
   "Class 9":  ["English","Hindi","Mathematics","Science","Social Science","Sanskrit","IT"],
   "Class 10": ["English","Hindi","Mathematics","Science","Social Science","Sanskrit","IT"],
   "Class 11": ["Physics","Chemistry","Mathematics","Biology","English","Computer Science","Economics","History","Geography","Accountancy","Business Studies"],

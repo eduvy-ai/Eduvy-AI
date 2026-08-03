@@ -4,7 +4,7 @@ import { getDeviceId, apiCreateProfile, apiApplyReferralCode } from '../api.js'
 import { li } from '../i18n/index.js'
 import { HandWaving, CheckCircle, Books, Confetti, GraduationCap, ClipboardText, Globe, House, BookOpen, Robot, PlayCircle, Microphone, Target, PencilLine, Flower, Check } from '@phosphor-icons/react'
 
-const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
+const CLASSES = Array.from({ length: 4 }, (_, i) => `Class ${i + 9}`)
 
 // ── Curriculum API helpers ────────────────────────────────────
 async function fetchBoards() {
