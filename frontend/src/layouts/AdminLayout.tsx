@@ -62,7 +62,7 @@ const AdminLayout: React.FC = () => {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (isInitialized && !isAuthenticated) {
-      navigate('/admin/login')
+      navigate('/auth')
     }
   }, [isInitialized, isAuthenticated, navigate])
 
@@ -125,7 +125,7 @@ const AdminLayout: React.FC = () => {
   // Handle logout
   const handleLogout = () => {
     logout()
-    navigate('/admin/login')
+    navigate('/auth')
   }
 
   // Loading state
