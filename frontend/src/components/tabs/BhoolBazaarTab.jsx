@@ -129,7 +129,9 @@ function MistakeCard({ card, isMine = false, onCollect, onReact, onPublish, onDe
 
 // ── Add Bhool Modal ───────────────────────────────────────────
 function AddBhoolModal({ profile, onClose, onSaved, ui }) {
-  const subjects = profile?.subjects?.length ? profile.subjects : (SUBS[profile?.standard] || ['Mathematics', 'Science'])
+  const standardSubjects = SUBS[profile?.standard] || SUBS['Class 10'] || []
+  const subjects = standardSubjects.length > 0 ? standardSubjects 
+    : (profile?.subjects?.length ? profile.subjects : ['Mathematics', 'Science'])
   const [subject, setSubject]         = useState(subjects[0] || 'Mathematics')
   const [question, setQuestion]       = useState('')
   const [wrongAns, setWrongAns]       = useState('')
@@ -281,7 +283,9 @@ export default function BhoolBazaarTab({ profile, addXp }) {
   const navigate = useNavigate()
   const ui = li(getDisplayLang(profile))
   const TABS = getTabs(ui)
-  const userSubjects = profile?.subjects?.length ? profile.subjects : (SUBS[profile?.standard] || ['Mathematics', 'Science'])
+  const standardSubjects = SUBS[profile?.standard] || SUBS['Class 10'] || []
+  const userSubjects = standardSubjects.length > 0 ? standardSubjects 
+    : (profile?.subjects?.length ? profile.subjects : ['Mathematics', 'Science'])
   const [activeTab, setActiveTab]         = useState('feed')
   const [feedCards, setFeedCards]         = useState([])
   const [myCards, setMyCards]             = useState([])

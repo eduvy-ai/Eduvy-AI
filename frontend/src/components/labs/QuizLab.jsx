@@ -55,7 +55,10 @@ const QUIZ_STATE = {
 export default function QuizLab({ profile, addXp, userId, onBack }) {
   const ui = li(getDisplayLang(profile))
   const uid = userId || getDeviceId()
-  const subjects = profile.subjects?.length ? profile.subjects : (SUBS[profile.standard] || [])
+  // Always use standard-based subjects as the canonical list; profile.subjects may be stale or from wrong class
+  const standardSubjects = SUBS[profile.standard] || SUBS['Class 10'] || []
+  const subjects = standardSubjects.length > 0 ? standardSubjects 
+    : (profile.subjects?.length ? profile.subjects : ['Mathematics', 'Science'])
   
   // Setup state
   const [selSub, setSelSub] = useState(subjects[0] || "")

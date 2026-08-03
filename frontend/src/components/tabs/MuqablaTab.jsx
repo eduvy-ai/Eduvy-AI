@@ -15,7 +15,7 @@ const VIEW_ICONS = { arena: Sword, board: Trophy, history: Scroll }
 const getViews = (ui) => [
   { key: 'arena',   label: ui.arenaSubTab || 'Arena',     title: ui.battleArena },
   { key: 'board',   label: ui.rankingsSubTab || 'Rankings',  title: ui.leaderboard  },
-  { key: 'history', label: ui.historySubTab || 'History',   title: ui.couldNotLoadHistory },
+  { key: 'history', label: ui.historySubTab || 'History',   title: ui.battleHistory || 'Battle History' },
 ]
 
 const DIFF_COLORS = { Easy: '#00E5A0', Medium: '#FFD166', Hard: '#FF6B6B' }
@@ -120,7 +120,9 @@ function BattleCard({ battle, onAction, myId, ui }) {
 
 // ── Create Challenge Modal ─────────────────────────────────────
 function CreateChallengeModal({ profile, onClose, onCreated, ui }) {
-  const subjects = profile?.subjects?.length ? profile.subjects : (SUBS[profile?.standard] || ['Mathematics', 'Science'])
+  const standardSubjects = SUBS[profile?.standard] || SUBS['Class 10'] || []
+  const subjects = standardSubjects.length > 0 ? standardSubjects 
+    : (profile?.subjects?.length ? profile.subjects : ['Mathematics', 'Science'])
   const [subject,    setSubject]    = useState(subjects[0] || 'Mathematics')
   const [difficulty, setDifficulty] = useState('Medium')
   const [creating,   setCreating]   = useState(false)
@@ -167,7 +169,9 @@ function CreateChallengeModal({ profile, onClose, onCreated, ui }) {
           ))}
         </div>
 
-        <div className="bg-app-card2 rounded-xl px-3.5 py-2.5 mb-5 text-app-muted text-[13px]" dangerouslySetInnerHTML={{ __html: ui.aiBattleInfo }} />
+        <div className="bg-app-card2 rounded-xl px-3.5 py-2.5 mb-5 text-app-muted text-[13px]">
+          {ui.aiBattleInfo || 'AI generates 5 unique MCQs. Both players answer the same questions. Highest score wins!'}
+        </div>
 
         {err && <p className="text-app-red text-[13px] mb-3">{err}</p>}
 
@@ -251,8 +255,10 @@ function QuizScreen({ battle, onDone, userId, ui }) {
   // Results screen
   if (result) {
     const isChallenger = battle.challenger_id === userId
-    const myScore  = isChallenger ? result.challenger_score : result.score
-    const oppScore = isChallenger ? result.score            : result.challenger_score
+    // Backend returns 'score' for the submitter's score, and 'challenger_score' for the other player
+    const myScore  = result.score ?? (isChallenger ? result.challenger_score : result.opponent_score) ?? 0
+    const oppScore = result.challenger_score ?? result.opponent_score ?? '?'
+    const totalQs  = result.total || questions.length
     const won   = result.winner_id && result.winner_id !== 'draw' && result.winner_id === userId
     const draw  = result.winner_id === 'draw'
     const waiting = result.status === 'waiting_for_opponent'
@@ -297,7 +303,7 @@ function QuizScreen({ battle, onDone, userId, ui }) {
               <div className="mb-3 flex justify-center"><Hourglass size={56} weight="duotone" className="text-app-yellow" /></div>
               <h2 className="text-app-yellow mb-2">{ui.waitingOpponentResult}</h2>
               <p className="text-app-muted text-sm mb-4">
-                {ui.yourScore}: <strong className="text-app-green">{result.score}/{result.total || questions.length}</strong>
+                {ui.yourScore}: <strong className="text-app-green">{myScore}/{totalQs}</strong>
                 <br />{ui.waitingXpNote}
               </p>
               {renderQuestionReview()}
@@ -323,11 +329,11 @@ function QuizScreen({ battle, onDone, userId, ui }) {
             <div className="bg-app-card2 rounded-2xl p-4 mb-5 flex justify-around">
               <div>
                 <div className="text-app-muted text-[12px]">Your Score</div>
-                <div className="text-app-green text-[22px] font-extrabold">{myScore ?? result.score}/{result.total || questions.length}</div>
+                <div className="text-app-green text-[22px] font-extrabold">{myScore}/{totalQs}</div>
               </div>
               <div>
                 <div className="text-app-muted text-[12px]">Opponent</div>
-                <div className="text-app-red text-[22px] font-extrabold">{oppScore ?? result.challenger_score}/{result.total || questions.length}</div>
+                <div className="text-app-red text-[22px] font-extrabold">{oppScore}/{totalQs}</div>
               </div>
               <div>
                 <div className="text-app-muted text-[12px]">{ui.xpEarned}</div>
@@ -336,9 +342,7 @@ function QuizScreen({ battle, onDone, userId, ui }) {
             </div>
           )}
 
-          {result.questions && (
-            renderQuestionReview()
-          )}
+          {!waiting && renderQuestionReview()}
 
           <button onClick={onDone}
             className="w-full bg-app-orange text-white border-none rounded-2xl py-3 text-[15px] font-extrabold cursor-pointer active:scale-[0.99] transition-all">
@@ -354,7 +358,15 @@ function QuizScreen({ battle, onDone, userId, ui }) {
       <div className="fixed inset-0 bg-app-bg z-[200] flex items-center justify-center flex-col">
         <div className="mb-4 flex justify-center"><Lightning size={48} weight="duotone" className="text-app-orange" /></div>
         <p className="text-app-text text-base">{ui.submittingAnswers}</p>
-        {err && <p className="text-app-red text-sm">{err}</p>}
+        {err && (
+          <>
+            <p className="text-app-red text-sm mt-2">{err}</p>
+            <button onClick={onDone}
+              className="mt-4 bg-app-orange text-white border-none rounded-xl px-5 py-2.5 text-[14px] font-bold cursor-pointer active:scale-95 transition-all">
+              {ui.backToArena}
+            </button>
+          </>
+        )}
       </div>
     )
   }
@@ -735,11 +747,11 @@ export default function MuqablaTab({ profile, userId }) {
             </div>
           )}
 
-          {/* Battles where I'm opponent and need to answer (challenger_done) */}
-          {active.filter(b => !b.is_challenger && b.status === 'challenger_done').length > 0 && (
+          {/* Battles where I'm opponent and need to answer (challenger_done) — exclude those already in pending */}
+          {active.filter(b => !b.is_challenger && b.status === 'challenger_done' && !pending.some(p => p.id === b.id)).length > 0 && (
             <div className="mb-5">
-              <h3 className="text-app-orange text-sm mb-2.5">{ui.yourTurn || 'Your Turn'} ({active.filter(b => !b.is_challenger && b.status === 'challenger_done').length})</h3>
-              {active.filter(b => !b.is_challenger && b.status === 'challenger_done').map(b => (
+              <h3 className="text-app-orange text-sm mb-2.5">{ui.answerNow || 'Answer Now'} ({active.filter(b => !b.is_challenger && b.status === 'challenger_done' && !pending.some(p => p.id === b.id)).length})</h3>
+              {active.filter(b => !b.is_challenger && b.status === 'challenger_done' && !pending.some(p => p.id === b.id)).map(b => (
                 <BattleCard key={b.id} battle={b} onAction={handleAction} myId={myId} ui={ui} />
               ))}
             </div>

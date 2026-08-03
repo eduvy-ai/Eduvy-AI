@@ -18,6 +18,9 @@ import {
   Fire,
   CaretRight,
   Medal,
+  Notebook,
+  FilmSlate,
+  MonitorPlay,
 } from '@phosphor-icons/react'
 import Loader from '@/shared/components/Loader'
 
@@ -116,6 +119,11 @@ const ProfileTab: React.FC = () => {
     }
   }
 
+  // Navigate to secondary features (not in bottom nav)
+  const goToNotebook = () => navigate('/app/notebook')
+  const goToVideos = () => navigate('/app/videos')
+  const goToLearnTV = () => navigate('/app/learntv')
+
   return (
     <div className="min-h-screen bg-app-bg p-4 pb-24 md:p-6 lg:p-8">
       {/* User Card */}
@@ -165,6 +173,33 @@ const ProfileTab: React.FC = () => {
             description={ui.settingsDesc || 'Profile, language, AI usage'}
             color="#7B9CFF"
             onClick={() => setShowSettings(true)}
+          />
+        </div>
+      </div>
+
+      {/* More Features */}
+      <div className="mb-5">
+        <h2 className="text-[14px] font-bold text-app-text mb-3">
+          {ui.moreFeatures || 'More Features'}
+        </h2>
+        <div className="grid grid-cols-2 gap-2.5">
+          <QuickLinkCard
+            icon={Notebook}
+            label={ui.notebook || 'Notebook'}
+            color="#BB86FC"
+            onClick={goToNotebook}
+          />
+          <QuickLinkCard
+            icon={FilmSlate}
+            label={ui.videos || 'Videos'}
+            color="#FF6B35"
+            onClick={goToVideos}
+          />
+          <QuickLinkCard
+            icon={MonitorPlay}
+            label={ui.learnTV || 'LearnTV'}
+            color="#00E5A0"
+            onClick={goToLearnTV}
           />
         </div>
       </div>
