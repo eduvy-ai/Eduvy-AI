@@ -28,6 +28,45 @@ from services.ai_service import call_ai
 
 router = APIRouter(prefix="/home", tags=["Home"])
 
+
+# ── Language enforcement rules (Claude prompt engineering) ────────────
+LANG_ENFORCEMENT = {
+    "Marathi": """<language_constraint>
+You MUST write ENTIRELY in Marathi (मराठी) using Devanagari script.
+
+CRITICAL: Marathi and Hindi both use Devanagari but are COMPLETELY DIFFERENT languages.
+You are writing in MARATHI, NOT Hindi. Scan every word before outputting.
+
+BANNED Hindi words (if you use ANY of these, the response is WRONG):
+है, हैं, हो, होता, था, थे, थी, की, का, के, में, पर, से, और, भी, तो, यह, वह, कि, जो, नहीं, मैं, आप, हम, तुम, क्या, कैसे, बहुत, अच्छा, ठीक है, बताओ, समझो, देखो, करो, लिखो, सोचो, पढ़ो, जानो, चलो, ये, वो, कोई, कुछ, अब, जब, तब, फिर, लेकिन, मगर, इसलिए, क्योंकि, अगर
+
+CORRECT Marathi equivalents you MUST use:
+आहे, आहेत, होते, होती, ची/चा/चे, मध्ये, वर, पासून, आणि, पण, हे, ते, ती, म्हणून, नाही, मी, तुम्ही, आम्ही, काय, कसे, खूप, चांगले, ठीक आहे, सांगा, समजा, बघा, करा, लिहा, विचार करा, वाचा, जाणून घ्या, चला, हा/ही, कोणी, काही, आता, जेव्हा, तेव्हा, मग, परंतु, कारण, जर
+
+Self-check: Before outputting, verify EVERY sentence contains Marathi grammar (verb endings like -ला, -ते, -तो, -ता, -णे, -ून). If you see Hindi verb endings (-ता है, -ती है, -ते हैं), REWRITE in Marathi.
+</language_constraint>""",
+    "Hindi": """<language_constraint>
+You MUST write ENTIRELY in Hindi (हिंदी) using Devanagari script (Unicode U+0900–U+097F).
+- Do NOT mix English words. Use Hindi equivalents.
+- Do NOT use Cyrillic characters (п, р, в, д) which look like Devanagari but are wrong.
+- Every sentence must be grammatically correct Hindi.
+</language_constraint>""",
+    "Gujarati": """<language_constraint>
+You MUST write ENTIRELY in Gujarati (ગુજરાતી) using Gujarati script (Unicode U+0A80–U+0AFF).
+- Do NOT use Hindi, English, or any other language.
+- Every word must be in Gujarati script only.
+</language_constraint>""",
+    "English": """<language_constraint>
+Write in English only. Use simple, clear language appropriate for Indian school students.
+</language_constraint>""",
+}
+
+
+def get_lang_rule(language: str) -> str:
+    """Get strict language enforcement rule for prompts."""
+    return LANG_ENFORCEMENT.get(language, LANG_ENFORCEMENT["English"])
+
+
 # ── Class-wise syllabus topics ────────────────────────────────────────
 CLASS_TOPICS = {
     "10": {
@@ -74,7 +113,9 @@ def build_teacher_prompt(data: "GenerateDailyQRequest") -> str:
     
     topics = CLASS_TOPICS.get(class_num, CLASS_TOPICS["10"])
     
-    return f"""You are a {data.board} Class {class_num} teacher creating daily practice questions in {data.language}.
+    return f"""You are a {data.board} Class {class_num} teacher creating daily practice questions.
+
+{get_lang_rule(data.language)}
 
 SYLLABUS TOPICS:
 - Math: {', '.join(topics['Math'])}
@@ -87,16 +128,16 @@ CREATE 2 QUESTIONS (pick from above topics):
 
 EXAMPLE OUTPUT (follow this format exactly):
 [
-{{"q":"द्विघात समीकरण x² - 5x + 6 = 0 सोडवा","a":"चला सोडवूया!\\nसमीकरण: x² - 5x + 6 = 0\\nगुणनखंड: (x-2)(x-3) = 0\\nम्हणून x = 2 किंवा x = 3\\n✓ उत्तर: x = 2, 3","concept":"Quadratic Equations","subject":"Mathematics"}},
-{{"q":"प्रकाश संश्लेषणात कोणते वायू सोडले जातात?","a":"ऑक्सिजन (O₂)\\nका? वनस्पती CO₂ + H₂O + सूर्यप्रकाश → ग्लुकोज + O₂ या अभिक्रियेत ऑक्सिजन तयार करतात.\\nउदाहरण: म्हणूनच दिवसा झाडांजवळ हवा ताजी वाटते!","concept":"Life Processes","subject":"Science"}}
+{{"q":"question text in {data.language}","a":"step-by-step answer in {data.language}","concept":"Topic Name","subject":"Mathematics or Science"}}
 ]
 
 RULES:
 1. Questions MUST be Class {class_num} difficulty (not basic arithmetic!)
 2. Math: Include calculation steps
-3. Science: Include "का?" (why) and example
-4. Write in {data.language}
-5. Return ONLY the JSON array, nothing else"""
+3. Science: Include "why" reasoning and real-life example
+4. ALL text in q and a fields MUST be in {data.language} — NO mixing with other languages
+5. concept and subject fields stay in English
+6. Return ONLY the JSON array, nothing else"""
 
 
 def _parse_ai_array(text: str) -> list:
@@ -221,7 +262,7 @@ async def generate_daily_questions(
             provider="groq",
             model="llama-3.3-70b-versatile",
             prompt=prompt,
-            system_prompt=f"You are a {data.board} {data.standard} teacher. Generate questions in {data.language}. Output ONLY valid JSON array.",
+            system_prompt=f"You are a {data.board} {data.standard} teacher. You MUST generate questions strictly in {data.language} only — do NOT mix languages. Output ONLY a valid JSON array.",
             history=[],
             max_tokens=1500  # Marathi/Hindi need more tokens per character
         )
@@ -309,7 +350,9 @@ def build_brief_prompt(data: "GenerateBriefRequest") -> str:
     
     subjects_text = ", ".join(data.subjects[:3]) if data.subjects else "Mathematics, Science"
     
-    return f"""You are writing for a Class {data.standard} {data.board} student. Write ENTIRELY in {data.language}. No English words unless {data.language} is English.
+    return f"""You are writing a morning study brief for a Class {data.standard} {data.board} student.
+
+{get_lang_rule(data.language)}
 
 {mood_note}
 
@@ -321,7 +364,7 @@ Create a SHORT morning study brief with these sections:
 4. 🌙 Tonight Review - ONE concept to revise before sleep
 
 Rules:
-- Write ONLY in {data.language}
+- Write ENTIRELY in {data.language} — zero mixing with other languages
 - Keep under 120 words total
 - Be specific to {data.board} board exam pattern
 - Simple, clear language for {data.standard} student"""
@@ -354,7 +397,7 @@ async def generate_daily_brief(
             provider="groq",
             model="llama-3.3-70b-versatile",
             prompt=prompt,
-            system_prompt=f"You are a friendly study coach for {data.board} {data.standard} students. Write in {data.language}. Keep it brief and motivating.",
+            system_prompt=f"You are a friendly study coach for {data.board} {data.standard} students. You MUST write strictly in {data.language} only — never mix Hindi/Marathi/English. Keep it brief and motivating.",
             history=[],
             max_tokens=800
         )
@@ -412,6 +455,8 @@ async def generate_study_plan(
     
     prompt = f"""Create a personalized study plan for {data.subject}.
 
+{get_lang_rule(data.language)}
+
 Student Profile:
 - Class: {data.standard}, Board: {data.board}
 - Current mastery: {data.mastery}% ({level} level)
@@ -422,7 +467,7 @@ Create a 1-week study plan with:
 3. Weak areas to focus on
 4. Revision strategy
 
-Write in {data.language}. Be specific to {data.board} syllabus.
+Write ENTIRELY in {data.language}. Be specific to {data.board} syllabus.
 Keep it practical and achievable for a student."""
 
     try:

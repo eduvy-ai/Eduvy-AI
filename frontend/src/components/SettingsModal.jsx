@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
 import { BOARDS, LANGS, PLANS, getDisplayLang } from '../shared.js'
-import { apiGetParentPin, apiCreateParentPin, apiRevokeParentPin, apiGetMyReferralCode, apiGetAiUsage } from '../api.js'
+import { apiGetAiUsage } from '../api.js'
 import { li } from '../i18n/index.js'
-import { APP_URL } from '../config'
 import UpgradePlanModal from './UpgradePlanModal.jsx'
-import { GearSix, X, CheckCircle, XCircle, ShareNetwork, UsersThree, ClipboardText, Clock, Trash, Link, ArrowUp, Lock, Warning, Robot, SignOut } from '@phosphor-icons/react'
+import { GearSix, X, CheckCircle, XCircle, Clock, ArrowUp, Lock, Warning, Robot } from '@phosphor-icons/react'
 
-const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
+const CLASSES = Array.from({ length: 4 }, (_, i) => `Class ${i + 9}`)
 
 // Reusable Tailwind classes
 const inputClass = "w-full bg-app-card2 border border-white/10 rounded-xl py-2.5 px-3.5 text-app-text text-sm cursor-pointer font-[Sora,sans-serif]"
@@ -21,15 +20,11 @@ const PLAN_MODEL_LABEL = {
 }
 
 export default function SettingsModal({ onClose, onLogout, profile, onProfileSave }) {
-  const [activeTab, setActiveTab] = useState('ai')
+  const [activeTab, setActiveTab] = useState('profile')
   const [showUpgrade, setShowUpgrade] = useState(false)
 
   // i18n — use display language preference
   const ui = li(getDisplayLang(profile))
-
-  // ── Referral state ───────────────────────────────────────
-  const [referral, setReferral] = useState(null)
-  const [refCopied, setRefCopied] = useState(false)
 
   // ── Usage state ──────────────────────────────────────────────
   const [usage, setUsage] = useState(null)
@@ -45,12 +40,6 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
   const [profileSaved, setProfileSaved] = useState(false)
   const [profileError, setProfileError]   = useState('')
   const [profileSaving, setProfileSaving] = useState(false)
-
-  // ── Parent PIN state ─────────────────────────────────────────
-  const [parentPin,     setParentPin]     = useState(null)
-  const [parentExpires, setParentExpires] = useState(null)
-  const [pinLoading,    setPinLoading]    = useState(false)
-  const [pinCopied,     setPinCopied]     = useState(false)
 
   const saveProfile = async () => {
     if (!pName.trim()) return
@@ -68,18 +57,6 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
       setProfileSaving(false)
     }
   }
-
-  // Fetch usage when AI tab is active
-  useEffect(() => {
-    if (activeTab === 'profile') {
-      apiGetParentPin()
-        .then(r => { setParentPin(r.pin); setParentExpires(r.expires_at) })
-        .catch(() => {})
-      apiGetMyReferralCode()
-        .then(setReferral)
-        .catch(() => {})
-    }
-  }, [activeTab])
 
   // Fetch usage when AI tab is active
   useEffect(() => {
@@ -125,7 +102,7 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
 
           {/* Tab switcher */}
           <div className="flex bg-app-card rounded-xl p-1 mb-[18px] border border-app-border gap-1">
-            {[["ai", ui.aiTab], ["profile", ui.profileTab], ["plan", ui.planTab]].map(([key, label]) => (
+            {[["profile", ui.profileTab || 'Profile'], ["ai", ui.aiUsageTab || 'AI Usage'], ["plan", ui.planTab || 'Plan']].map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
@@ -178,22 +155,6 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
                 {profileSaving ? 'Saving...' : profileSaved ? <><CheckCircle size={14} weight="fill" className="inline" /> {ui.saved}</> : profileError ? <><XCircle size={14} weight="fill" className="inline" /> {ui.saveFailed}</> : ui.saveProfile}
               </button>
               {profileError && <p className="text-app-red text-[11px] mt-1 mb-0">{profileError}</p>}
-
-              {/* ── Refer Friends — Coming Soon ── */}
-              <div className="mt-2 bg-app-blue/5 border border-app-blue/20 rounded-[14px] p-4 opacity-60">
-                <div className="font-bold text-app-blue text-sm mb-1.5">
-                  {ui.referFriends}
-                </div>
-                <p className="text-app-muted text-xs m-0">🚀 Coming Soon</p>
-              </div>
-
-              {/* ── Share with Parent — Coming Soon ── */}
-              <div className="mt-2 bg-app-green/5 border border-app-green/20 rounded-[14px] p-4 opacity-60">
-                <div className="font-bold text-app-green text-sm mb-1.5 flex items-center gap-1.5">
-                  <UsersThree size={16} weight="fill" /> {ui.shareWithParent}
-                </div>
-                <p className="text-app-muted text-xs m-0">🚀 Coming Soon</p>
-              </div>
             </div>
           )}
 
@@ -370,18 +331,7 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
           })()}
         </div>
 
-        {/* ── Logout — always visible, native app pattern ── */}
-        {onLogout && (
-          <div className="px-[18px] pt-3 pb-2">
-            <div className="h-px bg-white/[0.06] mb-4" />
-            <button
-              onClick={onLogout}
-              className="w-full bg-app-red/10 border border-app-red/25 text-app-red rounded-xl py-3 text-sm font-bold cursor-pointer font-[Sora,sans-serif] hover:bg-app-red/20 active:scale-[0.97] transition-all"
-            >
-              <SignOut size={16} weight="bold" className="inline" /> {ui.logout}
-            </button>
-          </div>
-        )}
+
       </div>
     </div>
 

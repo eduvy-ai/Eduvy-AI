@@ -270,7 +270,7 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
           <div className="mb-5">
             <label className="text-xs font-bold text-app-muted mb-2 block">{ui.selectSubject || 'SUBJECT'}</label>
             <div className="flex flex-wrap gap-1.5">
-              {subjects.slice(0, 6).map(s => (
+              {subjects.map(s => (
                 <button key={s} onClick={() => setSelSub(s)}
                   className={`rounded-2xl px-3.5 py-2 text-xs font-medium cursor-pointer transition-all active:scale-95 ${
                     selSub === s 

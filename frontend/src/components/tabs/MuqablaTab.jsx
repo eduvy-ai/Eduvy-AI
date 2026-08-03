@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { li } from '../../i18n/index.js'
-import { getDisplayLang } from '../../shared.js'
+import { getDisplayLang, SUBS } from '../../shared.js'
 import { Sword, Trophy, Scroll, Hourglass, Handshake, Barbell, CheckCircle, XCircle, Lightning, Buildings, Medal, Lightbulb, CaretLeft } from '@phosphor-icons/react'
 import {
   apiCreateMuqablaChallenge, apiJoinMuqabalaBattle,
@@ -10,12 +10,6 @@ import {
   apiGetActiveMuqabalaBattles, apiGetMuqabalaHistory,
   apiGetMuqabalaLeaderboard, apiGetMuqabalaSchoolLeaderboard,
 } from '../../api.js'
-
-const SUBJECTS = [
-  'Mathematics', 'Science', 'English', 'Social Science', 'Hindi',
-  'Physics', 'Chemistry', 'Biology', 'History', 'Geography',
-  'Economics', 'Computer', 'Sanskrit',
-]
 
 const VIEW_ICONS = { arena: Sword, board: Trophy, history: Scroll }
 const getViews = (ui) => [
@@ -126,7 +120,8 @@ function BattleCard({ battle, onAction, myId, ui }) {
 
 // ── Create Challenge Modal ─────────────────────────────────────
 function CreateChallengeModal({ profile, onClose, onCreated, ui }) {
-  const [subject,    setSubject]    = useState(profile?.subjects?.[0] || 'Mathematics')
+  const subjects = profile?.subjects?.length ? profile.subjects : (SUBS[profile?.standard] || ['Mathematics', 'Science'])
+  const [subject,    setSubject]    = useState(subjects[0] || 'Mathematics')
   const [difficulty, setDifficulty] = useState('Medium')
   const [creating,   setCreating]   = useState(false)
   const [err,        setErr]        = useState('')
@@ -154,7 +149,7 @@ function CreateChallengeModal({ profile, onClose, onCreated, ui }) {
         <label className="text-app-muted text-[12px] block mb-1">{ui.subjectLabel}</label>
         <select value={subject} onChange={e => setSubject(e.target.value)}
           className="w-full mb-4 bg-app-card2 border border-app-border text-app-text rounded-xl px-3 py-2.5 text-sm box-border outline-none cursor-pointer">
-          {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+          {subjects.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
 
         <label className="text-app-muted text-[12px] block mb-2">{ui.difficultyLabel}</label>

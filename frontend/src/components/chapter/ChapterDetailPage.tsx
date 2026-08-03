@@ -131,7 +131,7 @@ const ChapterDetailPage: React.FC = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <OverviewTab chapter={chapter} ui={ui} setActiveTab={setActiveTab} />
+        return <OverviewTab chapter={chapter} ui={ui} user={user} setActiveTab={setActiveTab} />
       case 'notes':
         return <NotesTab chapter={chapter} ui={ui} user={user} />
       case 'videos':
@@ -212,78 +212,203 @@ const ChapterDetailPage: React.FC = () => {
 const OverviewTab: React.FC<{ 
   chapter: any
   ui: any
+  user: any
   setActiveTab: (tab: SubTab) => void 
-}> = ({ chapter, ui, setActiveTab }) => (
-  <div className="space-y-4">
-    {/* Description */}
-    {chapter.description && (
-      <div className="bg-app-card border border-white/[0.04] rounded-2xl p-4">
-        <h3 className="text-[13px] font-bold text-app-text mb-2">
-          {ui.aboutChapter || 'About This Chapter'}
-        </h3>
-        <p className="text-[13px] text-app-muted leading-relaxed">
-          {chapter.description}
-        </p>
-      </div>
-    )}
+}> = ({ chapter, ui, user, setActiveTab }) => {
+  const [summary, setSummary] = useState<{ summary: string; key_points: string[] } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [generating, setGenerating] = useState(false)
 
-    {/* Topics */}
-    {chapter.topics && chapter.topics.length > 0 && (
+  // Load or auto-generate summary on mount
+  useEffect(() => {
+    let cancelled = false
+    const loadSummary = async () => {
+      setLoading(true)
+      try {
+        const existing = await apiGetChapterSummary(chapter.id)
+        if (!cancelled && existing && existing.summary) {
+          setSummary(existing)
+          setLoading(false)
+          return
+        }
+      } catch {}
+
+      // Auto-generate if none exists
+      if (!cancelled) {
+        setLoading(false)
+        autoGenerate()
+      }
+    }
+
+    const autoGenerate = async () => {
+      setGenerating(true)
+      try {
+        const userLang = user?.language || 'English'
+        const langRule = LANG_RULES[userLang as keyof typeof LANG_RULES] || LANG_RULES.English
+
+        const prompt = `You are an expert ${chapter.board} Class ${chapter.standard} ${chapter.subject} teacher.
+
+Generate a proper chapter summary for students that helps them understand what this chapter is about, what they will learn, and why it matters.
+
+CHAPTER: "${chapter.chapter_name}" (Chapter ${chapter.chapter_number})
+Subject: ${chapter.subject}
+Board: ${chapter.board}, Class: ${chapter.standard}
+${chapter.description ? `Brief: ${chapter.description}` : ''}
+${chapter.topics?.length ? `Topics covered: ${chapter.topics.join(', ')}` : ''}
+
+Return ONLY a valid JSON object:
+{
+  "summary": "A comprehensive 3-4 paragraph summary (150-200 words) that explains: what this chapter covers, the key concepts students will learn, how topics connect to each other, and why this chapter is important for exams. Write in simple student-friendly language.",
+  "keyPoints": ["Point 1 - a meaningful sentence explaining a key concept (not just a keyword)", "Point 2 ...", ...up to 6-8 points]
+}
+
+IMPORTANT:
+- Each keyPoint must be a full explanatory sentence, NOT just a keyword
+- Summary should flow naturally like a teacher explaining to a student
+- Include exam relevance (e.g., "This chapter typically carries 8-10 marks in board exams")
+- Write in ${userLang}`
+
+        const systemPrompt = `You are an expert Indian school teacher. Generate chapter summaries that genuinely help students understand the chapter before they start studying.
+
+🚨 LANGUAGE RULE:
+${langRule}
+
+Return ONLY valid JSON. No markdown, no extra text.`
+
+        const response = await callAI(prompt, systemPrompt, [], 3, 2000, 'summary')
+        const parsed = parseAIObject(response)
+
+        if (!cancelled && parsed && parsed.summary) {
+          const keyPoints = Array.isArray(parsed.keyPoints)
+            ? parsed.keyPoints.map((p: any) => {
+                if (typeof p === 'string') return p.trim()
+                if (typeof p === 'object' && p !== null) {
+                  return String(p.point || p.title || p.text || p.content || p.description || '').trim()
+                }
+                return String(p).trim()
+              }).filter((p: string) => p && p.length > 5)
+            : []
+
+          const saved = await apiSaveChapterSummary(chapter.id, parsed.summary, keyPoints)
+          if (!cancelled) setSummary(saved || { summary: parsed.summary, key_points: keyPoints })
+        }
+      } catch (err) {
+        console.error('Failed to generate overview summary:', err)
+      }
+      if (!cancelled) setGenerating(false)
+    }
+
+    loadSummary()
+    return () => { cancelled = true }
+  }, [chapter.id])
+
+  return (
+    <div className="space-y-4">
+      {/* Chapter Summary */}
       <div className="bg-app-card border border-white/[0.04] rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
-          <ListBullets size={16} weight="bold" className="text-app-blue" />
+          <BookOpen size={16} weight="bold" className="text-app-blue" />
           <h3 className="text-[13px] font-bold text-app-text">
-            {ui.keyTopics || 'Key Topics'}
+            {ui.aboutChapter || 'About This Chapter'}
           </h3>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {chapter.topics.map((topic: string, i: number) => (
-            <span
-              key={i}
-              className="text-[12px] px-3 py-1.5 rounded-full bg-white/[0.04] text-app-muted
-                        border border-white/[0.04]"
-            >
-              {topic}
+
+        {loading || generating ? (
+          <div className="flex items-center gap-2 py-4">
+            <div className="w-4 h-4 border-2 border-app-green/40 border-t-app-green rounded-full animate-spin" />
+            <span className="text-[12px] text-app-muted">
+              {generating ? (ui.generatingSummary || 'Generating chapter summary...') : (ui.loading || 'Loading...')}
             </span>
-          ))}
+          </div>
+        ) : summary?.summary ? (
+          <p className="text-[13px] text-app-muted leading-[1.8] whitespace-pre-wrap">
+            {summary.summary}
+          </p>
+        ) : (
+          <p className="text-[13px] text-app-muted leading-relaxed">
+            {chapter.description || ui.noSummaryAvailable || 'Summary not available.'}
+          </p>
+        )}
+      </div>
+
+      {/* Key Points */}
+      {(summary?.key_points && summary.key_points.length > 0) ? (
+        <div className="bg-app-card border border-white/[0.04] rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <ListBullets size={16} weight="bold" className="text-app-green" />
+            <h3 className="text-[13px] font-bold text-app-text">
+              {ui.keyPoints || 'Key Points'}
+            </h3>
+          </div>
+          <div className="space-y-2.5">
+            {summary.key_points.map((point: string, i: number) => (
+              <div key={i} className="flex gap-2.5 items-start">
+                <span className="w-5 h-5 rounded-full bg-app-green/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-[10px] font-bold text-app-green">{i + 1}</span>
+                </span>
+                <p className="text-[12px] text-app-muted leading-relaxed flex-1 m-0">
+                  {point}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (!loading && !generating && chapter.topics?.length > 0) && (
+        <div className="bg-app-card border border-white/[0.04] rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <ListBullets size={16} weight="bold" className="text-app-blue" />
+            <h3 className="text-[13px] font-bold text-app-text">
+              {ui.keyTopics || 'Key Topics'}
+            </h3>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {chapter.topics.map((topic: string, i: number) => (
+              <span
+                key={i}
+                className="text-[12px] px-3 py-1.5 rounded-full bg-white/[0.04] text-app-muted border border-white/[0.04]"
+              >
+                {topic}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quick Actions */}
+      <div className="bg-app-card border border-white/[0.04] rounded-2xl p-4">
+        <h3 className="text-[13px] font-bold text-app-text mb-3">
+          {ui.quickStart || 'Quick Start'}
+        </h3>
+        <div className="grid grid-cols-2 gap-3">
+          <QuickActionCard
+            icon={Robot}
+            label={ui.askAI || 'Ask AI Tutor'}
+            color="#BB86FC"
+            onClick={() => setActiveTab('ai')}
+          />
+          <QuickActionCard
+            icon={Target}
+            label={ui.takeQuiz || 'Take Quiz'}
+            color="#FF6B6B"
+            onClick={() => setActiveTab('quiz')}
+          />
+          <QuickActionCard
+            icon={PlayCircle}
+            label={ui.watchVideo || 'Watch Video'}
+            color="#FF6B35"
+            onClick={() => setActiveTab('videos')}
+          />
+          <QuickActionCard
+            icon={Cards}
+            label={ui.reviewFlashcards || 'Flashcards'}
+            color="#FFD166"
+            onClick={() => setActiveTab('flashcards')}
+          />
         </div>
       </div>
-    )}
-
-    {/* Quick Actions */}
-    <div className="bg-app-card border border-white/[0.04] rounded-2xl p-4">
-      <h3 className="text-[13px] font-bold text-app-text mb-3">
-        {ui.quickStart || 'Quick Start'}
-      </h3>
-      <div className="grid grid-cols-2 gap-3">
-        <QuickActionCard
-          icon={Robot}
-          label={ui.askAI || 'Ask AI Tutor'}
-          color="#BB86FC"
-          onClick={() => setActiveTab('ai')}
-        />
-        <QuickActionCard
-          icon={Target}
-          label={ui.takeQuiz || 'Take Quiz'}
-          color="#FF6B6B"
-          onClick={() => setActiveTab('quiz')}
-        />
-        <QuickActionCard
-          icon={PlayCircle}
-          label={ui.watchVideo || 'Watch Video'}
-          color="#FF6B35"
-          onClick={() => setActiveTab('videos')}
-        />
-        <QuickActionCard
-          icon={Cards}
-          label={ui.reviewFlashcards || 'Flashcards'}
-          color="#FFD166"
-          onClick={() => setActiveTab('flashcards')}
-        />
-      </div>
     </div>
-  </div>
-)
+  )
+}
 
 // ── Quick Action Card ──
 const QuickActionCard: React.FC<{

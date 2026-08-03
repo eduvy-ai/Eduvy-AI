@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { callAI, LANG_RULES, getDisplayLang } from '../../shared.js'
+import { callAI, LANG_RULES, SUBS, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import { Globe, ClipboardText, BookmarkSimple, Trophy, CoinVertical, Question, Lightbulb, Trash, Books, Lock, CaretLeft } from '@phosphor-icons/react'
 import {
@@ -17,10 +17,6 @@ const getTabs = (ui) => [
   { key: 'saved',      label: ui.collected,  title: ui.collected },
   { key: 'top',        label: ui.insights,   title: ui.insights },
 ]
-
-const SUBJECTS = ['Mathematics', 'Science', 'English', 'Social Science', 'Hindi',
-                  'Physics', 'Chemistry', 'Biology', 'History', 'Geography',
-                  'Economics', 'Computer', 'Sanskrit']
 
 const getEmojiReactions = (ui) => [
   { key: 'same',    label: ui.emojiSame,    title: ui.meeToo },
@@ -133,7 +129,8 @@ function MistakeCard({ card, isMine = false, onCollect, onReact, onPublish, onDe
 
 // ── Add Bhool Modal ───────────────────────────────────────────
 function AddBhoolModal({ profile, onClose, onSaved, ui }) {
-  const [subject, setSubject]         = useState(profile.subjects?.[0] || 'Mathematics')
+  const subjects = profile?.subjects?.length ? profile.subjects : (SUBS[profile?.standard] || ['Mathematics', 'Science'])
+  const [subject, setSubject]         = useState(subjects[0] || 'Mathematics')
   const [question, setQuestion]       = useState('')
   const [wrongAns, setWrongAns]       = useState('')
   const [correctAns, setCorrectAns]   = useState('')
@@ -198,7 +195,7 @@ In 1-2 short sentences, explain WHY a student would make this mistake and what c
         <div className="mb-3">
           <label className="text-app-muted text-xs block mb-1">{ui.subjectLabel}</label>
           <select value={subject} onChange={e => setSubject(e.target.value)} className={`${inputCls} cursor-pointer`}>
-            {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+            {subjects.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
 
@@ -284,6 +281,7 @@ export default function BhoolBazaarTab({ profile, addXp }) {
   const navigate = useNavigate()
   const ui = li(getDisplayLang(profile))
   const TABS = getTabs(ui)
+  const userSubjects = profile?.subjects?.length ? profile.subjects : (SUBS[profile?.standard] || ['Mathematics', 'Science'])
   const [activeTab, setActiveTab]         = useState('feed')
   const [feedCards, setFeedCards]         = useState([])
   const [myCards, setMyCards]             = useState([])
@@ -455,7 +453,7 @@ export default function BhoolBazaarTab({ profile, addXp }) {
           <select value={filterSubject} onChange={e => setFilterSubject(e.target.value)}
             className="bg-app-card2 border border-app-border text-app-text rounded-xl px-3 py-1.5 text-[13px] cursor-pointer outline-none">
             <option value="">{ui.allSubjects}</option>
-            {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+            {userSubjects.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           <select value={filterSort} onChange={e => setFilterSort(e.target.value)}
             className="bg-app-card2 border border-app-border text-app-text rounded-xl px-3 py-1.5 text-[13px] cursor-pointer outline-none">
