@@ -201,6 +201,22 @@ async def get_daily_content(
     return result
 
 
+@router.get("/recent-practice")
+async def get_recent_practice(
+    current_user: str = Depends(get_current_user)
+):
+    """
+    Get last 10 practice activities (quizzes, battles, chapter quizzes).
+    Returns unified activity feed sorted by most recent first.
+    """
+    items = await asyncio.to_thread(
+        HomeService.get_recent_practice,
+        current_user,
+        10
+    )
+    return items
+
+
 @router.post("/daily-content")
 async def save_daily_content(
     data: DailyContentSave,

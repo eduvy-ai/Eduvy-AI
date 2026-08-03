@@ -4,11 +4,12 @@
  * Part of the 5-tab navigation redesign.
  */
 
-import React, { useMemo } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import type { RootState } from '@/redux/store'
 import { getDisplayLang, planHasLab } from '@/shared.js'
+import { apiGetRecentPractice } from '@/api.js'
 import { li } from '@/i18n/index.js'
 import {
   Lightning,
@@ -20,6 +21,9 @@ import {
   Sparkle,
   BookOpen,
   Fire,
+  CheckCircle,
+  XCircle,
+  Clock,
 } from '@phosphor-icons/react'
 
 interface QuickActionProps {
@@ -94,6 +98,16 @@ const PracticeTab: React.FC = () => {
 
   // Check if user has access to quiz lab
   const hasQuizAccess = planHasLab(userPlan, 'quiz')
+
+  // Recent activity state
+  const [recentActivity, setRecentActivity] = useState<any[]>([])
+  const [activityLoading, setActivityLoading] = useState(true)
+
+  useEffect(() => {
+    apiGetRecentPractice()
+      .then((data) => { setRecentActivity(Array.isArray(data) ? data : []); setActivityLoading(false) })
+      .catch(() => setActivityLoading(false))
+  }, [])
 
   // Navigate to specific practice features
   const goToQuiz = () => navigate('/app/labs', { state: { openLab: 'quiz' } })
@@ -176,23 +190,109 @@ const PracticeTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Recent Activity Placeholder */}
+      {/* Recent Activity */}
       <div className="bg-app-card border border-white/[0.04] rounded-2xl p-5">
         <h3 className="text-[14px] font-bold text-app-text mb-3">
           {ui.recentActivity || 'Recent Activity'}
         </h3>
-        <div className="text-center py-6">
-          <Lightning size={40} weight="duotone" className="mx-auto text-app-muted/50 mb-3" />
-          <p className="text-[13px] text-app-muted">
-            {ui.noRecentActivity || 'Start practicing to see your activity here'}
-          </p>
-          <button
-            onClick={goToQuiz}
-            className="mt-4 px-5 py-2.5 bg-app-green text-app-bg rounded-xl font-bold text-[13px]"
-          >
-            {ui.startPracticing || 'Start Practicing'}
-          </button>
+
+        {activityLoading ? (
+          <div className="flex items-center gap-2 py-4 justify-center">
+            <div className="w-4 h-4 border-2 border-app-green/40 border-t-app-green rounded-full animate-spin" />
+            <span className="text-[12px] text-app-muted">{ui.loading || 'Loading...'}</span>
+          </div>
+        ) : recentActivity.length === 0 ? (
+          <div className="text-center py-6">
+            <Lightning size={40} weight="duotone" className="mx-auto text-app-muted/50 mb-3" />
+            <p className="text-[13px] text-app-muted">
+              {ui.noRecentActivity || 'Start practicing to see your activity here'}
+            </p>
+            <button
+              onClick={goToQuiz}
+              className="mt-4 px-5 py-2.5 bg-app-green text-app-bg rounded-xl font-bold text-[13px]"
+            >
+              {ui.startPracticing || 'Start Practicing'}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {recentActivity.slice(0, 5).map((item: any, i: number) => (
+              <RecentActivityItem key={i} item={item} ui={ui} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Recent Activity Item ──
+const RecentActivityItem: React.FC<{ item: any; ui: any }> = ({ item, ui }) => {
+  const getIcon = () => {
+    switch (item.type) {
+      case 'battle':
+        return <Sword size={18} weight="duotone" className="text-orange-400" />
+      case 'chapter_quiz':
+        return <BookOpen size={18} weight="duotone" className="text-blue-400" />
+      default:
+        return <Lightning size={18} weight="duotone" className="text-green-400" />
+    }
+  }
+
+  const getLabel = () => {
+    switch (item.type) {
+      case 'battle':
+        return item.opponent_name 
+          ? `${ui.battleVs || 'Battle vs'} ${item.opponent_name}`
+          : ui.muqabalaBattle || 'Muqabla Battle'
+      case 'chapter_quiz':
+        return item.chapter_name || item.subject
+      default:
+        return `${item.subject} ${ui.quiz || 'Quiz'}`
+    }
+  }
+
+  const getResult = () => {
+    if (item.type === 'battle') {
+      if (item.result === 'won') return { text: ui.won || 'Won', color: '#00E5A0', icon: Trophy }
+      if (item.result === 'lost') return { text: ui.lost || 'Lost', color: '#FF6B6B', icon: XCircle }
+      return { text: ui.draw || 'Draw', color: '#FFD166', icon: Clock }
+    }
+    const pct = item.total > 0 ? Math.round((item.score / item.total) * 100) : 0
+    const color = pct >= 70 ? '#00E5A0' : pct >= 40 ? '#FFD166' : '#FF6B6B'
+    return { text: `${item.score}/${item.total}`, color, icon: pct >= 70 ? CheckCircle : XCircle }
+  }
+
+  const result = getResult()
+  const ResultIcon = result.icon
+
+  const timeAgo = () => {
+    if (!item.completed_at) return ''
+    const diff = Date.now() - new Date(item.completed_at).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 60) return `${mins}m ago`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `${hrs}h ago`
+    const days = Math.floor(hrs / 24)
+    return `${days}d ago`
+  }
+
+  return (
+    <div className="flex items-center gap-3 py-2.5 px-3 bg-white/[0.02] rounded-xl border border-white/[0.03]">
+      <div className="w-9 h-9 rounded-xl bg-white/[0.04] flex items-center justify-center flex-shrink-0">
+        {getIcon()}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[13px] font-semibold text-app-text truncate">{getLabel()}</div>
+        <div className="text-[11px] text-app-muted flex items-center gap-2">
+          <span>{item.subject}</span>
+          {item.difficulty && <span>· {item.difficulty}</span>}
+          {timeAgo() && <span>· {timeAgo()}</span>}
         </div>
+      </div>
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <ResultIcon size={14} weight="fill" style={{ color: result.color }} />
+        <span className="text-[12px] font-bold" style={{ color: result.color }}>{result.text}</span>
       </div>
     </div>
   )

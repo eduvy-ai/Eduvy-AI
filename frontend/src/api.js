@@ -987,6 +987,15 @@ export async function apiGetDailyContent(contentType, language = 'English') {
   return safeJson(res)  // { exists, content, language, date } or { exists: false, content: null }
 }
 
+export async function apiGetRecentPractice() {
+  const res = await fetch(`${API_BASE_URL}/api/home/recent-practice`, {
+    headers: _authHeaders(),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) return []
+  return safeJson(res)  // [{ type, subject, score, total, difficulty, opponent_name, result, chapter_name, completed_at }]
+}
+
 export async function apiSaveDailyContent(contentType, content, language = 'English') {
   const res = await fetch(`${API_BASE_URL}/api/home/daily-content`, {
     method: 'POST',
