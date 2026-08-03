@@ -17,7 +17,6 @@ import {
   GridFour,
   List,
   Play,
-  Warning,
 } from '@phosphor-icons/react'
 
 interface MediaFile {
