@@ -397,6 +397,30 @@ def create_all_tables():
         )
     """)
 
+    # ── Chapters (Chapter-Centric Learning) ───────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS chapters (
+            id              SERIAL PRIMARY KEY,
+            board           TEXT NOT NULL,
+            standard        TEXT NOT NULL,
+            subject         TEXT NOT NULL,
+            chapter_number  INTEGER NOT NULL,
+            chapter_name    TEXT NOT NULL,
+            chapter_name_local TEXT DEFAULT '',
+            description     TEXT DEFAULT '',
+            topics          TEXT DEFAULT '[]',
+            is_active       BOOLEAN DEFAULT TRUE,
+            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (board, standard, subject, chapter_number)
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_chapters_lookup ON chapters(board, standard, subject)")
+    # Migration: add chapter_name_local if table already exists without it
+    cur.execute("""DO $$ BEGIN
+        ALTER TABLE chapters ADD COLUMN chapter_name_local TEXT DEFAULT '';
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$""")
+
     # ── AI Usage ──────────────────────────────────────────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS ai_usage (
@@ -499,6 +523,141 @@ def create_all_tables():
 
     cur.execute("CREATE INDEX IF NOT EXISTS idx_video_projects_user_id ON video_projects(user_id)")
 
+    # ── Chapter Progress (Notes, Summaries, Quiz, Videos, Flashcards, AI Chat) ──
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS chapter_notes (
+            id           SERIAL PRIMARY KEY,
+            user_id      TEXT NOT NULL,
+            chapter_id   INTEGER NOT NULL,
+            content      TEXT NOT NULL,
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_chapter_notes_user_chapter ON chapter_notes(user_id, chapter_id)")
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS chapter_summaries (
+            id           SERIAL PRIMARY KEY,
+            user_id      TEXT NOT NULL,
+            chapter_id   INTEGER NOT NULL,
+            summary      TEXT NOT NULL,
+            key_points   TEXT DEFAULT '[]',
+            generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (user_id, chapter_id)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS chapter_uploads (
+            id           SERIAL PRIMARY KEY,
+            user_id      TEXT NOT NULL,
+            chapter_id   INTEGER NOT NULL,
+            name         TEXT NOT NULL,
+            url          TEXT NOT NULL,
+            file_type    TEXT NOT NULL DEFAULT 'text',
+            file_size    INTEGER DEFAULT 0,
+            uploaded_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_chapter_uploads_user_chapter ON chapter_uploads(user_id, chapter_id)")
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS chapter_quiz_history (
+            id           SERIAL PRIMARY KEY,
+            user_id      TEXT NOT NULL,
+            chapter_id   INTEGER NOT NULL,
+            mode         TEXT NOT NULL DEFAULT 'quick',
+            score        INTEGER NOT NULL DEFAULT 0,
+            total        INTEGER NOT NULL DEFAULT 0,
+            time_spent   INTEGER DEFAULT 0,
+            questions    TEXT DEFAULT '[]',
+            completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_chapter_quiz_history_user_chapter ON chapter_quiz_history(user_id, chapter_id)")
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS chapter_quiz_bookmarks (
+            id           SERIAL PRIMARY KEY,
+            user_id      TEXT NOT NULL,
+            chapter_id   INTEGER NOT NULL,
+            question     TEXT NOT NULL,
+            options      TEXT DEFAULT '[]',
+            correct_idx  INTEGER DEFAULT 0,
+            explanation  TEXT DEFAULT '',
+            bookmarked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_chapter_quiz_bookmarks_user_chapter ON chapter_quiz_bookmarks(user_id, chapter_id)")
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS chapter_video_history (
+            id           SERIAL PRIMARY KEY,
+            user_id      TEXT NOT NULL,
+            chapter_id   INTEGER NOT NULL,
+            video_id     TEXT NOT NULL,
+            title        TEXT NOT NULL,
+            search_query TEXT DEFAULT '',
+            watched_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_chapter_video_history_user_chapter ON chapter_video_history(user_id, chapter_id)")
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS chapter_video_bookmarks (
+            id           SERIAL PRIMARY KEY,
+            user_id      TEXT NOT NULL,
+            chapter_id   INTEGER NOT NULL,
+            video_id     TEXT NOT NULL,
+            title        TEXT NOT NULL,
+            description  TEXT DEFAULT '',
+            concept      TEXT DEFAULT '',
+            search_query TEXT DEFAULT '',
+            bookmarked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (user_id, video_id)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS chapter_flashcard_sets (
+            id           SERIAL PRIMARY KEY,
+            user_id      TEXT NOT NULL,
+            chapter_id   INTEGER NOT NULL,
+            name         TEXT NOT NULL DEFAULT 'Flashcard Set',
+            cards        TEXT NOT NULL DEFAULT '[]',
+            mastery      TEXT DEFAULT '{}',
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_chapter_flashcard_sets_user_chapter ON chapter_flashcard_sets(user_id, chapter_id)")
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS chapter_ai_chats (
+            id           SERIAL PRIMARY KEY,
+            user_id      TEXT NOT NULL,
+            chapter_id   INTEGER NOT NULL,
+            session_id   TEXT NOT NULL,
+            role         TEXT NOT NULL,
+            content      TEXT NOT NULL,
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_chapter_ai_chats_user_session ON chapter_ai_chats(user_id, session_id)")
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS chapter_ai_sessions (
+            id           TEXT PRIMARY KEY,
+            user_id      TEXT NOT NULL,
+            chapter_id   INTEGER NOT NULL,
+            title        TEXT NOT NULL DEFAULT 'New Chat',
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_chapter_ai_sessions_user_chapter ON chapter_ai_sessions(user_id, chapter_id)")
+
     # ── Daily Content (Home page brief & daily question) ─────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS daily_content (
@@ -532,6 +691,30 @@ def create_all_tables():
     # Add ai_admin_override to users if not present
     cur.execute("""
         ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_admin_override BOOLEAN DEFAULT FALSE
+    """)
+
+    # Add youtube_video_id to video history and bookmarks
+    cur.execute("""
+        ALTER TABLE chapter_video_history ADD COLUMN IF NOT EXISTS youtube_video_id TEXT DEFAULT NULL
+    """)
+    cur.execute("""
+        ALTER TABLE chapter_video_bookmarks ADD COLUMN IF NOT EXISTS youtube_video_id TEXT DEFAULT NULL
+    """)
+
+    # Add reviewed_count to flashcard sets
+    cur.execute("""
+        ALTER TABLE chapter_flashcard_sets ADD COLUMN IF NOT EXISTS reviewed_count INTEGER DEFAULT 0
+    """)
+
+    # Add content extraction columns to chapter_uploads
+    cur.execute("""
+        ALTER TABLE chapter_uploads ADD COLUMN IF NOT EXISTS extracted_text TEXT DEFAULT NULL
+    """)
+    cur.execute("""
+        ALTER TABLE chapter_uploads ADD COLUMN IF NOT EXISTS extraction_status TEXT DEFAULT 'pending'
+    """)
+    cur.execute("""
+        ALTER TABLE chapter_uploads ADD COLUMN IF NOT EXISTS extraction_error TEXT DEFAULT NULL
     """)
 
     conn.commit()

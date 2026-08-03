@@ -4,6 +4,7 @@
 
 import React from 'react'
 import { useSelector } from 'react-redux'
+import { useLocation } from 'react-router-dom'
 import type { RootState } from '../../../redux/store'
 
 // Import existing tab component
@@ -15,6 +16,10 @@ import LabsTabLegacy from '../../../components/tabs/LabsTab'
  */
 const LabsPage: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth)
+  const location = useLocation()
+  
+  // Get initial lab from navigation state (e.g., from Practice tab)
+  const initialLab = (location.state as { openLab?: string })?.openLab || null
 
   // Get document context from notebook Redux state (shared with NotebookPage)
   const { docCtx, docName } = useSelector((state: RootState) => state.notebook)
@@ -32,6 +37,7 @@ const LabsPage: React.FC = () => {
       addXp={addXp}
       docCtx={docCtx}
       docName={docName}
+      initialLab={initialLab}
     />
   )
 }

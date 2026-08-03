@@ -19,7 +19,7 @@ interface TableProps<T> {
   keyExtractor?: (item: T, index: number) => string | number
 }
 
-function Table<T extends Record<string, unknown>>({
+function Table<T extends object>({
   columns,
   data,
   isLoading = false,

@@ -12,6 +12,7 @@ export type {
   CodeExample,
   MemoryAids,
   UsageInfo,
+  WellnessResponse,
   // Teacher Mode types
   WordTiming,
   TeacherBeat,

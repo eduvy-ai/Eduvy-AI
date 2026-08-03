@@ -30,6 +30,7 @@ export const studyCoachApi = {
       mode: request.mode ?? 'study_coach',
       subject_override: request.subject_override,
       chapter_override: request.chapter_override,
+      chapter_id: request.chapter_id,
     })
     return response.data
   },

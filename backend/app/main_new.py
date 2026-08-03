@@ -33,6 +33,8 @@ from app.modules.notebook.router import router as notebook_router
 from app.modules.mastery.router import router as mastery_router
 from app.modules.quiz_stats.router import router as quiz_router
 from app.modules.curriculum.router import router as curriculum_router
+from app.modules.chapters.router import router as chapters_router
+from app.modules.chapter_progress.router import router as chapter_progress_router
 from app.modules.parent.router import router as parent_router
 from app.modules.sessions.router import router as sessions_router
 from app.modules.ai.router import router as ai_router
@@ -160,6 +162,8 @@ app.include_router(quiz_router, prefix="/api")
 app.include_router(notebook_router, prefix="/api")
 app.include_router(sessions_router, prefix="/api")
 app.include_router(curriculum_router, prefix="/api")
+app.include_router(chapters_router, prefix="/api")
+app.include_router(chapter_progress_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
 app.include_router(squads_router, prefix="/api")
 app.include_router(bhool_router, prefix="/api")

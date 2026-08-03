@@ -1,7 +1,8 @@
 // ─── Study Coach Page ───────────────────────────────────────
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
-import { ClockCounterClockwise } from '@phosphor-icons/react'
+import { useLocation } from 'react-router-dom'
+import { ClockCounterClockwise, BookOpen, X } from '@phosphor-icons/react'
 import { useStudyCoach } from '../../modules/studycoach'
 import { useAuth } from '../../modules/auth'
 import { studyCoachApi, type CoachSession } from '../../modules/studycoach/api'
@@ -18,16 +19,32 @@ import RelatedTopics from './RelatedTopics'
 import NextTopic from './NextTopic'
 import CodeExamples from './CodeExamples'
 import MemoryAidsSection from './MemoryAidsSection'
+import WellnessSection from './WellnessSection'
 import LoadingSkeleton from './LoadingSkeleton'
 import CoachHistory from './CoachHistory'
 import { TeacherModePlayer } from '../teacher'
+import type { StudyCoachMode } from '../../modules/studycoach'
+
+// Chapter context from Learn tab navigation
+interface ChapterContext {
+  chapterId?: number
+  chapterName?: string
+  subject?: string
+  prefillQuestion?: string
+}
 
 export default function StudyCoachPage() {
   const { response, isLoading, error, mode, ask, setMode, clear, dismissError, setResponse } = useStudyCoach()
   const { user } = useAuth()
+  const location = useLocation()
+  
+  // Get chapter context from navigation state
+  const chapterContext = location.state as ChapterContext | null
+  
   const [question, setQuestion] = useState('')
   const [showTeacherMode, setShowTeacherMode] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [activeChapter, setActiveChapter] = useState<ChapterContext | null>(chapterContext)
   
   // Track if we already saved the current response
   const savedResponseRef = useRef<string | null>(null)
@@ -38,10 +55,68 @@ export default function StudyCoachPage() {
   const userLanguage = user?.language || 'English'
   const ui = useMemo(() => li(getDisplayLang(user)), [user])
 
+  // Initialize question from chapter context prefill
+  useEffect(() => {
+    if (chapterContext?.prefillQuestion) {
+      setQuestion(chapterContext.prefillQuestion)
+      setActiveChapter(chapterContext)
+    }
+  }, [chapterContext?.prefillQuestion])
+
   // Clear old response when language changes so stale content doesn't persist
   useEffect(() => {
     clear()
   }, [userLanguage]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Intent detection for auto-mode selection
+  const detectIntentMode = useCallback((text: string): StudyCoachMode | null => {
+    const lowerText = text.toLowerCase()
+    
+    // Wellness intent keywords (multi-language support)
+    const wellnessKeywords = [
+      // English
+      'stress', 'anxious', 'anxiety', 'worried', 'scared', 'nervous', 'overwhelmed',
+      'can\'t sleep', 'not sleeping', 'tired', 'exhausted', 'burnout', 'pressure',
+      'depressed', 'sad', 'crying', 'hopeless', 'helpless', 'frustrated', 'angry',
+      'motivation', 'motivate', 'give up', 'quit', 'fail', 'failure',
+      // Hindi
+      'तनाव', 'चिंता', 'डर', 'थका', 'नींद नहीं', 'उदास', 'रोना',
+      // Marathi
+      'ताण', 'काळजी', 'भिती', 'थकवा', 'झोप नाही', 'दुःखी',
+      // Common phrases
+      'i feel', 'feeling', 'help me', 'struggling', 'difficult'
+    ]
+    
+    // Coding intent keywords
+    const codingKeywords = [
+      'code', 'coding', 'program', 'python', 'javascript', 'java', 'c++',
+      'function', 'loop', 'array', 'debug', 'error', 'syntax', 'algorithm',
+      'html', 'css', 'react', 'sql', 'database'
+    ]
+    
+    // Exam intent keywords
+    const examKeywords = [
+      'exam', 'board', 'test', 'marks', 'paper', 'question paper',
+      'important question', 'exam tips', 'परीक्षा', 'बोर్డ్', 'பரீட்சை'
+    ]
+    
+    // Check wellness first (highest priority for mental health)
+    if (wellnessKeywords.some(kw => lowerText.includes(kw))) {
+      return 'study_coach_wellness'
+    }
+    
+    // Check coding
+    if (codingKeywords.some(kw => lowerText.includes(kw))) {
+      return 'study_coach_coding'
+    }
+    
+    // Check exam
+    if (examKeywords.some(kw => lowerText.includes(kw))) {
+      return 'study_coach_exam'
+    }
+    
+    return null // No specific intent detected, use current mode
+  }, [])
 
   // Auto-save session when we get a new response
   useEffect(() => {
@@ -77,15 +152,36 @@ export default function StudyCoachPage() {
     if (!question.trim()) return
     savedResponseRef.current = null // Reset so we save the new response
     loadedSessionIdRef.current = null // Clear loaded session - this is a new question
-    await ask({ question: question.trim() })
-  }, [question, ask])
+    
+    // Auto-detect intent and switch mode if needed
+    const detectedMode = detectIntentMode(question)
+    if (detectedMode && detectedMode !== mode) {
+      setMode(detectedMode)
+    }
+    
+    // Pass chapter context if available
+    await ask({
+      question: question.trim(),
+      chapter_id: activeChapter?.chapterId,
+      chapter_override: activeChapter?.chapterName,
+      subject_override: activeChapter?.subject,
+    })
+  }, [question, ask, activeChapter, mode, setMode, detectIntentMode])
 
   const handleNewQuestion = useCallback(() => {
     clear()
     setQuestion('')
     savedResponseRef.current = null
     loadedSessionIdRef.current = null // Clear loaded session
+    // Keep chapter context - user may want to ask another question about the same chapter
   }, [clear])
+
+  // Clear chapter context
+  const handleClearChapterContext = useCallback(() => {
+    setActiveChapter(null)
+    // Clear location state without navigation
+    window.history.replaceState({}, '', location.pathname)
+  }, [location.pathname])
 
   // Load a session from history
   const handleSelectSession = useCallback((session: CoachSession) => {
@@ -121,6 +217,35 @@ export default function StudyCoachPage() {
           </p>
         </header>
 
+        {/* Chapter Context Banner */}
+        {activeChapter && activeChapter.chapterName && (
+          <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                <BookOpen size={18} className="text-purple-400" weight="duotone" />
+              </div>
+              <div>
+                <p className="text-[11px] text-purple-400 font-medium uppercase tracking-wide">
+                  {ui.learningAbout || 'Learning about'}
+                </p>
+                <p className="text-[13px] text-app-text font-semibold line-clamp-1">
+                  {activeChapter.chapterName}
+                  {activeChapter.subject && (
+                    <span className="text-app-muted font-normal"> • {activeChapter.subject}</span>
+                  )}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleClearChapterContext}
+              className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
+              title={ui.clearContext || 'Clear chapter context'}
+            >
+              <X size={14} className="text-app-muted" />
+            </button>
+          </div>
+        )}
+
         {/* Question Input with Mode Selector inside */}
         <QuestionInput
           value={question}
@@ -152,15 +277,17 @@ export default function StudyCoachPage() {
         {/* Results */}
         {response && !isLoading && (
           <div className="space-y-5 animate-fade-in">
-            {/* Action Buttons */}
+            {/* Action Buttons - hide Teacher Mode for wellness */}
             <div className="flex justify-center gap-3">
-              {/* Teacher Mode Button */}
-              <button
-                onClick={() => setShowTeacherMode(true)}
-                className="px-5 py-2 bg-gradient-to-r from-app-green to-emerald-500 hover:from-app-green/90 hover:to-emerald-500/90 rounded-full text-sm text-white font-semibold shadow-lg shadow-app-green/20 transition-all flex items-center gap-2"
-              >
-                {ui.teacherMode}
-              </button>
+              {/* Teacher Mode Button - only for non-wellness modes */}
+              {mode !== 'study_coach_wellness' && (
+                <button
+                  onClick={() => setShowTeacherMode(true)}
+                  className="px-5 py-2 bg-gradient-to-r from-app-green to-emerald-500 hover:from-app-green/90 hover:to-emerald-500/90 rounded-full text-sm text-white font-semibold shadow-lg shadow-app-green/20 transition-all flex items-center gap-2"
+                >
+                  {ui.teacherMode}
+                </button>
+              )}
               
               {/* New Question Button */}
               <button
@@ -171,15 +298,23 @@ export default function StudyCoachPage() {
               </button>
             </div>
 
-            {/* Concept Overview */}
-            <ConceptOverview
-              title={response.title}
-              difficulty={response.difficulty}
-              overview={response.overview}
-              ui={ui}
-            />
+            {/* Wellness Mode Response */}
+            {mode === 'study_coach_wellness' && response.wellness && (
+              <WellnessSection wellness={response.wellness} ui={ui} />
+            )}
 
-            {/* Key Takeaways */}
+            {/* Regular Study Coach Response (non-wellness) */}
+            {mode !== 'study_coach_wellness' && (
+              <>
+                {/* Concept Overview */}
+                <ConceptOverview
+                  title={response.title}
+                  difficulty={response.difficulty}
+                  overview={response.overview}
+                  ui={ui}
+                />
+
+                {/* Key Takeaways */}
             {response.key_takeaways.length > 0 && (
               <KeyTakeaways takeaways={response.key_takeaways} ui={ui} />
             )}
@@ -234,6 +369,8 @@ export default function StudyCoachPage() {
                 }} ui={ui} />
               )}
             </div>
+              </>
+            )}
 
             {/* Usage Info */}
             {response.usage && (

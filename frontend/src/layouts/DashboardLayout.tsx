@@ -1,11 +1,10 @@
 // ─── Dashboard Layout ─────────────────────────────────────────
 // Main app shell with navigation sidebar and bottom nav
 
-import React, { useState, useEffect, lazy, Suspense, useMemo } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
-import { useAuth, useUser, usePlan, useXp, useStreak } from '../modules/auth/hooks'
-import { PLANS, planHasTab, type TabKey } from '../shared/constants/plans'
-import { apiUpdateProfile } from '../api.js'
+import { useAuth, useUser } from '../modules/auth/hooks'
+import { type TabKey } from '../shared/constants/plans'
 import { li, getDisplayLang } from '../shared.js'
 import { isRTL } from '../i18n/index.js'
 import {
@@ -19,20 +18,20 @@ import {
   Sword,
   Flask,
   FilmSlate,
-  GearSix,
   SignOut,
   Lightning,
-  Fire,
   GraduationCap,
+  BookOpen,
+  User,
 } from '@phosphor-icons/react'
 import type { IconWeight } from '@phosphor-icons/react'
-
-// Lazy load SettingsModal (legacy JSX component)
-const SettingsModal = lazy(() => import('../components/SettingsModal.jsx'))
 
 // Icon mapping: tabKey -> Phosphor Icon component
 const TAB_ICONS: Record<string, React.ComponentType<any>> = {
   home:         House,
+  learn:        BookOpen,
+  practice:     Lightning,
+  profile:      User,
   coach:        MagicWand,
   notebook:     NotePencil,
   videos:       PlayCircle,
@@ -44,18 +43,13 @@ const TAB_ICONS: Record<string, React.ComponentType<any>> = {
   videocreator: FilmSlate,
 }
 
-// Navigation items with i18n label keys (not actual labels)
-const ALL_NAV_ITEMS: { key: TabKey; labelKey: string }[] = [
+// Primary 5-tab navigation (shown in both mobile bottom nav and desktop sidebar)
+const PRIMARY_NAV_ITEMS: { key: TabKey; labelKey: string }[] = [
   { key: 'home', labelKey: 'homeTab' },
-  { key: 'coach', labelKey: 'coachTab' },
-  { key: 'notebook', labelKey: 'notebookTab' },
-  { key: 'videos', labelKey: 'videosTab' },
-  { key: 'learntv', labelKey: 'learntvTab' },
-  { key: 'squads', labelKey: 'sathiTab' },
-  { key: 'mistakes', labelKey: 'bhoolTab' },
-  { key: 'battles', labelKey: 'muqablaTab' },
-  { key: 'labs', labelKey: 'labsTab' },
-  { key: 'videocreator', labelKey: 'videoCreatorTab' },
+  { key: 'learn', labelKey: 'learnTab' },
+  { key: 'coach', labelKey: 'aiTutorTab' },
+  { key: 'practice', labelKey: 'practiceTab' },
+  { key: 'profile', labelKey: 'profileTab' },
 ]
 
 const DashboardLayout: React.FC = () => {
@@ -63,11 +57,8 @@ const DashboardLayout: React.FC = () => {
   // Extract tab from pathname: /app/home -> home
   const tab = location.pathname.split('/')[2] || 'home'
   const navigate = useNavigate()
-  const { logout, refresh } = useAuth()
+  const { logout } = useAuth()
   const user = useUser()
-  const { plan } = usePlan()
-  const { xp } = useXp()
-  const { streak } = useStreak()
   
   // Lock body scroll when dashboard is active (prevents Android WebView viewport issues)
   useEffect(() => {
@@ -85,17 +76,13 @@ const DashboardLayout: React.FC = () => {
     }
   }, [])
   
-  // Settings modal state
-  const [showSettings, setShowSettings] = useState(false)
-  
   // Get UI translations based on display language preference
   const lang = getDisplayLang(user)
   const ui = useMemo(() => li(lang), [lang])
   const rtl = isRTL(lang)
 
-  // Filter nav items based on user's plan
-  const navItems = ALL_NAV_ITEMS.filter(n => planHasTab(plan, n.key))
-  const planInfo = PLANS[plan] || PLANS.free
+  // Primary 5-tab nav (shown in both mobile bottom nav and desktop sidebar)
+  const primaryNavItems = PRIMARY_NAV_ITEMS
   
   // Helper to get translated label (strip leading emoji from i18n strings)
   const getLabel = (labelKey: string) => {
@@ -123,17 +110,6 @@ const DashboardLayout: React.FC = () => {
     logout()
     navigate('/auth')
   }
-  
-  const handleProfileSave = async (updates: Record<string, unknown>) => {
-    if (!user?.id) return
-    try {
-      await apiUpdateProfile(user.id, updates)
-      await refresh()
-    } catch (e) {
-      console.error('Failed to update profile:', e)
-      throw e
-    }
-  }
 
   return (
     <div className="app-shell" dir={rtl ? 'rtl' : 'ltr'}>
@@ -160,8 +136,9 @@ const DashboardLayout: React.FC = () => {
           </div>
         )}
 
-        <div className="flex flex-col gap-0.5 flex-1">
-          {navItems.map(n => (
+        <div className="flex flex-col gap-0.5 flex-1 overflow-y-auto">
+          {/* Primary Navigation */}
+          {primaryNavItems.map(n => (
             <button
               key={n.key}
               onClick={() => setTab(n.key)}
@@ -179,38 +156,8 @@ const DashboardLayout: React.FC = () => {
           ))}
         </div>
 
-        {/* Stats & Settings */}
+        {/* Logout */}
         <div className="flex flex-col gap-2 mt-5">
-          <div className="flex gap-1.5">
-            <div className="flex-1 bg-app-card2 rounded-[10px] py-1.5 px-2 text-xs font-bold text-app-yellow text-center border border-app-border flex items-center justify-center gap-1">
-              <Lightning size={14} weight="fill" /> {xp} {ui.xpLabel || 'XP'}
-            </div>
-            <div className="flex-1 bg-app-card2 rounded-[10px] py-1.5 px-2 text-xs font-bold text-app-orange text-center border border-app-border flex items-center justify-center gap-1">
-              <Fire size={14} weight="fill" /> {streak}
-            </div>
-          </div>
-
-          {/* Plan badge */}
-          <div
-            className="rounded-[10px] py-1.5 px-3 flex items-center gap-1.5 border"
-            style={{ background: `${planInfo.color}15`, borderColor: `${planInfo.color}40` }}
-          >
-            <span className="text-sm">{planInfo.icon}</span>
-            <span className="text-xs font-bold" style={{ color: planInfo.color }}>
-              {planInfo.label}
-            </span>
-            <span className="text-[10px] text-app-muted ml-auto">Plan</span>
-          </div>
-
-          {/* Settings button */}
-          <button
-            onClick={() => setShowSettings(true)}
-            className="rounded-xl py-2.5 px-3 flex items-center gap-2 cursor-pointer font-[Sora,sans-serif] w-full border bg-app-card2 border-app-border hover:border-app-green/30 active:scale-[0.97] transition-all duration-150"
-          >
-            <GearSix size={18} weight="fill" className="text-app-text" />
-            <span className="text-sm font-medium text-app-text">{ui.settings || 'Settings'}</span>
-          </button>
-          
           {/* Logout button */}
           <button
             onClick={handleLogout}
@@ -230,13 +177,13 @@ const DashboardLayout: React.FC = () => {
         </div>
       </main>
 
-      {/* ── Mobile Bottom Nav — horizontally scrollable, shows all tabs ── */}
+      {/* ── Mobile Bottom Nav — 5 primary tabs, no scroll needed ── */}
       <nav className="bottom-nav">
-        {navItems.map(n => (
+        {primaryNavItems.map(n => (
           <button
             key={n.key}
             onClick={() => setTab(n.key)}
-            className={`flex-shrink-0 min-w-[64px] h-14 flex flex-col items-center justify-center gap-0.5 py-0 px-1 bg-transparent border-none cursor-pointer ${
+            className={`flex-1 h-14 flex flex-col items-center justify-center gap-0.5 py-0 px-1 bg-transparent border-none cursor-pointer ${
               tab === n.key ? 'text-app-green nav-active' : 'text-app-muted'
             }`}
           >
@@ -244,27 +191,7 @@ const DashboardLayout: React.FC = () => {
             <span className={`text-[10px] leading-tight mt-0.5 max-w-[56px] text-center truncate ${tab === n.key ? 'font-bold' : 'font-medium'}`}>{getLabel(n.labelKey)}</span>
           </button>
         ))}
-        {/* Settings always last */}
-        <button
-          onClick={() => setShowSettings(true)}
-          className="flex-shrink-0 min-w-[64px] h-14 flex flex-col items-center justify-center gap-0.5 py-0 px-1 bg-transparent border-none cursor-pointer text-app-muted"
-        >
-          <GearSix size={22} weight="fill" />
-          <span className="text-[10px] font-medium leading-tight mt-0.5">{ui.more || 'More'}</span>
-        </button>
       </nav>
-      
-      {/* ── Settings Modal ── */}
-      {showSettings && (
-        <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center"><span className="text-white">{ui.loading || 'Loading...'}</span></div>}>
-          <SettingsModal
-            onClose={() => setShowSettings(false)}
-            onLogout={handleLogout}
-            profile={user}
-            onProfileSave={handleProfileSave}
-          />
-        </Suspense>
-      )}
     </div>
   )
 }

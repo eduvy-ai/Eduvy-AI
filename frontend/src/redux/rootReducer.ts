@@ -9,6 +9,8 @@ import sathiReducer from '../modules/sathi/slice'
 import bhoolReducer from '../modules/bhool/slice'
 import muqablaReducer from '../modules/muqabla/slice'
 import studyCoachReducer from '../modules/studycoach/slice'
+import chaptersReducer from '../modules/chapters/slice'
+import adminReducer from '../modules/admin/slice'
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -18,6 +20,8 @@ const rootReducer = combineReducers({
   bhool: bhoolReducer,
   muqabla: muqablaReducer,
   studyCoach: studyCoachReducer,
+  chapters: chaptersReducer,
+  admin: adminReducer,
 })
 
 export default rootReducer

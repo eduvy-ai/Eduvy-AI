@@ -12,9 +12,11 @@ export const authService = {
   login: async (credentials: LoginRequest): Promise<AuthResponse> => {
     const response = await authApi.login(credentials)
     
-    // Store token and profile
-    setAuthToken(response.token)
-    setCachedProfile(response.profile)
+    // Store token and profile (only for student login)
+    if (!response.is_admin) {
+      setAuthToken(response.token)
+      setCachedProfile(response.profile)
+    }
     
     return response
   },

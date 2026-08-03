@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { callAI, LANG_RULES, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
-import { Globe, ClipboardText, BookmarkSimple, Trophy, CoinVertical, Question, Lightbulb, Trash, Books, Lock } from '@phosphor-icons/react'
+import { Globe, ClipboardText, BookmarkSimple, Trophy, CoinVertical, Question, Lightbulb, Trash, Books, Lock, CaretLeft } from '@phosphor-icons/react'
 import {
   apiCreateBhoolCard, apiGetMyBhoolCards, apiUpdateBhoolCard, apiDeleteBhoolCard,
   apiGetBhoolMarketplace, apiGetBhoolTop,
@@ -280,6 +281,7 @@ function PublishConfirmModal({ card, onClose, onPublished, ui }) {
 
 // ── Main Tab ──────────────────────────────────────────────────
 export default function BhoolBazaarTab({ profile, addXp }) {
+  const navigate = useNavigate()
   const ui = li(getDisplayLang(profile))
   const TABS = getTabs(ui)
   const [activeTab, setActiveTab]         = useState('feed')
@@ -419,13 +421,17 @@ export default function BhoolBazaarTab({ profile, addXp }) {
     <div className="h-full overflow-y-auto px-4 md:px-6 lg:px-8 pt-4 pb-6">
       {/* Header */}
       <div className="mb-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-app-text m-0 text-[22px] font-extrabold">{ui.mistakeCards}</h1>
-            <p className="text-app-muted text-[13px] mt-1 mb-0">{ui.turnMistakesIntoAssets}</p>
+        <div className="flex items-center gap-3 mb-3">
+          <button onClick={() => navigate('/app/practice')}
+            className="w-9 h-9 rounded-xl bg-app-card border border-app-border flex items-center justify-center cursor-pointer hover:border-app-green/30 active:scale-95 transition-all">
+            <CaretLeft size={18} weight="bold" className="text-app-text" />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-app-text m-0 text-[20px] font-extrabold">{ui.mistakeCards}</h1>
+            <p className="text-app-muted text-[12px] mt-0.5 mb-0">{ui.turnMistakesIntoAssets}</p>
           </div>
           <button onClick={() => setShowAddModal(true)}
-            className="bg-gradient-to-br from-app-orange to-[#ff4e00] text-white border-none rounded-2xl px-4 py-2.5 text-sm font-extrabold cursor-pointer shadow-[0_4px_20px_rgba(255,107,53,0.27)] active:scale-95 transition-all">
+            className="bg-gradient-to-br from-app-orange to-[#ff4e00] text-white border-none rounded-xl px-3.5 py-2 text-[13px] font-extrabold cursor-pointer shadow-[0_4px_20px_rgba(255,107,53,0.27)] active:scale-95 transition-all">
             {ui.newBhool}
           </button>
         </div>

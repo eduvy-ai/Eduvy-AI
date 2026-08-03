@@ -404,7 +404,7 @@ IMPORTANT: If this is NOT educational content (social media, memes, random photo
         import re
         
         # Validate mode
-        valid_modes = {"study_coach", "study_coach_eli10", "study_coach_exam", "study_coach_coding", "study_coach_revision"}
+        valid_modes = {"study_coach", "study_coach_eli10", "study_coach_exam", "study_coach_coding", "study_coach_revision", "study_coach_wellness"}
         if mode not in valid_modes:
             mode = "study_coach"
         
@@ -758,6 +758,18 @@ IMPORTANT: If this is NOT educational content (social media, memes, random photo
                     "acronyms": memory_aids.get("acronyms", []) or [],
                     "patterns": memory_aids.get("patterns", []) or [],
                 }
+        
+        if mode == "study_coach_wellness":
+            # Wellness mode returns a different response structure
+            result["wellness"] = {
+                "title": data.get("title", result.get("title", "")),
+                "validation": data.get("validation", ""),
+                "normalisation": data.get("normalisation", ""),
+                "technique": data.get("technique", {}),
+                "affirmation": data.get("affirmation", ""),
+                "quick_tips": data.get("quick_tips", []),
+                "self_care_reminder": data.get("self_care_reminder", ""),
+            }
         
         return result
 

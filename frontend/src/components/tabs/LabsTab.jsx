@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { PLANS, planHasLab, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
-import { Target, Flask, Lightning, Microphone, PencilLine, Flower, Lock } from '@phosphor-icons/react'
+import { Target, Flask, Lightning, Microphone, PencilLine, Flower, Lock, CaretLeft } from '@phosphor-icons/react'
 import PodcastLab from '../labs/PodcastLab.jsx'
 import QuizLab from '../labs/QuizLab.jsx'
 import EssayLab from '../labs/EssayLab.jsx'
@@ -28,17 +29,30 @@ const getLabs = (ui) => [
 ]
 
 export default function LabsTab(props) {
-  const [activeLab, setActiveLab] = useState(null)
+  const navigate = useNavigate()
+  // Support initial lab from navigation state (e.g., from Practice tab)
+  const [activeLab, setActiveLab] = useState(props.initialLab || null)
+  // Track if we came from Practice tab (to know where back should go)
+  const cameFromPractice = !!props.initialLab
   const userPlan = props.profile?.plan || 'free'
   const ui = li(getDisplayLang(props.profile))
   const LABS = getLabs(ui)
 
-  if (activeLab === "podcast")  return <PodcastLab  {...props} onBack={() => setActiveLab(null)} />
-  if (activeLab === "quiz")     return <QuizLab     {...props} onBack={() => setActiveLab(null)} />
-  if (activeLab === "essay")    return <EssayLab    {...props} onBack={() => setActiveLab(null)} />
-  if (activeLab === "mental")   return <MentalLab   {...props} onBack={() => setActiveLab(null)} />
-  if (activeLab === "examiner") return <ExaminerLab {...props} onBack={() => setActiveLab(null)} />
-  if (activeLab === "samjhao")  return <SamjhaoLab  {...props} onBack={() => setActiveLab(null)} />
+  // Back handler: if came from Practice, go back there; otherwise show labs list
+  const handleLabBack = () => {
+    if (cameFromPractice) {
+      navigate('/app/practice')
+    } else {
+      setActiveLab(null)
+    }
+  }
+
+  if (activeLab === "podcast")  return <PodcastLab  {...props} onBack={handleLabBack} />
+  if (activeLab === "quiz")     return <QuizLab     {...props} onBack={handleLabBack} />
+  if (activeLab === "essay")    return <EssayLab    {...props} onBack={handleLabBack} />
+  if (activeLab === "mental")   return <MentalLab   {...props} onBack={handleLabBack} />
+  if (activeLab === "examiner") return <ExaminerLab {...props} onBack={handleLabBack} />
+  if (activeLab === "samjhao")  return <SamjhaoLab  {...props} onBack={handleLabBack} />
 
   const availableLabs = LABS.filter(lab => planHasLab(userPlan, lab.key))
   const lockedLabs    = LABS.filter(lab => !planHasLab(userPlan, lab.key))
@@ -49,8 +63,17 @@ export default function LabsTab(props) {
 
   return (
     <div className="p-4 pb-6 md:p-6 lg:p-8">
-      <h2 className="text-lg font-extrabold text-app-text mb-1">{ui.labsTitle}</h2>
-      <p className="text-[13px] text-app-muted mb-5">{ui.labsSubtitle}</p>
+      {/* Header with back button */}
+      <div className="flex items-center gap-3 mb-5">
+        <button onClick={() => navigate('/app/practice')}
+          className="w-9 h-9 rounded-xl bg-app-card border border-app-border flex items-center justify-center cursor-pointer hover:border-app-green/30 active:scale-95 transition-all">
+          <CaretLeft size={18} weight="bold" className="text-app-text" />
+        </button>
+        <div>
+          <h2 className="text-lg font-extrabold text-app-text mb-0">{ui.labsTitle}</h2>
+          <p className="text-[12px] text-app-muted mt-0.5 mb-0">{ui.labsSubtitle}</p>
+        </div>
+      </div>
 
       <div className="flex flex-col gap-3.5">
         {availableLabs.map(lab => (
