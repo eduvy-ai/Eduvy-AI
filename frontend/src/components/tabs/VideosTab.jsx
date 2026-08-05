@@ -1,4 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { COLORS, callAI, parseAIObject, checkStudentQuery } from '../../shared.js'
 import { getStarters, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
@@ -1704,6 +1705,7 @@ function DiagramBoard({ type, elements, spec, accent, dark, dur }) {
 // ----------------------------------------------------------------
 export default function VideosTab({ profile, userId, addXp }) {
 
+  const navigate = useNavigate()
   const lang = getDisplayLang(profile || { language: 'English' })
   const ui = li(lang)
 
@@ -2234,10 +2236,17 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
       {/* -- Top bar: board style + level + search -- */}
       <div style={{ padding:'10px 14px', flexShrink:0, background:COLORS.card, borderBottom:`1px solid ${COLORS.border}` }}>
         {/* Title */}
-        <div style={{ marginBottom:9 }}>
-          <div style={{ fontSize:15, fontWeight:800, color:COLORS.text, fontFamily:'Sora,sans-serif' }}>{ui.aiWhiteboardLessons}</div>
-          <div style={{ fontSize:11, color:COLORS.muted, marginTop:2, lineHeight:1.4 }}>
-            {ui.whiteboardSubtitle}
+        <div style={{ marginBottom:9, display:'flex', alignItems:'center', gap:10 }}>
+          <button onClick={() => navigate('/app/home')}
+            className="w-9 h-9 rounded-xl bg-app-card border border-app-border flex items-center justify-center cursor-pointer hover:border-app-green/30 active:scale-95 transition-all"
+            style={{ flexShrink:0 }}>
+            <svg width="18" height="18" viewBox="0 0 256 256" fill="none"><path d="M168 48L88 128L168 208" stroke="currentColor" strokeWidth="24" strokeLinecap="round" strokeLinejoin="round" className="text-app-text"/></svg>
+          </button>
+          <div>
+            <div style={{ fontSize:15, fontWeight:800, color:COLORS.text, fontFamily:'Sora,sans-serif' }}>{ui.aiWhiteboardLessons}</div>
+            <div style={{ fontSize:11, color:COLORS.muted, marginTop:2, lineHeight:1.4 }}>
+              {ui.whiteboardSubtitle}
+            </div>
           </div>
         </div>
         {/* Row 1: board style */}

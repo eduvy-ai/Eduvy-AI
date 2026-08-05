@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { callAI, parseAIObject, parseAIArray, checkStudentQuery, getDisplayLang } from '../../shared.js'
 import { apiYouTubeSearch, apiYouTubeSmartSearch, apiYouTubeEduReels, apiYouTubeGetVideo } from '../../api.js'
 import { li } from '../../i18n/index.js'
-import { MonitorPlay, MagnifyingGlass, FilmReel, MagnifyingGlassPlus, Sparkle, Books, Brain, Lightbulb, GlobeHemisphereWest, Exam, Play, Robot, Target, ClipboardText, Prohibit, Hourglass, ChartBar, Diamond, Flask, Link, FilmSlate, CheckCircle, XCircle } from '@phosphor-icons/react'
+import { MonitorPlay, MagnifyingGlass, FilmReel, MagnifyingGlassPlus, Sparkle, Books, Brain, Lightbulb, GlobeHemisphereWest, Exam, Play, Robot, Target, ClipboardText, Prohibit, Hourglass, ChartBar, Diamond, Flask, Link, FilmSlate, CheckCircle, XCircle, CaretLeft } from '@phosphor-icons/react'
 
 // ── Backend YouTube API (uses yt-dlp on server) ──────────────
 
@@ -103,6 +104,7 @@ function detectUrlType(url) {
 
 // ═════════════════════════════════════════════════════════════
 export default function LearnTVTab({ profile }) {
+  const navigate = useNavigate()
   const ui = li(getDisplayLang(profile))
   const [mode, setMode] = useState('discover')  // discover | analyze | create
 
@@ -375,7 +377,11 @@ export default function LearnTVTab({ profile }) {
   return (
     <div className="px-4 md:px-6 lg:px-8 py-4 pb-6">
       {/* Header */}
-      <div className="flex items-center gap-2.5 mb-3.5">
+      <div className="flex items-center gap-3 mb-3.5">
+        <button onClick={() => navigate('/app/home')}
+          className="w-9 h-9 rounded-xl bg-app-card border border-app-border flex items-center justify-center cursor-pointer hover:border-app-green/30 active:scale-95 transition-all">
+          <CaretLeft size={18} weight="bold" className="text-app-text" />
+        </button>
         <MonitorPlay size={22} weight="duotone" className="text-app-green" />
         <h2 className="text-[18px] font-extrabold text-app-text m-0">{ui.learnTV}</h2>
       </div>

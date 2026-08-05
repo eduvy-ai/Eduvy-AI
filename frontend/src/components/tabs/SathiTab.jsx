@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { callAI, LANG_RULES, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
-import { ChatCircle, Question, CalendarBlank, CheckCircle, Warning as WarningIcon, XCircle, Lightbulb, Brain, UsersThree, Lightning, Sparkle, Lock, ArrowCounterClockwise, ThumbsUp, PaperPlaneTilt } from '@phosphor-icons/react'
+import { ChatCircle, Question, CalendarBlank, CheckCircle, Warning as WarningIcon, XCircle, Lightbulb, Brain, UsersThree, Lightning, Sparkle, Lock, ArrowCounterClockwise, ThumbsUp, PaperPlaneTilt, CaretLeft } from '@phosphor-icons/react'
 import {
   apiGetMySquad, apiMatchSquad,
   apiGetSquadMessages, apiSendSquadMessage,
@@ -803,6 +804,7 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile, ui }) {
 
 // -- Main SathiTab ---------------------------------------------
 export default function SathiTab({ profile, userId, addXp }) {
+  const navigate = useNavigate()
   const ui = li(getDisplayLang(profile))
   const [loading,        setLoading]        = useState(true)
   const [squad,          setSquad]          = useState(null)      // full squad object
@@ -1052,14 +1054,30 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
   // ---------------------------------------------------------
   // RENDER: loading
   if (loading) return (
-    <div className="flex items-center justify-center min-h-[300px]">
-      <div className="w-9 h-9 border-[3px] border-app-green border-t-transparent rounded-full animate-spin" />
+    <div className="flex flex-col h-full min-h-0">
+      <div className="px-4 py-2.5 border-b border-app-border bg-app-card flex items-center gap-3 flex-shrink-0">
+        <button onClick={() => navigate('/app/home')}
+          className="w-9 h-9 rounded-xl bg-app-card border border-app-border flex items-center justify-center cursor-pointer hover:border-app-green/30 active:scale-95 transition-all">
+          <CaretLeft size={18} weight="bold" className="text-app-text" />
+        </button>
+        <h2 className="text-[16px] font-extrabold text-app-text m-0"><UsersThree size={18} weight="duotone" className="inline text-app-green" /> {ui.sathiTitle || 'Study Squads'}</h2>
+      </div>
+      <div className="flex items-center justify-center flex-1">
+        <div className="w-9 h-9 border-[3px] border-app-green border-t-transparent rounded-full animate-spin" />
+      </div>
     </div>
   )
 
   // RENDER: no squad
   if (!squad) return (
     <div className="overflow-y-auto">
+      <div className="px-4 py-2.5 border-b border-app-border bg-app-card flex items-center gap-3">
+        <button onClick={() => navigate('/app/home')}
+          className="w-9 h-9 rounded-xl bg-app-card border border-app-border flex items-center justify-center cursor-pointer hover:border-app-green/30 active:scale-95 transition-all">
+          <CaretLeft size={18} weight="bold" className="text-app-text" />
+        </button>
+        <h2 className="text-[16px] font-extrabold text-app-text m-0"><UsersThree size={18} weight="duotone" className="inline text-app-green" /> {ui.sathiTitle || 'Study Squads'}</h2>
+      </div>
       <NoSquadScreen onMatch={handleMatch} matching={matching} ui={ui} />
     </div>
   )
@@ -1072,15 +1090,21 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
 
       {/* -- Header -- */}
       <div className="px-4 py-2.5 border-b border-app-border bg-app-card flex items-center justify-between flex-shrink-0">
-        <div>
-          <div className="text-[14px] font-black text-app-text">
-            <UsersThree size={16} weight="duotone" className="inline text-app-green" /> {squad.name}
-          </div>
-          <div className="text-[11px] text-app-muted mt-0.5 flex gap-2 items-center">
-            <span><span className="text-app-blue font-bold">{squad.focus_subject}</span></span>
-            <span></span>
-            <span>{members.filter(m => m.online).length}/{members.length} {ui.onlineLabel}</span>
-            {squadStreak > 0 && <><span></span><span className="text-app-orange font-bold"><Lightning size={12} weight="fill" className="inline" /> {squadStreak}{ui.streakSuffix}</span></>}
+        <div className="flex items-center gap-2.5">
+          <button onClick={() => navigate('/app/home')}
+            className="w-9 h-9 rounded-xl bg-app-card border border-app-border flex items-center justify-center cursor-pointer hover:border-app-green/30 active:scale-95 transition-all">
+            <CaretLeft size={18} weight="bold" className="text-app-text" />
+          </button>
+          <div>
+            <div className="text-[14px] font-black text-app-text">
+              <UsersThree size={16} weight="duotone" className="inline text-app-green" /> {squad.name}
+            </div>
+            <div className="text-[11px] text-app-muted mt-0.5 flex gap-2 items-center">
+              <span><span className="text-app-blue font-bold">{squad.focus_subject}</span></span>
+              <span></span>
+              <span>{members.filter(m => m.online).length}/{members.length} {ui.onlineLabel}</span>
+              {squadStreak > 0 && <><span></span><span className="text-app-orange font-bold"><Lightning size={12} weight="fill" className="inline" /> {squadStreak}{ui.streakSuffix}</span></>}
+            </div>
           </div>
         </div>
         <div className="flex gap-1.5">
