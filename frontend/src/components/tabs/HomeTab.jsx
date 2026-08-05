@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { SUBS, getBhoolStats, getDisplayLang } from '../../shared.js'
-import { apiGetMastery, apiGetPendingMuqabalaBattles, apiGetDailyContent, apiGenerateDailyQuestions, apiGenerateDailyBrief } from '../../api.js'
+import { getBhoolStats, getDisplayLang } from '../../shared.js'
+import { apiGetMastery, apiGetPendingMuqabalaBattles, apiGetDailyContent, apiGenerateDailyQuestions, apiGenerateDailyBrief, apiGetChapterSubjects } from '../../api.js'
 import { li } from '../../i18n/index.js'
 import { Lightning, Fire, Brain, SunHorizon, Sparkle, Lightbulb, CheckCircle, DiceFive, HandWaving, Plant, Circle, Sword, Flask, UsersThree, Bell, Notebook, FilmSlate, MapPin, Sun, CloudSun, Target } from '@phosphor-icons/react'
 
@@ -62,7 +62,17 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
   const bhool = useBhoolStats()
   const bhoolDue = bhool.overdue.length + bhool.soon.length
 
-  const subjects = profile.subjects?.length ? profile.subjects : (SUBS[profile.standard] || [])
+  // ── Subjects from chapters API (same as Learn tab) ──────────
+  const [subjects, setSubjects] = useState(profile.subjects?.length ? profile.subjects : [])
+
+  useEffect(() => {
+    const board = profile.board || 'CBSE'
+    const standard = profile.standard || 'Class 10'
+    apiGetChapterSubjects(board, standard).then(subs => {
+      if (subs.length > 0) setSubjects(subs)
+      else if (profile.subjects?.length) setSubjects(profile.subjects)
+    })
+  }, [profile.board, profile.standard])
 
   // ── Load mastery from backend on mount ─────────────────────
   useEffect(() => {

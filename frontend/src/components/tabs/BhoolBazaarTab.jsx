@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { callAI, LANG_RULES, SUBS, getDisplayLang } from '../../shared.js'
+import { callAI, LANG_RULES, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import { Globe, ClipboardText, BookmarkSimple, Trophy, CoinVertical, Question, Lightbulb, Trash, Books, Lock, CaretLeft } from '@phosphor-icons/react'
 import {
   apiCreateBhoolCard, apiGetMyBhoolCards, apiUpdateBhoolCard, apiDeleteBhoolCard,
   apiGetBhoolMarketplace, apiGetBhoolTop,
   apiCollectBhoolCard, apiReactBhoolCard,
-  apiGetMyBhoolCollections,
+  apiGetMyBhoolCollections, apiGetChapterSubjects,
 } from '../../api.js'
 
 const TAB_ICONS = { feed: Globe, mine: ClipboardText, saved: BookmarkSimple, top: Trophy }
@@ -129,9 +129,7 @@ function MistakeCard({ card, isMine = false, onCollect, onReact, onPublish, onDe
 
 // ── Add Bhool Modal ───────────────────────────────────────────
 function AddBhoolModal({ profile, onClose, onSaved, ui }) {
-  const standardSubjects = SUBS[profile?.standard] || SUBS['Class 10'] || []
-  const subjects = standardSubjects.length > 0 ? standardSubjects 
-    : (profile?.subjects?.length ? profile.subjects : ['Mathematics', 'Science'])
+  const [subjects, setSubjects] = useState(profile?.subjects?.length ? profile.subjects : ['Mathematics', 'Science'])
   const [subject, setSubject]         = useState(subjects[0] || 'Mathematics')
   const [question, setQuestion]       = useState('')
   const [wrongAns, setWrongAns]       = useState('')
@@ -141,6 +139,17 @@ function AddBhoolModal({ profile, onClose, onSaved, ui }) {
   const [saving, setSaving]           = useState(false)
   const [aiLoading, setAiLoading]     = useState(false)
   const [err, setErr]                 = useState('')
+
+  useEffect(() => {
+    const board = profile?.board || 'CBSE'
+    const standard = profile?.standard || 'Class 10'
+    apiGetChapterSubjects(board, standard).then(subs => {
+      if (subs.length > 0) {
+        setSubjects(subs)
+        setSubject(subs[0])
+      }
+    })
+  }, [profile?.board, profile?.standard])
 
   async function handleAIExplain() {
     if (!question || !wrongAns || !correctAns) return
@@ -283,9 +292,7 @@ export default function BhoolBazaarTab({ profile, addXp }) {
   const navigate = useNavigate()
   const ui = li(getDisplayLang(profile))
   const TABS = getTabs(ui)
-  const standardSubjects = SUBS[profile?.standard] || SUBS['Class 10'] || []
-  const userSubjects = standardSubjects.length > 0 ? standardSubjects 
-    : (profile?.subjects?.length ? profile.subjects : ['Mathematics', 'Science'])
+  const [userSubjects, setUserSubjects] = useState(profile?.subjects?.length ? profile.subjects : ['Mathematics', 'Science'])
   const [activeTab, setActiveTab]         = useState('feed')
   const [feedCards, setFeedCards]         = useState([])
   const [myCards, setMyCards]             = useState([])
@@ -299,6 +306,15 @@ export default function BhoolBazaarTab({ profile, addXp }) {
   const [hasMore, setHasMore]             = useState(true)
   const [filterSubject, setFilterSubject] = useState('')
   const [filterSort, setFilterSort]       = useState('recent')
+
+  // Load subjects from chapters API
+  useEffect(() => {
+    const board = profile?.board || 'CBSE'
+    const standard = profile?.standard || 'Class 10'
+    apiGetChapterSubjects(board, standard).then(subs => {
+      if (subs.length > 0) setUserSubjects(subs)
+    })
+  }, [profile?.board, profile?.standard])
 
   const LIMIT = 20
 

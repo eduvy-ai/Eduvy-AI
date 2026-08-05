@@ -1009,6 +1009,22 @@ export async function apiSaveDailyContent(contentType, content, language = 'Engl
 
 // ── Chapter Progress API ──────────────────────────────────────
 
+// Get subjects that have chapters seeded for a board+standard
+export async function apiGetChapterSubjects(board, standard) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/chapters/subjects?board=${encodeURIComponent(board)}&standard=${encodeURIComponent(standard)}`, {
+      headers: _authHeaders(),
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!res.ok) return []
+    const data = await safeJson(res)
+    if (Array.isArray(data)) return data.map(s => s.subject || s)
+    return []
+  } catch {
+    return []
+  }
+}
+
 // Notes
 export async function apiGetChapterNotes(chapterId) {
   const res = await fetch(`${API_BASE_URL}/api/chapters/${chapterId}/progress/notes`, {

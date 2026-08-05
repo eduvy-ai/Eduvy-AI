@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { li } from '../../i18n/index.js'
-import { getDisplayLang, SUBS } from '../../shared.js'
+import { getDisplayLang } from '../../shared.js'
 import { Sword, Trophy, Scroll, Hourglass, Handshake, Barbell, CheckCircle, XCircle, Lightning, Buildings, Medal, Lightbulb, CaretLeft } from '@phosphor-icons/react'
 import {
   apiCreateMuqablaChallenge, apiJoinMuqabalaBattle,
@@ -9,6 +9,7 @@ import {
   apiGetOpenMuqabalaBattles, apiGetPendingMuqabalaBattles,
   apiGetActiveMuqabalaBattles, apiGetMuqabalaHistory,
   apiGetMuqabalaLeaderboard, apiGetMuqabalaSchoolLeaderboard,
+  apiGetChapterSubjects,
 } from '../../api.js'
 
 const VIEW_ICONS = { arena: Sword, board: Trophy, history: Scroll }
@@ -120,13 +121,22 @@ function BattleCard({ battle, onAction, myId, ui }) {
 
 // ── Create Challenge Modal ─────────────────────────────────────
 function CreateChallengeModal({ profile, onClose, onCreated, ui }) {
-  const standardSubjects = SUBS[profile?.standard] || SUBS['Class 10'] || []
-  const subjects = standardSubjects.length > 0 ? standardSubjects 
-    : (profile?.subjects?.length ? profile.subjects : ['Mathematics', 'Science'])
+  const [subjects, setSubjects] = useState(profile?.subjects?.length ? profile.subjects : ['Mathematics', 'Science'])
   const [subject,    setSubject]    = useState(subjects[0] || 'Mathematics')
   const [difficulty, setDifficulty] = useState('Medium')
   const [creating,   setCreating]   = useState(false)
   const [err,        setErr]        = useState('')
+
+  useEffect(() => {
+    const board = profile?.board || 'CBSE'
+    const standard = profile?.standard || 'Class 10'
+    apiGetChapterSubjects(board, standard).then(subs => {
+      if (subs.length > 0) {
+        setSubjects(subs)
+        setSubject(subs[0])
+      }
+    })
+  }, [profile?.board, profile?.standard])
 
   async function handleCreate() {
     setCreating(true); setErr('')

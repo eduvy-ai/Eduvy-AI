@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { callAI, parseAIObject, SUBS, LANG_RULES, getDisplayLang } from '../../shared.js'
+import { callAI, parseAIObject, LANG_RULES, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
-import { getDeviceId, apiSaveQuizResult, apiGetQuizStats } from '../../api.js'
+import { getDeviceId, apiSaveQuizResult, apiGetQuizStats, apiGetChapterSubjects } from '../../api.js'
 import { 
   ChartBar, CheckCircle, XCircle, Brain, Lightning, 
   Trophy, Target, ArrowRight, ArrowCounterClockwise,
@@ -55,10 +55,20 @@ const QUIZ_STATE = {
 export default function QuizLab({ profile, addXp, userId, onBack }) {
   const ui = li(getDisplayLang(profile))
   const uid = userId || getDeviceId()
-  // Always use standard-based subjects as the canonical list; profile.subjects may be stale or from wrong class
-  const standardSubjects = SUBS[profile.standard] || SUBS['Class 10'] || []
-  const subjects = standardSubjects.length > 0 ? standardSubjects 
-    : (profile.subjects?.length ? profile.subjects : ['Mathematics', 'Science'])
+  
+  // Dynamic subjects from chapters API (same as Learn tab)
+  const [subjects, setSubjects] = useState(profile.subjects?.length ? profile.subjects : ['Mathematics', 'Science'])
+  
+  useEffect(() => {
+    const board = profile?.board || 'CBSE'
+    const standard = profile?.standard || 'Class 10'
+    apiGetChapterSubjects(board, standard).then(subs => {
+      if (subs.length > 0) {
+        setSubjects(subs)
+        setSelSub(prev => subs.includes(prev) ? prev : subs[0])
+      }
+    })
+  }, [profile?.board, profile?.standard])
   
   // Setup state
   const [selSub, setSelSub] = useState(subjects[0] || "")
