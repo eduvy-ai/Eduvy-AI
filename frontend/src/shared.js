@@ -185,7 +185,7 @@ export function planHasLab(plan, labKey) {
 
 // ─── Boards ──────────────────────────────────────────────────
 export const BOARDS = [
-  "CBSE","ICSE","GSEB","MSBSHSE"
+  "CBSE","ICSE","GSEB","MSBSHSE","RBSE","UP Board","BSEB","TN Board","KAR Board","PSEB"
 ]
 
 // ─── Languages ───────────────────────────────────────────────

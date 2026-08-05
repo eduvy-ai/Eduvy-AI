@@ -1,10 +1,38 @@
-import { useState } from 'react'
-import { BOARDS, LANGS, SUBS } from '../shared.js'
+import { useState, useEffect } from 'react'
+import { BOARDS, LANGS } from '../shared.js'
 import { apiLogin, apiRegister, setAuthToken } from '../api.js'
 import { li } from '../i18n/index.js'
 import { GraduationCap, Eye, EyeSlash } from '@phosphor-icons/react'
 
 const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
+
+// ── Curriculum API helpers ────────────────────────────────────
+async function fetchBoards() {
+  try {
+    const res = await fetch('/api/curriculum/boards', { signal: AbortSignal.timeout(5000) })
+    if (res.ok) {
+      const data = await res.json()
+      if (Array.isArray(data) && data.length > 0) return data.map(b => b.name)
+    }
+  } catch {}
+  return BOARDS
+}
+
+async function fetchMediums(board, standard) {
+  const boardSlug = board.toLowerCase().replace(/\s+/g, '-')
+  const stdSlug   = standard.toLowerCase().replace(/\s+/g, '-')
+  try {
+    const res = await fetch(
+      `/api/curriculum/mediums?board=${encodeURIComponent(boardSlug)}&standard=${encodeURIComponent(stdSlug)}`,
+      { signal: AbortSignal.timeout(5000) }
+    )
+    if (res.ok) {
+      const data = await res.json()
+      if (Array.isArray(data) && data.length > 0) return data.map(m => m.name)
+    }
+  } catch {}
+  return LANGS
+}
 
 export default function AuthScreen({ onAuth }) {
   const [mode, setMode] = useState('login') // 'login' | 'register'
@@ -18,18 +46,30 @@ export default function AuthScreen({ onAuth }) {
   const [standard, setStd]      = useState('Class 10')
   const [board, setBoard]       = useState('CBSE')
   const [language, setLang]     = useState('English')
-  const [subjects, setSubs]     = useState([])
   const [regStep, setRegStep]   = useState(1) // 1 = credentials, 2 = profile
 
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
 
+  // Dynamic lists from API (with static fallbacks)
+  const [boardList, setBoardList]   = useState(BOARDS)
+  const [mediumList, setMediumList] = useState(LANGS)
+
   // i18n — use selected language during registration, default to English for login
   const ui = li(mode === 'register' ? language : 'English')
 
-  const allSubs = SUBS[standard] || []
+  // Load boards once on mount
+  useEffect(() => {
+    fetchBoards().then(setBoardList)
+  }, [])
 
-  const toggleSub = s => setSubs(p => p.includes(s) ? p.filter(x => x !== s) : [...p, s])
+  // When board or standard changes → refresh mediums
+  useEffect(() => {
+    fetchMediums(board, standard).then(meds => {
+      setMediumList(meds)
+      if (!meds.includes(language)) setLang(meds[0] || 'English')
+    })
+  }, [board, standard])
 
   // ── Login ──
   const doLogin = async () => {
@@ -56,13 +96,11 @@ export default function AuthScreen({ onAuth }) {
     if (!email.trim() || !email.includes('@')) { setError(ui.validEmail); return }
     if (password.length < 6) { setError(ui.passwordMinLength); return }
     setError('')
-    setSubs([...allSubs]) // auto-select all subjects
     setRegStep(2)
   }
 
   // ── Register submit ──
   const doRegister = async () => {
-    const finalSubs = subjects.length ? subjects : allSubs
     setError('')
     setLoading(true)
     try {
@@ -73,7 +111,7 @@ export default function AuthScreen({ onAuth }) {
         standard,
         board,
         language,
-        subjects: finalSubs,
+        subjects: [], // auto-assigned by backend based on board+standard+medium
         mobile: mobile.trim(),
       })
       setAuthToken(token)
@@ -275,7 +313,7 @@ export default function AuthScreen({ onAuth }) {
                   <select
                     className="w-full bg-app-card2 border border-white/10 rounded-xl py-3 px-3.5 text-app-text text-sm outline-none cursor-pointer focus:ring-1 focus:ring-app-green/50"
                     value={standard}
-                    onChange={e => { setStd(e.target.value); setSubs([]) }}
+                    onChange={e => setStd(e.target.value)}
                   >
                     {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -287,7 +325,7 @@ export default function AuthScreen({ onAuth }) {
                     value={board} 
                     onChange={e => setBoard(e.target.value)}
                   >
-                    {BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
+                    {boardList.map(b => <option key={b} value={b}>{b}</option>)}
                   </select>
                 </div>
               </div>
@@ -299,35 +337,8 @@ export default function AuthScreen({ onAuth }) {
                   value={language} 
                   onChange={e => setLang(e.target.value)}
                 >
-                  {LANGS.map(l => <option key={l} value={l}>{l}</option>)}
+                  {mediumList.map(l => <option key={l} value={l}>{l}</option>)}
                 </select>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-[11px] text-app-muted font-semibold">{ui.subjectsLabel}</label>
-                  <button
-                    onClick={() => setSubs(subjects.length === allSubs.length ? [] : [...allSubs])}
-                    className="bg-transparent border-none text-app-green font-semibold text-[11px] cursor-pointer p-0"
-                  >
-                    {subjects.length === allSubs.length ? ui.deselectAll : ui.selectAll}
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {allSubs.map(s => (
-                    <button
-                      key={s}
-                      onClick={() => toggleSub(s)}
-                      className={`py-1.5 px-3 rounded-full border-none text-xs cursor-pointer transition-all
-                        ${subjects.includes(s) 
-                          ? 'bg-app-green/25 text-app-green font-bold ring-1 ring-app-green/60' 
-                          : 'bg-app-card2 text-app-muted font-normal'
-                        }`}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               {error && (

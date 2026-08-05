@@ -46,7 +46,7 @@ async function fetchSubjects(board, standard, medium) {
     )
     if (res.ok) {
       const data = await res.json()
-      if (Array.isArray(data.subjects) && data.subjects.length > 0) return data.subjects
+      if (Array.isArray(data) && data.length > 0) return data
     }
   } catch {}
   return SUBS[standard] || [] // fallback

@@ -5,7 +5,7 @@ import { li } from '../i18n/index.js'
 import UpgradePlanModal from './UpgradePlanModal.jsx'
 import { GearSix, X, CheckCircle, XCircle, Clock, ArrowUp, Lock, Warning, Robot } from '@phosphor-icons/react'
 
-const CLASSES = Array.from({ length: 4 }, (_, i) => `Class ${i + 9}`)
+const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
 
 // Reusable Tailwind classes
 const inputClass = "w-full bg-app-card2 border border-white/10 rounded-xl py-2.5 px-3.5 text-app-text text-sm cursor-pointer font-[Sora,sans-serif]"
@@ -40,6 +40,26 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
   const [profileSaved, setProfileSaved] = useState(false)
   const [profileError, setProfileError]   = useState('')
   const [profileSaving, setProfileSaving] = useState(false)
+
+  // Dynamic medium list based on board+standard
+  const [mediumList, setMediumList] = useState(LANGS)
+
+  useEffect(() => {
+    const boardSlug = pBoard.toLowerCase().replace(/\s+/g, '-')
+    const stdSlug   = pStd.toLowerCase().replace(/\s+/g, '-')
+    fetch(`/api/curriculum/mediums?board=${encodeURIComponent(boardSlug)}&standard=${encodeURIComponent(stdSlug)}`, { signal: AbortSignal.timeout(5000) })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          const meds = data.map(m => m.name)
+          setMediumList(meds)
+          if (!meds.includes(pLang)) setPLang(meds[0] || 'English')
+        } else {
+          setMediumList(LANGS)
+        }
+      })
+      .catch(() => setMediumList(LANGS))
+  }, [pBoard, pStd])
 
   const saveProfile = async () => {
     if (!pName.trim()) return
@@ -137,7 +157,7 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
               <div>
                 <label className={labelClass}>{ui.languageLabel}</label>
                 <select className={inputClass} value={pLang} onChange={e => setPLang(e.target.value)}>
-                  {LANGS.map(l => <option key={l} value={l}>{l}</option>)}
+                  {mediumList.map(l => <option key={l} value={l}>{l}</option>)}
                 </select>
               </div>
               <div>

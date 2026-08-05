@@ -6,6 +6,12 @@ export const BOARDS = [
   'ICSE',
   'GSEB',
   'MSBSHSE',
+  'RBSE',
+  'UP Board',
+  'BSEB',
+  'TN Board',
+  'KAR Board',
+  'PSEB',
 ] as const
 
 export type BoardType = (typeof BOARDS)[number]
@@ -26,7 +32,7 @@ export const LANGUAGES = [
 
 export type LanguageType = (typeof LANGUAGES)[number]
 
-export const CLASSES = Array.from({ length: 4 }, (_, i) => `Class ${i + 9}`) as readonly string[]
+export const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`) as readonly string[]
 
 export type ClassType = (typeof CLASSES)[number]
 

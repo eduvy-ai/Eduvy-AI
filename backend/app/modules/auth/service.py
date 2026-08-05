@@ -51,6 +51,18 @@ class AuthService:
         if db.users.get_by_email(email):
             raise HTTPException(status_code=409, detail="An account with this email already exists")
         
+        # Auto-assign subjects from curriculum if none provided
+        final_subjects = subjects or []
+        if not final_subjects:
+            try:
+                from app.modules.curriculum.service import CurriculumService
+                board_slug = board.lower().replace(" ", "-")
+                std_slug = standard.lower().replace(" ", "-")
+                medium_slug = language.lower().replace(" ", "-")
+                final_subjects = CurriculumService.get_subjects(board_slug, std_slug, medium_slug)
+            except Exception:
+                final_subjects = []
+        
         # Create user
         user = db.users.create_user(
             email=email,
@@ -59,7 +71,7 @@ class AuthService:
             standard=standard,
             board=board,
             language=language,
-            subjects=subjects or [],
+            subjects=final_subjects,
             mobile=mobile,
             parent_mobile=parent_mobile
         )

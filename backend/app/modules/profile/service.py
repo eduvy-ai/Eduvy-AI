@@ -62,13 +62,31 @@ class ProfileService:
     def update_profile(user_id: str, **data) -> Dict:
         """Update user profile."""
         # Check exists
-        if not db.users.get_by_id(user_id):
+        existing = db.users.get_by_id(user_id)
+        if not existing:
             raise HTTPException(status_code=404, detail="Profile not found")
         
         # Filter None values
         updates = {k: v for k, v in data.items() if v is not None}
         if not updates:
             raise HTTPException(status_code=400, detail="No fields to update")
+        
+        # Auto-reassign subjects when board, standard, or language changes
+        curriculum_fields = {'board', 'standard', 'language'}
+        if curriculum_fields & set(updates.keys()):
+            board = updates.get('board', existing.get('board', 'CBSE'))
+            standard = updates.get('standard', existing.get('standard', 'Class 10'))
+            language = updates.get('language', existing.get('language', 'English'))
+            try:
+                from app.modules.curriculum.service import CurriculumService
+                board_slug = board.lower().replace(" ", "-")
+                std_slug = standard.lower().replace(" ", "-")
+                medium_slug = language.lower().replace(" ", "-")
+                new_subjects = CurriculumService.get_subjects(board_slug, std_slug, medium_slug)
+                if new_subjects:
+                    updates['subjects'] = new_subjects
+            except Exception:
+                pass
         
         # Update
         user = db.users.update(user_id, updates)
