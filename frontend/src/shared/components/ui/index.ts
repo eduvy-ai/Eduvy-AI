@@ -1,0 +1,28 @@
+// ─── Design System Component Barrel ───────────────────────────
+// New components using the `t-*` theme token system.
+
+export { default as Avatar } from './Avatar'
+export { default as Badge } from './Badge'
+export { default as BottomSheet } from './BottomSheet'
+export { default as Card } from './Card'
+export { default as Chip } from './Chip'
+export { default as Divider } from './Divider'
+export { default as EmptyState } from './EmptyState'
+export { default as FloatingActionButton } from './FloatingActionButton'
+export { default as IconButton } from './IconButton'
+export { default as ProgressBar } from './ProgressBar'
+export { default as SearchInput } from './SearchInput'
+export { default as Skeleton } from './Skeleton'
+export { default as Toast, useToast } from './Toast'
+
+export type { AvatarProps } from './Avatar'
+export type { BadgeProps } from './Badge'
+export type { BottomSheetProps } from './BottomSheet'
+export type { CardProps } from './Card'
+export type { ChipProps } from './Chip'
+export type { EmptyStateProps } from './EmptyState'
+export type { IconButtonProps } from './IconButton'
+export type { ProgressBarProps } from './ProgressBar'
+export type { SearchInputProps } from './SearchInput'
+export type { SkeletonProps } from './Skeleton'
+export type { ToastProps } from './Toast'

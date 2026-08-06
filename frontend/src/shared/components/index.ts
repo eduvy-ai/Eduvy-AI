@@ -17,3 +17,35 @@ export { default as Table } from './Table'
 export type { TableColumn } from './Table'
 
 export { default as Pagination } from './Pagination'
+
+// ── Design System UI Components ──
+export {
+  Avatar,
+  Badge,
+  BottomSheet,
+  Card,
+  Chip,
+  Divider,
+  EmptyState,
+  FloatingActionButton,
+  IconButton,
+  ProgressBar,
+  SearchInput,
+  Skeleton,
+  Toast,
+  useToast,
+} from './ui'
+
+export type {
+  AvatarProps,
+  BadgeProps,
+  BottomSheetProps,
+  CardProps,
+  ChipProps,
+  EmptyStateProps,
+  IconButtonProps,
+  ProgressBarProps,
+  SearchInputProps,
+  SkeletonProps,
+  ToastProps,
+} from './ui'

@@ -5,6 +5,91 @@
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════
+   DESIGN SYSTEM — CSS Custom Properties
+   Default: dark mode. `.light` class on <html> switches.
+   New components use `t-*` Tailwind classes (via these vars).
+   Legacy `app-*` classes remain untouched.
+   ═══════════════════════════════════════════════════════ */
+:root {
+  /* ── Dark Mode (default) ── */
+  --t-bg:               #0B0F1A;
+  --t-bg-secondary:     #111827;
+  --t-surface:          #1A2232;
+  --t-surface-secondary:#1E293B;
+  --t-surface-hover:    #253044;
+  --t-surface-active:   #334155;
+  --t-border:           rgba(255, 255, 255, 0.07);
+  --t-border-strong:    rgba(255, 255, 255, 0.14);
+  --t-text:             #F1F5F9;
+  --t-text-secondary:   #94A3B8;
+  --t-text-muted:       #64748B;
+  --t-text-inverse:     #0F172A;
+  --t-nav-bg:           rgba(11, 15, 26, 0.92);
+  --t-nav-border:       rgba(255, 255, 255, 0.06);
+  --t-sidebar-bg:       #111827;
+  --t-overlay:          rgba(0, 0, 0, 0.6);
+
+  /* Brand */
+  --t-primary:          #10B981;
+  --t-primary-hover:    #059669;
+  --t-primary-light:    rgba(16, 185, 129, 0.12);
+  --t-primary-soft:     rgba(16, 185, 129, 0.06);
+  --t-accent:           #8B5CF6;
+  --t-accent-hover:     #7C3AED;
+  --t-accent-light:     rgba(139, 92, 246, 0.12);
+  --t-blue:             #3B82F6;
+  --t-blue-light:       rgba(59, 130, 246, 0.12);
+  --t-amber:            #F59E0B;
+  --t-amber-light:      rgba(245, 158, 11, 0.12);
+
+  /* Status */
+  --t-success:          #10B981;
+  --t-success-light:    rgba(16, 185, 129, 0.10);
+  --t-warning:          #F59E0B;
+  --t-warning-light:    rgba(245, 158, 11, 0.10);
+  --t-danger:           #EF4444;
+  --t-danger-light:     rgba(239, 68, 68, 0.10);
+  --t-info:             #3B82F6;
+  --t-info-light:       rgba(59, 130, 246, 0.10);
+
+  /* Shadows */
+  --t-shadow-sm:  0 1px 3px rgba(0,0,0,0.3);
+  --t-shadow-md:  0 4px 12px rgba(0,0,0,0.4);
+  --t-shadow-lg:  0 12px 32px rgba(0,0,0,0.5);
+  --t-shadow-xl:  0 20px 48px rgba(0,0,0,0.6);
+
+  /* Gradients */
+  --t-gradient-primary: linear-gradient(135deg, #10B981, #059669);
+  --t-gradient-accent:  linear-gradient(135deg, #8B5CF6, #7C3AED);
+  --t-gradient-hero:    linear-gradient(135deg, rgba(16,185,129,0.08), transparent, rgba(139,92,246,0.08));
+}
+
+/* ── Light Mode ── */
+:root.light {
+  --t-bg:               #F8FAFC;
+  --t-bg-secondary:     #F1F5F9;
+  --t-surface:          #FFFFFF;
+  --t-surface-secondary:#F8FAFC;
+  --t-surface-hover:    #F1F5F9;
+  --t-surface-active:   #E2E8F0;
+  --t-border:           rgba(15, 23, 42, 0.08);
+  --t-border-strong:    rgba(15, 23, 42, 0.16);
+  --t-text:             #0F172A;
+  --t-text-secondary:   #475569;
+  --t-text-muted:       #94A3B8;
+  --t-text-inverse:     #FFFFFF;
+  --t-nav-bg:           rgba(255, 255, 255, 0.92);
+  --t-nav-border:       rgba(15, 23, 42, 0.06);
+  --t-sidebar-bg:       #FFFFFF;
+  --t-overlay:          rgba(15, 23, 42, 0.5);
+  --t-shadow-sm:  0 1px 2px rgba(0,0,0,0.04);
+  --t-shadow-md:  0 4px 12px rgba(0,0,0,0.06);
+  --t-shadow-lg:  0 12px 32px rgba(0,0,0,0.08);
+  --t-shadow-xl:  0 20px 48px rgba(0,0,0,0.10);
+  --t-gradient-hero: linear-gradient(135deg, rgba(16,185,129,0.05), transparent, rgba(139,92,246,0.05));
+}
+
+/* ═══════════════════════════════════════════════════════════
    REUSABLE COMPONENT CLASSES — use these for migration
    ═══════════════════════════════════════════════════════ */
 @layer components {
@@ -88,6 +173,53 @@
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
   }
+
+  /* ── New Design System Component Classes ─────────────────── */
+
+  /* Surface card — uses new theme tokens */
+  .t-card {
+    @apply bg-t-surface border border-t-border rounded-2xl;
+    box-shadow: var(--t-shadow-sm);
+  }
+  .t-card-interactive {
+    @apply t-card transition-all duration-200 cursor-pointer;
+  }
+  .t-card-interactive:hover {
+    @apply border-t-border-strong;
+    box-shadow: var(--t-shadow-md);
+    transform: translateY(-1px);
+  }
+  .t-card-interactive:active {
+    transform: translateY(0) scale(0.99);
+  }
+
+  /* Elevated surface — modal/popover level */
+  .t-surface-elevated {
+    @apply bg-t-surface border border-t-border rounded-2xl;
+    box-shadow: var(--t-shadow-lg);
+  }
+
+  /* Section heading */
+  .t-section-title {
+    @apply text-h3 font-semibold text-t-text;
+  }
+
+  /* Skeleton loading shimmer */
+  .t-skeleton {
+    @apply rounded-lg;
+    background: linear-gradient(90deg,
+      var(--t-surface-hover) 25%,
+      var(--t-surface-active) 50%,
+      var(--t-surface-hover) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton 1.5s ease-in-out infinite;
+  }
+
+  /* Press-to-action feedback */
+  .t-pressable {
+    @apply transition-transform duration-100 active:scale-[0.97];
+  }
 }
 
 @layer base {
@@ -99,8 +231,8 @@
 }
 
 html, body {
-  background: #04040e;
-  color: #eeeeff;
+  background: var(--t-bg);
+  color: var(--t-text);
   font-family: 'Sora', sans-serif;
   height: auto;
   min-height: 100vh;
@@ -183,7 +315,7 @@ input, textarea, select { outline: none; border: none; }
 #root {
   height: 100%;
   min-height: 100vh;
-  background: #04040e;
+  background: var(--t-bg);
 }
 
 /* App shell — fills viewport, guaranteed to contain all content */
@@ -192,9 +324,8 @@ input, textarea, select { outline: none; border: none; }
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #04040e;
+  background: var(--t-bg);
   overflow: hidden;
-  /* Safe area for devices with notches/rounded corners */
   padding-top: env(safe-area-inset-top, 0px);
 }
 
@@ -202,11 +333,10 @@ input, textarea, select { outline: none; border: none; }
 .bottom-nav {
   flex-shrink: 0;
   width: 100%;
-  /* Glass morphism — like native iOS/Android nav bars */
-  background: rgba(6, 6, 18, 0.94);
+  background: var(--t-nav-bg);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 1px solid var(--t-nav-border);
   display: flex;
   align-items: flex-start;
   overflow-x: auto;
@@ -242,7 +372,7 @@ input, textarea, select { outline: none; border: none; }
   transform: translateX(-50%);
   width: 28px;
   height: 3px;
-  background: #00ff88;
+  background: var(--t-primary);
   border-radius: 0 0 4px 4px;
   opacity: 1;
 }
@@ -271,7 +401,7 @@ input, textarea, select { outline: none; border: none; }
 
 @media (min-width: 768px) {
   #root {
-    background: #020209;
+    background: var(--t-bg-secondary);
     min-height: 100vh;
   }
 
@@ -288,8 +418,8 @@ input, textarea, select { outline: none; border: none; }
     display: flex;
     flex-direction: column;
     width: 220px;
-    background: #0b0b1c;
-    border-right: 1px solid rgba(255,255,255,0.06);
+    background: var(--t-sidebar-bg);
+    border-right: 1px solid var(--t-nav-border);
     padding: 24px 12px 24px;
     flex-shrink: 0;
     height: 100%;
@@ -313,7 +443,7 @@ input, textarea, select { outline: none; border: none; }
     transform: translateY(-50%);
     width: 3px;
     height: 60%;
-    background: #00ff88;
+    background: var(--t-primary);
     border-radius: 0 3px 3px 0;
   }
 
@@ -476,7 +606,7 @@ input, textarea, select { outline: none; border: none; }
 
 /* Keyboard focus ring — visible for all keyboard / screen-reader users */
 *:focus-visible {
-  outline: 3px solid #00E5A0;
+  outline: 3px solid var(--t-primary);
   outline-offset: 3px;
   border-radius: 4px;
 }

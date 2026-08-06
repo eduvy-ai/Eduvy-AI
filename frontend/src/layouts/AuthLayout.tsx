@@ -1,7 +1,8 @@
 // ─── Auth Layout ──────────────────────────────────────────────
-// Layout wrapper for login/register pages
+// Premium mobile-first layout for login/register pages
 
 import React from 'react'
+import { GraduationCap } from '@phosphor-icons/react'
 
 interface AuthLayoutProps {
   children: React.ReactNode
@@ -9,31 +10,32 @@ interface AuthLayoutProps {
 
 const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
   return (
-    <div className="fixed inset-0 bg-app-bg overflow-auto">
-      {/* Subtle gradient background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-app-green/5 via-transparent to-app-blue/5 pointer-events-none z-0" />
-      
-      <div className="relative z-10 py-8 px-4 min-h-full">
-        <div className="w-full max-w-md sm:max-w-lg mx-auto">
+    <div className="fixed inset-0 bg-t-bg overflow-auto">
+      {/* Gradient mesh background */}
+      <div className="fixed inset-0 pointer-events-none z-0" style={{ background: 'var(--t-gradient-hero)' }} />
+      {/* Subtle pattern overlay */}
+      <div className="fixed inset-0 pointer-events-none z-0 opacity-[0.03]"
+        style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '32px 32px' }}
+      />
+
+      <div className="relative z-10 py-10 px-5 min-h-full flex flex-col">
+        <div className="w-full max-w-[420px] mx-auto flex-1 flex flex-col">
           {/* Logo Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-app-green/20 to-app-blue/20 border border-app-green/30 mb-4">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-app-green">
-                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-              </svg>
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--t-primary-light)] border border-t-primary/20 mb-5 shadow-[0_4px_16px_rgba(16,185,129,0.15)]">
+              <GraduationCap size={32} weight="duotone" className="text-t-primary" />
             </div>
-            <div className="text-2xl font-extrabold text-app-text tracking-tight">Eduvy-AI</div>
-            <div className="text-sm text-app-muted mt-1">Your AI-Powered Study Companion</div>
+            <h1 className="text-h1 text-t-text tracking-tight">Eduvy-AI</h1>
+            <p className="text-body-sm text-t-text-secondary mt-1.5">Your AI-Powered Study Companion</p>
           </div>
 
           {/* Content Card */}
-          <div className="bg-app-card rounded-2xl border border-app-border p-6 shadow-xl shadow-black/20">
+          <div className="bg-t-surface rounded-2xl border border-t-border p-6 shadow-soft-lg">
             {children}
           </div>
-          
+
           {/* Footer */}
-          <div className="text-center mt-6 pb-4 text-xs text-app-muted/60">
+          <div className="text-center mt-8 pb-6 text-micro text-t-text-muted">
             By continuing, you agree to our Terms of Service
           </div>
         </div>

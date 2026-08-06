@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Eye, EyeSlash, User, EnvelopeSimple, Lock, Phone, ArrowLeft } from '@phosphor-icons/react'
 import { useAuth } from '../hooks'
 import AuthLayout from '../../../layouts/AuthLayout'
 import Button from '../../../shared/components/Button'
@@ -130,38 +131,38 @@ const Register: React.FC = () => {
 
   return (
     <AuthLayout>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         {/* Tab Toggle */}
-        <div className="flex gap-1 bg-app-card2 rounded-xl p-1 mb-2">
+        <div className="flex gap-1 bg-t-surface-2 rounded-xl p-1">
           <Link
             to="/auth"
-            className="flex-1 py-2.5 rounded-lg bg-transparent text-app-muted font-medium text-sm text-center no-underline hover:text-app-text transition-colors"
+            className="flex-1 py-2.5 rounded-lg bg-transparent text-t-text-muted font-medium text-body-sm text-center no-underline hover:text-t-text transition-colors"
           >
             Login
           </Link>
-          <div className="flex-1 py-2.5 rounded-lg bg-gradient-to-br from-app-green/20 to-app-blue/20 text-app-text font-bold text-sm text-center ring-1 ring-app-green/50">
+          <div className="flex-1 py-2.5 rounded-lg bg-[var(--t-primary-light)] text-t-primary font-bold text-body-sm text-center ring-1 ring-t-primary/30">
             Register
           </div>
         </div>
 
         {/* Step Indicator */}
-        <div className="flex items-center gap-3 mb-1">
+        <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-              step >= 1 ? 'bg-app-green text-app-bg' : 'bg-app-card2 text-app-muted'
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-caption font-bold transition-colors ${
+              step >= 1 ? 'bg-t-primary text-t-text-inverse' : 'bg-t-surface-hover text-t-text-muted'
             }`}>
               1
             </div>
-            <div className={`h-0.5 w-8 ${
-              step >= 2 ? 'bg-app-green' : 'bg-app-card2'
+            <div className={`h-0.5 w-8 rounded-full transition-colors ${
+              step >= 2 ? 'bg-t-primary' : 'bg-t-surface-hover'
             }`} />
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-              step >= 2 ? 'bg-app-green text-app-bg' : 'bg-app-card2 text-app-muted'
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-caption font-bold transition-colors ${
+              step >= 2 ? 'bg-t-primary text-t-text-inverse' : 'bg-t-surface-hover text-t-text-muted'
             }`}>
               2
             </div>
           </div>
-          <span className="text-sm text-app-muted ml-2">
+          <span className="text-body-sm text-t-text-secondary">
             {step === 1 ? 'Your Details' : 'Academic Profile'}
           </span>
         </div>
@@ -174,6 +175,7 @@ const Register: React.FC = () => {
               placeholder="Enter your full name"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              leftIcon={<User size={18} weight="duotone" />}
             />
 
             <Input
@@ -183,6 +185,7 @@ const Register: React.FC = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
+              leftIcon={<EnvelopeSimple size={18} weight="duotone" />}
             />
 
             <Input
@@ -192,24 +195,15 @@ const Register: React.FC = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"
+              leftIcon={<Lock size={18} weight="duotone" />}
               rightIcon={
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="bg-transparent border-none cursor-pointer text-app-muted hover:text-app-green transition-colors"
+                  className="bg-transparent border-none cursor-pointer text-t-text-muted hover:text-t-primary transition-colors p-0"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
-                      <line x1="1" y1="1" x2="23" y2="23"/>
-                    </svg>
-                  ) : (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                      <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                  )}
+                  {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
                 </button>
               }
             />
@@ -220,10 +214,11 @@ const Register: React.FC = () => {
               placeholder="Your mobile number"
               value={mobile}
               onChange={(e) => setMobile(e.target.value)}
+              leftIcon={<Phone size={18} weight="duotone" />}
             />
 
             {error && (
-              <div className="text-xs text-app-red bg-app-red/15 rounded-lg py-2 px-3">
+              <div className="flex items-center gap-2 text-body-sm text-t-danger bg-[var(--t-danger-light)] rounded-xl py-3 px-4" role="alert">
                 {error}
               </div>
             )}
@@ -237,7 +232,6 @@ const Register: React.FC = () => {
         {/* ── Step 2: Profile ── */}
         {step === 2 && (
           <>
-            {/* Class Selection */}
             <Select
               label="Class"
               value={standard}
@@ -248,7 +242,6 @@ const Register: React.FC = () => {
               options={CLASSES}
             />
 
-            {/* Board Selection */}
             <Select
               label="Board"
               value={board}
@@ -259,7 +252,6 @@ const Register: React.FC = () => {
               options={BOARDS}
             />
 
-            {/* Medium Selection - dynamic from API */}
             <Select
               label="Medium / Language"
               value={language}
@@ -267,42 +259,52 @@ const Register: React.FC = () => {
               options={availableMediums}
             />
 
-            {/* Subjects - dynamic from API */}
+            {/* Subjects */}
             <div>
-              <label className="text-[11px] text-app-muted font-semibold block mb-1.5">
+              <label className="text-label text-t-text-muted font-semibold block mb-2 uppercase">
                 Subjects (tap to select/deselect)
               </label>
               {loadingCurriculum ? (
-                <div className="text-xs text-app-muted py-2">Loading subjects...</div>
+                <div className="flex gap-2">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="t-skeleton h-8 w-20 rounded-lg" />
+                  ))}
+                </div>
               ) : (
-              <div className="flex flex-wrap gap-2">
-                {availableSubjects.map((subject) => (
-                  <button
-                    key={subject}
-                    type="button"
-                    onClick={() => toggleSubject(subject)}
-                    className={`py-1.5 px-3 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
-                      subjects.includes(subject)
-                        ? 'bg-app-green/20 border-app-green/50 text-app-green'
-                        : 'bg-app-card2 border-app-border text-app-muted hover:text-app-text'
-                    }`}
-                  >
-                    {subject}
-                  </button>
-                ))}
-              </div>
+                <div className="flex flex-wrap gap-2">
+                  {availableSubjects.map((subject) => (
+                    <button
+                      key={subject}
+                      type="button"
+                      onClick={() => toggleSubject(subject)}
+                      className={`py-2 px-3.5 rounded-xl text-caption font-medium border transition-all duration-150 cursor-pointer active:scale-[0.96] ${
+                        subjects.includes(subject)
+                          ? 'bg-[var(--t-primary-light)] border-t-primary/40 text-t-primary'
+                          : 'bg-t-surface-hover border-t-border text-t-text-muted hover:text-t-text hover:border-t-border-strong'
+                      }`}
+                    >
+                      {subject}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
 
             {error && (
-              <div className="text-xs text-app-red bg-app-red/15 rounded-lg py-2 px-3">
+              <div className="flex items-center gap-2 text-body-sm text-t-danger bg-[var(--t-danger-light)] rounded-xl py-3 px-4" role="alert">
                 {error}
               </div>
             )}
 
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(1)} size="lg">
-                ← Back
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setStep(1)}
+                size="lg"
+                leftIcon={<ArrowLeft size={16} />}
+              >
+                Back
               </Button>
               <Button type="submit" isLoading={isLoading} fullWidth size="lg">
                 {isLoading ? 'Creating...' : 'Create Account'}
@@ -311,13 +313,20 @@ const Register: React.FC = () => {
           </>
         )}
 
+        {/* Divider */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-t-border" />
+          <span className="text-micro text-t-text-muted">or</span>
+          <div className="flex-1 h-px bg-t-border" />
+        </div>
+
         {/* Login Link */}
-        <div className="text-center text-sm text-app-muted">
+        <p className="text-center text-body-sm text-t-text-secondary">
           Already have an account?{' '}
-          <Link to="/auth" className="text-app-green font-semibold no-underline hover:underline">
+          <Link to="/auth" className="text-t-primary font-semibold no-underline hover:underline">
             Login
           </Link>
-        </div>
+        </p>
       </form>
     </AuthLayout>
   )

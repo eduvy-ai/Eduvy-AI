@@ -30,7 +30,7 @@ import {
   Leaf,
   Sparkle,
 } from '@phosphor-icons/react'
-import Loader from '@/shared/components/Loader'
+import { Loader, EmptyState } from '@/shared/components'
 
 // Subject icons mapping
 const SUBJECT_ICONS: Record<string, React.ComponentType<any>> = {
@@ -118,28 +118,23 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
     return (
       <button
         onClick={() => setSelectedSubject(subject)}
-        className="w-full bg-app-card hover:bg-app-card2 border border-white/[0.04] rounded-2xl p-4 
-                   transition-all duration-200 hover:border-white/[0.08] hover:scale-[1.02]
-                   flex items-center gap-4 text-left"
+        className="w-full bg-t-surface hover:bg-t-surface-hover border border-t-border rounded-2xl p-4 
+                   transition-all duration-200 hover:border-t-border-strong hover:-translate-y-0.5
+                   flex items-center gap-4 text-left shadow-soft-sm active:scale-[0.99]"
       >
-        {/* Icon */}
         <div
           className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: `${color}18` }}
+          style={{ background: `${color}14` }}
         >
           <IconComponent size={24} weight="duotone" style={{ color }} />
         </div>
-        
-        {/* Content */}
         <div className="flex-1 min-w-0">
-          <h3 className="text-[15px] font-bold text-app-text truncate">{subject}</h3>
-          <p className="text-[12px] text-app-muted mt-0.5">
+          <h3 className="text-body font-semibold text-t-text truncate">{subject}</h3>
+          <p className="text-caption text-t-text-muted mt-0.5">
             {chapterCount} {chapterCount === 1 ? (ui.chapter || 'chapter') : (ui.chapters || 'chapters')}
           </p>
         </div>
-        
-        {/* Arrow */}
-        <CaretRight size={18} weight="bold" className="text-app-muted flex-shrink-0" />
+        <CaretRight size={18} weight="bold" className="text-t-text-muted flex-shrink-0" />
       </button>
     )
   }
@@ -162,17 +157,17 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
     return (
       <button
         onClick={() => navigate(`/app/learn/${chapter.id}`)}
-        className="w-full bg-app-card hover:bg-app-card2 border border-white/[0.04] rounded-2xl p-4 
-                   transition-all duration-200 hover:border-white/[0.08] hover:scale-[1.01]
-                   text-left"
+        className="w-full bg-t-surface hover:bg-t-surface-hover border border-t-border rounded-2xl p-4 
+                   transition-all duration-200 hover:border-t-border-strong shadow-soft-sm
+                   text-left active:scale-[0.99]"
       >
         <div className="flex items-start gap-3">
           {/* Chapter number badge */}
           <div
-            className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-black text-[14px]
-                       ${isComplete ? 'bg-app-green/20 text-app-green' : 
-                         isStarted ? 'bg-app-blue/20 text-app-blue' : 
-                         'bg-white/[0.06] text-app-muted'}`}
+            className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-black text-body-sm
+                       ${isComplete ? 'bg-t-success/15 text-t-success' : 
+                         isStarted ? 'bg-t-info/15 text-t-info' : 
+                         'bg-t-surface-hover text-t-text-muted'}`}
           >
             {isComplete ? (
               <CheckCircle size={20} weight="fill" />
@@ -183,11 +178,11 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
           
           {/* Content */}
           <div className="flex-1 min-w-0">
-            <h4 className="text-[14px] font-bold text-app-text leading-snug">
+            <h4 className="text-body-sm font-semibold text-t-text leading-snug">
               {chapter.chapter_name}
             </h4>
             {chapter.description && (
-              <p className="text-[11.5px] text-app-muted mt-1 line-clamp-2">
+              <p className="text-caption text-t-text-muted mt-1 line-clamp-2">
                 {chapter.description}
               </p>
             )}
@@ -198,7 +193,7 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
                 {chapter.topics.slice(0, 3).map((topic, i) => (
                   <span
                     key={i}
-                    className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.04] text-app-muted"
+                    className="text-micro px-2 py-0.5 rounded-full bg-t-surface-hover text-t-text-muted"
                   >
                     {topic}
                   </span>
@@ -231,7 +226,7 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
           </div>
           
           {/* Arrow */}
-          <CaretRight size={16} weight="bold" className="text-app-muted flex-shrink-0 mt-1" />
+          <CaretRight size={16} weight="bold" className="text-t-text-muted flex-shrink-0 mt-1" />
         </div>
       </button>
     )
@@ -249,17 +244,11 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
   // ── Empty State ──
   if (!subjects.length && !selectedSubject) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-app-blue/10 flex items-center justify-center mb-4">
-          <BookOpen size={32} weight="duotone" className="text-app-blue" />
-        </div>
-        <h3 className="text-[17px] font-bold text-app-text mb-2">
-          {ui.noChaptersTitle || 'No Chapters Available'}
-        </h3>
-        <p className="text-[13px] text-app-muted max-w-[280px]">
-          {ui.noChaptersDesc || `Chapters for ${board} ${standard} are being added. Check back soon!`}
-        </p>
-      </div>
+      <EmptyState
+        icon={<BookOpen size={32} weight="duotone" />}
+        title={ui.noChaptersTitle || 'No Chapters Available'}
+        description={ui.noChaptersDesc || `Chapters for ${board} ${standard} are being added. Check back soon!`}
+      />
     )
   }
 
@@ -271,13 +260,13 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
     return (
       <div className="pb-24">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-app-bg/95 backdrop-blur-md pb-3 pt-1 -mx-4 px-4">
+        <div className="sticky top-0 z-10 bg-t-bg/95 backdrop-blur-md pb-3 pt-1 -mx-4 px-4">
           <button
             onClick={() => setSelectedSubject(null)}
-            className="flex items-center gap-2 text-app-muted hover:text-app-text transition-colors mb-3"
+            className="flex items-center gap-2 text-t-text-muted hover:text-t-text transition-colors mb-3"
           >
             <ArrowLeft size={18} weight="bold" />
-            <span className="text-[13px] font-semibold">{ui.allSubjects || 'All Subjects'}</span>
+            <span className="text-caption font-semibold">{ui.allSubjects || 'All Subjects'}</span>
           </button>
           
           <div className="flex items-center gap-3">
@@ -288,8 +277,8 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
               <SubjectIcon size={22} weight="duotone" style={{ color: subjectColor }} />
             </div>
             <div>
-              <h2 className="text-[18px] font-black text-app-text">{selectedSubject}</h2>
-              <p className="text-[12px] text-app-muted">
+              <h2 className="text-h2 text-t-text">{selectedSubject}</h2>
+              <p className="text-caption text-t-text-muted">
                 {chapters.length} {chapters.length === 1 ? (ui.chapter || 'chapter') : (ui.chapters || 'chapters')} • {standard}
               </p>
             </div>
@@ -325,15 +314,15 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
       {/* Header */}
       <div className="mb-5">
         <div className="flex items-center gap-2 mb-1">
-          <Sparkle size={18} weight="fill" className="text-app-green" />
-          <span className="text-[11px] font-bold text-app-green tracking-wider uppercase">
+          <Sparkle size={18} weight="fill" className="text-t-primary" />
+          <span className="text-micro font-bold text-t-primary tracking-wider uppercase">
             {ui.learnTab || 'Learn'}
           </span>
         </div>
-        <h1 className="text-[22px] font-black text-app-text leading-tight">
+        <h1 className="text-h1 text-t-text leading-tight">
           {ui.chooseSubject || 'Choose a Subject'}
         </h1>
-        <p className="text-[13px] text-app-muted mt-1">
+        <p className="text-caption text-t-text-muted mt-1">
           {board} • {standard}
         </p>
       </div>
@@ -346,16 +335,16 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
       </div>
 
       {/* Quick Stats */}
-      <div className="mt-6 p-4 bg-app-card border border-white/[0.04] rounded-2xl">
+      <div className="mt-6 p-4 bg-t-surface border border-t-border rounded-2xl shadow-soft-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-app-yellow/10 flex items-center justify-center">
-            <Lightning size={20} weight="fill" className="text-app-yellow" />
+          <div className="w-10 h-10 rounded-xl bg-[var(--t-amber-light)] flex items-center justify-center">
+            <Lightning size={20} weight="fill" className="text-t-amber" />
           </div>
           <div>
-            <p className="text-[13px] font-bold text-app-text">
+            <p className="text-caption font-bold text-t-text">
               {ui.totalChapters || 'Total Chapters'}
             </p>
-            <p className="text-[11px] text-app-muted">
+            <p className="text-micro text-t-text-muted">
               {subjects.reduce((sum, s) => sum + s.chapter_count, 0)} {ui.chaptersAcross || 'chapters across'}{' '}
               {subjects.length} {ui.subjects || 'subjects'}
             </p>

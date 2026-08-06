@@ -1,5 +1,5 @@
 // ─── Dashboard Layout ─────────────────────────────────────────
-// Main app shell with navigation sidebar and bottom nav
+// Premium mobile-first app shell with navigation
 
 import React, { useEffect, useMemo } from 'react'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
@@ -10,40 +10,22 @@ import { isRTL } from '../i18n/index.js'
 import {
   House,
   MagicWand,
-  NotePencil,
-  PlayCircle,
-  MonitorPlay,
-  UsersThree,
-  Warning,
-  Sword,
-  Flask,
-  FilmSlate,
-  SignOut,
-  Lightning,
-  GraduationCap,
   BookOpen,
+  Lightning,
   User,
+  SignOut,
+  GraduationCap,
 } from '@phosphor-icons/react'
 import type { IconWeight } from '@phosphor-icons/react'
 
-// Icon mapping: tabKey -> Phosphor Icon component
 const TAB_ICONS: Record<string, React.ComponentType<any>> = {
-  home:         House,
-  learn:        BookOpen,
-  practice:     Lightning,
-  profile:      User,
-  coach:        MagicWand,
-  notebook:     NotePencil,
-  videos:       PlayCircle,
-  learntv:      MonitorPlay,
-  squads:       UsersThree,
-  mistakes:     Warning,
-  battles:      Sword,
-  labs:         Flask,
-  videocreator: FilmSlate,
+  home:     House,
+  learn:    BookOpen,
+  coach:    MagicWand,
+  practice: Lightning,
+  profile:  User,
 }
 
-// Primary 5-tab navigation (shown in both mobile bottom nav and desktop sidebar)
 const PRIMARY_NAV_ITEMS: { key: TabKey; labelKey: string }[] = [
   { key: 'home', labelKey: 'homeTab' },
   { key: 'learn', labelKey: 'learnTab' },
@@ -54,13 +36,11 @@ const PRIMARY_NAV_ITEMS: { key: TabKey; labelKey: string }[] = [
 
 const DashboardLayout: React.FC = () => {
   const location = useLocation()
-  // Extract tab from pathname: /app/home -> home
   const tab = location.pathname.split('/')[2] || 'home'
   const navigate = useNavigate()
   const { logout } = useAuth()
   const user = useUser()
   
-  // Lock body scroll when dashboard is active (prevents Android WebView viewport issues)
   useEffect(() => {
     const html = document.documentElement
     const body = document.body
@@ -76,21 +56,15 @@ const DashboardLayout: React.FC = () => {
     }
   }, [])
   
-  // Get UI translations based on display language preference
   const lang = getDisplayLang(user)
   const ui = useMemo(() => li(lang), [lang])
   const rtl = isRTL(lang)
 
-  // Primary 5-tab nav (shown in both mobile bottom nav and desktop sidebar)
-  const primaryNavItems = PRIMARY_NAV_ITEMS
-  
-  // Helper to get translated label (strip leading emoji from i18n strings)
   const getLabel = (labelKey: string) => {
     const translated = ui[labelKey] || labelKey
     return translated.replace(/^[\u{1F300}-\u{1F9FF}]\uFE0F?\s*/u, '').replace(/^[⚔️]\s*/u, '')
   }
   
-  // Render Phosphor icon for a tab (filled when active, regular when inactive)
   const renderIcon = (key: string, isActive: boolean, size = 22) => {
     const IconComponent = TAB_ICONS[key]
     if (!IconComponent) return null
@@ -100,7 +74,6 @@ const DashboardLayout: React.FC = () => {
 
   const setTab = (key: TabKey) => {
     navigate(`/app/${key}`)
-    // Haptic feedback on tab switch (native only)
     import('@capacitor/haptics').then(({ Haptics, ImpactStyle }) => {
       Haptics.impact({ style: ImpactStyle.Light }).catch(() => {})
     }).catch(() => {})
@@ -114,42 +87,44 @@ const DashboardLayout: React.FC = () => {
   return (
     <div className="app-shell" dir={rtl ? 'rtl' : 'ltr'}>
       {/* ── Desktop Sidebar Nav ── */}
-      <nav className="side-nav">
+      <nav className="side-nav" style={{ background: 'var(--t-sidebar-bg)', borderColor: 'var(--t-nav-border)' }}>
         {/* Logo */}
-        <div className="flex items-center gap-2.5 mb-4 px-2">
-          <GraduationCap size={26} weight="duotone" className="text-app-green" />
-          <span className="font-black text-lg text-app-green tracking-tight">Eduvy-AI</span>
+        <div className="flex items-center gap-2.5 mb-5 px-2">
+          <div className="w-9 h-9 rounded-xl bg-[var(--t-primary-light)] flex items-center justify-center">
+            <GraduationCap size={22} weight="duotone" className="text-t-primary" />
+          </div>
+          <span className="font-extrabold text-lg text-t-primary tracking-tight">Eduvy-AI</span>
         </div>
 
-        {/* User identity card */}
+        {/* User identity */}
         {user && (
-          <div className="mb-4 px-1 pb-4 border-b border-white/[0.06]">
+          <div className="mb-5 mx-1 p-3 rounded-xl bg-t-surface-hover/50">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-app-green/15 border border-app-green/25 flex items-center justify-center text-[14px] font-black text-app-green shrink-0">
+              <div className="w-9 h-9 rounded-full bg-[var(--t-primary-light)] border border-t-primary/20 flex items-center justify-center text-caption font-bold text-t-primary shrink-0">
                 {(user.name || 'S').charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
-                <div className="text-[12px] font-bold text-app-text truncate">{user.name || 'Student'}</div>
-                <div className="text-[10px] text-app-muted truncate">{(user as any).standard} · {(user as any).board}</div>
+                <div className="text-body-sm font-semibold text-t-text truncate">{user.name || 'Student'}</div>
+                <div className="text-micro text-t-text-muted truncate">{(user as any).standard} · {(user as any).board}</div>
               </div>
             </div>
           </div>
         )}
 
-        <div className="flex flex-col gap-0.5 flex-1 overflow-y-auto">
-          {/* Primary Navigation */}
-          {primaryNavItems.map(n => (
+        <div className="flex flex-col gap-1 flex-1 overflow-y-auto px-1">
+          {PRIMARY_NAV_ITEMS.map(n => (
             <button
               key={n.key}
               onClick={() => setTab(n.key)}
-              className={`rounded-xl py-2.5 px-3.5 flex items-center gap-3 cursor-pointer font-[Sora,sans-serif] text-left transition-all duration-150 border-[1.5px] active:scale-[0.97] relative ${
+              className={`rounded-xl py-2.5 px-3 flex items-center gap-3 cursor-pointer text-left transition-all duration-150 active:scale-[0.97] relative ${
                 tab === n.key
-                  ? 'bg-app-green/10 border-app-green/30 side-active'
-                  : 'bg-transparent border-transparent hover:bg-white/[0.04] hover:border-white/[0.05]'
+                  ? 'bg-[var(--t-primary-light)] text-t-primary side-active'
+                  : 'bg-transparent text-t-text-secondary hover:bg-t-surface-hover hover:text-t-text'
               }`}
+              aria-current={tab === n.key ? 'page' : undefined}
             >
               <span className="w-6 flex items-center justify-center">{renderIcon(n.key, tab === n.key, 20)}</span>
-              <span className={`text-sm ${tab === n.key ? 'font-bold text-app-green' : 'font-medium text-app-text'}`}>
+              <span className={`text-body-sm ${tab === n.key ? 'font-bold' : 'font-medium'}`}>
                 {getLabel(n.labelKey)}
               </span>
             </button>
@@ -157,38 +132,42 @@ const DashboardLayout: React.FC = () => {
         </div>
 
         {/* Logout */}
-        <div className="flex flex-col gap-2 mt-5">
-          {/* Logout button */}
+        <div className="mt-4 px-1">
           <button
             onClick={handleLogout}
-            className="rounded-xl py-2.5 px-3 flex items-center gap-2 cursor-pointer font-[Sora,sans-serif] w-full border bg-app-red/10 border-app-red/30 hover:bg-app-red/20 active:scale-[0.97] transition-all duration-150"
+            className="w-full rounded-xl py-2.5 px-3 flex items-center gap-2 cursor-pointer
+              bg-[var(--t-danger-light)] text-t-danger border border-t-danger/15
+              hover:bg-t-danger/15 active:scale-[0.97] transition-all duration-150"
           >
-            <SignOut size={18} weight="fill" className="text-app-red" />
-            <span className="text-sm font-medium text-app-red">{ui.logout || 'Logout'}</span>
+            <SignOut size={18} weight="fill" />
+            <span className="text-body-sm font-medium">{ui.logout || 'Logout'}</span>
           </button>
         </div>
       </nav>
 
       {/* ── Main Content Area ── */}
       <main className="tab-content">
-        {/* key={tab} re-mounts div on tab change, triggering the CSS fade-slide-up animation */}
         <div key={tab} className="tab-fade-in h-full flex flex-col min-h-0">
           <Outlet />
         </div>
       </main>
 
-      {/* ── Mobile Bottom Nav — 5 primary tabs, no scroll needed ── */}
-      <nav className="bottom-nav">
-        {primaryNavItems.map(n => (
+      {/* ── Mobile Bottom Nav ── */}
+      <nav className="bottom-nav" role="navigation" aria-label="Main navigation">
+        {PRIMARY_NAV_ITEMS.map(n => (
           <button
             key={n.key}
             onClick={() => setTab(n.key)}
-            className={`flex-1 h-14 flex flex-col items-center justify-center gap-0.5 py-0 px-1 bg-transparent border-none cursor-pointer ${
-              tab === n.key ? 'text-app-green nav-active' : 'text-app-muted'
+            className={`flex-1 h-14 flex flex-col items-center justify-center gap-0.5 py-0 px-1 bg-transparent border-none cursor-pointer transition-colors duration-150 ${
+              tab === n.key ? 'text-t-primary nav-active' : 'text-t-text-muted'
             }`}
+            aria-label={getLabel(n.labelKey)}
+            aria-current={tab === n.key ? 'page' : undefined}
           >
             <span className="leading-none">{renderIcon(n.key, tab === n.key, 22)}</span>
-            <span className={`text-[10px] leading-tight mt-0.5 max-w-[56px] text-center truncate ${tab === n.key ? 'font-bold' : 'font-medium'}`}>{getLabel(n.labelKey)}</span>
+            <span className={`text-[10px] leading-tight mt-0.5 max-w-[56px] text-center truncate ${tab === n.key ? 'font-bold' : 'font-medium'}`}>
+              {getLabel(n.labelKey)}
+            </span>
           </button>
         ))}
       </nav>

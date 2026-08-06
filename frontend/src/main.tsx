@@ -8,6 +8,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import store from './redux/store'
 import App from './App'
+import { ToastProvider } from './shared/components/ui/Toast'
 
 // Import global styles
 import './index.css'
@@ -56,7 +57,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Provider store={store}>
       <BrowserRouter>
-        <App />
+        <ToastProvider>
+          <App />
+        </ToastProvider>
       </BrowserRouter>
     </Provider>
   </React.StrictMode>

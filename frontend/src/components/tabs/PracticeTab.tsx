@@ -45,31 +45,31 @@ const QuickActionCard: React.FC<QuickActionProps> = ({
 }) => (
   <button
     onClick={onClick}
-    className="w-full bg-app-card border border-white/[0.04] rounded-2xl p-4 
-              hover:border-white/[0.08] transition-all active:scale-[0.99] text-left
-              flex items-center gap-4"
+    className="w-full bg-t-surface border border-t-border rounded-2xl p-4 
+              hover:border-t-border-strong transition-all active:scale-[0.98] text-left
+              flex items-center gap-4 shadow-soft-sm"
   >
     <div
       className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
-      style={{ background: `${color}18`, border: `1.5px solid ${color}40` }}
+      style={{ background: `${color}14` }}
     >
       <Icon size={26} weight="duotone" style={{ color }} />
     </div>
     <div className="flex-1 min-w-0">
       <div className="flex items-center gap-2 mb-0.5">
-        <span className="text-[15px] font-bold text-app-text">{label}</span>
+        <span className="text-body font-semibold text-t-text">{label}</span>
         {badge && (
           <span
-            className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-            style={{ background: `${color}20`, color }}
+            className="text-micro font-bold px-2 py-0.5 rounded-full"
+            style={{ background: `${color}18`, color }}
           >
             {badge}
           </span>
         )}
       </div>
-      <p className="text-[12px] text-app-muted line-clamp-1">{description}</p>
+      <p className="text-caption text-t-text-muted line-clamp-1">{description}</p>
     </div>
-    <CaretRight size={18} className="text-app-muted flex-shrink-0" />
+    <CaretRight size={18} className="text-t-text-muted flex-shrink-0" />
   </button>
 )
 
@@ -81,10 +81,10 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ icon: Icon, value, label, color }) => (
-  <div className="bg-app-card border border-white/[0.04] rounded-xl p-3 text-center">
+  <div className="bg-t-surface border border-t-border rounded-xl p-3 text-center shadow-soft-sm">
     <Icon size={20} weight="duotone" className="mx-auto mb-1" style={{ color }} />
-    <div className="text-[18px] font-bold text-app-text">{value}</div>
-    <div className="text-[11px] text-app-muted">{label}</div>
+    <div className="text-h3 font-bold text-t-text">{value}</div>
+    <div className="text-micro text-t-text-muted">{label}</div>
   </div>
 )
 
@@ -116,14 +116,14 @@ const PracticeTab: React.FC = () => {
   const goToExaminer = () => navigate('/app/labs', { state: { openLab: 'examiner' } })
 
   return (
-    <div className="min-h-screen bg-app-bg p-4 pb-24 md:p-6 lg:p-8">
+    <div className="min-h-screen bg-t-bg p-4 pb-24 md:p-6 lg:p-8">
       {/* Header */}
       <header className="mb-6">
-        <h1 className="text-[22px] font-extrabold text-app-text mb-1 flex items-center gap-2">
-          <Lightning size={24} weight="duotone" className="text-app-green" />
+        <h1 className="text-h1 text-t-text mb-1 flex items-center gap-2">
+          <Lightning size={24} weight="duotone" className="text-t-primary" />
           {ui.practiceTitle || 'Practice Hub'}
         </h1>
-        <p className="text-[13px] text-app-muted">
+        <p className="text-caption text-t-text-muted">
           {ui.practiceSubtitle || 'Test your knowledge and improve your skills'}
         </p>
       </header>
@@ -152,8 +152,8 @@ const PracticeTab: React.FC = () => {
 
       {/* Practice Modes */}
       <div className="mb-6">
-        <h2 className="text-[14px] font-bold text-app-text mb-3 flex items-center gap-2">
-          <Sparkle size={16} weight="duotone" className="text-app-yellow" />
+        <h2 className="text-body-sm font-bold text-t-text mb-3 flex items-center gap-2">
+          <Sparkle size={16} weight="duotone" className="text-t-amber" />
           {ui.practiceModesTitle || 'Practice Modes'}
         </h2>
         <div className="space-y-3">
@@ -191,25 +191,25 @@ const PracticeTab: React.FC = () => {
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-app-card border border-white/[0.04] rounded-2xl p-5">
-        <h3 className="text-[14px] font-bold text-app-text mb-3">
+      <div className="bg-t-surface border border-t-border rounded-2xl p-5 shadow-soft-sm">
+        <h3 className="text-body-sm font-bold text-t-text mb-3">
           {ui.recentActivity || 'Recent Activity'}
         </h3>
 
         {activityLoading ? (
           <div className="flex items-center gap-2 py-4 justify-center">
-            <div className="w-4 h-4 border-2 border-app-green/40 border-t-app-green rounded-full animate-spin" />
-            <span className="text-[12px] text-app-muted">{ui.loading || 'Loading...'}</span>
+            <div className="w-4 h-4 border-2 border-t-primary/40 border-t-t-primary rounded-full animate-spin" />
+            <span className="text-caption text-t-text-muted">{ui.loading || 'Loading...'}</span>
           </div>
         ) : recentActivity.length === 0 ? (
           <div className="text-center py-6">
-            <Lightning size={40} weight="duotone" className="mx-auto text-app-muted/50 mb-3" />
-            <p className="text-[13px] text-app-muted">
+            <Lightning size={40} weight="duotone" className="mx-auto text-t-text-muted/50 mb-3" />
+            <p className="text-caption text-t-text-muted">
               {ui.noRecentActivity || 'Start practicing to see your activity here'}
             </p>
             <button
               onClick={goToQuiz}
-              className="mt-4 px-5 py-2.5 bg-app-green text-app-bg rounded-xl font-bold text-[13px]"
+              className="mt-4 px-5 py-2.5 bg-t-primary text-t-text-inverse rounded-xl font-semibold text-caption active:scale-[0.97] transition-transform"
             >
               {ui.startPracticing || 'Start Practicing'}
             </button>
@@ -278,13 +278,13 @@ const RecentActivityItem: React.FC<{ item: any; ui: any }> = ({ item, ui }) => {
   }
 
   return (
-    <div className="flex items-center gap-3 py-2.5 px-3 bg-white/[0.02] rounded-xl border border-white/[0.03]">
-      <div className="w-9 h-9 rounded-xl bg-white/[0.04] flex items-center justify-center flex-shrink-0">
+    <div className="flex items-center gap-3 py-2.5 px-3 bg-t-surface-hover/50 rounded-xl border border-t-border">
+      <div className="w-9 h-9 rounded-xl bg-t-surface-hover flex items-center justify-center flex-shrink-0">
         {getIcon()}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[13px] font-semibold text-app-text truncate">{getLabel()}</div>
-        <div className="text-[11px] text-app-muted flex items-center gap-2">
+        <div className="text-caption font-semibold text-t-text truncate">{getLabel()}</div>
+        <div className="text-micro text-t-text-muted flex items-center gap-2">
           <span>{item.subject}</span>
           {item.difficulty && <span>· {item.difficulty}</span>}
           {timeAgo() && <span>· {timeAgo()}</span>}

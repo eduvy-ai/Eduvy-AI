@@ -14,5 +14,8 @@ export {
   TOUCH, LAYOUT, ds,
 } from './design'
 
+// New theme tokens (CSS variable-based light/dark system)
+export { THEME, TYPOGRAPHY, DURATION, EASING, Z_INDEX } from './theme'
+
 // Re-export existing appConstants
 export * from './appConstants'

@@ -1,7 +1,8 @@
 // ─── Modal Component ──────────────────────────────────────────
-// Reusable modal dialog
+// Accessible modal with focus trapping and theme tokens
 
-import React, { useEffect, useCallback } from 'react'
+import React, { useEffect, useCallback, useRef } from 'react'
+import { X } from '@phosphor-icons/react'
 
 interface ModalProps {
   isOpen: boolean
@@ -27,27 +28,55 @@ const Modal: React.FC<ModalProps> = ({
   size = 'md',
   showCloseButton = true,
 }) => {
-  // Handle escape key
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const previousFocus = useRef<HTMLElement | null>(null)
+
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose()
-      }
+      if (e.key === 'Escape') onClose()
     },
     [onClose]
   )
 
+  // Focus trap
+  const handleTab = useCallback((e: KeyboardEvent) => {
+    if (e.key !== 'Tab' || !dialogRef.current) return
+    const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )
+    if (focusable.length === 0) return
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault()
+      last.focus()
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault()
+      first.focus()
+    }
+  }, [])
+
   useEffect(() => {
     if (isOpen) {
+      previousFocus.current = document.activeElement as HTMLElement
       document.addEventListener('keydown', handleEscape)
+      document.addEventListener('keydown', handleTab)
       document.body.style.overflow = 'hidden'
+      // Auto-focus the dialog
+      requestAnimationFrame(() => {
+        const firstFocusable = dialogRef.current?.querySelector<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+        firstFocusable?.focus()
+      })
     }
-
     return () => {
       document.removeEventListener('keydown', handleEscape)
-      document.body.style.overflow = 'unset'
+      document.removeEventListener('keydown', handleTab)
+      document.body.style.overflow = ''
+      previousFocus.current?.focus()
     }
-  }, [isOpen, handleEscape])
+  }, [isOpen, handleEscape, handleTab])
 
   if (!isOpen) return null
 
@@ -55,33 +84,40 @@ const Modal: React.FC<ModalProps> = ({
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-[var(--t-overlay)] backdrop-blur-sm animate-fade-in"
         onClick={onClose}
+        aria-hidden="true"
       />
 
-      {/* Modal Content */}
+      {/* Dialog */}
       <div
-        className={`relative bg-app-card rounded-2xl border border-app-border w-full ${sizeClasses[size]} max-h-[85dvh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200`}
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className={`relative bg-t-surface rounded-2xl border border-t-border w-full ${sizeClasses[size]}
+          max-h-[85dvh] overflow-y-auto shadow-soft-xl animate-scale-in`}
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-4 border-b border-app-border">
+          <div className="flex items-center justify-between p-5 pb-0">
             {title && (
-              <h2 className="text-lg font-bold text-app-text">{title}</h2>
+              <h2 className="text-h2 text-t-text">{title}</h2>
             )}
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="text-app-muted hover:text-app-text transition-colors text-xl bg-transparent border-none cursor-pointer p-1"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-t-text-muted hover:text-t-text hover:bg-t-surface-hover transition-colors ml-auto"
+                aria-label="Close dialog"
               >
-                ✕
+                <X size={18} weight="bold" />
               </button>
             )}
           </div>
         )}
 
         {/* Body */}
-        <div className="p-4">{children}</div>
+        <div className="p-5">{children}</div>
       </div>
     </div>
   )

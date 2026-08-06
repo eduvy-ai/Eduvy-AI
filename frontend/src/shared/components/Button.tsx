@@ -1,5 +1,5 @@
 // ─── Button Component ─────────────────────────────────────────
-// Reusable button with variants
+// Reusable button with variants — uses new design system tokens
 
 import React from 'react'
 
@@ -16,17 +16,17 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-gradient-to-br from-app-green to-app-blue text-app-bg hover:opacity-90',
-  secondary: 'bg-app-card2 text-app-text border border-app-border hover:border-app-green/30',
-  outline: 'bg-transparent text-app-green border border-app-green/50 hover:bg-app-green/10',
-  ghost: 'bg-transparent text-app-text hover:bg-app-card2',
-  danger: 'bg-app-red/20 text-app-red border border-app-red/30 hover:bg-app-red/30',
+  primary:   'bg-t-primary hover:bg-t-primary-hover text-t-text-inverse shadow-[0_2px_8px_rgba(16,185,129,0.2)]',
+  secondary: 'bg-t-surface-hover text-t-text border border-t-border hover:border-t-border-strong hover:bg-t-surface-active',
+  outline:   'bg-transparent text-t-primary border border-t-primary/40 hover:bg-[var(--t-primary-light)] hover:border-t-primary/60',
+  ghost:     'bg-transparent text-t-text-secondary hover:bg-t-surface-hover hover:text-t-text',
+  danger:    'bg-[var(--t-danger-light)] text-t-danger border border-t-danger/20 hover:bg-t-danger/20',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'py-2 px-3 text-xs',
-  md: 'py-2.5 px-4 text-sm',
-  lg: 'py-3.5 px-6 text-[15px]',
+  sm: 'py-2 px-3.5 text-caption gap-1.5',
+  md: 'py-2.5 px-5 text-body-sm gap-2',
+  lg: 'py-3.5 px-6 text-body gap-2.5',
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -41,12 +41,13 @@ const Button: React.FC<ButtonProps> = ({
   className = '',
   ...props
 }) => {
-  const baseClasses = 'rounded-xl border-none font-bold cursor-pointer transition-all duration-150 flex items-center justify-center gap-2 font-[Sora,sans-serif]'
-  const disabledClasses = 'opacity-50 cursor-not-allowed'
-
   return (
     <button
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${fullWidth ? 'w-full' : ''} ${disabled || isLoading ? disabledClasses : ''} ${className}`}
+      className={`rounded-xl font-semibold transition-all duration-150 flex items-center justify-center active:scale-[0.97]
+        ${variantClasses[variant]} ${sizeClasses[size]}
+        ${fullWidth ? 'w-full' : ''}
+        ${disabled || isLoading ? 'opacity-50 cursor-not-allowed pointer-events-none' : 'cursor-pointer'}
+        ${className}`}
       disabled={disabled || isLoading}
       {...props}
     >
@@ -54,9 +55,9 @@ const Button: React.FC<ButtonProps> = ({
         <span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
       ) : (
         <>
-          {leftIcon && <span>{leftIcon}</span>}
+          {leftIcon && <span className="shrink-0">{leftIcon}</span>}
           {children}
-          {rightIcon && <span>{rightIcon}</span>}
+          {rightIcon && <span className="shrink-0">{rightIcon}</span>}
         </>
       )}
     </button>

@@ -1,8 +1,9 @@
 // ─── Login Page ───────────────────────────────────────────────
-// Login form with email and password
+// Premium mobile-first login form
 
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Eye, EyeSlash, EnvelopeSimple, Lock } from '@phosphor-icons/react'
 import { useAuth } from '../hooks'
 import AuthLayout from '../../../layouts/AuthLayout'
 import Button from '../../../shared/components/Button'
@@ -29,7 +30,6 @@ const Login: React.FC = () => {
     if (result.meta.requestStatus === 'fulfilled') {
       const payload = result.payload as { is_admin?: boolean; token?: string }
       if (payload?.is_admin) {
-        // Store admin token and redirect to admin dashboard
         localStorage.setItem('eduvyai_admin_token', payload.token || '')
         navigate('/admin/dashboard')
       } else {
@@ -46,15 +46,15 @@ const Login: React.FC = () => {
 
   return (
     <AuthLayout>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         {/* Tab Toggle */}
-        <div className="flex gap-1 bg-app-card2 rounded-xl p-1 mb-2">
-          <div className="flex-1 py-2.5 rounded-lg bg-gradient-to-br from-app-green/20 to-app-blue/20 text-app-text font-bold text-sm text-center ring-1 ring-app-green/50">
+        <div className="flex gap-1 bg-t-surface-2 rounded-xl p-1">
+          <div className="flex-1 py-2.5 rounded-lg bg-[var(--t-primary-light)] text-t-primary font-bold text-body-sm text-center ring-1 ring-t-primary/30">
             Login
           </div>
           <Link
             to="/auth/register"
-            className="flex-1 py-2.5 rounded-lg bg-transparent text-app-muted font-medium text-sm text-center no-underline hover:text-app-text transition-colors"
+            className="flex-1 py-2.5 rounded-lg bg-transparent text-t-text-muted font-medium text-body-sm text-center no-underline hover:text-t-text transition-colors"
           >
             Register
           </Link>
@@ -69,72 +69,60 @@ const Login: React.FC = () => {
           onChange={(e) => setEmail(e.target.value)}
           onKeyDown={handleKeyDown}
           autoComplete="email"
+          leftIcon={<EnvelopeSimple size={18} weight="duotone" />}
         />
 
         {/* Password */}
-        <div>
-          <Input
-            type={showPassword ? 'text' : 'password'}
-            label="Password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={handleKeyDown}
-            autoComplete="current-password"
-            rightIcon={
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="bg-transparent border-none cursor-pointer text-app-muted hover:text-app-green transition-colors"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
-                    <line x1="1" y1="1" x2="23" y2="23"/>
-                  </svg>
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                  </svg>
-                )}
-              </button>
-            }
-          />
-        </div>
+        <Input
+          type={showPassword ? 'text' : 'password'}
+          label="Password"
+          placeholder="Enter your password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={handleKeyDown}
+          autoComplete="current-password"
+          leftIcon={<Lock size={18} weight="duotone" />}
+          rightIcon={
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="bg-transparent border-none cursor-pointer text-t-text-muted hover:text-t-primary transition-colors p-0"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+            </button>
+          }
+        />
 
         {/* Error Message */}
         {error && (
-          <div className="text-xs text-app-red bg-app-red/15 rounded-lg py-2 px-3">
+          <div className="flex items-center gap-2 text-body-sm text-t-danger bg-[var(--t-danger-light)] rounded-xl py-3 px-4" role="alert">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0">
+              <circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" />
+            </svg>
             {error}
           </div>
         )}
 
         {/* Submit Button */}
         <Button type="submit" isLoading={isLoading} fullWidth size="lg">
-          {isLoading ? 'Logging in...' : 'Login'}
+          {isLoading ? 'Logging in...' : 'Continue'}
         </Button>
 
-        {/* Register Link */}
-        <div className="text-center text-sm text-app-muted">
-          Don't have an account?{' '}
-          <Link to="/auth/register" className="text-app-green font-semibold no-underline hover:underline">
-            Create account
-          </Link>
+        {/* Divider */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-t-border" />
+          <span className="text-micro text-t-text-muted">or</span>
+          <div className="flex-1 h-px bg-t-border" />
         </div>
 
-        {/* Pricing Link */}
-        <div className="text-center">
-          <a
-            href="https://eduvy.co.in/#pricing"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-app-muted no-underline hover:text-app-green transition-colors"
-          >
-            View Pricing Plans →
-          </a>
-        </div>
+        {/* Register Link */}
+        <p className="text-center text-body-sm text-t-text-secondary">
+          Don't have an account?{' '}
+          <Link to="/auth/register" className="text-t-primary font-semibold no-underline hover:underline">
+            Create account
+          </Link>
+        </p>
       </form>
     </AuthLayout>
   )

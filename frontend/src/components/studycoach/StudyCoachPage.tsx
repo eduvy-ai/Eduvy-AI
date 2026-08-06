@@ -196,52 +196,54 @@ export default function StudyCoachPage() {
   }, [setMode, setResponse])
 
   return (
-    <div className="bg-app-bg text-app-text p-4 pb-6 md:p-6">
+    <div className="bg-t-bg text-t-text p-4 pb-6 md:p-6">
       <div className="max-w-4xl mx-auto space-y-5">
         {/* Header */}
         <header className="text-center space-y-1 relative">
           {/* History Button */}
           <button
             onClick={() => setShowHistory(true)}
-            className="absolute right-0 top-0 w-10 h-10 flex items-center justify-center rounded-xl bg-app-card2 border border-app-border text-app-muted hover:text-app-green hover:border-app-green/30 transition-colors"
+            className="absolute right-0 top-0 w-10 h-10 flex items-center justify-center rounded-xl bg-t-surface border border-t-border text-t-text-muted hover:text-t-primary hover:border-t-primary/30 transition-colors"
             title={ui.coachHistory || 'Learning History'}
+            aria-label="Learning History"
           >
             <ClockCounterClockwise size={20} weight="duotone" />
           </button>
           
-          <h1 className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-app-green to-emerald-400 bg-clip-text text-transparent">
+          <h1 className="text-h1 md:text-display font-extrabold bg-gradient-to-r from-[var(--t-primary)] to-emerald-400 bg-clip-text text-transparent">
             {ui.coachTitle}
           </h1>
-          <p className="text-app-muted text-sm">
+          <p className="text-t-text-muted text-body-sm">
             {ui.coachSubtitle}
           </p>
         </header>
 
         {/* Chapter Context Banner */}
         {activeChapter && activeChapter.chapterName && (
-          <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-3 flex items-center justify-between">
+          <div className="bg-t-accent/10 border border-t-accent/25 rounded-xl p-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                <BookOpen size={18} className="text-purple-400" weight="duotone" />
+              <div className="w-9 h-9 rounded-lg bg-t-accent/15 flex items-center justify-center">
+                <BookOpen size={18} className="text-t-accent" weight="duotone" />
               </div>
               <div>
-                <p className="text-[11px] text-purple-400 font-medium uppercase tracking-wide">
+                <p className="text-micro text-t-accent font-medium uppercase tracking-wide">
                   {ui.learningAbout || 'Learning about'}
                 </p>
-                <p className="text-[13px] text-app-text font-semibold line-clamp-1">
+                <p className="text-caption text-t-text font-semibold line-clamp-1">
                   {activeChapter.chapterName}
                   {activeChapter.subject && (
-                    <span className="text-app-muted font-normal"> • {activeChapter.subject}</span>
+                    <span className="text-t-text-muted font-normal"> • {activeChapter.subject}</span>
                   )}
                 </p>
               </div>
             </div>
             <button
               onClick={handleClearChapterContext}
-              className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
+              className="w-8 h-8 rounded-lg bg-t-surface-hover flex items-center justify-center hover:bg-t-surface-active transition-colors"
               title={ui.clearContext || 'Clear chapter context'}
+              aria-label="Clear chapter context"
             >
-              <X size={14} className="text-app-muted" />
+              <X size={14} className="text-t-text-muted" />
             </button>
           </div>
         )}
@@ -260,11 +262,12 @@ export default function StudyCoachPage() {
 
         {/* Error Display */}
         {error && (
-          <div className="bg-app-red/15 border border-app-red/30 rounded-xl p-4 flex justify-between items-center">
-            <span className="text-app-red">{error}</span>
+          <div className="bg-[var(--t-danger-light)] border border-t-danger/25 rounded-xl p-4 flex justify-between items-center">
+            <span className="text-t-danger text-body-sm">{error}</span>
             <button
               onClick={dismissError}
-              className="text-app-red hover:opacity-80 transition-opacity"
+              className="text-t-danger hover:opacity-80 transition-opacity"
+              aria-label="Dismiss error"
             >
               ✕
             </button>
@@ -283,7 +286,7 @@ export default function StudyCoachPage() {
               {mode !== 'study_coach_wellness' && (
                 <button
                   onClick={() => setShowTeacherMode(true)}
-                  className="px-5 py-2 bg-gradient-to-r from-app-green to-emerald-500 hover:from-app-green/90 hover:to-emerald-500/90 rounded-full text-sm text-white font-semibold shadow-lg shadow-app-green/20 transition-all flex items-center gap-2"
+                  className="px-5 py-2.5 bg-t-primary hover:bg-t-primary-hover rounded-full text-body-sm text-t-text-inverse font-semibold shadow-[0_4px_12px_rgba(16,185,129,0.2)] transition-all active:scale-[0.97] flex items-center gap-2"
                 >
                   {ui.teacherMode}
                 </button>
@@ -292,7 +295,7 @@ export default function StudyCoachPage() {
               {/* New Question Button */}
               <button
                 onClick={handleNewQuestion}
-                className="px-5 py-2 bg-app-card2 border border-app-border hover:border-app-green/30 rounded-full text-sm text-app-muted hover:text-app-green transition-colors"
+                className="px-5 py-2.5 bg-t-surface border border-t-border hover:border-t-primary/30 rounded-full text-body-sm text-t-text-muted hover:text-t-primary transition-colors active:scale-[0.97]"
               >
                 {ui.askNewQuestion}
               </button>
