@@ -139,7 +139,7 @@ export default function MentalLab({ profile, addXp, onBack }) {
         <button
           onClick={() => sendMessage()}
           disabled={loading || !input.trim()}
-          className="w-11 h-11 shrink-0 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 text-app-bg text-lg font-extrabold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-11 h-11 shrink-0 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 text-app-contrast text-lg font-extrabold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           ↑
         </button>

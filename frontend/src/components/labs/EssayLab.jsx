@@ -90,7 +90,7 @@ export default function EssayLab({ profile, addXp, onBack }) {
         <button
           onClick={grade}
           disabled={loading || writing.trim().length < 30}
-          className="w-full py-3 px-4 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 text-app-bg text-[13px] font-extrabold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+          className="w-full py-3 px-4 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 text-app-contrast text-[13px] font-extrabold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
         >
           {loading ? ui.grading : ui.gradeMyWriting}
         </button>

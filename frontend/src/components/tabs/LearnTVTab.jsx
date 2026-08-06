@@ -399,7 +399,7 @@ export default function LearnTVTab({ profile }) {
             <button key={m.key} onClick={() => setMode(m.key)}
               className={`flex-1 border-none rounded-xl py-2.5 px-1.5 text-[12px] cursor-pointer transition-all flex items-center justify-center gap-1 ${
                 mode === m.key
-                  ? 'bg-gradient-to-br from-app-green to-[#00D68F] text-app-bg font-extrabold'
+                  ? 'bg-gradient-to-br from-app-green to-[#00D68F] text-app-contrast font-extrabold'
                   : 'bg-transparent text-app-muted font-medium hover:text-app-text'
               }`}>
               <Icon size={13} weight={mode === m.key ? 'fill' : 'regular'} /> {m.label}
@@ -754,14 +754,14 @@ export default function LearnTVTab({ profile }) {
                           />
                           {/* Gradient + play button */}
                           <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 40%, transparent 70%)' }}>
-                            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-app-green to-['#00D68F'] flex items-center justify-center text-app-bg shadow-[0_2px_16px_rgba(0,0,0,0.5)]"><Play size={17} weight="fill" /></div>
+                            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-app-green to-['#00D68F'] flex items-center justify-center text-app-contrast shadow-[0_2px_16px_rgba(0,0,0,0.5)]"><Play size={17} weight="fill" /></div>
                           </div>
                           {/* Duration badge */}
                           {v.duration > 0 && (
                             <div className="absolute bottom-2 right-2 bg-black/[0.72] rounded-md px-1.5 py-0.5 text-[9px] font-bold text-white">{fmtDuration(v.duration)}</div>
                           )}
                           {/* Channel badge */}
-                          <div className="absolute bottom-2 left-2 bg-app-green/[0.8] rounded-md px-1.5 py-0.5 text-[8px] font-bold text-app-bg max-w-[65%] overflow-hidden text-ellipsis truncate">{v.channel}</div>
+                          <div className="absolute bottom-2 left-2 bg-app-green/[0.8] rounded-md px-1.5 py-0.5 text-[8px] font-bold text-app-contrast max-w-[65%] overflow-hidden text-ellipsis truncate">{v.channel}</div>
                         </div>
                       )}
 
@@ -1209,7 +1209,7 @@ export default function LearnTVTab({ profile }) {
 
 // ── Styles ──────────────────────────────────────────────────
 const inputCls = "flex-1 bg-app-card2 border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-app-text text-[13px] outline-none focus:border-app-green/40 transition-colors placeholder:text-app-muted"
-const pBtnCls = "w-full bg-gradient-to-br from-app-green to-[#00D68F] text-app-bg border-none rounded-xl px-4 py-3 text-[13px] font-extrabold cursor-pointer disabled:opacity-60 active:scale-[0.99] transition-all"
+const pBtnCls = "w-full bg-gradient-to-br from-app-green to-[#00D68F] text-app-contrast border-none rounded-xl px-4 py-3 text-[13px] font-extrabold cursor-pointer disabled:opacity-60 active:scale-[0.99] transition-all"
 const cardCls = "bg-app-card border border-app-border rounded-2xl px-4 py-3.5"
 const labelCls = "block text-[11px] font-bold text-app-muted mb-1.5 tracking-[0.05em]"
 const sectionTitleCls = "text-[13px] font-bold text-app-green mb-2"

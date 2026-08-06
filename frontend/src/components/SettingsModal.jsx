@@ -128,7 +128,7 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
                 onClick={() => setActiveTab(key)}
                 className={`flex-1 border-none rounded-[9px] py-2 px-2 text-xs cursor-pointer font-[Sora,sans-serif] ${
                   activeTab === key 
-                    ? 'bg-gradient-to-br from-app-green to-emerald-500 font-extrabold text-app-bg' 
+                    ? 'bg-gradient-to-br from-app-green to-emerald-500 font-extrabold text-app-contrast' 
                     : 'bg-transparent font-medium text-app-muted'
                 }`}
               >{label}</button>
@@ -171,7 +171,7 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
                 <label className={labelClass}>{ui.schoolName}</label>
                 <input className={inputClass} type="text" value={pSchool} onChange={e => setPSchool(e.target.value)} placeholder={ui.schoolPlaceholder} maxLength={100} />
               </div>
-              <button onClick={saveProfile} disabled={profileSaving} className="w-full bg-gradient-to-br from-app-green to-emerald-500 text-app-bg border-none rounded-xl py-3 px-4 text-sm font-extrabold cursor-pointer font-[Sora,sans-serif] disabled:opacity-60">
+              <button onClick={saveProfile} disabled={profileSaving} className="w-full bg-gradient-to-br from-app-green to-emerald-500 text-app-contrast border-none rounded-xl py-3 px-4 text-sm font-extrabold cursor-pointer font-[Sora,sans-serif] disabled:opacity-60">
                 {profileSaving ? 'Saving...' : profileSaved ? <><CheckCircle size={14} weight="fill" className="inline" /> {ui.saved}</> : profileError ? <><XCircle size={14} weight="fill" className="inline" /> {ui.saveFailed}</> : ui.saveProfile}
               </button>
               {profileError && <p className="text-app-red text-[11px] mt-1 mb-0">{profileError}</p>}
@@ -244,7 +244,7 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
                 {profile?.plan !== 'premium' && (
                   <button
                     onClick={() => setShowUpgrade(true)}
-                    className="w-full py-3 rounded-[14px] mt-1 bg-gradient-to-br from-app-green to-app-blue border-none text-app-bg text-sm font-black cursor-pointer font-[Sora,sans-serif]"
+                    className="w-full py-3 rounded-[14px] mt-1 bg-gradient-to-br from-app-green to-app-blue border-none text-app-contrast text-sm font-black cursor-pointer font-[Sora,sans-serif]"
                   >
                     <ArrowUp size={14} weight="bold" className="inline" /> {ui.upgradePlan}
                   </button>

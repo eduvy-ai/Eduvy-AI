@@ -181,7 +181,7 @@ export default function LandingPage() {
         <div className="lp-container flex items-center justify-between py-3.5 px-4">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-app-green to-emerald-400 flex items-center justify-center shadow-[0_0_14px_rgba(0,229,160,0.27)]">
-              <GraduationCap size={18} weight="fill" className="text-app-bg" />
+              <GraduationCap size={18} weight="fill" className="text-app-contrast" />
             </div>
             <span className="text-lg font-black tracking-tight">
               Eduvy<span className="text-app-green">-AI</span>
@@ -199,7 +199,7 @@ export default function LandingPage() {
             </button>
             <button 
               onClick={() => navigate('/auth')} 
-              className="bg-gradient-to-br from-app-green to-emerald-400 border-none rounded-xl py-2 px-4 text-app-bg text-sm font-extrabold cursor-pointer"
+              className="bg-gradient-to-br from-app-green to-emerald-400 border-none rounded-xl py-2 px-4 text-app-contrast text-sm font-extrabold cursor-pointer"
             >
               Get Started Free
             </button>
@@ -243,7 +243,7 @@ export default function LandingPage() {
           <div className="flex gap-3 flex-wrap justify-center">
             <button 
               onClick={() => navigate('/auth')} 
-              className="bg-gradient-to-br from-app-green to-emerald-400 border-none rounded-xl py-4 px-10 text-app-bg text-base font-black cursor-pointer shadow-[0_0_32px_rgba(0,229,160,0.27)]"
+              className="bg-gradient-to-br from-app-green to-emerald-400 border-none rounded-xl py-4 px-10 text-app-contrast text-base font-black cursor-pointer shadow-[0_0_32px_rgba(0,229,160,0.27)]"
             >
               Start Learning Free <RocketLaunch size={16} weight="fill" className="inline" />
             </button>
@@ -396,7 +396,7 @@ export default function LandingPage() {
       <section className="pt-[72px] pb-20">
         <div className="lp-container flex flex-col items-center gap-5 text-center">
           <div className="w-[72px] h-[72px] rounded-2xl bg-gradient-to-br from-app-green to-emerald-400 flex items-center justify-center shadow-[0_0_32px_rgba(0,229,160,0.27)]">
-            <GraduationCap size={36} weight="fill" className="text-app-bg" />
+            <GraduationCap size={36} weight="fill" className="text-app-contrast" />
           </div>
           <h2 className="text-[clamp(22px,3vw,30px)] font-black tracking-tight m-0">
             Ready to start learning?
@@ -406,7 +406,7 @@ export default function LandingPage() {
           </p>
           <button 
             onClick={() => navigate('/auth')} 
-            className="bg-gradient-to-br from-app-green to-emerald-400 border-none rounded-xl py-4 px-[52px] text-app-bg text-base font-black cursor-pointer shadow-[0_0_30px_rgba(0,229,160,0.27)] max-sm:px-6"
+            className="bg-gradient-to-br from-app-green to-emerald-400 border-none rounded-xl py-4 px-[52px] text-app-contrast text-base font-black cursor-pointer shadow-[0_0_30px_rgba(0,229,160,0.27)] max-sm:px-6"
           >
             Create Free Account <RocketLaunch size={16} weight="fill" className="inline" />
           </button>

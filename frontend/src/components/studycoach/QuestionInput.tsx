@@ -193,7 +193,7 @@ export default function QuestionInput({
           className="
             w-10 h-10 rounded-xl
             bg-gradient-to-br from-app-green to-emerald-400
-            text-app-bg font-bold
+            text-app-contrast font-bold
             flex items-center justify-center
             hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed
             transition-opacity duration-200

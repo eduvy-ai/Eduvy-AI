@@ -42,6 +42,17 @@
   --t-amber:            #FBBF24;
   --t-amber-light:      rgba(251, 191, 36, 0.14);
 
+  /* RGB channels for Tailwind opacity modifiers (e.g. bg-app-green/20) */
+  --app-bg-rgb:      13 13 31;
+  --app-card-rgb:    26 26 58;
+  --app-card2-rgb:   32 32 72;
+  --app-green-rgb:   0 245 160;
+  --app-yellow-rgb:  251 191 36;
+  --app-red-rgb:     255 92 92;
+  --app-blue-rgb:    96 165 250;
+  --app-text-rgb:    255 255 255;
+  --app-muted-rgb:   120 120 168;
+
   /* Status */
   --t-success:          #00F5A0;
   --t-success-light:    rgba(0, 245, 160, 0.12);
@@ -91,6 +102,17 @@
   --t-shadow-md:  0 4px 12px rgba(100,60,180,0.08);
   --t-shadow-lg:  0 8px 24px rgba(100,60,180,0.10);
   --t-shadow-xl:  0 16px 40px rgba(100,60,180,0.12);
+
+  /* Light mode RGB channels */
+  --app-bg-rgb:      245 243 255;
+  --app-card-rgb:    255 255 255;
+  --app-card2-rgb:   250 250 254;
+  --app-green-rgb:   5 150 105;
+  --app-yellow-rgb:  217 119 6;
+  --app-red-rgb:     220 38 38;
+  --app-blue-rgb:    37 99 235;
+  --app-text-rgb:    26 16 64;
+  --app-muted-rgb:   139 127 176;
   --t-gradient-hero: linear-gradient(160deg, rgba(5,150,105,0.04), transparent 40%, rgba(168,85,247,0.04));
 }
 
@@ -100,12 +122,14 @@
 @layer components {
   /* Inputs & Selects */
   .input-base {
-    @apply w-full bg-app-card2 border border-white/10 rounded-xl py-3 px-3.5 text-app-text text-sm outline-none focus:ring-1 focus:ring-app-green/50;
+    @apply w-full bg-app-card2 border border-white/10 rounded-xl py-3 px-3.5 text-app-text text-sm outline-none;
+    &:focus { box-shadow: 0 0 0 2px var(--t-primary-light); }
   }
   
   /* Primary gradient button */
   .btn-primary {
-    @apply w-full py-3.5 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 text-app-bg font-bold text-[15px] cursor-pointer hover:opacity-90 disabled:opacity-60;
+    @apply w-full py-3.5 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 font-bold text-[15px] cursor-pointer hover:opacity-90 disabled:opacity-60;
+    color: var(--t-text-inverse);
   }
   
   /* Secondary/ghost button */
@@ -130,7 +154,9 @@
   
   /* Error message */
   .error-msg {
-    @apply text-xs text-app-red bg-app-red/15 rounded-lg py-2 px-3;
+    @apply text-xs rounded-lg py-2 px-3;
+    color: var(--t-danger);
+    background: var(--t-danger-light);
   }
   
   /* Tag/pill */
@@ -138,15 +164,20 @@
     @apply py-1.5 px-3 rounded-full text-xs font-medium;
   }
   .tag-green {
-    @apply bg-app-green/20 text-app-green border border-app-green/40;
+    @apply text-app-green py-1.5 px-3 rounded-full text-xs font-medium;
+    background: var(--t-success-light);
+    border: 1px solid rgba(0, 245, 160, 0.3);
   }
   .tag-blue {
-    @apply bg-app-blue/15 text-app-blue border border-app-blue/30;
+    @apply text-app-blue py-1.5 px-3 rounded-full text-xs font-medium;
+    background: var(--t-info-light);
+    border: 1px solid rgba(96, 165, 250, 0.25);
   }
 
   /* HomeTab / Tab-specific buttons */
   .primary-btn {
-    @apply w-full py-3 px-[18px] rounded-[13px] border-none bg-gradient-to-br from-app-green to-[#33cc88] text-app-bg text-[13px] font-extrabold cursor-pointer font-[Sora,sans-serif];
+    @apply w-full py-3 px-[18px] rounded-[13px] border-none bg-gradient-to-br from-app-green to-[#00D68F] text-[13px] font-extrabold cursor-pointer font-[Sora,sans-serif];
+    color: var(--t-text-inverse);
   }
   
   .ghost-btn {
@@ -159,7 +190,8 @@
   
   /* Tutor chat bubbles */
   .user-bubble {
-    @apply self-end bg-gradient-to-br from-app-green to-[#33cc88] text-app-bg font-semibold rounded-[14px] rounded-br-[3px] py-2.5 px-3 max-w-[88%] text-[13px] leading-normal break-words;
+    @apply self-end bg-gradient-to-br from-app-green to-[#00D68F] font-semibold rounded-[14px] rounded-br-[3px] py-2.5 px-3 max-w-[88%] text-[13px] leading-normal break-words;
+    color: var(--t-text-inverse);
   }
   
   .ai-bubble {

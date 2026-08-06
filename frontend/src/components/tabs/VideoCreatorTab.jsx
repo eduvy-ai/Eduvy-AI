@@ -387,8 +387,8 @@ function Stepper({ current }) {
           <div
             className={`
               flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold transition-colors
-              ${i < current ? 'bg-app-green text-app-bg'
-                : i === current ? 'bg-app-green text-app-bg ring-2 ring-app-green/40'
+              ${i < current ? 'bg-app-green text-app-contrast'
+                : i === current ? 'bg-app-green text-app-contrast ring-2 ring-app-green/40'
                 : 'bg-app-card2 text-app-muted border border-app-border'}
             `}
           >
@@ -707,7 +707,7 @@ function LibraryPanel({ library, loading, onDelete, onPlay, ui }) {
             </div>
             <button
               onClick={() => onPlay(v)}
-              className="text-xs px-2 py-1 bg-app-green text-app-bg rounded-lg hover:opacity-80 transition-colors font-semibold"
+              className="text-xs px-2 py-1 bg-app-green text-app-contrast rounded-lg hover:opacity-80 transition-colors font-semibold"
             >
               ▶ Play
             </button>

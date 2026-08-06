@@ -49,7 +49,7 @@ export default function VideoPlayer({ videoUrl, thumbUrl, title, shareUrl, onSha
           <a
             href={videoUrl}
             download={`${title || 'video'}.mp4`}
-            className="flex items-center gap-2 px-4 py-2 bg-app-green text-app-bg text-sm rounded-lg hover:opacity-80 transition-colors font-semibold"
+            className="flex items-center gap-2 px-4 py-2 bg-app-green text-app-contrast text-sm rounded-lg hover:opacity-80 transition-colors font-semibold"
           >
             {ui.downloadMp4 || '⬇️ Download MP4'}
           </a>

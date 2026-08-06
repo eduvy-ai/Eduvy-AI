@@ -119,7 +119,7 @@ const ChapterDetailPage: React.FC = () => {
         </p>
         <button
           onClick={() => navigate('/app/learn')}
-          className="px-5 py-2.5 bg-app-green text-app-bg rounded-xl font-bold text-[14px]"
+          className="px-5 py-2.5 bg-app-green text-app-contrast rounded-xl font-bold text-[14px]"
         >
           {ui.backToLearn || 'Back to Learn'}
         </button>
@@ -809,7 +809,7 @@ Return ONLY a valid JSON object with "summary" (string) and "keyPoints" (array o
           <button
             onClick={handleSaveNote}
             disabled={!noteContent.trim()}
-            className="flex-1 py-2.5 bg-app-green text-app-bg rounded-xl text-[13px] font-bold
+            className="flex-1 py-2.5 bg-app-green text-app-contrast rounded-xl text-[13px] font-bold
                       disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <CheckCircle size={16} weight="bold" />
@@ -2168,7 +2168,7 @@ Return ONLY a valid JSON array starting with [ and ending with ]. Each flashcard
           </button>
           <button
             onClick={nextCard}
-            className="flex-1 py-2.5 bg-app-yellow text-app-bg rounded-xl text-[12px] font-bold
+            className="flex-1 py-2.5 bg-app-yellow text-app-contrast rounded-xl text-[12px] font-bold
                       flex items-center justify-center gap-1"
           >
             Next <ArrowLeft size={14} className="rotate-180" />
@@ -2267,7 +2267,7 @@ Return ONLY a valid JSON array starting with [ and ending with ]. Each flashcard
               onClick={() => setCardCount(count)}
               className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all
                         ${cardCount === count 
-                          ? 'bg-app-yellow text-app-bg' 
+                          ? 'bg-app-yellow text-app-contrast' 
                           : 'bg-white/[0.04] text-app-muted hover:text-app-text'}`}
             >
               {count}
@@ -2283,7 +2283,7 @@ Return ONLY a valid JSON array starting with [ and ending with ]. Each flashcard
         <button
           onClick={generateFlashcards}
           disabled={loading}
-          className="px-5 py-2.5 bg-app-yellow text-app-bg rounded-xl font-bold text-[13px]
+          className="px-5 py-2.5 bg-app-yellow text-app-contrast rounded-xl font-bold text-[13px]
                     flex items-center gap-2 mx-auto disabled:opacity-50"
         >
           <Sparkle size={16} weight="bold" />
@@ -3200,7 +3200,7 @@ Return ONLY a single JSON object. The question, options, explanation must all be
         <div className="flex gap-2">
           <button
             onClick={resetQuiz}
-            className="flex-1 bg-gradient-to-r from-app-green to-[#00D68F] text-app-bg text-[12px] font-bold rounded-xl py-2.5
+            className="flex-1 bg-gradient-to-r from-app-green to-[#00D68F] text-app-contrast text-[12px] font-bold rounded-xl py-2.5
                       active:scale-[0.99] transition-all flex items-center justify-center gap-1.5"
           >
             <ArrowCounterClockwise size={14} weight="bold" />
@@ -3298,7 +3298,7 @@ Return ONLY a single JSON object. The question, options, explanation must all be
                 }
               }}
               disabled={loading}
-              className="w-full bg-app-green text-app-bg text-[13px] font-bold rounded-xl py-2.5
+              className="w-full bg-app-green text-app-contrast text-[13px] font-bold rounded-xl py-2.5
                         disabled:opacity-50 active:scale-[0.99] transition-all"
             >
               {loading

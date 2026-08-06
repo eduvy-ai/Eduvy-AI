@@ -391,7 +391,7 @@ Return ONLY this JSON format:
 
           {/* Start Button */}
           <button onClick={startQuiz} disabled={loading}
-            className="w-full bg-gradient-to-r from-app-green to-[#00D68F] text-app-bg text-[14px] font-extrabold rounded-xl py-3.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] transition-all flex items-center justify-center gap-2">
+            className="w-full bg-gradient-to-r from-app-green to-[#00D68F] text-app-contrast text-[14px] font-extrabold rounded-xl py-3.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] transition-all flex items-center justify-center gap-2">
             {loading ? (
               <>{ui.generatingQ || 'Generating...'}</>
             ) : (
@@ -501,7 +501,7 @@ Return ONLY this JSON format:
               {ui.exitLab || 'Exit'}
             </button>
             <button onClick={resetQuiz}
-              className="flex-1 bg-gradient-to-r from-app-green to-[#00D68F] text-app-bg text-[13px] font-extrabold rounded-xl py-3 cursor-pointer active:scale-[0.99] transition-all flex items-center justify-center gap-2">
+              className="flex-1 bg-gradient-to-r from-app-green to-[#00D68F] text-app-contrast text-[13px] font-extrabold rounded-xl py-3 cursor-pointer active:scale-[0.99] transition-all flex items-center justify-center gap-2">
               <ArrowCounterClockwise size={16} weight="bold" />
               {ui.playAgain || 'Play Again'}
             </button>
@@ -618,7 +618,7 @@ Return ONLY this JSON format:
 
                 {/* Next/Finish Button */}
                 <button onClick={nextQuestion} disabled={loading}
-                  className="w-full bg-gradient-to-r from-app-green to-[#00D68F] text-app-bg text-[13px] font-extrabold rounded-xl py-3 cursor-pointer disabled:opacity-50 active:scale-[0.99] transition-all flex items-center justify-center gap-2">
+                  className="w-full bg-gradient-to-r from-app-green to-[#00D68F] text-app-contrast text-[13px] font-extrabold rounded-xl py-3 cursor-pointer disabled:opacity-50 active:scale-[0.99] transition-all flex items-center justify-center gap-2">
                   {loading ? (
                     ui.generatingQ || 'Loading...'
                   ) : currentIndex + 1 >= quizLength ? (

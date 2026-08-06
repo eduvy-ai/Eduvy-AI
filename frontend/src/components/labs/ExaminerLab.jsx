@@ -142,7 +142,7 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
         </div>
         {err && <div className="text-app-red text-[13px] mb-2.5">{err}</div>}
         <button onClick={generateQuestion} disabled={loading}
-          className="w-full bg-gradient-to-r from-app-green to-[#00c48a] text-app-bg text-[15px] font-bold rounded-2xl py-3.5 cursor-pointer disabled:opacity-50 active:scale-[0.99] transition-all">
+          className="w-full bg-gradient-to-r from-app-green to-[#00c48a] text-app-contrast text-[15px] font-bold rounded-2xl py-3.5 cursor-pointer disabled:opacity-50 active:scale-[0.99] transition-all">
           {loading ? ui.generatingQuestion : ui.generateBoardQuestion}
         </button>
       </div>
@@ -191,7 +191,7 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
         </div>
         {err && <div className="text-app-red text-[13px] mb-2.5">{err}</div>}
         <button onClick={gradeAnswer} disabled={loading}
-          className="w-full bg-gradient-to-r from-app-green to-[#00c48a] text-app-bg text-[15px] font-bold rounded-2xl py-3.5 cursor-pointer disabled:opacity-50 active:scale-[0.99] transition-all">
+          className="w-full bg-gradient-to-r from-app-green to-[#00c48a] text-app-contrast text-[15px] font-bold rounded-2xl py-3.5 cursor-pointer disabled:opacity-50 active:scale-[0.99] transition-all">
           {loading ? ui.gradingAnswer : ui.submitForGrading}
         </button>
       </div>
@@ -256,7 +256,7 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
             </div>
           )}
           <button onClick={reset}
-            className="w-full bg-gradient-to-r from-app-green to-[#00c48a] text-app-bg text-[15px] font-bold rounded-2xl py-3.5 cursor-pointer active:scale-[0.99] transition-all mt-2 flex items-center justify-center gap-2">
+            className="w-full bg-gradient-to-r from-app-green to-[#00c48a] text-app-contrast text-[15px] font-bold rounded-2xl py-3.5 cursor-pointer active:scale-[0.99] transition-all mt-2 flex items-center justify-center gap-2">
             <ArrowsClockwise size={18} weight="bold" /> Try Another Question
           </button>
         </div>

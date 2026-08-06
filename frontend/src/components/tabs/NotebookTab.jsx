@@ -1450,7 +1450,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                             ) : (
                               <button 
                                 onClick={stopPodcast} 
-                                className="flex-[2] py-3 px-[18px] rounded-[13px] border-none text-app-bg text-[13px] font-extrabold cursor-pointer font-[Sora,sans-serif] bg-gradient-to-br from-app-yellow to-[#e6b800]"
+                                className="flex-[2] py-3 px-[18px] rounded-[13px] border-none text-app-contrast text-[13px] font-extrabold cursor-pointer font-[Sora,sans-serif] bg-gradient-to-br from-app-yellow to-[#e6b800]"
                               >
                                 {ui.pauseBtn}
                               </button>
@@ -1498,7 +1498,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                       {atEnd && podcastPlaying && (
                         <button 
                           onClick={stopPodcast} 
-                          className="w-full py-3 px-[18px] rounded-[13px] border-none text-app-bg text-[13px] font-extrabold cursor-pointer font-[Sora,sans-serif] bg-gradient-to-br from-app-yellow to-[#e6b800]"
+                          className="w-full py-3 px-[18px] rounded-[13px] border-none text-app-contrast text-[13px] font-extrabold cursor-pointer font-[Sora,sans-serif] bg-gradient-to-br from-app-yellow to-[#e6b800]"
                         >
                           {ui.pauseBtn}
                         </button>

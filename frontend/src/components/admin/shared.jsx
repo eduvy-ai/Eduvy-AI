@@ -45,10 +45,10 @@ export const API = (path, opts = {}) => {
 export const inputClass = "w-full bg-app-card2 border border-white/10 rounded-xl py-2.5 px-3.5 text-app-text text-[13px] font-[Sora,sans-serif] outline-none focus:ring-1 focus:ring-app-green/40 transition-all duration-150"
 
 export const btnClass = (color = 'green') => `border-none rounded-xl py-2 px-4 text-[13px] font-bold font-[Sora,sans-serif] cursor-pointer transition-all duration-150 active:scale-95 hover:opacity-90 ${
-  color === 'green'  ? 'bg-app-green text-app-bg' :
+  color === 'green'  ? 'bg-app-green text-app-contrast' :
   color === 'red'    ? 'bg-app-red text-white' :
-  color === 'blue'   ? 'bg-app-blue text-app-bg' :
-  color === 'yellow' ? 'bg-app-yellow text-app-bg' : 'bg-app-green text-app-bg'
+  color === 'blue'   ? 'bg-app-blue text-app-contrast' :
+  color === 'yellow' ? 'bg-app-yellow text-app-contrast' : 'bg-app-green text-app-contrast'
 }`
 
 export const ghostBtnClass = "bg-transparent border border-app-border rounded-xl py-2 px-4 text-app-text text-[13px] font-semibold font-[Sora,sans-serif] cursor-pointer hover:bg-white/5 active:scale-95 transition-all duration-150"
@@ -102,7 +102,7 @@ export function Toast({ msg, type, onDone }) {
   }, [onDone])
   return (
     <div 
-      className={`fixed bottom-6 left-1/2 -translate-x-1/2 py-2.5 px-5 rounded-[10px] text-[13px] font-bold z-[9999] shadow-xl text-app-bg ${type === "error" ? "bg-app-red" : "bg-app-green"}`}
+      className={`fixed bottom-6 left-1/2 -translate-x-1/2 py-2.5 px-5 rounded-[10px] text-[13px] font-bold z-[9999] shadow-xl text-app-contrast ${type === "error" ? "bg-app-red" : "bg-app-green"}`}
     >{msg}</div>
   )
 }
@@ -271,7 +271,7 @@ export function Table({ cols, rows, onDelete, onEdit, pageSize: defaultPageSize 
                 onClick={() => setPage(p)}
                 className={`py-1 px-2.5 text-xs rounded-[7px] cursor-pointer font-[Sora,sans-serif] shrink-0 min-w-[32px] ${
                   p === page 
-                    ? 'bg-app-green text-app-bg font-bold border-none' 
+                    ? 'bg-app-green text-app-contrast font-bold border-none' 
                     : 'bg-transparent text-app-muted font-medium border border-app-border'
                 }`}
               >{p}</button>

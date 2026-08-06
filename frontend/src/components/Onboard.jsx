@@ -248,7 +248,7 @@ export default function Onboard({ onComplete }) {
               </div>
             </div>
 
-            <button onClick={goStep2} className="w-full py-3 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 text-app-bg font-extrabold text-sm cursor-pointer">
+            <button onClick={goStep2} className="w-full py-3 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 text-app-contrast font-extrabold text-sm cursor-pointer">
               {ui.next}
             </button>
           </div>
@@ -300,7 +300,7 @@ export default function Onboard({ onComplete }) {
               <button onClick={() => setStep(1)} className="bg-transparent border border-white/10 rounded-xl py-3 px-4 text-sm font-semibold text-app-text cursor-pointer">
                 ← {ui.back}
               </button>
-              <button onClick={goStep3} className="flex-1 py-3 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 text-app-bg font-extrabold text-sm cursor-pointer">
+              <button onClick={goStep3} className="flex-1 py-3 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 text-app-contrast font-extrabold text-sm cursor-pointer">
                 {ui.next}
               </button>
             </div>
@@ -378,7 +378,7 @@ export default function Onboard({ onComplete }) {
               <button
                 onClick={finish}
                 disabled={saving}
-                className={`flex-1 py-3 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 text-app-bg font-extrabold text-sm cursor-pointer ${saving ? 'opacity-60' : ''}`}
+                className={`flex-1 py-3 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 text-app-contrast font-extrabold text-sm cursor-pointer ${saving ? 'opacity-60' : ''}`}
               >
                 {saving ? `${ui.saving}...` : ui.start}
               </button>

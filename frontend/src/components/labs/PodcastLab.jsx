@@ -213,7 +213,7 @@ export default function PodcastLab({ profile, addXp, docCtx, docName, onBack }) 
             </div>
             <div className="flex flex-col gap-2.5">
               <button onClick={() => generate()} disabled={loading || !topicInput.trim()}
-                className="w-full bg-gradient-to-r from-app-green to-[#00D68F] text-app-bg text-[13px] font-extrabold rounded-xl py-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] transition-all">
+                className="w-full bg-gradient-to-r from-app-green to-[#00D68F] text-app-contrast text-[13px] font-extrabold rounded-xl py-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] transition-all">
                 {loading ? "Generating podcast�" : "??? Generate Podcast"}
               </button>
               <button onClick={fromDocument} disabled={loading}
@@ -261,7 +261,7 @@ export default function PodcastLab({ profile, addXp, docCtx, docName, onBack }) 
 
             {lineIdx < episode.exchanges.length - 1 ? (
               <button onClick={() => { cancelTTS(); setIsSpeaking(false); setLineIdx(i => i + 1) }}
-                className="w-full bg-gradient-to-r from-app-green to-[#00D68F] text-app-bg text-[13px] font-extrabold rounded-xl py-3 cursor-pointer active:scale-[0.99] transition-all">
+                className="w-full bg-gradient-to-r from-app-green to-[#00D68F] text-app-contrast text-[13px] font-extrabold rounded-xl py-3 cursor-pointer active:scale-[0.99] transition-all">
                 {autoPlaying ? '? Skip' : 'Continue ?'}
               </button>
             ) : (

@@ -150,7 +150,7 @@ export default function HelperPortal() {
                   className={`shrink-0 w-full sm:w-auto rounded-[10px] px-[18px] py-2.5 text-[13px] font-extrabold border-none cursor-pointer transition-all duration-150 ${
                     sending[s.id] || !noteText[s.id]?.trim()
                       ? 'bg-app-card2 text-app-muted cursor-not-allowed'
-                      : 'bg-gradient-to-br from-app-green to-emerald-400 text-app-bg hover:opacity-90 active:scale-95'
+                      : 'bg-gradient-to-br from-app-green to-emerald-400 text-app-contrast hover:opacity-90 active:scale-95'
                   }`}
                 >
                   {sending[s.id] ? '�' : sent[s.id] ? '? Sent!' : 'Send'}

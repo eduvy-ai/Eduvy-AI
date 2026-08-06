@@ -163,7 +163,7 @@ export default function UpgradePlanModal({ profile, onClose, onUpgraded }) {
                     <button
                       disabled={loading || !price}
                       onClick={() => handleUpgrade(plan)}
-                      className="w-full py-2.5 rounded-xl border-none text-app-bg text-[13px] font-extrabold cursor-pointer font-[Sora,sans-serif] disabled:cursor-not-allowed"
+                      className="w-full py-2.5 rounded-xl border-none text-app-contrast text-[13px] font-extrabold cursor-pointer font-[Sora,sans-serif] disabled:cursor-not-allowed"
                       style={{
                         background: loading ? `${info.color}40` : `linear-gradient(135deg, ${info.color}, ${info.color}cc)`,
                       }}

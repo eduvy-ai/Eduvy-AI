@@ -198,7 +198,7 @@ export default function AuthScreen({ onAuth }) {
               <button 
                 onClick={doLogin} 
                 disabled={loading} 
-                className={`w-full py-3.5 rounded-xl border-none bg-gradient-to-br from-app-green to-app-blue text-app-bg font-bold text-[15px] cursor-pointer
+                className={`w-full py-3.5 rounded-xl border-none bg-gradient-to-br from-app-green to-app-blue text-app-contrast font-bold text-[15px] cursor-pointer
                   ${loading ? 'opacity-70' : 'hover:opacity-90'}`}
               >
                 {loading ? ui.loggingIn : `${ui.login} →`}
@@ -277,7 +277,7 @@ export default function AuthScreen({ onAuth }) {
 
               <button 
                 onClick={goStep2} 
-                className="w-full py-3.5 rounded-xl border-none bg-gradient-to-br from-app-green to-app-blue text-app-bg font-bold text-[15px] cursor-pointer hover:opacity-90"
+                className="w-full py-3.5 rounded-xl border-none bg-gradient-to-br from-app-green to-app-blue text-app-contrast font-bold text-[15px] cursor-pointer hover:opacity-90"
               >
                 {ui.nextProfile} →
               </button>
@@ -348,7 +348,7 @@ export default function AuthScreen({ onAuth }) {
               <button 
                 onClick={doRegister} 
                 disabled={loading} 
-                className={`w-full py-3.5 rounded-xl border-none bg-gradient-to-br from-app-green to-app-blue text-app-bg font-bold text-[15px] cursor-pointer
+                className={`w-full py-3.5 rounded-xl border-none bg-gradient-to-br from-app-green to-app-blue text-app-contrast font-bold text-[15px] cursor-pointer
                   ${loading ? 'opacity-70' : 'hover:opacity-90'}`}
               >
                 {loading ? ui.creatingAccount : ui.startLearning}
