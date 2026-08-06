@@ -237,7 +237,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
               { key: "fresh",    icon: "😄", labelKey: "moodFresh",    color: '#00F5A0'  },
               { key: "okay",     icon: "😐", labelKey: "moodOkay",     color: '#60A5FA'   },
               { key: "stressed", icon: "😟", labelKey: "moodStressed", color: '#FBBF24' },
-              { key: "tired",    icon: "😴", labelKey: "moodTired",    color: '#7878A8'  },
+              { key: "tired",    icon: "😴", labelKey: "moodTired",    color: 'var(--t-text-muted)'  },
             ].map(m => (
               <button 
                 key={m.key} 

@@ -37,10 +37,10 @@ function StatusBadge({ status, isChallenger, ui }) {
     active:           { label: ui.statusActive,     color: '#60A5FA'   },
     challenger_done:  { label: isChallenger ? ui.statusWaitingOpponent : ui.statusYourTurn, color: isChallenger ? '#00F5A0' : '#F97316' },
     completed:        { label: ui.statusDone,        color: '#00F5A0'  },
-    expired:          { label: ui.statusExpired,     color: '#7878A8'  },
+    expired:          { label: ui.statusExpired,     color: 'var(--t-text-muted)'  },
     declined:         { label: ui.statusDeclined,    color: '#FF5C5C'    },
   }
-  const { label = status, color = '#7878A8' } = map[status] || {}
+  const { label = status, color = 'var(--t-text-muted)' } = map[status] || {}
   return <Badge text={label} color={color} />
 }
 
@@ -81,7 +81,7 @@ function BattleCard({ battle, onAction, myId, ui }) {
 
       <div className="flex gap-2 flex-wrap mb-2.5">
         <Badge text={battle.subject} color="#60A5FA" />
-        <Badge text={battle.difficulty} color={DIFF_COLORS[battle.difficulty] || '#7878A8'} />
+        <Badge text={battle.difficulty} color={DIFF_COLORS[battle.difficulty] || 'var(--t-text-muted)'} />
         <Badge text={`${battle.question_count || 5} Qs`} color="#7878A8" />
       </div>
 
@@ -89,7 +89,7 @@ function BattleCard({ battle, onAction, myId, ui }) {
         <div className="bg-app-card2 rounded-xl px-3 py-2 flex gap-4 mb-2.5 text-[13px]">
           <span className="text-app-text">{ui.youLabel}<strong className="text-app-green">{isChallenger ? battle.challenger_score : battle.opponent_score}</strong></span>
           <span className="text-app-text">{ui.oppLabel}<strong className="text-app-red">{isChallenger ? battle.opponent_score : battle.challenger_score}</strong></span>
-          <span style={{ color: battle.winner_id === myId ? '#FBBF24' : battle.winner_id === 'draw' ? '#7878A8' : '#FF5C5C' }}>
+          <span style={{ color: battle.winner_id === myId ? '#FBBF24' : battle.winner_id === 'draw' ? 'var(--t-text-muted)' : '#FF5C5C' }}>
             {battle.winner_id === myId ? ui.youWonShort : battle.winner_id === 'draw' ? ui.drawResult : ui.lost}
           </span>
         </div>
@@ -170,9 +170,9 @@ function CreateChallengeModal({ profile, onClose, onCreated, ui }) {
             <button key={d} onClick={() => setDifficulty(d)}
               style={{
                 flex: 1, padding: '10px',
-                background: difficulty === d ? `${DIFF_COLORS[d]}22` : '#202048',
+                background: difficulty === d ? `${DIFF_COLORS[d]}22` : 'var(--t-surface-secondary)',
                 border: `2px solid ${difficulty === d ? DIFF_COLORS[d] : 'rgba(255,255,255,0.03)'}`,
-                color: difficulty === d ? DIFF_COLORS[d] : '#7878A8',
+                color: difficulty === d ? DIFF_COLORS[d] : 'var(--t-text-muted)',
                 borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer',
               }}
             >{d}</button>
@@ -462,7 +462,7 @@ function LeaderboardView({ myId, ui }) {
           ? <EmptyMsg icon={Trophy} text={ui.noBattlesWeek} />
           : students.map(s => (
             <div key={s.id} className={`border rounded-2xl px-4 py-3 mb-2 flex items-center gap-3 ${s.is_me ? 'bg-app-yellow/5 border-app-yellow/35' : 'bg-app-card border-app-border'}`}>
-              <span className="text-lg min-w-[30px] text-center" style={{ color: s.rank === 1 ? '#FBBF24' : s.rank === 2 ? '#aaa' : s.rank === 3 ? '#cd7f32' : '#7878A8' }}>
+              <span className="text-lg min-w-[30px] text-center" style={{ color: s.rank === 1 ? '#FBBF24' : s.rank === 2 ? '#aaa' : s.rank === 3 ? '#cd7f32' : 'var(--t-text-muted)' }}>
                 {s.rank === 1 ? '??' : s.rank === 2 ? '??' : s.rank === 3 ? '??' : `#${s.rank}`}
               </span>
               <Avatar name={s.name} size={36} />
@@ -483,7 +483,7 @@ function LeaderboardView({ myId, ui }) {
           ? <EmptyMsg icon={Buildings} text={ui.addSchoolLeaderboard} />
           : schools.map(s => (
             <div key={s.school} className={`border rounded-2xl px-4 py-3 mb-2 flex items-center gap-3 ${s.is_mine ? 'bg-app-blue/5 border-app-blue/35' : 'bg-app-card border-app-border'}`}>
-              <span className="text-xl min-w-[30px] text-center" style={{ color: s.rank === 1 ? '#FBBF24' : s.rank === 2 ? '#aaa' : s.rank === 3 ? '#cd7f32' : '#7878A8' }}>
+              <span className="text-xl min-w-[30px] text-center" style={{ color: s.rank === 1 ? '#FBBF24' : s.rank === 2 ? '#aaa' : s.rank === 3 ? '#cd7f32' : 'var(--t-text-muted)' }}>
                 {s.rank === 1 ? '??' : s.rank === 2 ? '??' : s.rank === 3 ? '??' : `#${s.rank}`}
               </span>
               <div className="flex justify-center"><Buildings size={28} weight="duotone" className="text-app-blue" /></div>
@@ -837,7 +837,7 @@ export default function MuqablaTab({ profile, userId }) {
               <div className="text-[48px] mb-3 flex justify-center">
                 {quizBattle.winner_id === myId ? <Trophy size={48} weight="duotone" className="text-app-yellow" /> : quizBattle.winner_id === 'draw' ? <Handshake size={48} weight="duotone" className="text-app-blue" /> : <Barbell size={48} weight="duotone" className="text-app-text" />}
               </div>
-              <h2 className="mb-4" style={{ color: quizBattle.winner_id === myId ? '#FBBF24' : quizBattle.winner_id === 'draw' ? '#60A5FA' : '#FFFFFF' }}>
+              <h2 className="mb-4" style={{ color: quizBattle.winner_id === myId ? '#FBBF24' : quizBattle.winner_id === 'draw' ? '#60A5FA' : 'var(--t-text)' }}>
                 {quizBattle.winner_id === myId ? ui.youWonShort : quizBattle.winner_id === 'draw' ? ui.drawResult : quizBattle.status === 'waiting_for_opponent' ? ui.waitingForOpponent : ui.goodFight}
               </h2>
               <div className="bg-app-card2 rounded-2xl p-4 mb-5 flex justify-around">

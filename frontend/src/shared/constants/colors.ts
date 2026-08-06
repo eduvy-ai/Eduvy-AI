@@ -1,19 +1,18 @@
 // ─── Color Tokens ─────────────────────────────────────────────
-// Application color palette - matches Tailwind theme
-// Vibrant dark theme for students (Class 7-12)
+// CSS variable-based so they adapt to light/dark mode
 
 export const COLORS = {
-  bg: '#0D0D1F',
-  card: '#1A1A3A',
-  card2: '#202048',
-  border: '#ffffff0d',
-  green: '#00F5A0',
-  yellow: '#FBBF24',
-  red: '#FF5C5C',
-  blue: '#60A5FA',
+  bg: 'var(--t-bg)',
+  card: 'var(--t-surface)',
+  card2: 'var(--t-surface-secondary)',
+  border: 'var(--t-border)',
+  green: 'var(--t-primary)',
+  yellow: 'var(--t-amber)',
+  red: 'var(--t-danger)',
+  blue: 'var(--t-blue)',
   orange: '#F97316',
-  text: '#FFFFFF',
-  muted: '#7878A8',
+  text: 'var(--t-text)',
+  muted: 'var(--t-text-muted)',
 } as const
 
 export type ColorKey = keyof typeof COLORS

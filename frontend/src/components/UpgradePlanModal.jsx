@@ -126,7 +126,7 @@ export default function UpgradePlanModal({ profile, onClose, onUpgraded }) {
                   key={plan} 
                   className="rounded-2xl p-4"
                   style={{
-                    background: isActive ? `${info.color}12` : '#1A1A3A',
+                    background: isActive ? `${info.color}12` : 'var(--t-surface)',
                     border: `1.5px solid ${isActive ? info.color + '50' : '#ffffff08'}`,
                     opacity: isLower ? 0.5 : 1,
                   }}
@@ -134,7 +134,7 @@ export default function UpgradePlanModal({ profile, onClose, onUpgraded }) {
                   <div className="flex items-center gap-2.5 mb-2">
                     <span className="text-[22px]">{info.icon}</span>
                     <div className="flex-1">
-                      <div className="text-[15px] font-extrabold" style={{ color: isActive ? info.color : '#FFFFFF' }}>
+                      <div className="text-[15px] font-extrabold" style={{ color: isActive ? info.color : 'var(--t-text)' }}>
                         {info.label}
                         {isActive && <span className="ml-2 text-[10px] rounded-md py-0.5 px-2 font-bold" style={{ background: `${info.color}25`, color: info.color }}>ACTIVE</span>}
                       </div>

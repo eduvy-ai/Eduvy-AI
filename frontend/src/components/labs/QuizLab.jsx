@@ -342,7 +342,7 @@ Return ONLY this JSON format:
                     style={{ 
                       background: isActive ? `${dColor}18` : undefined, 
                       border: `1.5px solid ${isActive ? dColor : 'rgba(255,255,255,0.08)'}`, 
-                      color: isActive ? dColor : '#7878A8', 
+                      color: isActive ? dColor : 'var(--t-text-muted)', 
                       fontWeight: isActive ? 700 : 500 
                     }}>
                     {d}

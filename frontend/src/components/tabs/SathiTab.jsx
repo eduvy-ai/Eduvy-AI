@@ -33,7 +33,7 @@ function Avatar({ name = '?', size = 32, online = false, isAI = false }) {
         }}>{initials}</div>
       {online && (
         <div className="absolute bottom-0.5 right-0.5 w-[9px] h-[9px] rounded-full border-2"
-          style={{ background: '#00F5A0', borderColor: '#0D0D1F' }} />
+          style={{ background: '#00F5A0', borderColor: 'var(--t-text-inverse)' }} />
       )}
     </div>
   )
@@ -73,10 +73,10 @@ function Bubble({ msg, isMine, memberName }) {
           style={{
             background: isMine
               ? `linear-gradient(135deg,#00F5A0,#00D68F)`
-              : isAIPeer ? '#60A5FA18' : '#1A1A3A',
+              : isAIPeer ? '#60A5FA18' : 'var(--t-surface)',
             border: isMine ? 'none' : `1px solid ${isAIPeer ? '#60A5FA40' : 'rgba(255,255,255,0.03)'}`,
             borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-            color: isMine ? '#0D0D1F' : '#FFFFFF',
+            color: isMine ? 'var(--t-text-inverse)' : 'var(--t-text)',
           }}>
           {msg.content}
         </div>
@@ -141,8 +141,8 @@ function ChallengeBanner({ challenge, onSubmit, onDismiss, ui }) {
         disabled={submitting || !text.trim()}
         className="mt-2 w-full border-none rounded-[10px] py-2.5 text-[13px] font-extrabold"
         style={{
-          background: text.trim() ? `linear-gradient(135deg,#FBBF24,#ffaa00)` : '#1A1A3A',
-          color: text.trim() ? '#0D0D1F' : '#7878A8',
+          background: text.trim() ? `linear-gradient(135deg,#FBBF24,#ffaa00)` : 'var(--t-surface)',
+          color: text.trim() ? 'var(--t-text-inverse)' : 'var(--t-text-muted)',
           cursor: text.trim() ? 'pointer' : 'default',
         }}
       >
@@ -160,10 +160,10 @@ function MembersStrip({ members, currentUserId, ui }) {
         <div key={m.user_id} className="flex flex-col items-center gap-1 min-w-[44px]">
           <Avatar name={m.name} size={36} online={m.online} />
           <span className="text-[10px] max-w-[50px] overflow-hidden text-ellipsis whitespace-nowrap"
-            style={{ color: m.user_id === currentUserId ? '#00F5A0' : '#7878A8', fontWeight: m.user_id === currentUserId ? 800 : 500 }}
+            style={{ color: m.user_id === currentUserId ? '#00F5A0' : 'var(--t-text-muted)', fontWeight: m.user_id === currentUserId ? 800 : 500 }}
           >{m.user_id === currentUserId ? ui.youLabel : m.name.split(' ')[0]}</span>
           <span className="text-[9px] font-bold"
-            style={{ color: m.role === 'teacher' ? '#FBBF24' : '#7878A8' }}
+            style={{ color: m.role === 'teacher' ? '#FBBF24' : 'var(--t-text-muted)' }}
           >{m.role === 'teacher' ? ui.teacherRole : ui.learnerRole}</span>
         </div>
       ))}
@@ -225,9 +225,9 @@ function NoSquadScreen({ onMatch, matching, ui }) {
         disabled={matching}
         className="border-none rounded-2xl px-10 py-4 text-[15px] font-black cursor-pointer flex items-center gap-2.5"
         style={{
-          background: matching ? '#1A1A3A' : `linear-gradient(135deg,#00F5A0,#00D68F)`,
+          background: matching ? 'var(--t-surface)' : `linear-gradient(135deg,#00F5A0,#00D68F)`,
           boxShadow: matching ? 'none' : `0 0 28px #00F5A044`,
-          color: matching ? '#7878A8' : '#0D0D1F',
+          color: matching ? 'var(--t-text-muted)' : 'var(--t-text-inverse)',
         }}
       >
         {matching
@@ -258,7 +258,7 @@ function SubNav({ active, onChange, ui }) {
             className="flex-1 bg-transparent border-none px-1 pt-2.5 pb-2 text-[12px] cursor-pointer flex flex-col items-center gap-0.5"
             style={{
               borderBottom: active === t.key ? `2px solid #00F5A0` : `2px solid transparent`,
-              color: active === t.key ? '#00F5A0' : '#7878A8',
+              color: active === t.key ? '#00F5A0' : 'var(--t-text-muted)',
               fontWeight: active === t.key ? 700 : 500,
             }}>
             {Icon && <Icon size={16} weight={active === t.key ? 'fill' : 'regular'} />}
@@ -435,8 +435,8 @@ function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
               disabled={!newQ.trim() || posting || newQ.trim().length > 500}
               className="w-full py-3.5 border-none rounded-[14px] font-extrabold text-[15px]"
               style={{
-                background: newQ.trim() ? `linear-gradient(135deg,#60A5FA,#5577ee)` : '#1A1A3A',
-                color: newQ.trim() ? '#fff' : '#7878A8',
+                background: newQ.trim() ? `linear-gradient(135deg,#60A5FA,#5577ee)` : 'var(--t-surface)',
+                color: newQ.trim() ? '#fff' : 'var(--t-text-muted)',
                 cursor: newQ.trim() ? 'pointer' : 'default',
               }}
             >{posting ? ui.submitting : ui.postToSquad}</button>
@@ -500,9 +500,9 @@ function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
                 disabled={a.user_id === userId || !!a.i_upvoted || !!upvoting}
                 className="flex items-center gap-1.5 rounded-[20px] px-3.5 py-1.5 text-[12px] font-bold"
                 style={{
-                  background: a.i_upvoted ? '#00F5A018' : '#202048',
+                  background: a.i_upvoted ? '#00F5A018' : 'var(--t-surface-secondary)',
                   border: `1px solid ${a.i_upvoted ? '#00F5A060' : 'rgba(255,255,255,0.03)'}`,
-                  color: a.i_upvoted ? '#00F5A0' : (a.user_id === userId ? '#7878A8' : '#FFFFFF'),
+                  color: a.i_upvoted ? '#00F5A0' : (a.user_id === userId ? 'var(--t-text-muted)' : 'var(--t-text)'),
                   cursor: a.user_id === userId || a.i_upvoted ? 'default' : 'pointer',
                   opacity: a.user_id === userId ? 0.45 : 1,
                 }}
@@ -535,7 +535,7 @@ function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
             onClick={handleAnswer}
             disabled={!newAns.trim() || ansPosting}
             className="border-none rounded-[12px] px-4 font-extrabold text-[13px] flex-shrink-0"
-            style={{ background: newAns.trim() ? `linear-gradient(135deg,#60A5FA,#5577ee)` : '#1A1A3A', color: newAns.trim() ? '#fff' : '#7878A8', cursor: newAns.trim() ? 'pointer' : 'default' }}
+            style={{ background: newAns.trim() ? `linear-gradient(135deg,#60A5FA,#5577ee)` : 'var(--t-surface)', color: newAns.trim() ? '#fff' : 'var(--t-text-muted)', cursor: newAns.trim() ? 'pointer' : 'default' }}
           >{ansPosting ? ui.submitting : ui.sendBtn}</button>
         </div>
       </div>
@@ -562,9 +562,9 @@ function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
           onClick={() => setView('post')}
           className="border-none rounded-[12px] px-4 py-2.5 font-extrabold text-[13px] cursor-pointer flex items-center gap-1.5"
           style={{
-            background: atLimit ? '#202048' : `linear-gradient(135deg,#60A5FA,#5577ee)`,
+            background: atLimit ? 'var(--t-surface-secondary)' : `linear-gradient(135deg,#60A5FA,#5577ee)`,
             border: atLimit ? `1px solid rgba(255,255,255,0.03)` : 'none',
-            color: atLimit ? '#7878A8' : '#fff',
+            color: atLimit ? 'var(--t-text-muted)' : '#fff',
           }}
         >{atLimit ? <><Lock size={13} weight="fill" className="inline" /> Limit</> : '+ Ask'}</button>
       </div>
@@ -757,14 +757,14 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile, ui }) {
             className="w-full bg-app-card rounded-[14px] px-3.5 py-3 text-app-text text-[13.5px] resize-none leading-[1.55] box-border outline-none"
             style={{ border: `1.5px solid ${wordCount >= 10 ? '#FBBF24' : 'rgba(255,255,255,0.03)'}` }} />
           <div className="flex justify-between items-center mt-1.5">
-            <span className="text-[11px]" style={{ color: wordCount >= 10 ? '#00F5A0' : '#7878A8' }}>{wordCount}/10 {ui.wordsMinimum}</span>
+            <span className="text-[11px]" style={{ color: wordCount >= 10 ? '#00F5A0' : 'var(--t-text-muted)' }}>{wordCount}/10 {ui.wordsMinimum}</span>
             <span className="text-[11px] text-app-muted">AI grades: 30 / 15 / 5 XP</span>
           </div>
           <button onClick={handleSubmit} disabled={submitting || wordCount < 10}
             className="mt-2.5 w-full border-none rounded-[12px] py-3 font-extrabold text-[14px]"
             style={{
-              background: wordCount >= 10 ? `linear-gradient(135deg,#FBBF24,#ffb700)` : '#1A1A3A',
-              color: wordCount >= 10 ? '#0D0D1F' : '#7878A8',
+              background: wordCount >= 10 ? `linear-gradient(135deg,#FBBF24,#ffb700)` : 'var(--t-surface)',
+              color: wordCount >= 10 ? 'var(--t-text-inverse)' : 'var(--t-text-muted)',
               cursor: wordCount >= 10 ? 'pointer' : 'default',
             }}>
             {submitting && !reviewing ? 'Submitting' : <><Sparkle size={14} weight="fill" className="inline" /> Submit for AI Review</>}
@@ -1174,7 +1174,7 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
               }} className="mic-btn shrink-0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="1" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
               <button type="submit" disabled={!input.trim() || sending}
                 className="border-none rounded-[14px] px-4 text-[18px] font-black flex-shrink-0"
-                style={{ background: input.trim() ? `linear-gradient(135deg,#00F5A0,#00D68F)` : '#1A1A3A', color: input.trim() ? '#0D0D1F' : '#7878A8', cursor: input.trim() ? 'pointer' : 'default' }}>?</button>
+                style={{ background: input.trim() ? `linear-gradient(135deg,#00F5A0,#00D68F)` : 'var(--t-surface)', color: input.trim() ? 'var(--t-text-inverse)' : 'var(--t-text-muted)', cursor: input.trim() ? 'pointer' : 'default' }}>?</button>
             </form>
           </>
         )}

@@ -213,14 +213,14 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
                         key={p} 
                         className="rounded-[14px] py-3.5 px-4"
                         style={{
-                          background: isActive ? `${info.color}10` : '#1A1A3A',
+                          background: isActive ? `${info.color}10` : 'var(--t-surface)',
                           border: `1.5px solid ${isActive ? info.color + '50' : '#ffffff08'}`,
                           opacity: isLocked ? 0.55 : 1,
                         }}
                       >
                         <div className="flex items-center gap-2 mb-1.5">
                           <span className="text-lg">{info.icon}</span>
-                          <span className="text-sm font-extrabold" style={{ color: isActive ? info.color : '#FFFFFF' }}>{info.label}</span>
+                          <span className="text-sm font-extrabold" style={{ color: isActive ? info.color : 'var(--t-text)' }}>{info.label}</span>
                           {isActive && <span className="ml-auto text-[10px] font-bold rounded-md py-0.5 px-2" style={{ color: info.color, background: `${info.color}20` }}>{ui.active}</span>}
                         </div>
                         <div className="text-[11px] text-app-muted leading-relaxed">

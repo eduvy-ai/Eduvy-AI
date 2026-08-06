@@ -5,21 +5,21 @@ import { GraduationCap, LockSimple, UsersThree, Lightning, Fire, CalendarBlank, 
 
 // Standalone color tokens — no import from App.jsx (public page, no auth)
 const C = {
-  bg:     '#0D0D1F',
-  card:   '#1A1A3A',
-  card2:  '#202048',
+  bg:     'var(--t-text-inverse)',
+  card:   'var(--t-surface)',
+  card2:  'var(--t-surface-secondary)',
   border: '#ffffff0d',
   green:  '#00F5A0',
   yellow: '#FBBF24',
   red:    '#FF5C5C',
   blue:   '#60A5FA',
   orange: '#F97316',
-  text:   '#FFFFFF',
-  muted:  '#7878A8',
+  text:   'var(--t-text)',
+  muted:  'var(--t-text-muted)',
 }
 
 const PLAN_INFO = {
-  free:    { label: 'Free',    Icon: Gift,         color: '#7878A8' },
+  free:    { label: 'Free',    Icon: Gift,         color: 'var(--t-text-muted)' },
   basic:   { label: 'Basic',   Icon: Star,         color: '#FBBF24' },
   pro:     { label: 'Pro',     Icon: RocketLaunch, color: '#60A5FA' },
   premium: { label: 'Premium', Icon: Crown,        color: '#00F5A0' },

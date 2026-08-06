@@ -19,11 +19,27 @@ export const getDisplayLang = (profile) => {
 }
 
 // ─── Color Tokens ────────────────────────────────────────────
+// Uses CSS variables so inline styles adapt to light/dark mode.
+// Components using style={{ color: COLORS.green }} will auto-switch.
 export const COLORS = {
+  bg:     "var(--t-bg)",
+  card:   "var(--t-surface)",
+  card2:  "var(--t-surface-secondary)",
+  border: "var(--t-border)",
+  green:  "var(--t-primary)",
+  yellow: "var(--t-amber)",
+  red:    "var(--t-danger)",
+  blue:   "var(--t-blue)",
+  orange: "#F97316",
+  text:   "var(--t-text)",
+  muted:  "var(--t-text-muted)",
+}
+
+// Fixed hex values for when CSS vars can't be used (e.g. appending opacity hex)
+export const COLORS_HEX = {
   bg:     "#0D0D1F",
   card:   "#1A1A3A",
   card2:  "#202048",
-  border: "#ffffff0d",
   green:  "#00F5A0",
   yellow: "#FBBF24",
   red:    "#FF5C5C",

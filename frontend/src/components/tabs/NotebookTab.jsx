@@ -1554,7 +1554,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                       onClick={() => setCardFlipped(f => !f)}
                       className="w-full min-h-[180px] rounded-[18px] p-5 cursor-pointer flex flex-col justify-center items-center gap-2.5 text-center transition-all duration-300"
                       style={{
-                        background: cardFlipped ? `#00F5A012` : '#1A1A3A',
+                        background: cardFlipped ? `#00F5A012` : 'var(--t-surface)',
                         border: `1.5px solid ${cardFlipped ? '#00F5A0' : 'rgba(255,255,255,0.03)'}`,
                       }}
                     >
@@ -1631,11 +1631,11 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                     <div className="flex flex-col gap-2">
                       {quizQ.o?.map((opt, i) => {
                         const letter = ["A","B","C","D"][i]
-                        let bg = '#1A1A3A', border = 'rgba(255,255,255,0.03)', color = '#FFFFFF'
+                        let bg = 'var(--t-surface)', border = 'rgba(255,255,255,0.03)', color = 'var(--t-text)'
                         if (quizSel) {
                           if (letter === quizQ.c)     { bg = `#00F5A020`; border = '#00F5A0'; color = '#00F5A0' }
                           else if (letter === quizSel) { bg = `#FF5C5C15`;   border = '#FF5C5C';   color = '#FF5C5C'   }
-                          else                         { bg = '#1A1A3A';          color = '#7878A8'                        }
+                          else                         { bg = 'var(--t-surface)';          color = 'var(--t-text-muted)'                        }
                         }
                         return (
                           <button 

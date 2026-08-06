@@ -25,7 +25,7 @@ const PLANS_PRICING = [
     name: 'Free',
     price: '₹0',
     period: 'forever',
-    color: '#7878A8',
+    color: 'var(--t-text-muted)',
     tagline: 'Start your AI journey',
     cta: 'Get Started Free',
     popular: false,
@@ -357,7 +357,7 @@ export default function LandingPage() {
                         ? 'linear-gradient(135deg, #00F5A0, #00D68F)'
                         : `${plan.color}18`,
                     borderColor: plan.popular || plan.key === 'free' ? undefined : `${plan.color}50`,
-                    color: plan.popular || plan.key === 'free' ? (plan.popular ? '#fff' : '#0D0D1F') : plan.color,
+                    color: plan.popular || plan.key === 'free' ? (plan.popular ? '#fff' : 'var(--t-text-inverse)') : plan.color,
                   }}
                 >
                   {plan.cta}

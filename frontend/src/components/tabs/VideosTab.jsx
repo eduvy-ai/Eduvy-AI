@@ -57,7 +57,7 @@ function pickVoice(lang) {
 const BS = {
   chalk:  { bg:'#0d1a0a', surface:'#132011', border:'#2a4420', text:'#e8f0e0', dim:'#6a9a58', accent:'#c8e8a0', font:"'Caveat',cursive",       label:'🖤 Chalk',  dark:true  },
   marker: { bg:'#f5f0e8', surface:'#ede7da', border:'#c8b898', text:'#181208', dim:'#7a6848', accent:'#1a3a9a', font:"'Patrick Hand',cursive",   label:'🖊 Marker', dark:false },
-  color:  { bg:'#1A1A3A', surface:'#202048', border:'#ffffff10',text:'#FFFFFF', dim:'#7878A8', accent:'#00F5A0', font:"'Sora',sans-serif",       label:'🎨 Color',  dark:true  },
+  color:  { bg:'var(--t-surface)', surface:'var(--t-surface-secondary)', border:'#ffffff10',text:'var(--t-text)', dim:'var(--t-text-muted)', accent:'#00F5A0', font:"'Sora',sans-serif",       label:'🎨 Color',  dark:true  },
 }
 const SCENE_COLS = ['#00F5A0','#60A5FA','#FBBF24','#F97316','#FF5C5C','#BB86FC','#03DAC6','#FF8A80','#82B1FF','#CCFF90']
 
@@ -2590,7 +2590,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
               {cs.timing?.total_sec && (
                 <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
                   <div style={{ fontSize:10, color:COLORS.muted, fontWeight:600,
-                    background:`${COLORS.muted}12`, borderRadius:6, padding:'2px 8px',
+                    background:`var(--t-surface-hover)`, borderRadius:6, padding:'2px 8px',
                     display:'inline-flex', alignItems:'center', gap:4 }}>
                     ? {(ui.sceneTimeSec || '{sec}s scene').replace('{sec}', cs.timing.total_sec)}
                   </div>
@@ -2657,7 +2657,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
 
               {/* ? Alt explanation (Feature 3) */}
               {sceneAnswers[sceneIdx]==='confused' && showAlt && altExps[sceneIdx] && (
-                <div style={{ background:`${COLORS.yellow}10`, border:`1px solid ${COLORS.yellow}30`, borderRadius:14, padding:14, marginTop:14, animation:'sceneFade 0.3s ease-out' }}>
+                <div style={{ background:`var(--t-warning-light)`, border:`1px solid rgba(251,191,36,0.2)`, borderRadius:14, padding:14, marginTop:14, animation:'sceneFade 0.3s ease-out' }}>
                   <div style={{ fontSize:11, fontWeight:700, color:COLORS.yellow, marginBottom:8 }}>{ui.altApproach}</div>
                   <p style={{ fontSize:13, color:COLORS.text, lineHeight:1.85, margin:0 }}>{altExps[sceneIdx]}</p>
                 </div>
@@ -2779,7 +2779,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
 
             {/* ? One-line takeaway (from Golpo pipeline) */}
             {lesson.oneLineTakeaway && (
-              <div style={{ background:`linear-gradient(135deg, ${COLORS.green}14, ${COLORS.blue}10)`, border:`1px solid ${COLORS.green}30`, borderRadius:14, padding:'14px 16px', textAlign:'center' }}>
+              <div style={{ background:`linear-gradient(135deg, var(--t-primary-light), var(--t-info-light))`, border:`1px solid ${COLORS.green}30`, borderRadius:14, padding:'14px 16px', textAlign:'center' }}>
                 <div style={{ fontSize:11, fontWeight:700, color:COLORS.green, marginBottom:6, letterSpacing:1 }}>{ui.tellAFriend}</div>
                 <div style={{ fontSize:14, color:COLORS.text, lineHeight:1.6, fontStyle:'italic', fontWeight:600 }}>"{lesson.oneLineTakeaway}"</div>
               </div>
@@ -2849,7 +2849,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
   )
 }
 
-const iStyle  = { background:'#202048', border:'1px solid #ffffff15', borderRadius:12, padding:'10px 14px', color:'#FFFFFF', fontSize:13, fontFamily:'Sora,sans-serif', width:'100%' }
-const pBtn    = { background:'linear-gradient(135deg,#00F5A0,#00D68F)', color:'#0D0D1F', border:'none', borderRadius:12, padding:'12px 16px', fontSize:13, fontWeight:800, cursor:'pointer', width:'100%', fontFamily:'Sora,sans-serif' }
-const sBtn    = { background:'transparent', border:'1px solid #ffffff15', borderRadius:12, padding:'12px 16px', fontSize:13, fontWeight:600, color:'#FFFFFF', cursor:'pointer', fontFamily:'Sora,sans-serif' }
-const iconBtn = { background:'transparent', border:'none', color:'#FFFFFF', fontSize:18, cursor:'pointer', padding:'4px 6px', fontFamily:'Sora,sans-serif', flexShrink:0 }
+const iStyle  = { background:'var(--t-surface-secondary)', border:'1px solid #ffffff15', borderRadius:12, padding:'10px 14px', color:'var(--t-text)', fontSize:13, fontFamily:'Sora,sans-serif', width:'100%' }
+const pBtn    = { background:'linear-gradient(135deg,#00F5A0,#00D68F)', color:'var(--t-text-inverse)', border:'none', borderRadius:12, padding:'12px 16px', fontSize:13, fontWeight:800, cursor:'pointer', width:'100%', fontFamily:'Sora,sans-serif' }
+const sBtn    = { background:'transparent', border:'1px solid #ffffff15', borderRadius:12, padding:'12px 16px', fontSize:13, fontWeight:600, color:'var(--t-text)', cursor:'pointer', fontFamily:'Sora,sans-serif' }
+const iconBtn = { background:'transparent', border:'none', color:'var(--t-text)', fontSize:18, cursor:'pointer', padding:'4px 6px', fontFamily:'Sora,sans-serif', flexShrink:0 }
