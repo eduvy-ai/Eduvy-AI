@@ -6,87 +6,92 @@
 
 /* ═══════════════════════════════════════════════════════════
    DESIGN SYSTEM — CSS Custom Properties
-   Default: dark mode. `.light` class on <html> switches.
-   New components use `t-*` Tailwind classes (via these vars).
-   Legacy `app-*` classes remain untouched.
+   Vibrant dark theme for Gen-Z students (Class 7-12).
+   Inspired by Discord, Spotify, Duolingo.
+   `.light` class on <html> switches to light mode.
    ═══════════════════════════════════════════════════════ */
 :root {
-  /* ── Dark Mode (default) ── */
-  --t-bg:               #0B0F1A;
-  --t-bg-secondary:     #111827;
-  --t-surface:          #1A2232;
-  --t-surface-secondary:#1E293B;
-  --t-surface-hover:    #253044;
-  --t-surface-active:   #334155;
-  --t-border:           rgba(255, 255, 255, 0.07);
-  --t-border-strong:    rgba(255, 255, 255, 0.14);
-  --t-text:             #F1F5F9;
-  --t-text-secondary:   #94A3B8;
-  --t-text-muted:       #64748B;
-  --t-text-inverse:     #0F172A;
-  --t-nav-bg:           rgba(11, 15, 26, 0.92);
+  /* ── Dark Mode (default) — deep navy-purple, not dead black ── */
+  --t-bg:               #0D0D1F;
+  --t-bg-secondary:     #12122B;
+  --t-surface:          #1A1A3A;
+  --t-surface-secondary:#202048;
+  --t-surface-hover:    #2A2A55;
+  --t-surface-active:   #353568;
+  --t-border:           rgba(255, 255, 255, 0.08);
+  --t-border-strong:    rgba(255, 255, 255, 0.16);
+  --t-text:             #FFFFFF;
+  --t-text-secondary:   #B8B8D4;
+  --t-text-muted:       #7878A8;
+  --t-text-inverse:     #0D0D1F;
+  --t-nav-bg:           rgba(13, 13, 31, 0.94);
   --t-nav-border:       rgba(255, 255, 255, 0.06);
-  --t-sidebar-bg:       #111827;
-  --t-overlay:          rgba(0, 0, 0, 0.6);
+  --t-sidebar-bg:       #12122B;
+  --t-overlay:          rgba(0, 0, 0, 0.65);
 
-  /* Brand */
-  --t-primary:          #10B981;
-  --t-primary-hover:    #059669;
-  --t-primary-light:    rgba(16, 185, 129, 0.12);
-  --t-primary-soft:     rgba(16, 185, 129, 0.06);
-  --t-accent:           #8B5CF6;
-  --t-accent-hover:     #7C3AED;
-  --t-accent-light:     rgba(139, 92, 246, 0.12);
-  --t-blue:             #3B82F6;
-  --t-blue-light:       rgba(59, 130, 246, 0.12);
-  --t-amber:            #F59E0B;
-  --t-amber-light:      rgba(245, 158, 11, 0.12);
+  /* Brand — Electric green + vivid purple */
+  --t-primary:          #00F5A0;
+  --t-primary-hover:    #00D88E;
+  --t-primary-light:    rgba(0, 245, 160, 0.14);
+  --t-primary-soft:     rgba(0, 245, 160, 0.07);
+  --t-accent:           #A855F7;
+  --t-accent-hover:     #9333EA;
+  --t-accent-light:     rgba(168, 85, 247, 0.14);
+  --t-blue:             #60A5FA;
+  --t-blue-light:       rgba(96, 165, 250, 0.14);
+  --t-amber:            #FBBF24;
+  --t-amber-light:      rgba(251, 191, 36, 0.14);
 
   /* Status */
-  --t-success:          #10B981;
-  --t-success-light:    rgba(16, 185, 129, 0.10);
-  --t-warning:          #F59E0B;
-  --t-warning-light:    rgba(245, 158, 11, 0.10);
-  --t-danger:           #EF4444;
-  --t-danger-light:     rgba(239, 68, 68, 0.10);
-  --t-info:             #3B82F6;
-  --t-info-light:       rgba(59, 130, 246, 0.10);
+  --t-success:          #00F5A0;
+  --t-success-light:    rgba(0, 245, 160, 0.12);
+  --t-warning:          #FBBF24;
+  --t-warning-light:    rgba(251, 191, 36, 0.12);
+  --t-danger:           #FF5C5C;
+  --t-danger-light:     rgba(255, 92, 92, 0.12);
+  --t-info:             #60A5FA;
+  --t-info-light:       rgba(96, 165, 250, 0.12);
 
-  /* Shadows */
-  --t-shadow-sm:  0 1px 3px rgba(0,0,0,0.3);
-  --t-shadow-md:  0 4px 12px rgba(0,0,0,0.4);
-  --t-shadow-lg:  0 12px 32px rgba(0,0,0,0.5);
-  --t-shadow-xl:  0 20px 48px rgba(0,0,0,0.6);
+  /* Shadows — subtle glow effect */
+  --t-shadow-sm:  0 2px 8px rgba(0,0,0,0.35);
+  --t-shadow-md:  0 4px 16px rgba(0,0,0,0.4);
+  --t-shadow-lg:  0 8px 32px rgba(0,0,0,0.5);
+  --t-shadow-xl:  0 16px 48px rgba(0,0,0,0.6);
 
-  /* Gradients */
-  --t-gradient-primary: linear-gradient(135deg, #10B981, #059669);
-  --t-gradient-accent:  linear-gradient(135deg, #8B5CF6, #7C3AED);
-  --t-gradient-hero:    linear-gradient(135deg, rgba(16,185,129,0.08), transparent, rgba(139,92,246,0.08));
+  /* Gradients — vibrant, youthful */
+  --t-gradient-primary: linear-gradient(135deg, #00F5A0, #00D68F);
+  --t-gradient-accent:  linear-gradient(135deg, #A855F7, #7C3AED);
+  --t-gradient-hero:    linear-gradient(160deg, rgba(0,245,160,0.06), transparent 40%, rgba(168,85,247,0.06));
+  --t-gradient-xp:      linear-gradient(135deg, #FBBF24, #F97316);
+  --t-gradient-streak:  linear-gradient(135deg, #F97316, #EF4444);
 }
 
-/* ── Light Mode ── */
+/* ── Light Mode — clean, friendly, high-contrast ── */
 :root.light {
-  --t-bg:               #F8FAFC;
-  --t-bg-secondary:     #F1F5F9;
+  --t-bg:               #F5F3FF;
+  --t-bg-secondary:     #EDE9FE;
   --t-surface:          #FFFFFF;
-  --t-surface-secondary:#F8FAFC;
-  --t-surface-hover:    #F1F5F9;
-  --t-surface-active:   #E2E8F0;
-  --t-border:           rgba(15, 23, 42, 0.08);
-  --t-border-strong:    rgba(15, 23, 42, 0.16);
-  --t-text:             #0F172A;
-  --t-text-secondary:   #475569;
-  --t-text-muted:       #94A3B8;
+  --t-surface-secondary:#FAFAFE;
+  --t-surface-hover:    #F3F0FF;
+  --t-surface-active:   #E8E4F8;
+  --t-border:           rgba(100, 60, 180, 0.10);
+  --t-border-strong:    rgba(100, 60, 180, 0.20);
+  --t-text:             #1A1040;
+  --t-text-secondary:   #4A3D6B;
+  --t-text-muted:       #8B7FB0;
   --t-text-inverse:     #FFFFFF;
-  --t-nav-bg:           rgba(255, 255, 255, 0.92);
-  --t-nav-border:       rgba(15, 23, 42, 0.06);
+  --t-nav-bg:           rgba(255, 255, 255, 0.94);
+  --t-nav-border:       rgba(100, 60, 180, 0.08);
   --t-sidebar-bg:       #FFFFFF;
-  --t-overlay:          rgba(15, 23, 42, 0.5);
-  --t-shadow-sm:  0 1px 2px rgba(0,0,0,0.04);
-  --t-shadow-md:  0 4px 12px rgba(0,0,0,0.06);
-  --t-shadow-lg:  0 12px 32px rgba(0,0,0,0.08);
-  --t-shadow-xl:  0 20px 48px rgba(0,0,0,0.10);
-  --t-gradient-hero: linear-gradient(135deg, rgba(16,185,129,0.05), transparent, rgba(139,92,246,0.05));
+  --t-overlay:          rgba(26, 16, 64, 0.45);
+  --t-primary:          #059669;
+  --t-primary-hover:    #047857;
+  --t-primary-light:    rgba(5, 150, 105, 0.10);
+  --t-shadow-sm:  0 1px 3px rgba(100,60,180,0.06);
+  --t-shadow-md:  0 4px 12px rgba(100,60,180,0.08);
+  --t-shadow-lg:  0 8px 24px rgba(100,60,180,0.10);
+  --t-shadow-xl:  0 16px 40px rgba(100,60,180,0.12);
+  --t-gradient-hero: linear-gradient(160deg, rgba(5,150,105,0.04), transparent 40%, rgba(168,85,247,0.04));
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -501,7 +506,7 @@ input, textarea, select { outline: none; border: none; }
     display: inline-block !important;
   }
   .nav-pricing-link:hover {
-    color: #eeeeff !important;
+    color: #ffffff !important;
   }
 }
 
@@ -649,7 +654,7 @@ body.font-xlarge { font-size: 20px; }
   border: 1px solid rgba(255,255,255,0.15);
   border-radius: 8px;
   padding: 4px 10px;
-  color: #6868a0;
+  color: #7878A8;
   font-size: 12px;
   cursor: pointer;
   font-family: 'Sora', sans-serif;
@@ -658,7 +663,7 @@ body.font-xlarge { font-size: 20px; }
   gap: 4px;
   transition: border-color 0.15s, color 0.15s;
 }
-.tts-btn:hover { border-color: #00E5A0; color: #00E5A0; }
+.tts-btn:hover { border-color: #00F5A0; color: #00F5A0; }
 
 /* Microphone button — modern app style */
 .mic-btn {
@@ -671,7 +676,7 @@ body.font-xlarge { font-size: 20px; }
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #7B9CFF;
+  color: #60A5FA;
   font-size: 0;
   transition: background 0.2s, transform 0.1s;
   flex-shrink: 0;
@@ -682,7 +687,7 @@ body.font-xlarge { font-size: 20px; }
 }
 .mic-btn.recording {
   background: rgba(255,107,107,0.15);
-  color: #FF6B6B;
+  color: #FF5C5C;
   animation: mic-pulse 1s ease-in-out infinite;
 }
 @keyframes mic-pulse {

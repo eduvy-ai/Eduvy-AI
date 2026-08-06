@@ -5,24 +5,24 @@ import { GraduationCap, LockSimple, UsersThree, Lightning, Fire, CalendarBlank, 
 
 // Standalone color tokens — no import from App.jsx (public page, no auth)
 const C = {
-  bg:     '#04040e',
-  card:   '#0b0b1c',
-  card2:  '#101022',
-  border: '#ffffff08',
-  green:  '#00E5A0',
-  yellow: '#FFD166',
-  red:    '#FF6B6B',
-  blue:   '#7B9CFF',
-  orange: '#FF6B35',
-  text:   '#eeeeff',
-  muted:  '#6868a0',
+  bg:     '#0D0D1F',
+  card:   '#1A1A3A',
+  card2:  '#202048',
+  border: '#ffffff0d',
+  green:  '#00F5A0',
+  yellow: '#FBBF24',
+  red:    '#FF5C5C',
+  blue:   '#60A5FA',
+  orange: '#F97316',
+  text:   '#FFFFFF',
+  muted:  '#7878A8',
 }
 
 const PLAN_INFO = {
-  free:    { label: 'Free',    Icon: Gift,         color: '#6868a0' },
-  basic:   { label: 'Basic',   Icon: Star,         color: '#FFD166' },
-  pro:     { label: 'Pro',     Icon: RocketLaunch, color: '#7B9CFF' },
-  premium: { label: 'Premium', Icon: Crown,        color: '#00E5A0' },
+  free:    { label: 'Free',    Icon: Gift,         color: '#7878A8' },
+  basic:   { label: 'Basic',   Icon: Star,         color: '#FBBF24' },
+  pro:     { label: 'Pro',     Icon: RocketLaunch, color: '#60A5FA' },
+  premium: { label: 'Premium', Icon: Crown,        color: '#00F5A0' },
 }
 
 // ── Helpers ────────────────────────────────────────────────────

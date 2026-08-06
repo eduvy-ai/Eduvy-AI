@@ -399,7 +399,7 @@ export default function LearnTVTab({ profile }) {
             <button key={m.key} onClick={() => setMode(m.key)}
               className={`flex-1 border-none rounded-xl py-2.5 px-1.5 text-[12px] cursor-pointer transition-all flex items-center justify-center gap-1 ${
                 mode === m.key
-                  ? 'bg-gradient-to-br from-app-green to-[#33cc88] text-app-bg font-extrabold'
+                  ? 'bg-gradient-to-br from-app-green to-[#00D68F] text-app-bg font-extrabold'
                   : 'bg-transparent text-app-muted font-medium hover:text-app-text'
               }`}>
               <Icon size={13} weight={mode === m.key ? 'fill' : 'regular'} /> {m.label}
@@ -450,7 +450,7 @@ export default function LearnTVTab({ profile }) {
 
           {/* ── AI Concept Overview card ── */}
           {(conceptLoading || conceptSummary) && (
-            <div className="border border-app-green/20 rounded-2xl px-4 py-3.5 mb-3.5" style={{ background: 'linear-gradient(135deg,#00E5A012,#7B9CFF10)' }}>
+            <div className="border border-app-green/20 rounded-2xl px-4 py-3.5 mb-3.5" style={{ background: 'linear-gradient(135deg,#00F5A012,#60A5FA10)' }}>
               <div className="flex items-center gap-2 mb-2.5">
                 <Brain size={16} weight="duotone" className="text-app-green" />
                 <span className="text-[13px] font-bold text-app-green">{ui.conceptOverview}</span>
@@ -503,7 +503,7 @@ export default function LearnTVTab({ profile }) {
 
                   {/* Exam Tip */}
                   {conceptSummary.examTip && (
-                    <div className="bg-[#FF6B3515] border border-[#FF6B3530] rounded-lg px-3 py-2 text-[12px] text-app-text leading-[1.5]">
+                    <div className="bg-[#F9731615] border border-[#F9731630] rounded-lg px-3 py-2 text-[12px] text-app-text leading-[1.5]">
                       <span className="font-bold text-app-orange flex items-center gap-1"><Exam size={12} weight="fill" /> {ui.examTip} </span>
                       {conceptSummary.examTip}
                     </div>
@@ -577,9 +577,9 @@ export default function LearnTVTab({ profile }) {
                             {brief.difficulty && (
                               <span style={{
                                 fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
-                                background: brief.difficulty === 'Beginner' ? `#00E5A020` : brief.difficulty === 'Advanced' ? `#FF6B6B20` : `#FFD16620`,
-                                color: brief.difficulty === 'Beginner' ? '#00E5A0' : brief.difficulty === 'Advanced' ? '#FF6B6B' : '#FFD166',
-                                border: `1px solid ${brief.difficulty === 'Beginner' ? '#00E5A040' : brief.difficulty === 'Advanced' ? '#FF6B6B40' : '#FFD16640'}`,
+                                background: brief.difficulty === 'Beginner' ? `#00F5A020` : brief.difficulty === 'Advanced' ? `#FF5C5C20` : `#FBBF2420`,
+                                color: brief.difficulty === 'Beginner' ? '#00F5A0' : brief.difficulty === 'Advanced' ? '#FF5C5C' : '#FBBF24',
+                                border: `1px solid ${brief.difficulty === 'Beginner' ? '#00F5A040' : brief.difficulty === 'Advanced' ? '#FF5C5C40' : '#FBBF2440'}`,
                               }}>{brief.difficulty}</span>
                             )}
                             {brief.bestFor && (
@@ -724,7 +724,7 @@ export default function LearnTVTab({ profile }) {
                   const brief = reelBriefs[v.id]
                   const isPlaying = reelPlayId === v.id
                   return (
-                    <div key={v.id} className={`bg-app-card rounded-[14px] overflow-hidden transition-shadow duration-200 ${isPlaying ? 'border border-app-green shadow-[0_0_0_2px_#00E5A040]' : 'border border-app-border'}`}>
+                    <div key={v.id} className={`bg-app-card rounded-[14px] overflow-hidden transition-shadow duration-200 ${isPlaying ? 'border border-app-green shadow-[0_0_0_2px_#00F5A040]' : 'border border-app-border'}`}>
                       {/* Portrait player / thumbnail */}
                       {isPlaying ? (
                         <div className="relative pt-[177.78%]">
@@ -754,7 +754,7 @@ export default function LearnTVTab({ profile }) {
                           />
                           {/* Gradient + play button */}
                           <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 40%, transparent 70%)' }}>
-                            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-app-green to-['#33cc88'] flex items-center justify-center text-app-bg shadow-[0_2px_16px_rgba(0,0,0,0.5)]"><Play size={17} weight="fill" /></div>
+                            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-app-green to-['#00D68F'] flex items-center justify-center text-app-bg shadow-[0_2px_16px_rgba(0,0,0,0.5)]"><Play size={17} weight="fill" /></div>
                           </div>
                           {/* Duration badge */}
                           {v.duration > 0 && (
@@ -783,8 +783,8 @@ export default function LearnTVTab({ profile }) {
                           {brief?.difficulty && (
                             <span style={{
                               fontSize: 8, padding: '2px 6px', borderRadius: 5, fontWeight: 700,
-                              background: brief.difficulty === 'Easy' ? `#00E5A018` : brief.difficulty === 'Hard' ? `#FF6B6B18` : `#FFD16618`,
-                              color: brief.difficulty === 'Easy' ? '#00E5A0' : brief.difficulty === 'Hard' ? '#FF6B6B' : '#FFD166',
+                              background: brief.difficulty === 'Easy' ? `#00F5A018` : brief.difficulty === 'Hard' ? `#FF5C5C18` : `#FBBF2418`,
+                              color: brief.difficulty === 'Easy' ? '#00F5A0' : brief.difficulty === 'Hard' ? '#FF5C5C' : '#FBBF24',
                             }}>{brief.difficulty}</span>
                           )}
                           {brief?.keywords?.slice(0, 3).map((kw, i) => (
@@ -819,7 +819,7 @@ export default function LearnTVTab({ profile }) {
                 </div>
               )}
               {aiReelContent.contentTips?.length > 0 && (
-                <div className={cardCls + ' !border-app-green/20 mb-3.5'} style={{ background: '#00E5A006' }}>
+                <div className={cardCls + ' !border-app-green/20 mb-3.5'} style={{ background: '#00F5A006' }}>
                   <div className="text-[12px] font-bold text-app-green mb-1.5 flex items-center gap-1.5"><Lightbulb size={14} weight="fill" /> Study Tips</div>
                   {aiReelContent.contentTips.map((tip, i) => (
                     <div key={i} className="mb-1.5">
@@ -830,7 +830,7 @@ export default function LearnTVTab({ profile }) {
                 </div>
               )}
               {aiReelContent.watchOrder && (
-                <div className={cardCls + ' !border-app-blue/20 mb-3.5'} style={{ background: '#7B9CFF06' }}>
+                <div className={cardCls + ' !border-app-blue/20 mb-3.5'} style={{ background: '#60A5FA06' }}>
                   <div className="text-[12px] font-bold text-app-blue mb-1 flex items-center gap-1.5"><ClipboardText size={12} weight="fill" /> Suggested watch order</div>
                   <div className="text-[11px] text-app-text leading-[1.6]">{aiReelContent.watchOrder}</div>
                 </div>
@@ -882,7 +882,7 @@ export default function LearnTVTab({ profile }) {
 
           {/* Analysis error */}
           {analysis?.error && (
-            <div className={cardCls + ' !border-app-red/25'} style={{ background: '#FF6B6B10' }}>
+            <div className={cardCls + ' !border-app-red/25'} style={{ background: '#FF5C5C10' }}>
               <div className="text-app-red text-[13px]">⚠️ {analysis.error}</div>
             </div>
           )}
@@ -974,7 +974,7 @@ export default function LearnTVTab({ profile }) {
 
               {/* Takeaway */}
               {analysis.takeaway && (
-                <div className={cardCls + ' !border-app-green/20'} style={{ background: '#00E5A010' }}>
+                <div className={cardCls + ' !border-app-green/20'} style={{ background: '#00F5A010' }}>
                   <div className="text-[13px] font-bold text-app-green flex items-center gap-1.5">
                     <Diamond size={16} weight="fill" /> {analysis.takeaway}
                   </div>
@@ -1004,9 +1004,9 @@ export default function LearnTVTab({ profile }) {
                           padding: '10px 14px',
                           marginBottom: 6,
                           borderRadius: 10,
-                          border: `1.5px solid ${showResult ? (isCorrect ? '#00E5A0' : selected ? '#FF6B6B' : 'rgba(255,255,255,0.03)') : 'rgba(255,255,255,0.03)'}`,
-                          background: showResult ? (isCorrect ? `#00E5A015` : selected ? `#FF6B6B15` : '#0b0b1c') : '#0b0b1c',
-                          color: '#eeeeff',
+                          border: `1.5px solid ${showResult ? (isCorrect ? '#00F5A0' : selected ? '#FF5C5C' : 'rgba(255,255,255,0.03)') : 'rgba(255,255,255,0.03)'}`,
+                          background: showResult ? (isCorrect ? `#00F5A015` : selected ? `#FF5C5C15` : '#1A1A3A') : '#1A1A3A',
+                          color: '#FFFFFF',
                           fontSize: 13,
                           cursor: quizSel === null ? 'pointer' : 'default',
                           fontFamily: 'Sora, sans-serif',
@@ -1111,7 +1111,7 @@ export default function LearnTVTab({ profile }) {
 
               {/* Key Formulas */}
               {aiContent.keyFormulas?.length > 0 && (
-                <div className={cardCls + ' !border-app-blue/20'} style={{ background: '#7B9CFF10' }}>
+                <div className={cardCls + ' !border-app-blue/20'} style={{ background: '#60A5FA10' }}>
                   <div className={sectionTitleCls}>📐 Key Formulas</div>
                   {aiContent.keyFormulas.map((f, i) => (
                     <div key={i} className="text-[13px] text-app-text py-1 font-mono">
@@ -1123,7 +1123,7 @@ export default function LearnTVTab({ profile }) {
 
               {/* Fun Fact */}
               {aiContent.funFact && (
-                <div className={cardCls + ' !border-app-yellow/20'} style={{ background: '#FFD16610' }}>
+                <div className={cardCls + ' !border-app-yellow/20'} style={{ background: '#FBBF2410' }}>
                   <div className="text-[13px] text-app-yellow font-semibold">
                     🤩 Fun Fact: {aiContent.funFact}
                   </div>
@@ -1132,7 +1132,7 @@ export default function LearnTVTab({ profile }) {
 
               {/* Summary */}
               {aiContent.summary && (
-                <div className={cardCls + ' !border-app-green/20'} style={{ background: '#00E5A010' }}>
+                <div className={cardCls + ' !border-app-green/20'} style={{ background: '#00F5A010' }}>
                   <div className={sectionTitleCls + ' flex items-center gap-1.5'}><ClipboardText size={14} weight="fill" /> Summary</div>
                   <div className="text-[13px] text-app-text leading-[1.7] whitespace-pre-wrap">
                     {aiContent.summary}
@@ -1209,7 +1209,7 @@ export default function LearnTVTab({ profile }) {
 
 // ── Styles ──────────────────────────────────────────────────
 const inputCls = "flex-1 bg-app-card2 border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-app-text text-[13px] outline-none focus:border-app-green/40 transition-colors placeholder:text-app-muted"
-const pBtnCls = "w-full bg-gradient-to-br from-app-green to-[#33cc88] text-app-bg border-none rounded-xl px-4 py-3 text-[13px] font-extrabold cursor-pointer disabled:opacity-60 active:scale-[0.99] transition-all"
+const pBtnCls = "w-full bg-gradient-to-br from-app-green to-[#00D68F] text-app-bg border-none rounded-xl px-4 py-3 text-[13px] font-extrabold cursor-pointer disabled:opacity-60 active:scale-[0.99] transition-all"
 const cardCls = "bg-app-card border border-app-border rounded-2xl px-4 py-3.5"
 const labelCls = "block text-[11px] font-bold text-app-muted mb-1.5 tracking-[0.05em]"
 const sectionTitleCls = "text-[13px] font-bold text-app-green mb-2"

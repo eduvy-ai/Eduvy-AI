@@ -303,7 +303,7 @@ export const TeacherModePlayer: FC<Props> = ({
                   wordTimings={currentBeat.word_timings}
                   currentTimeMs={beatRelativeTimeMs}
                   isPlaying={isPlaying}
-                  accentColor="#00E5A0"
+                  accentColor="#00F5A0"
                 />
               </div>
 

@@ -8,19 +8,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        // ── Legacy app colors (backward compatibility) ──
+        // ── Legacy app colors — RGB-variable-based for opacity modifier support ──
         app: {
-          bg:     '#04040e',
-          card:   '#0b0b1c',
-          card2:  '#101022',
-          border: '#ffffff08',
-          green:  '#00E5A0',
-          yellow: '#FFD166',
-          red:    '#FF6B6B',
-          blue:   '#7B9CFF',
-          orange: '#FF6B35',
-          text:   '#eeeeff',
-          muted:  '#6868a0',
+          bg:       'rgb(var(--app-bg-rgb) / <alpha-value>)',
+          card:     'rgb(var(--app-card-rgb) / <alpha-value>)',
+          card2:    'rgb(var(--app-card2-rgb) / <alpha-value>)',
+          border:   'var(--t-border)',
+          green:    'rgb(var(--app-green-rgb) / <alpha-value>)',
+          yellow:   'rgb(var(--app-yellow-rgb) / <alpha-value>)',
+          red:      'rgb(var(--app-red-rgb) / <alpha-value>)',
+          blue:     'rgb(var(--app-blue-rgb) / <alpha-value>)',
+          orange:   '#F97316',
+          text:     'rgb(var(--app-text-rgb) / <alpha-value>)',
+          muted:    'rgb(var(--app-muted-rgb) / <alpha-value>)',
+          // Fixed dark color for text on colored buttons
+          contrast: '#0D0D1F',
         },
         // ── New Design System (CSS variable-based) ──
         // Use `t-*` (theme) prefix to avoid collisions

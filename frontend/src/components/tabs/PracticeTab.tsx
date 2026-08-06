@@ -134,19 +134,19 @@ const PracticeTab: React.FC = () => {
           icon={Fire}
           value={(user as any)?.streak || 0}
           label={ui.streak || 'Streak'}
-          color="#FF6B35"
+          color="#F97316"
         />
         <StatCard
           icon={Trophy}
           value={(user as any)?.battle_wins || 0}
           label={ui.wins || 'Wins'}
-          color="#FFD166"
+          color="#FBBF24"
         />
         <StatCard
           icon={BookOpen}
           value={(user as any)?.quiz_count || 0}
           label={ui.quizzes || 'Quizzes'}
-          color="#00E5A0"
+          color="#00F5A0"
         />
       </div>
 
@@ -161,7 +161,7 @@ const PracticeTab: React.FC = () => {
             icon={Lightning}
             label={ui.quickQuiz || 'Quick Quiz'}
             description={ui.quickQuizDesc || 'AI-generated quiz on any topic'}
-            color="#00E5A0"
+            color="#00F5A0"
             onClick={goToQuiz}
             badge={hasQuizAccess ? undefined : ui.proLabel || 'PRO'}
           />
@@ -169,21 +169,21 @@ const PracticeTab: React.FC = () => {
             icon={Sword}
             label={ui.muqabalaBattle || 'Muqabla Battle'}
             description={ui.battleDesc || '1v1 quiz battles with classmates'}
-            color="#FF6B35"
+            color="#F97316"
             onClick={goToBattles}
           />
           <QuickActionCard
             icon={Warning}
             label={ui.bhoolReview || 'Mistake Review'}
             description={ui.bhoolDesc || 'Learn from your mistakes'}
-            color="#FF6B6B"
+            color="#FF5C5C"
             onClick={goToMistakes}
           />
           <QuickActionCard
             icon={Target}
             label={ui.mockExam || 'Mock Exam'}
             description={ui.mockExamDesc || 'Board exam style questions'}
-            color="#FFD166"
+            color="#FBBF24"
             onClick={goToExaminer}
             badge={planHasLab(userPlan, 'examiner') ? undefined : ui.proLabel || 'PRO'}
           />
@@ -254,12 +254,12 @@ const RecentActivityItem: React.FC<{ item: any; ui: any }> = ({ item, ui }) => {
 
   const getResult = () => {
     if (item.type === 'battle') {
-      if (item.result === 'won') return { text: ui.won || 'Won', color: '#00E5A0', icon: Trophy }
-      if (item.result === 'lost') return { text: ui.lost || 'Lost', color: '#FF6B6B', icon: XCircle }
-      return { text: ui.draw || 'Draw', color: '#FFD166', icon: Clock }
+      if (item.result === 'won') return { text: ui.won || 'Won', color: '#00F5A0', icon: Trophy }
+      if (item.result === 'lost') return { text: ui.lost || 'Lost', color: '#FF5C5C', icon: XCircle }
+      return { text: ui.draw || 'Draw', color: '#FBBF24', icon: Clock }
     }
     const pct = item.total > 0 ? Math.round((item.score / item.total) * 100) : 0
-    const color = pct >= 70 ? '#00E5A0' : pct >= 40 ? '#FFD166' : '#FF6B6B'
+    const color = pct >= 70 ? '#00F5A0' : pct >= 40 ? '#FBBF24' : '#FF5C5C'
     return { text: `${item.score}/${item.total}`, color, icon: pct >= 70 ? CheckCircle : XCircle }
   }
 

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { callAI, checkStudentQuery, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import { getDeviceId, apiGetDraft, apiSaveDraft } from '../../api.js'
@@ -80,7 +80,7 @@ export default function EssayLab({ profile, addXp, onBack }) {
           <textarea
             className="w-full bg-app-card2 border border-white/[0.08] rounded-xl py-3 px-3.5 text-app-text text-[13px] outline-none resize-y leading-relaxed"
             style={{ minHeight: 140, height: '34vh', maxHeight: '45vh' }}
-            placeholder={`Start writing your ${type.toLowerCase()} here…`}
+            placeholder={`Start writing your ${type.toLowerCase()} here�`}
             value={writing}
             onChange={e => setWriting(e.target.value)}
           />

@@ -162,7 +162,7 @@ export {
 }
 
 // Convenience wrapper: renders an icon inside a colored container (for lab cards, feature cards, etc.)
-export function IconBox({ icon: Icon, size = 26, color = '#00E5A0', weight = 'duotone', className = '' }) {
+export function IconBox({ icon: Icon, size = 26, color = '#00F5A0', weight = 'duotone', className = '' }) {
   return (
     <Icon size={size} weight={weight} color={color} className={className} />
   )

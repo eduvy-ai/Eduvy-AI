@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { li } from '../../i18n/index.js'
 import { getDisplayLang } from '../../shared.js'
@@ -19,9 +19,9 @@ const getViews = (ui) => [
   { key: 'history', label: ui.historySubTab || 'History',   title: ui.battleHistory || 'Battle History' },
 ]
 
-const DIFF_COLORS = { Easy: '#00E5A0', Medium: '#FFD166', Hard: '#FF6B6B' }
+const DIFF_COLORS = { Easy: '#00F5A0', Medium: '#FBBF24', Hard: '#FF5C5C' }
 
-// ── Helpers ────────────────────────────────────────────────────
+// -- Helpers ----------------------------------------------------
 function Badge({ text, color }) {
   return (
     <span style={{
@@ -33,14 +33,14 @@ function Badge({ text, color }) {
 
 function StatusBadge({ status, isChallenger, ui }) {
   const map = {
-    open:             { label: ui.statusOpen,       color: '#FFD166' },
-    active:           { label: ui.statusActive,     color: '#7B9CFF'   },
-    challenger_done:  { label: isChallenger ? ui.statusWaitingOpponent : ui.statusYourTurn, color: isChallenger ? '#00E5A0' : '#FF6B35' },
-    completed:        { label: ui.statusDone,        color: '#00E5A0'  },
-    expired:          { label: ui.statusExpired,     color: '#6868a0'  },
-    declined:         { label: ui.statusDeclined,    color: '#FF6B6B'    },
+    open:             { label: ui.statusOpen,       color: '#FBBF24' },
+    active:           { label: ui.statusActive,     color: '#60A5FA'   },
+    challenger_done:  { label: isChallenger ? ui.statusWaitingOpponent : ui.statusYourTurn, color: isChallenger ? '#00F5A0' : '#F97316' },
+    completed:        { label: ui.statusDone,        color: '#00F5A0'  },
+    expired:          { label: ui.statusExpired,     color: '#7878A8'  },
+    declined:         { label: ui.statusDeclined,    color: '#FF5C5C'    },
   }
-  const { label = status, color = '#6868a0' } = map[status] || {}
+  const { label = status, color = '#7878A8' } = map[status] || {}
   return <Badge text={label} color={color} />
 }
 
@@ -57,11 +57,11 @@ function Avatar({ name = '?', size = 36 }) {
   )
 }
 
-// ── BattleCard — list view ─────────────────────────────────────
+// -- BattleCard � list view -------------------------------------
 function BattleCard({ battle, onAction, myId, ui }) {
   const isChallenger = battle.challenger_id === myId
   const opponent = isChallenger
-    ? (battle.opponent_name || '— waiting —')
+    ? (battle.opponent_name || '� waiting �')
     : (battle.challenger_name || '?')
   const opponentSchool = isChallenger ? battle.opponent_school : battle.challenger_school
 
@@ -80,16 +80,16 @@ function BattleCard({ battle, onAction, myId, ui }) {
       </div>
 
       <div className="flex gap-2 flex-wrap mb-2.5">
-        <Badge text={battle.subject} color="#7B9CFF" />
-        <Badge text={battle.difficulty} color={DIFF_COLORS[battle.difficulty] || '#6868a0'} />
-        <Badge text={`${battle.question_count || 5} Qs`} color="#6868a0" />
+        <Badge text={battle.subject} color="#60A5FA" />
+        <Badge text={battle.difficulty} color={DIFF_COLORS[battle.difficulty] || '#7878A8'} />
+        <Badge text={`${battle.question_count || 5} Qs`} color="#7878A8" />
       </div>
 
       {battle.status === 'completed' && (
         <div className="bg-app-card2 rounded-xl px-3 py-2 flex gap-4 mb-2.5 text-[13px]">
           <span className="text-app-text">{ui.youLabel}<strong className="text-app-green">{isChallenger ? battle.challenger_score : battle.opponent_score}</strong></span>
           <span className="text-app-text">{ui.oppLabel}<strong className="text-app-red">{isChallenger ? battle.opponent_score : battle.challenger_score}</strong></span>
-          <span style={{ color: battle.winner_id === myId ? '#FFD166' : battle.winner_id === 'draw' ? '#6868a0' : '#FF6B6B' }}>
+          <span style={{ color: battle.winner_id === myId ? '#FBBF24' : battle.winner_id === 'draw' ? '#7878A8' : '#FF5C5C' }}>
             {battle.winner_id === myId ? ui.youWonShort : battle.winner_id === 'draw' ? ui.drawResult : ui.lost}
           </span>
         </div>
@@ -119,7 +119,7 @@ function BattleCard({ battle, onAction, myId, ui }) {
   )
 }
 
-// ── Create Challenge Modal ─────────────────────────────────────
+// -- Create Challenge Modal -------------------------------------
 function CreateChallengeModal({ profile, onClose, onCreated, ui }) {
   const [subjects, setSubjects] = useState(profile?.subjects?.length ? profile.subjects : ['Mathematics', 'Science'])
   const [subject,    setSubject]    = useState(subjects[0] || 'Mathematics')
@@ -155,7 +155,7 @@ function CreateChallengeModal({ profile, onClose, onCreated, ui }) {
       <div className="bg-app-card w-full max-w-[520px] rounded-t-[20px] px-5 pt-6 pb-9">
         <div className="flex justify-between items-center mb-5">
           <h2 className="text-app-text m-0 text-lg font-extrabold">{ui.newBattleTitle}</h2>
-          <button onClick={onClose} className="bg-transparent border-none text-app-muted text-2xl cursor-pointer hover:text-app-text">×</button>
+          <button onClick={onClose} className="bg-transparent border-none text-app-muted text-2xl cursor-pointer hover:text-app-text">�</button>
         </div>
 
         <label className="text-app-muted text-[12px] block mb-1">{ui.subjectLabel}</label>
@@ -170,9 +170,9 @@ function CreateChallengeModal({ profile, onClose, onCreated, ui }) {
             <button key={d} onClick={() => setDifficulty(d)}
               style={{
                 flex: 1, padding: '10px',
-                background: difficulty === d ? `${DIFF_COLORS[d]}22` : '#101022',
+                background: difficulty === d ? `${DIFF_COLORS[d]}22` : '#202048',
                 border: `2px solid ${difficulty === d ? DIFF_COLORS[d] : 'rgba(255,255,255,0.03)'}`,
-                color: difficulty === d ? DIFF_COLORS[d] : '#6868a0',
+                color: difficulty === d ? DIFF_COLORS[d] : '#7878A8',
                 borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer',
               }}
             >{d}</button>
@@ -194,7 +194,7 @@ function CreateChallengeModal({ profile, onClose, onCreated, ui }) {
   )
 }
 
-// ── Quiz Screen (answering questions) ─────────────────────────
+// -- Quiz Screen (answering questions) -------------------------
 function QuizScreen({ battle, onDone, userId, ui }) {
   const [answers,    setAnswers]    = useState([])
   const [current,   setCurrent]    = useState(0)
@@ -211,7 +211,7 @@ function QuizScreen({ battle, onDone, userId, ui }) {
   // Cleanup timer on unmount
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
 
-  // Guard: no questions available — show fallback instead of blank screen
+  // Guard: no questions available � show fallback instead of blank screen
   if (questions.length === 0 && !result && !submitting) {
     return (
       <div className="fixed inset-0 bg-app-bg z-[200] flex items-center justify-center flex-col p-5">
@@ -289,7 +289,7 @@ function QuizScreen({ battle, onDone, userId, ui }) {
                   <span>{ui.yourAnswerLabel || 'You:'} <strong>{q.options[myAns]}</strong></span>
                   {!correct && (
                     <span className="text-app-green flex items-center gap-1">
-                      → <CheckCircle size={12} weight="fill" /> <strong>{q.options[q.correct]}</strong>
+                      ? <CheckCircle size={12} weight="fill" /> <strong>{q.options[q.correct]}</strong>
                     </span>
                   )}
                 </div>
@@ -389,7 +389,7 @@ function QuizScreen({ battle, onDone, userId, ui }) {
       <div className="mb-5">
         <div className="flex justify-between mb-2">
           <span className="text-app-muted text-[13px]">{ui.questionOf.replace('{current}', current + 1).replace('{total}', questions.length)}</span>
-          <span className="text-app-orange font-bold text-[13px] flex items-center gap-1"><Sword size={13} weight="fill" /> {battle.subject} — {battle.difficulty}</span>
+          <span className="text-app-orange font-bold text-[13px] flex items-center gap-1"><Sword size={13} weight="fill" /> {battle.subject} � {battle.difficulty}</span>
         </div>
         <div className="bg-app-card2 rounded h-1">
           <div className="bg-app-orange h-1 rounded transition-[width_.3s]" style={{ width: `${progress}%` }} />
@@ -420,7 +420,7 @@ function QuizScreen({ battle, onDone, userId, ui }) {
   )
 }
 
-// ── Leaderboard view ───────────────────────────────────────────
+// -- Leaderboard view -------------------------------------------
 function LeaderboardView({ myId, ui }) {
   const [tab,     setTab]    = useState('students')
   const [students, setStudents] = useState([])
@@ -462,13 +462,13 @@ function LeaderboardView({ myId, ui }) {
           ? <EmptyMsg icon={Trophy} text={ui.noBattlesWeek} />
           : students.map(s => (
             <div key={s.id} className={`border rounded-2xl px-4 py-3 mb-2 flex items-center gap-3 ${s.is_me ? 'bg-app-yellow/5 border-app-yellow/35' : 'bg-app-card border-app-border'}`}>
-              <span className="text-lg min-w-[30px] text-center" style={{ color: s.rank === 1 ? '#FFD166' : s.rank === 2 ? '#aaa' : s.rank === 3 ? '#cd7f32' : '#6868a0' }}>
-                {s.rank === 1 ? '🥇' : s.rank === 2 ? '🥈' : s.rank === 3 ? '🥉' : `#${s.rank}`}
+              <span className="text-lg min-w-[30px] text-center" style={{ color: s.rank === 1 ? '#FBBF24' : s.rank === 2 ? '#aaa' : s.rank === 3 ? '#cd7f32' : '#7878A8' }}>
+                {s.rank === 1 ? '??' : s.rank === 2 ? '??' : s.rank === 3 ? '??' : `#${s.rank}`}
               </span>
               <Avatar name={s.name} size={36} />
               <div className="flex-1">
                 <div className={`font-bold text-sm ${s.is_me ? 'text-app-yellow' : 'text-app-text'}`}>{s.name} {s.is_me && ui.youBracket}</div>
-                <div className="text-app-muted text-[11px]">{s.standard} {s.school ? `· ${s.school}` : ''}</div>
+                <div className="text-app-muted text-[11px]">{s.standard} {s.school ? `� ${s.school}` : ''}</div>
               </div>
               <div className="text-right">
                 <div className="text-app-green font-extrabold text-base">{s.wins} {ui.wins}</div>
@@ -483,8 +483,8 @@ function LeaderboardView({ myId, ui }) {
           ? <EmptyMsg icon={Buildings} text={ui.addSchoolLeaderboard} />
           : schools.map(s => (
             <div key={s.school} className={`border rounded-2xl px-4 py-3 mb-2 flex items-center gap-3 ${s.is_mine ? 'bg-app-blue/5 border-app-blue/35' : 'bg-app-card border-app-border'}`}>
-              <span className="text-xl min-w-[30px] text-center" style={{ color: s.rank === 1 ? '#FFD166' : s.rank === 2 ? '#aaa' : s.rank === 3 ? '#cd7f32' : '#6868a0' }}>
-                {s.rank === 1 ? '🥇' : s.rank === 2 ? '🥈' : s.rank === 3 ? '🥉' : `#${s.rank}`}
+              <span className="text-xl min-w-[30px] text-center" style={{ color: s.rank === 1 ? '#FBBF24' : s.rank === 2 ? '#aaa' : s.rank === 3 ? '#cd7f32' : '#7878A8' }}>
+                {s.rank === 1 ? '??' : s.rank === 2 ? '??' : s.rank === 3 ? '??' : `#${s.rank}`}
               </span>
               <div className="flex justify-center"><Buildings size={28} weight="duotone" className="text-app-blue" /></div>
               <div className="flex-1">
@@ -513,7 +513,7 @@ function EmptyMsg({ icon, text }) {
   )
 }
 
-// ── Main Tab ───────────────────────────────────────────────────
+// -- Main Tab ---------------------------------------------------
 export default function MuqablaTab({ profile, userId }) {
   const navigate = useNavigate()
   const ui = li(getDisplayLang(profile))
@@ -530,7 +530,7 @@ export default function MuqablaTab({ profile, userId }) {
 
   const myId = userId
 
-  // ── Load arena data ──────────────────────────────────────────
+  // -- Load arena data ------------------------------------------
   const loadArena = useCallback(async () => {
     setLoading(true); setErr('')
     try {
@@ -568,7 +568,7 @@ export default function MuqablaTab({ profile, userId }) {
     if (view === 'history') loadHistory()
   }, [view]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Handle device/browser back button for modals ─────────────
+  // -- Handle device/browser back button for modals -------------
   const modalOpenRef = useRef(false)
   
   useEffect(() => {
@@ -597,7 +597,7 @@ export default function MuqablaTab({ profile, userId }) {
     }
   }, [loadArena])
 
-  // ── Actions ──────────────────────────────────────────────────
+  // -- Actions --------------------------------------------------
   async function handleAction(type, battle) {
     if (type === 'answer') {
       // Need full battle with questions
@@ -695,7 +695,7 @@ export default function MuqablaTab({ profile, userId }) {
     window.history.back()
   }
 
-  // ── Render ───────────────────────────────────────────────────
+  // -- Render ---------------------------------------------------
   const pendingCount = pending.length
 
   return (
@@ -745,9 +745,9 @@ export default function MuqablaTab({ profile, userId }) {
         </div>
       )}
 
-      {loading && <p className="text-app-muted text-center py-6">Loading…</p>}
+      {loading && <p className="text-app-muted text-center py-6">Loading�</p>}
 
-      {/* ── Arena ── */}
+      {/* -- Arena -- */}
       {view === 'arena' && !loading && (
         <>
           {pending.length > 0 && (
@@ -757,7 +757,7 @@ export default function MuqablaTab({ profile, userId }) {
             </div>
           )}
 
-          {/* Battles where I'm opponent and need to answer (challenger_done) — exclude those already in pending */}
+          {/* Battles where I'm opponent and need to answer (challenger_done) � exclude those already in pending */}
           {active.filter(b => !b.is_challenger && b.status === 'challenger_done' && !pending.some(p => p.id === b.id)).length > 0 && (
             <div className="mb-5">
               <h3 className="text-app-orange text-sm mb-2.5">{ui.answerNow || 'Answer Now'} ({active.filter(b => !b.is_challenger && b.status === 'challenger_done' && !pending.some(p => p.id === b.id)).length})</h3>
@@ -811,17 +811,17 @@ export default function MuqablaTab({ profile, userId }) {
         </>
       )}
 
-      {/* ── Leaderboard ── */}
+      {/* -- Leaderboard -- */}
       {view === 'board' && !loading && <LeaderboardView myId={myId} ui={ui} />}
 
-      {/* ── History ── */}
+      {/* -- History -- */}
       {view === 'history' && !loading && (
         history.length === 0
           ? <EmptyMsg icon={Scroll} text={ui.noCompletedBattles} />
           : history.map(b => <BattleCard key={b.id} battle={b} onAction={handleAction} myId={myId} ui={ui} />)
       )}
 
-      {/* ── Modals ── */}
+      {/* -- Modals -- */}
       {showCreate && (
         <CreateChallengeModal profile={profile} onClose={() => setShowCreate(false)} onCreated={onChallengeCreated} ui={ui} />
       )}
@@ -837,7 +837,7 @@ export default function MuqablaTab({ profile, userId }) {
               <div className="text-[48px] mb-3 flex justify-center">
                 {quizBattle.winner_id === myId ? <Trophy size={48} weight="duotone" className="text-app-yellow" /> : quizBattle.winner_id === 'draw' ? <Handshake size={48} weight="duotone" className="text-app-blue" /> : <Barbell size={48} weight="duotone" className="text-app-text" />}
               </div>
-              <h2 className="mb-4" style={{ color: quizBattle.winner_id === myId ? '#FFD166' : quizBattle.winner_id === 'draw' ? '#7B9CFF' : '#eeeeff' }}>
+              <h2 className="mb-4" style={{ color: quizBattle.winner_id === myId ? '#FBBF24' : quizBattle.winner_id === 'draw' ? '#60A5FA' : '#FFFFFF' }}>
                 {quizBattle.winner_id === myId ? ui.youWonShort : quizBattle.winner_id === 'draw' ? ui.drawResult : quizBattle.status === 'waiting_for_opponent' ? ui.waitingForOpponent : ui.goodFight}
               </h2>
               <div className="bg-app-card2 rounded-2xl p-4 mb-5 flex justify-around">

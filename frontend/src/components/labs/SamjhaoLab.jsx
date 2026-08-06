@@ -169,7 +169,7 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
 
   if (phase === "result") {
     const overall = score?.overall ?? 0
-    const overallColor = overall >= 75 ? "#00E5A0" : overall >= 50 ? "#FFD166" : "#FF6B6B"
+    const overallColor = overall >= 75 ? "#00F5A0" : overall >= 50 ? "#FBBF24" : "#FF5C5C"
     return (
       <div className="flex flex-col h-full min-h-0">
         <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">
@@ -190,9 +190,9 @@ export default function SamjhaoLab({ profile, addXp, onBack }) {
           <div className="bg-app-card border border-app-border rounded-2xl p-4 mb-3.5">
             <div className="text-[13px] font-extrabold text-app-text mb-3.5">{ui.dimensionScores}</div>
             <div className="flex justify-around">
-              <ScoreRing label={ui.accuracy}     value={score?.accuracy     ?? 0} color="#00E5A0" />
-              <ScoreRing label={ui.completeness} value={score?.completeness ?? 0} color="#7B9CFF" />
-              <ScoreRing label={ui.simplicity}   value={score?.simplicity   ?? 0} color="#FFD166" />
+              <ScoreRing label={ui.accuracy}     value={score?.accuracy     ?? 0} color="#00F5A0" />
+              <ScoreRing label={ui.completeness} value={score?.completeness ?? 0} color="#60A5FA" />
+              <ScoreRing label={ui.simplicity}   value={score?.simplicity   ?? 0} color="#FBBF24" />
             </div>
           </div>
           {(score?.correct || []).length > 0 && (

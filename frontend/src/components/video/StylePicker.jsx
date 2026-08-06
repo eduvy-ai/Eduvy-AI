@@ -25,7 +25,7 @@ const STYLES = [
     labelKey: 'styleCanvasColorful',
     descKey: 'styleCanvasColorfulDesc',
     bg: '#fff9f0',
-    border: '#ff6b35',
+    border: '#F97316',
     textColor: '#1a1a1a',
     preview: '🎨',
   },

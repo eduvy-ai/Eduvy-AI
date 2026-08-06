@@ -28,14 +28,14 @@ const STUDIO_ICONS = {
 }
 
 const STUDIO_ITEMS = [
-  { key: "podcast",   labelKey: "studioAudioOverview",  descKey: "studioAudioOverviewDesc",  color: "#FFD166" },
-  { key: "guide",     labelKey: "studioStudyGuide",     descKey: "studioStudyGuideDesc",     color: "#00E5A0" },
-  { key: "brief",     labelKey: "studioBriefingDoc",    descKey: "studioBriefingDocDesc",    color: "#7B9CFF" },
-  { key: "faq",       labelKey: "studioFaq",            descKey: "studioFaqDesc",            color: "#FF6B35" },
-  { key: "timeline",  labelKey: "studioTimeline",       descKey: "studioTimelineDesc",       color: "#FF6B6B" },
-  { key: "mindmap",   labelKey: "studioMindMap",        descKey: "studioMindMapDesc",        color: "#7B9CFF" },
-  { key: "quiz",      labelKey: "studioPracticeQuiz",   descKey: "studioPracticeQuizDesc",   color: "#00E5A0" },
-  { key: "flashcards",labelKey: "studioFlashcards",     descKey: "studioFlashcardsDesc",     color: "#FFD166" },
+  { key: "podcast",   labelKey: "studioAudioOverview",  descKey: "studioAudioOverviewDesc",  color: "#FBBF24" },
+  { key: "guide",     labelKey: "studioStudyGuide",     descKey: "studioStudyGuideDesc",     color: "#00F5A0" },
+  { key: "brief",     labelKey: "studioBriefingDoc",    descKey: "studioBriefingDocDesc",    color: "#60A5FA" },
+  { key: "faq",       labelKey: "studioFaq",            descKey: "studioFaqDesc",            color: "#F97316" },
+  { key: "timeline",  labelKey: "studioTimeline",       descKey: "studioTimelineDesc",       color: "#FF5C5C" },
+  { key: "mindmap",   labelKey: "studioMindMap",        descKey: "studioMindMapDesc",        color: "#60A5FA" },
+  { key: "quiz",      labelKey: "studioPracticeQuiz",   descKey: "studioPracticeQuizDesc",   color: "#00F5A0" },
+  { key: "flashcards",labelKey: "studioFlashcards",     descKey: "studioFlashcardsDesc",     color: "#FBBF24" },
 ]
 
 let _sourceIdCounter = 1
@@ -1343,10 +1343,10 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                   <div>
                     <div 
                       className="bg-app-card border border-app-border rounded-[14px] p-4 mb-2.5"
-                      style={{ borderTop: `3px solid ${STUDIO_ITEMS.find(i => i.key === studioType)?.color ?? '#00E5A0'}` }}
+                      style={{ borderTop: `3px solid ${STUDIO_ITEMS.find(i => i.key === studioType)?.color ?? '#00F5A0'}` }}
                     >
                       <div className="flex items-center justify-between mb-2.5">
-                        <div className="text-xs font-bold" style={{ color: STUDIO_ITEMS.find(i => i.key === studioType)?.color ?? '#00E5A0' }}>
+                        <div className="text-xs font-bold" style={{ color: STUDIO_ITEMS.find(i => i.key === studioType)?.color ?? '#00F5A0' }}>
                           {STUDIO_ITEMS.find(i => i.key === studioType)?.icon} {ui[STUDIO_ITEMS.find(i => i.key === studioType)?.labelKey]}
                         </div>
                         <button
@@ -1369,7 +1369,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                   const hasSpeech = typeof window !== 'undefined' && 'speechSynthesis' in window
                   const atEnd = lineIdx >= episode.exchanges.length - 1
                   const host = episode.exchanges[lineIdx]?.h
-                  const hostColor = host === 'Priya' ? '#FF6B35' : '#7B9CFF'
+                  const hostColor = host === 'Priya' ? '#F97316' : '#60A5FA'
                   return (
                     <div className="flex flex-col gap-3">
 
@@ -1430,7 +1430,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                             className="h-1.5 rounded-full transition-all duration-300"
                             style={{
                               width: i === lineIdx ? 16 : 6,
-                              background: i < lineIdx ? `#FFD16680` : i === lineIdx ? '#FFD166' : 'rgba(255,255,255,0.03)',
+                              background: i < lineIdx ? `#FBBF2480` : i === lineIdx ? '#FBBF24' : 'rgba(255,255,255,0.03)',
                             }}
                           />
                         ))}
@@ -1541,8 +1541,8 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                         <div 
                           className="text-[10px] font-extrabold rounded-lg py-0.5 px-2.5 uppercase"
                           style={{
-                            color: cards[cardIdx].d === "hard" ? '#FF6B6B' : cards[cardIdx].d === "medium" ? '#FFD166' : '#00E5A0',
-                            background: cards[cardIdx].d === "hard" ? `#FF6B6B15` : cards[cardIdx].d === "medium" ? `#FFD16615` : `#00E5A015`,
+                            color: cards[cardIdx].d === "hard" ? '#FF5C5C' : cards[cardIdx].d === "medium" ? '#FBBF24' : '#00F5A0',
+                            background: cards[cardIdx].d === "hard" ? `#FF5C5C15` : cards[cardIdx].d === "medium" ? `#FBBF2415` : `#00F5A015`,
                           }}
                         >
                           {cards[cardIdx].d}
@@ -1554,8 +1554,8 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                       onClick={() => setCardFlipped(f => !f)}
                       className="w-full min-h-[180px] rounded-[18px] p-5 cursor-pointer flex flex-col justify-center items-center gap-2.5 text-center transition-all duration-300"
                       style={{
-                        background: cardFlipped ? `#00E5A012` : '#0b0b1c',
-                        border: `1.5px solid ${cardFlipped ? '#00E5A0' : 'rgba(255,255,255,0.03)'}`,
+                        background: cardFlipped ? `#00F5A012` : '#1A1A3A',
+                        border: `1.5px solid ${cardFlipped ? '#00F5A0' : 'rgba(255,255,255,0.03)'}`,
                       }}
                     >
                       {!cardFlipped ? (
@@ -1583,7 +1583,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                           className="h-1.5 rounded-full transition-all duration-300"
                           style={{
                             width: i === cardIdx ? 16 : 6,
-                            background: i === cardIdx ? '#00E5A0' : i < cardIdx ? `#00E5A050` : 'rgba(255,255,255,0.03)',
+                            background: i === cardIdx ? '#00F5A0' : i < cardIdx ? `#00F5A050` : 'rgba(255,255,255,0.03)',
                           }}
                         />
                       ))}
@@ -1631,11 +1631,11 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                     <div className="flex flex-col gap-2">
                       {quizQ.o?.map((opt, i) => {
                         const letter = ["A","B","C","D"][i]
-                        let bg = '#0b0b1c', border = 'rgba(255,255,255,0.03)', color = '#eeeeff'
+                        let bg = '#1A1A3A', border = 'rgba(255,255,255,0.03)', color = '#FFFFFF'
                         if (quizSel) {
-                          if (letter === quizQ.c)     { bg = `#00E5A020`; border = '#00E5A0'; color = '#00E5A0' }
-                          else if (letter === quizSel) { bg = `#FF6B6B15`;   border = '#FF6B6B';   color = '#FF6B6B'   }
-                          else                         { bg = '#0b0b1c';          color = '#6868a0'                        }
+                          if (letter === quizQ.c)     { bg = `#00F5A020`; border = '#00F5A0'; color = '#00F5A0' }
+                          else if (letter === quizSel) { bg = `#FF5C5C15`;   border = '#FF5C5C';   color = '#FF5C5C'   }
+                          else                         { bg = '#1A1A3A';          color = '#7878A8'                        }
                         }
                         return (
                           <button 
@@ -1661,11 +1661,11 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                         <div 
                           className="rounded-xl p-3.5"
                           style={{
-                            background: quizSel === quizQ.c ? `#00E5A010` : `#FF6B6B10`,
-                            border: `1px solid ${quizSel === quizQ.c ? '#00E5A0' : '#FF6B6B'}30`,
+                            background: quizSel === quizQ.c ? `#00F5A010` : `#FF5C5C10`,
+                            border: `1px solid ${quizSel === quizQ.c ? '#00F5A0' : '#FF5C5C'}30`,
                           }}
                         >
-                          <div className="text-xs font-bold mb-1.5" style={{ color: quizSel === quizQ.c ? '#00E5A0' : '#FF6B6B' }}>
+                          <div className="text-xs font-bold mb-1.5" style={{ color: quizSel === quizQ.c ? '#00F5A0' : '#FF5C5C' }}>
                             {quizSel === quizQ.c ? ui.correctAnswer : `${ui.incorrectAnswer} ${quizQ.c}`}
                           </div>
                           <p className="text-[13px] text-app-text leading-relaxed m-0">{quizQ.e}</p>

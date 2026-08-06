@@ -20,17 +20,17 @@ export const getDisplayLang = (profile) => {
 
 // ─── Color Tokens ────────────────────────────────────────────
 export const COLORS = {
-  bg:     "#04040e",
-  card:   "#0b0b1c",
-  card2:  "#101022",
-  border: "#ffffff08",
-  green:  "#00E5A0",
-  yellow: "#FFD166",
-  red:    "#FF6B6B",
-  blue:   "#7B9CFF",
-  orange: "#FF6B35",
-  text:   "#eeeeff",
-  muted:  "#6868a0",
+  bg:     "#0D0D1F",
+  card:   "#1A1A3A",
+  card2:  "#202048",
+  border: "#ffffff0d",
+  green:  "#00F5A0",
+  yellow: "#FBBF24",
+  red:    "#FF5C5C",
+  blue:   "#60A5FA",
+  orange: "#F97316",
+  text:   "#FFFFFF",
+  muted:  "#7878A8",
 }
 
 // ─── Drishti — Accessibility defaults ────────────────────────
@@ -142,7 +142,7 @@ export const PLANS = {
   free: {
     label:          'Free',
     icon:           '🆓',
-    color:          '#6868a0',
+    color:          '#7878A8',
     tabs:           ['home', 'mistakes', 'battles'],
     labs:           [],
     aiCallsPerDay:  10,
@@ -150,7 +150,7 @@ export const PLANS = {
   basic: {
     label:          'Basic',
     icon:           '⭐',
-    color:          '#FFD166',
+    color:          '#FBBF24',
     tabs:           ['home', 'videos', 'notebook', 'mistakes', 'battles'],
     labs:           [],
     aiCallsPerDay:  50,
@@ -158,7 +158,7 @@ export const PLANS = {
   pro: {
     label:          'Pro',
     icon:           '🚀',
-    color:          '#7B9CFF',
+    color:          '#60A5FA',
     tabs:           ['home', 'videos', 'notebook', 'learntv', 'labs', 'squads', 'mistakes', 'battles'],
     labs:           ['quiz', 'examiner', 'samjhao'],
     aiCallsPerDay:  200,
@@ -166,7 +166,7 @@ export const PLANS = {
   premium: {
     label:          'Premium',
     icon:           '👑',
-    color:          '#00E5A0',
+    color:          '#00F5A0',
     tabs:           ['home', 'videos', 'notebook', 'learntv', 'labs', 'squads', 'mistakes', 'battles'],
     labs:           ['quiz', 'examiner', 'samjhao', 'podcast', 'essay', 'mental'],
     aiCallsPerDay:  Infinity,
@@ -383,7 +383,7 @@ export const AI_PROVIDERS = {
   gemini: {
     label: "Google Gemini",
     icon: "✦",
-    color: "#7B9CFF",
+    color: "#60A5FA",
     free: true,
     models: [
       { id: "gemini-2.0-flash",   label: "Gemini 2.0 Flash (Recommended)" },
@@ -397,7 +397,7 @@ export const AI_PROVIDERS = {
   groq: {
     label: "Groq",
     icon: "⚡",
-    color: "#FFD166",
+    color: "#FBBF24",
     free: true,
     models: [
       { id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B (Recommended)" },
@@ -410,7 +410,7 @@ export const AI_PROVIDERS = {
   anthropic: {
     label: "Anthropic Claude",
     icon: "◈",
-    color: "#FF6B35",
+    color: "#F97316",
     free: false,
     models: [
       { id: "claude-sonnet-4-20250514",  label: "Claude Sonnet 4 (Best)" },
@@ -423,7 +423,7 @@ export const AI_PROVIDERS = {
   openai: {
     label: "OpenAI GPT",
     icon: "◎",
-    color: "#00E5A0",
+    color: "#00F5A0",
     free: false,
     models: [
       { id: "gpt-4o-mini", label: "GPT-4o Mini (Affordable)" },

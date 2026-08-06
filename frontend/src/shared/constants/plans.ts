@@ -18,7 +18,7 @@ export const PLANS: Record<PlanType, Plan> = {
   free: {
     label: 'Free',
     icon: '🆓',
-    color: '#6868a0',
+    color: '#7878A8',
     tabs: ['home', 'learn', 'practice', 'profile', 'coach', 'mistakes', 'battles'],
     labs: [],
     aiCallsPerDay: 10,
@@ -26,7 +26,7 @@ export const PLANS: Record<PlanType, Plan> = {
   basic: {
     label: 'Basic',
     icon: '⭐',
-    color: '#FFD166',
+    color: '#FBBF24',
     tabs: ['home', 'learn', 'practice', 'profile', 'coach', 'videos', 'notebook', 'videocreator', 'mistakes', 'battles'],
     labs: [],
     aiCallsPerDay: 50,
@@ -34,7 +34,7 @@ export const PLANS: Record<PlanType, Plan> = {
   pro: {
     label: 'Pro',
     icon: '🚀',
-    color: '#7B9CFF',
+    color: '#60A5FA',
     tabs: ['home', 'learn', 'practice', 'profile', 'coach', 'videos', 'notebook', 'learntv', 'labs', 'videocreator', 'squads', 'mistakes', 'battles'],
     labs: ['quiz', 'examiner', 'samjhao'],
     aiCallsPerDay: 200,
@@ -42,7 +42,7 @@ export const PLANS: Record<PlanType, Plan> = {
   premium: {
     label: 'Premium',
     icon: '👑',
-    color: '#00E5A0',
+    color: '#00F5A0',
     tabs: ['home', 'learn', 'practice', 'profile', 'coach', 'videos', 'notebook', 'learntv', 'labs', 'videocreator', 'squads', 'mistakes', 'battles'],
     labs: ['quiz', 'examiner', 'samjhao', 'podcast', 'essay', 'mental'],
     aiCallsPerDay: Infinity,

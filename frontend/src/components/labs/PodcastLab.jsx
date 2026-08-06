@@ -179,7 +179,7 @@ export default function PodcastLab({ profile, addXp, docCtx, docName, onBack }) 
     generate(docName || "the uploaded document")
   }
 
-  const hostColor = h => h === "Priya" ? "#FF6B35" : "#7B9CFF"
+  const hostColor = h => h === "Priya" ? "#F97316" : "#60A5FA"
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -213,7 +213,7 @@ export default function PodcastLab({ profile, addXp, docCtx, docName, onBack }) 
             </div>
             <div className="flex flex-col gap-2.5">
               <button onClick={() => generate()} disabled={loading || !topicInput.trim()}
-                className="w-full bg-gradient-to-r from-app-green to-[#33cc88] text-app-bg text-[13px] font-extrabold rounded-xl py-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] transition-all">
+                className="w-full bg-gradient-to-r from-app-green to-[#00D68F] text-app-bg text-[13px] font-extrabold rounded-xl py-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] transition-all">
                 {loading ? "Generating podcast�" : "??? Generate Podcast"}
               </button>
               <button onClick={fromDocument} disabled={loading}
@@ -235,7 +235,7 @@ export default function PodcastLab({ profile, addXp, docCtx, docName, onBack }) 
                 {ttsOK && (
                   <button
                     onClick={() => { if (autoPlaying) { cancelTTS(); setAutoPlaying(false); setIsSpeaking(false) } else { setAutoPlaying(true) } }}
-                    style={{ background: autoPlaying ? 'rgba(255,209,102,0.13)' : 'rgba(0,229,160,0.13)', border: `1px solid ${autoPlaying ? 'rgba(255,209,102,0.27)' : 'rgba(0,229,160,0.27)'}`, color: autoPlaying ? '#FFD166' : '#00E5A0' }}
+                    style={{ background: autoPlaying ? 'rgba(255,209,102,0.13)' : 'rgba(0,229,160,0.13)', border: `1px solid ${autoPlaying ? 'rgba(255,209,102,0.27)' : 'rgba(0,229,160,0.27)'}`, color: autoPlaying ? '#FBBF24' : '#00F5A0' }}
                     className="rounded-2xl px-2.5 py-1 text-[11px] font-bold cursor-pointer font-[Sora,sans-serif]"
                   >{autoPlaying ? (isSpeaking ? '? Pause' : '?') : '?? Play'}</button>
                 )}
@@ -255,13 +255,13 @@ export default function PodcastLab({ profile, addXp, docCtx, docName, onBack }) 
             <div className="flex gap-1.5 justify-center flex-wrap">
               {episode.exchanges.map((_, i) => (
                 <div key={i} className="w-1.5 h-1.5 rounded-full transition-colors duration-300"
-                  style={{ background: i <= lineIdx ? '#FFD166' : 'rgba(255,255,255,0.08)' }} />
+                  style={{ background: i <= lineIdx ? '#FBBF24' : 'rgba(255,255,255,0.08)' }} />
               ))}
             </div>
 
             {lineIdx < episode.exchanges.length - 1 ? (
               <button onClick={() => { cancelTTS(); setIsSpeaking(false); setLineIdx(i => i + 1) }}
-                className="w-full bg-gradient-to-r from-app-green to-[#33cc88] text-app-bg text-[13px] font-extrabold rounded-xl py-3 cursor-pointer active:scale-[0.99] transition-all">
+                className="w-full bg-gradient-to-r from-app-green to-[#00D68F] text-app-bg text-[13px] font-extrabold rounded-xl py-3 cursor-pointer active:scale-[0.99] transition-all">
                 {autoPlaying ? '? Skip' : 'Continue ?'}
               </button>
             ) : (

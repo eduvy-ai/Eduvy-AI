@@ -20,7 +20,7 @@ import './services/interceptor'
 if (Capacitor.isNativePlatform()) {
   // Status bar: dark background + light text
   import('@capacitor/status-bar').then(({ StatusBar, Style }) => {
-    StatusBar.setBackgroundColor({ color: '#04040e' }).catch(() => {})
+    StatusBar.setBackgroundColor({ color: '#0D0D1F' }).catch(() => {})
     StatusBar.setStyle({ style: Style.Dark }).catch(() => {})
   }).catch(() => {})
 
@@ -41,7 +41,7 @@ if (Capacitor.isNativePlatform()) {
           t.textContent = 'Press back again to exit'
           Object.assign(t.style, {
             position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
-            background: '#1a1a2e', color: '#eee', padding: '8px 20px', borderRadius: '8px',
+            background: '#1A1A3A', color: '#fff', padding: '8px 20px', borderRadius: '10px',
             fontSize: '13px', zIndex: '9999', fontFamily: 'Sora, sans-serif',
           })
           document.body.appendChild(t)

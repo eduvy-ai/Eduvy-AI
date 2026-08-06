@@ -31,14 +31,14 @@ const STUDIO_ICONS = {
 }
 
 const STUDIO_COLORS = {
-  podcast: '#FFD166',
-  guide: '#00E5A0',
-  brief: '#7B9CFF',
-  faq: '#FF6B35',
-  timeline: '#FF6B6B',
-  mindmap: '#7B9CFF',
-  quiz: '#00E5A0',
-  flashcards: '#FFD166',
+  podcast: '#FBBF24',
+  guide: '#00F5A0',
+  brief: '#60A5FA',
+  faq: '#F97316',
+  timeline: '#FF5C5C',
+  mindmap: '#60A5FA',
+  quiz: '#00F5A0',
+  flashcards: '#FBBF24',
 }
 
 const STUDIO_LABELS = {
@@ -260,7 +260,7 @@ export default function StudioHistory({ userId, onClose, onSelectOutput, ui, lan
                   <div className="space-y-2">
                     {dateOutputs.map(output => {
                       const Icon = STUDIO_ICONS[output.type] || Books
-                      const color = STUDIO_COLORS[output.type] || '#00E5A0'
+                      const color = STUDIO_COLORS[output.type] || '#00F5A0'
                       const labelObj = STUDIO_LABELS[output.type] || {}
                       const label = labelObj[lang] || labelObj.English || output.type
                       

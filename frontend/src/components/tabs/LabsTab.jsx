@@ -20,12 +20,12 @@ const LAB_ICONS = {
 }
 
 const getLabs = (ui) => [
-  { key: "examiner", label: ui.marksHunter,    desc: ui.examinerLabDesc, color: "#FFD166" },
-  { key: "samjhao",  label: ui.samjhao,        desc: ui.samjhaoLabDesc,  color: "#7B9CFF" },
-  { key: "quiz",     label: ui.quizArena,      desc: ui.quizLabDesc,     color: "#00E5A0" },
-  { key: "podcast",  label: ui.aiPodcast,      desc: ui.podcastLabDesc,  color: "#FF6B35" },
-  { key: "essay",    label: ui.essayWriter,    desc: ui.essayLabDesc,    color: "#FF6B6B" },
-  { key: "mental",   label: ui.wellnessCoach,   desc: ui.mentalLabDesc,   color: "#00E5A0" },
+  { key: "examiner", label: ui.marksHunter,    desc: ui.examinerLabDesc, color: "#FBBF24" },
+  { key: "samjhao",  label: ui.samjhao,        desc: ui.samjhaoLabDesc,  color: "#60A5FA" },
+  { key: "quiz",     label: ui.quizArena,      desc: ui.quizLabDesc,     color: "#00F5A0" },
+  { key: "podcast",  label: ui.aiPodcast,      desc: ui.podcastLabDesc,  color: "#F97316" },
+  { key: "essay",    label: ui.essayWriter,    desc: ui.essayLabDesc,    color: "#FF5C5C" },
+  { key: "mental",   label: ui.wellnessCoach,   desc: ui.mentalLabDesc,   color: "#00F5A0" },
 ]
 
 export default function LabsTab(props) {

@@ -57,15 +57,15 @@ function pickVoice(lang) {
 const BS = {
   chalk:  { bg:'#0d1a0a', surface:'#132011', border:'#2a4420', text:'#e8f0e0', dim:'#6a9a58', accent:'#c8e8a0', font:"'Caveat',cursive",       label:'🖤 Chalk',  dark:true  },
   marker: { bg:'#f5f0e8', surface:'#ede7da', border:'#c8b898', text:'#181208', dim:'#7a6848', accent:'#1a3a9a', font:"'Patrick Hand',cursive",   label:'🖊 Marker', dark:false },
-  color:  { bg:'#0b0b1c', surface:'#101022', border:'#ffffff10',text:'#eeeeff', dim:'#6868a0', accent:'#00E5A0', font:"'Sora',sans-serif",       label:'🎨 Color',  dark:true  },
+  color:  { bg:'#1A1A3A', surface:'#202048', border:'#ffffff10',text:'#FFFFFF', dim:'#7878A8', accent:'#00F5A0', font:"'Sora',sans-serif",       label:'🎨 Color',  dark:true  },
 }
-const SCENE_COLS = ['#00E5A0','#7B9CFF','#FFD166','#FF6B35','#FF6B6B','#BB86FC','#03DAC6','#FF8A80','#82B1FF','#CCFF90']
+const SCENE_COLS = ['#00F5A0','#60A5FA','#FBBF24','#F97316','#FF5C5C','#BB86FC','#03DAC6','#FF8A80','#82B1FF','#CCFF90']
 
 // Per-scene accent palettes � every scene gets its own color, all 3 board styles
 const SCENE_PALETTE = {
   chalk:  ['#a8ffb0','#7ecfff','#ffe893','#ffb46a','#ff9090','#d4a0ff','#68e8d8','#ffa8a0','#a0c8ff','#c0ff98'],
   marker: ['#0a7a15','#1a3aaa','#7a5a00','#8a2500','#7a0030','#5a1a8a','#0a6a5a','#8a1a0a','#1a4a8a','#2a6a0a'],
-  color:  ['#00E5A0','#7B9CFF','#FFD166','#FF6B35','#FF6B6B','#BB86FC','#03DAC6','#FF8A80','#82B1FF','#CCFF90'],
+  color:  ['#00F5A0','#60A5FA','#FBBF24','#F97316','#FF5C5C','#BB86FC','#03DAC6','#FF8A80','#82B1FF','#CCFF90'],
 }
 
 const u16 = s => [...(s||'')].reduce((n,c) => n + (c.codePointAt(0) > 0xFFFF ? 2 : 1), 0)
@@ -2270,7 +2270,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
             { k:'advanced',   label: ui.advancedLevel   },
           ].map(({ k, label }) => (
             <button key={k} onClick={() => setLevel(k)} style={{
-              background: level===k ? (k==='foundation'?'#00E5A015':k==='standard'?'#7B9CFF15':'#FF6B3515') : 'transparent',
+              background: level===k ? (k==='foundation'?'#00F5A015':k==='standard'?'#60A5FA15':'#F9731615') : 'transparent',
               border: `1px solid ${level===k ? (k==='foundation'?COLORS.green:k==='standard'?COLORS.blue:COLORS.orange) : COLORS.border}`,
               borderRadius:8, padding:'4px 11px', fontSize:11,
               fontWeight: level===k ? 700 : 500,
@@ -2363,7 +2363,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
 
         {/* Error */}
         {error && !loading && (
-          <div style={{ margin:'14px', background:'#FF6B6B12', border:'1px solid #FF6B6B40', borderRadius:14, padding:'14px 16px' }}>
+          <div style={{ margin:'14px', background:'#FF5C5C12', border:'1px solid #FF5C5C40', borderRadius:14, padding:'14px 16px' }}>
             <div style={{ fontSize:13, color:COLORS.red, fontWeight:700, marginBottom:4 }}>
               {error?.startsWith('⚠️ Rate limit') ? ui.rateLimitReached : error?.startsWith('⚠️ No API key') ? ui.apiKeyMissing : ui.generationFailed}
             </div>
@@ -2383,7 +2383,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
                   padding:'12px 14px', color:COLORS.text, fontSize:13, cursor:'pointer',
                   textAlign:'left', fontFamily:'Sora,sans-serif', display:'flex', alignItems:'center', gap:12,
                 }}>
-                  <span style={{ width:36,height:36,borderRadius:10,background:'#00E5A012',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0 }}>{s.icon}</span>
+                  <span style={{ width:36,height:36,borderRadius:10,background:'#00F5A012',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0 }}>{s.icon}</span>
                   {s.q}
                 </button>
               ))}
@@ -2416,7 +2416,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
                 padding:'8px 14px', display:'flex', alignItems:'center', gap:10,
               }}>
                 <div style={{ display:'flex', gap:5 }}>
-                  {['#FF6B6B','#FFD166','#00E5A0'].map(c => <div key={c} style={{ width:10,height:10,borderRadius:'50%',background:c,opacity:0.75 }}/>)}
+                  {['#FF5C5C','#FBBF24','#00F5A0'].map(c => <div key={c} style={{ width:10,height:10,borderRadius:'50%',background:c,opacity:0.75 }}/>)}
                 </div>
                 <div style={{ flex:1,textAlign:'center',fontSize:12,fontWeight:700,color:bs.dim,fontFamily:bs.font,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>
                   {lesson.title}
@@ -2424,8 +2424,8 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
                 <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                   {lesson.level && (
                     <span style={{ fontSize:9, fontWeight:700, color:bs.dim, fontFamily:bs.font,
-                      background: lesson.level.includes('Foundation')?'#00E5A015':lesson.level.includes('Advanced')?'#FF6B3515':'#7B9CFF15',
-                      border: `1px solid ${lesson.level.includes('Foundation')?'#00E5A040':lesson.level.includes('Advanced')?'#FF6B3540':'#7B9CFF40'}`,
+                      background: lesson.level.includes('Foundation')?'#00F5A015':lesson.level.includes('Advanced')?'#F9731615':'#60A5FA15',
+                      border: `1px solid ${lesson.level.includes('Foundation')?'#00F5A040':lesson.level.includes('Advanced')?'#F9731640':'#60A5FA40'}`,
                       borderRadius:5, padding:'2px 6px',
                     }}>{lesson.level}</span>
                   )}
@@ -2669,11 +2669,11 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
                   <button
                     onClick={() => { setSceneAnswers(p=>({...p,[sceneIdx]:'confused'})); reExplain(sceneIdx,cs) }}
                     disabled={reExplaining}
-                    style={{ flex:1, background:'#FF6B6B12', border:'1px solid #FF6B6B40', borderRadius:12, padding:'11px 12px', fontSize:13, fontWeight:700, color:COLORS.red, cursor:'pointer', fontFamily:'Sora,sans-serif' }}
+                    style={{ flex:1, background:'#FF5C5C12', border:'1px solid #FF5C5C40', borderRadius:12, padding:'11px 12px', fontSize:13, fontWeight:700, color:COLORS.red, cursor:'pointer', fontFamily:'Sora,sans-serif' }}
                   >{reExplaining ? ui.thinking : ui.confused}</button>
                   <button
                     onClick={() => { setSceneAnswers(p=>({...p,[sceneIdx]:'got'})); advanceScene() }}
-                    style={{ flex:1, background:'#00E5A012', border:'1px solid #00E5A040', borderRadius:12, padding:'11px 12px', fontSize:13, fontWeight:800, color:COLORS.green, cursor:'pointer', fontFamily:'Sora,sans-serif' }}
+                    style={{ flex:1, background:'#00F5A012', border:'1px solid #00F5A040', borderRadius:12, padding:'11px 12px', fontSize:13, fontWeight:800, color:COLORS.green, cursor:'pointer', fontFamily:'Sora,sans-serif' }}
                   >{ui.gotIt}</button>
                 </div>
               )}
@@ -2760,7 +2760,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
                 <div style={{ marginTop:10 }}>
                   <div style={{ fontSize:11, color:COLORS.muted, marginBottom:6 }}>{ui.rewatchThese}</div>
                   {confusedIdxs.map(i => (
-                    <button key={i} onClick={() => goToScene(i)} style={{ display:'block', width:'100%', marginBottom:6, background:'#FF6B6B10', border:'1px solid #FF6B6B30', borderRadius:10, padding:'8px 12px', fontSize:12, color:COLORS.text, cursor:'pointer', textAlign:'left', fontFamily:'Sora,sans-serif', fontWeight:600 }}>
+                    <button key={i} onClick={() => goToScene(i)} style={{ display:'block', width:'100%', marginBottom:6, background:'#FF5C5C10', border:'1px solid #FF5C5C30', borderRadius:10, padding:'8px 12px', fontSize:12, color:COLORS.text, cursor:'pointer', textAlign:'left', fontFamily:'Sora,sans-serif', fontWeight:600 }}>
                       ▶ {ui.scene} {i+1}: {lesson.scenes[i]?.title}
                     </button>
                   ))}
@@ -2769,10 +2769,10 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
             </div>
 
             {lesson.keyPoints?.length>0 && (
-              <div style={{ background:'#00E5A010', border:'1px solid #00E5A030', borderRadius:16, padding:'14px 16px' }}>
+              <div style={{ background:'#00F5A010', border:'1px solid #00F5A030', borderRadius:16, padding:'14px 16px' }}>
                 <div style={{ fontSize:12, fontWeight:700, color:COLORS.green, marginBottom:10 }}>{ui.keyTakeaways}</div>
                 {lesson.keyPoints.map((p,i) => (
-                  <div key={i} style={{ fontSize:13, color:COLORS.text, padding:'5px 0 5px 12px', borderLeft:'2px solid #00E5A040', marginBottom:5, lineHeight:1.5 }}>{p}</div>
+                  <div key={i} style={{ fontSize:13, color:COLORS.text, padding:'5px 0 5px 12px', borderLeft:'2px solid #00F5A040', marginBottom:5, lineHeight:1.5 }}>{p}</div>
                 ))}
               </div>
             )}
@@ -2786,7 +2786,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
             )}
 
             {lesson.formula && (
-              <div style={{ background:'#7B9CFF10', border:'1px solid #7B9CFF30', borderRadius:14, padding:'12px 16px', textAlign:'center' }}>
+              <div style={{ background:'#60A5FA10', border:'1px solid #60A5FA30', borderRadius:14, padding:'12px 16px', textAlign:'center' }}>
                 <div style={{ fontSize:11, fontWeight:700, color:COLORS.blue, marginBottom:6 }}>{ui.keyFormula}</div>
                 <div style={{ fontSize:22, fontWeight:900, color:COLORS.text, letterSpacing:2, fontFamily:'monospace' }}>{lesson.formula}</div>
               </div>
@@ -2803,8 +2803,8 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
                     const L=['A','B','C','D'][i]
                     let bg=COLORS.card, bdr=COLORS.border, col=COLORS.text
                     if (quizSel) {
-                      if (L===lesson.practiceQ.answer)    { bg='#00E5A020';bdr=COLORS.green;col=COLORS.green }
-                      else if (L===quizSel)               { bg='#FF6B6B15';bdr=COLORS.red;  col=COLORS.red   }
+                      if (L===lesson.practiceQ.answer)    { bg='#00F5A020';bdr=COLORS.green;col=COLORS.green }
+                      else if (L===quizSel)               { bg='#FF5C5C15';bdr=COLORS.red;  col=COLORS.red   }
                       else col=COLORS.muted
                     }
                     return (
@@ -2813,7 +2813,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
                   })}
                 </div>
                 {quizSel && (
-                  <div style={{ background:quizSel===lesson.practiceQ.answer?'#00E5A010':'#FF6B6B10', border:`1px solid ${quizSel===lesson.practiceQ.answer?'#00E5A030':'#FF6B6B30'}`, borderRadius:12, padding:14 }}>
+                  <div style={{ background:quizSel===lesson.practiceQ.answer?'#00F5A010':'#FF5C5C10', border:`1px solid ${quizSel===lesson.practiceQ.answer?'#00F5A030':'#FF5C5C30'}`, borderRadius:12, padding:14 }}>
                     <div style={{ fontSize:12, fontWeight:700, marginBottom:6, color:quizSel===lesson.practiceQ.answer?COLORS.green:COLORS.red }}>
                       {quizSel===lesson.practiceQ.answer ? ui.videoCorrect : (ui.incorrectAnswer || '\u2717 Incorrect \u2192 Answer: {answer}').replace('{answer}', lesson.practiceQ.answer)}
                     </div>
@@ -2849,7 +2849,7 @@ Return raw JSON: {"title":"TITLE","subject":"${intel.subject||''}","level":"${lc
   )
 }
 
-const iStyle  = { background:'#101022', border:'1px solid #ffffff15', borderRadius:12, padding:'10px 14px', color:'#eeeeff', fontSize:13, fontFamily:'Sora,sans-serif', width:'100%' }
-const pBtn    = { background:'linear-gradient(135deg,#00E5A0,#33cc88)', color:'#04040e', border:'none', borderRadius:12, padding:'12px 16px', fontSize:13, fontWeight:800, cursor:'pointer', width:'100%', fontFamily:'Sora,sans-serif' }
-const sBtn    = { background:'transparent', border:'1px solid #ffffff15', borderRadius:12, padding:'12px 16px', fontSize:13, fontWeight:600, color:'#eeeeff', cursor:'pointer', fontFamily:'Sora,sans-serif' }
-const iconBtn = { background:'transparent', border:'none', color:'#eeeeff', fontSize:18, cursor:'pointer', padding:'4px 6px', fontFamily:'Sora,sans-serif', flexShrink:0 }
+const iStyle  = { background:'#202048', border:'1px solid #ffffff15', borderRadius:12, padding:'10px 14px', color:'#FFFFFF', fontSize:13, fontFamily:'Sora,sans-serif', width:'100%' }
+const pBtn    = { background:'linear-gradient(135deg,#00F5A0,#00D68F)', color:'#0D0D1F', border:'none', borderRadius:12, padding:'12px 16px', fontSize:13, fontWeight:800, cursor:'pointer', width:'100%', fontFamily:'Sora,sans-serif' }
+const sBtn    = { background:'transparent', border:'1px solid #ffffff15', borderRadius:12, padding:'12px 16px', fontSize:13, fontWeight:600, color:'#FFFFFF', cursor:'pointer', fontFamily:'Sora,sans-serif' }
+const iconBtn = { background:'transparent', border:'none', color:'#FFFFFF', fontSize:18, cursor:'pointer', padding:'4px 6px', fontFamily:'Sora,sans-serif', flexShrink:0 }

@@ -13,17 +13,17 @@ export function useWindowWidth() {
 
 // Local color constants for dynamic styles
 export const C = {
-  bg:     "#04040e",
-  card:   "#0b0b1c",
-  card2:  "#101022",
-  border: "#ffffff10",
-  green:  "#00E5A0",
-  yellow: "#FFD166",
-  orange: "#FF9F1C",
-  red:    "#FF6B6B",
-  blue:   "#7B9CFF",
-  text:   "#eeeeff",
-  muted:  "#6868a0",
+  bg:     "#0D0D1F",
+  card:   "#1A1A3A",
+  card2:  "#202048",
+  border: "#ffffff0d",
+  green:  "#00F5A0",
+  yellow: "#FBBF24",
+  orange: "#F97316",
+  red:    "#FF5C5C",
+  blue:   "#60A5FA",
+  text:   "#FFFFFF",
+  muted:  "#7878A8",
 }
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'https://eduvyai-api.onrender.com'

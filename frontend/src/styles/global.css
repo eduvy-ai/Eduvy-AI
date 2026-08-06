@@ -114,15 +114,15 @@ select {
 }
 
 select option {
-  background-color: #101022;
-  color: #eeeeff;
+  background-color: #202048;
+  color: #FFFFFF;
   padding: 8px 12px;
 }
 
 select option:hover,
 select option:checked {
-  background-color: #00E5A0;
-  color: #04040e;
+  background-color: #00F5A0;
+  color: #0D0D1F;
 }
 
 /* Improve focus visibility */

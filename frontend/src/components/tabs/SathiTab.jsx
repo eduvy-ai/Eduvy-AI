@@ -22,18 +22,18 @@ const SILENCE_MS   = 120000 // 2 min silence ? show AI Peer button
 function Avatar({ name = '?', size = 32, online = false, isAI = false }) {
   const initials = isAI ? 'AI' : name.charAt(0).toUpperCase()
   const bg = isAI
-    ? 'linear-gradient(135deg,#7B9CFF,#a04dff)'
+    ? 'linear-gradient(135deg,#60A5FA,#a04dff)'
     : `hsl(${((name.charCodeAt(0) || 65) * 37) % 360},55%,38%)`
   return (
     <div className="relative flex-shrink-0">
       <div className="rounded-full flex items-center justify-center font-black text-white"
         style={{
           width: size, height: size, fontSize: isAI ? size * 0.55 : size * 0.45,
-          background: bg, border: `2px solid #101022`,
+          background: bg, border: `2px solid #202048`,
         }}>{initials}</div>
       {online && (
         <div className="absolute bottom-0.5 right-0.5 w-[9px] h-[9px] rounded-full border-2"
-          style={{ background: '#00E5A0', borderColor: '#04040e' }} />
+          style={{ background: '#00F5A0', borderColor: '#0D0D1F' }} />
       )}
     </div>
   )
@@ -72,11 +72,11 @@ function Bubble({ msg, isMine, memberName }) {
         <div className="px-3.5 py-2.5 text-[13.5px] leading-[1.55]"
           style={{
             background: isMine
-              ? `linear-gradient(135deg,#00E5A0,#33cc88)`
-              : isAIPeer ? '#7B9CFF18' : '#0b0b1c',
-            border: isMine ? 'none' : `1px solid ${isAIPeer ? '#7B9CFF40' : 'rgba(255,255,255,0.03)'}`,
+              ? `linear-gradient(135deg,#00F5A0,#00D68F)`
+              : isAIPeer ? '#60A5FA18' : '#1A1A3A',
+            border: isMine ? 'none' : `1px solid ${isAIPeer ? '#60A5FA40' : 'rgba(255,255,255,0.03)'}`,
             borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-            color: isMine ? '#04040e' : '#eeeeff',
+            color: isMine ? '#0D0D1F' : '#FFFFFF',
           }}>
           {msg.content}
         </div>
@@ -141,8 +141,8 @@ function ChallengeBanner({ challenge, onSubmit, onDismiss, ui }) {
         disabled={submitting || !text.trim()}
         className="mt-2 w-full border-none rounded-[10px] py-2.5 text-[13px] font-extrabold"
         style={{
-          background: text.trim() ? `linear-gradient(135deg,#FFD166,#ffaa00)` : '#0b0b1c',
-          color: text.trim() ? '#04040e' : '#6868a0',
+          background: text.trim() ? `linear-gradient(135deg,#FBBF24,#ffaa00)` : '#1A1A3A',
+          color: text.trim() ? '#0D0D1F' : '#7878A8',
           cursor: text.trim() ? 'pointer' : 'default',
         }}
       >
@@ -160,10 +160,10 @@ function MembersStrip({ members, currentUserId, ui }) {
         <div key={m.user_id} className="flex flex-col items-center gap-1 min-w-[44px]">
           <Avatar name={m.name} size={36} online={m.online} />
           <span className="text-[10px] max-w-[50px] overflow-hidden text-ellipsis whitespace-nowrap"
-            style={{ color: m.user_id === currentUserId ? '#00E5A0' : '#6868a0', fontWeight: m.user_id === currentUserId ? 800 : 500 }}
+            style={{ color: m.user_id === currentUserId ? '#00F5A0' : '#7878A8', fontWeight: m.user_id === currentUserId ? 800 : 500 }}
           >{m.user_id === currentUserId ? ui.youLabel : m.name.split(' ')[0]}</span>
           <span className="text-[9px] font-bold"
-            style={{ color: m.role === 'teacher' ? '#FFD166' : '#6868a0' }}
+            style={{ color: m.role === 'teacher' ? '#FBBF24' : '#7878A8' }}
           >{m.role === 'teacher' ? ui.teacherRole : ui.learnerRole}</span>
         </div>
       ))}
@@ -225,9 +225,9 @@ function NoSquadScreen({ onMatch, matching, ui }) {
         disabled={matching}
         className="border-none rounded-2xl px-10 py-4 text-[15px] font-black cursor-pointer flex items-center gap-2.5"
         style={{
-          background: matching ? '#0b0b1c' : `linear-gradient(135deg,#00E5A0,#33cc88)`,
-          boxShadow: matching ? 'none' : `0 0 28px #00E5A044`,
-          color: matching ? '#6868a0' : '#04040e',
+          background: matching ? '#1A1A3A' : `linear-gradient(135deg,#00F5A0,#00D68F)`,
+          boxShadow: matching ? 'none' : `0 0 28px #00F5A044`,
+          color: matching ? '#7878A8' : '#0D0D1F',
         }}
       >
         {matching
@@ -257,8 +257,8 @@ function SubNav({ active, onChange, ui }) {
           <button key={t.key} onClick={() => onChange(t.key)}
             className="flex-1 bg-transparent border-none px-1 pt-2.5 pb-2 text-[12px] cursor-pointer flex flex-col items-center gap-0.5"
             style={{
-              borderBottom: active === t.key ? `2px solid #00E5A0` : `2px solid transparent`,
-              color: active === t.key ? '#00E5A0' : '#6868a0',
+              borderBottom: active === t.key ? `2px solid #00F5A0` : `2px solid transparent`,
+              color: active === t.key ? '#00F5A0' : '#7878A8',
               fontWeight: active === t.key ? 700 : 500,
             }}>
             {Icon && <Icon size={16} weight={active === t.key ? 'fill' : 'regular'} />}
@@ -272,9 +272,9 @@ function SubNav({ active, onChange, ui }) {
 
 // -- Doubts Board ---------------------------------------------
 const VERDICT_COLORS = {
-  correct:   { bg: '#00E5A020', border: '#00E5A060', text: '#00E5A0', label: 'Correct' },
-  partial:   { bg: '#FFD16620', border: '#FFD16660', text: '#FFD166', label: 'Partial' },
-  incorrect: { bg: '#FF6B6B20', border: '#FF6B6B60', text: '#FF6B6B', label: 'Incorrect' },
+  correct:   { bg: '#00F5A020', border: '#00F5A060', text: '#00F5A0', label: 'Correct' },
+  partial:   { bg: '#FBBF2420', border: '#FBBF2460', text: '#FBBF24', label: 'Partial' },
+  incorrect: { bg: '#FF5C5C20', border: '#FF5C5C60', text: '#FF5C5C', label: 'Incorrect' },
 }
 
 function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
@@ -386,7 +386,7 @@ function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
         <span className="text-[15px] font-extrabold text-app-text flex-1 flex items-center gap-1.5"><Question size={16} weight="bold" className="text-app-blue" /> {ui.postADoubt}</span>
         {quota && (
           <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-[20px]"
-            style={{ background: atLimit ? '#FF6B6B20' : '#00E5A020', color: atLimit ? '#FF6B6B' : '#00E5A0' }}>
+            style={{ background: atLimit ? '#FF5C5C20' : '#00F5A020', color: atLimit ? '#FF5C5C' : '#00F5A0' }}>
             {atLimit ? ui.limitReached : `${quota.remaining} left today`}
           </span>
         )}
@@ -417,7 +417,7 @@ function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
               rows={5}
               autoFocus
               className="w-full bg-app-card rounded-[14px] px-3.5 py-3 text-app-text text-[14px] resize-none leading-[1.6] outline-none box-border"
-              style={{ border: `1.5px solid ${newQ.trim() ? '#7B9CFF' : 'rgba(255,255,255,0.03)'}` }}
+              style={{ border: `1.5px solid ${newQ.trim() ? '#60A5FA' : 'rgba(255,255,255,0.03)'}` }}
             />
             <div className="text-[11px] text-app-muted mt-1.5">
               {newQ.trim().length} / 500 characters
@@ -435,8 +435,8 @@ function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
               disabled={!newQ.trim() || posting || newQ.trim().length > 500}
               className="w-full py-3.5 border-none rounded-[14px] font-extrabold text-[15px]"
               style={{
-                background: newQ.trim() ? `linear-gradient(135deg,#7B9CFF,#5577ee)` : '#0b0b1c',
-                color: newQ.trim() ? '#fff' : '#6868a0',
+                background: newQ.trim() ? `linear-gradient(135deg,#60A5FA,#5577ee)` : '#1A1A3A',
+                color: newQ.trim() ? '#fff' : '#7878A8',
                 cursor: newQ.trim() ? 'pointer' : 'default',
               }}
             >{posting ? ui.submitting : ui.postToSquad}</button>
@@ -471,12 +471,12 @@ function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
         ) : answers.map((a, idx) => (
           <div key={a.id}
             className="bg-app-card rounded-[14px] px-3.5 py-3"
-            style={{ border: `1px solid ${idx === 0 && a.upvotes > 0 ? '#00E5A040' : 'rgba(255,255,255,0.03)'}` }}>
+            style={{ border: `1px solid ${idx === 0 && a.upvotes > 0 ? '#00F5A040' : 'rgba(255,255,255,0.03)'}` }}>
             {idx === 0 && a.upvotes > 0 && (
               <div className="text-[10px] font-extrabold text-app-green tracking-[0.05em] mb-1.5 flex items-center gap-1"><CheckCircle size={10} weight="fill" /> TOP ANSWER</div>
             )}
             <div className="flex justify-between items-center mb-1.5">
-              <span className="text-[12px] font-bold" style={{ color: a.user_id === userId ? '#00E5A0' : '#7B9CFF' }}>
+              <span className="text-[12px] font-bold" style={{ color: a.user_id === userId ? '#00F5A0' : '#60A5FA' }}>
                 {a.user_id === userId ? <><CheckCircle size={10} weight="fill" className="inline" /> You</> : a.display_name}
               </span>
               {a.ai_verdict && (() => {
@@ -500,9 +500,9 @@ function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
                 disabled={a.user_id === userId || !!a.i_upvoted || !!upvoting}
                 className="flex items-center gap-1.5 rounded-[20px] px-3.5 py-1.5 text-[12px] font-bold"
                 style={{
-                  background: a.i_upvoted ? '#00E5A018' : '#101022',
-                  border: `1px solid ${a.i_upvoted ? '#00E5A060' : 'rgba(255,255,255,0.03)'}`,
-                  color: a.i_upvoted ? '#00E5A0' : (a.user_id === userId ? '#6868a0' : '#eeeeff'),
+                  background: a.i_upvoted ? '#00F5A018' : '#202048',
+                  border: `1px solid ${a.i_upvoted ? '#00F5A060' : 'rgba(255,255,255,0.03)'}`,
+                  color: a.i_upvoted ? '#00F5A0' : (a.user_id === userId ? '#7878A8' : '#FFFFFF'),
                   cursor: a.user_id === userId || a.i_upvoted ? 'default' : 'pointer',
                   opacity: a.user_id === userId ? 0.45 : 1,
                 }}
@@ -529,13 +529,13 @@ function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleAnswer()}
             placeholder="Help your squadmate"
             className="flex-1 bg-app-card rounded-[12px] px-3.5 py-3 text-app-text text-[13.5px] outline-none"
-            style={{ border: `1.5px solid ${newAns.trim() ? '#7B9CFF' : 'rgba(255,255,255,0.03)'}` }}
+            style={{ border: `1.5px solid ${newAns.trim() ? '#60A5FA' : 'rgba(255,255,255,0.03)'}` }}
           />
           <button
             onClick={handleAnswer}
             disabled={!newAns.trim() || ansPosting}
             className="border-none rounded-[12px] px-4 font-extrabold text-[13px] flex-shrink-0"
-            style={{ background: newAns.trim() ? `linear-gradient(135deg,#7B9CFF,#5577ee)` : '#0b0b1c', color: newAns.trim() ? '#fff' : '#6868a0', cursor: newAns.trim() ? 'pointer' : 'default' }}
+            style={{ background: newAns.trim() ? `linear-gradient(135deg,#60A5FA,#5577ee)` : '#1A1A3A', color: newAns.trim() ? '#fff' : '#7878A8', cursor: newAns.trim() ? 'pointer' : 'default' }}
           >{ansPosting ? ui.submitting : ui.sendBtn}</button>
         </div>
       </div>
@@ -552,7 +552,7 @@ function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
           <div className="text-[11px] text-app-muted mt-0.5">
             {doubts.length} doubt{doubts.length !== 1 ? 's' : ''}
             {quota && (
-              <span className="ml-2 font-bold" style={{ color: atLimit ? '#FF6B6B' : '#00E5A0' }}>
+              <span className="ml-2 font-bold" style={{ color: atLimit ? '#FF5C5C' : '#00F5A0' }}>
                  {atLimit ? '0 left' : `${quota.remaining}/${quota.limit} left today`}
               </span>
             )}
@@ -562,9 +562,9 @@ function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
           onClick={() => setView('post')}
           className="border-none rounded-[12px] px-4 py-2.5 font-extrabold text-[13px] cursor-pointer flex items-center gap-1.5"
           style={{
-            background: atLimit ? '#101022' : `linear-gradient(135deg,#7B9CFF,#5577ee)`,
+            background: atLimit ? '#202048' : `linear-gradient(135deg,#60A5FA,#5577ee)`,
             border: atLimit ? `1px solid rgba(255,255,255,0.03)` : 'none',
-            color: atLimit ? '#6868a0' : '#fff',
+            color: atLimit ? '#7878A8' : '#fff',
           }}
         >{atLimit ? <><Lock size={13} weight="fill" className="inline" /> Limit</> : '+ Ask'}</button>
       </div>
@@ -590,16 +590,16 @@ function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
             onClick={() => openAnswerView(d)}
             className="w-full bg-app-card rounded-[14px] px-3.5 py-3 mb-2 cursor-pointer text-left"
             style={{
-              border: `1px solid ${d.status === 'answered' ? '#00E5A030' : 'rgba(255,255,255,0.03)'}`,
-              borderLeft: `3px solid ${d.status === 'answered' ? '#00E5A0' : '#7B9CFF'}`,
+              border: `1px solid ${d.status === 'answered' ? '#00F5A030' : 'rgba(255,255,255,0.03)'}`,
+              borderLeft: `3px solid ${d.status === 'answered' ? '#00F5A0' : '#60A5FA'}`,
             }}
           >
             <div className="flex justify-between items-start gap-2">
               <div className="text-[13.5px] font-semibold text-app-text flex-1 leading-[1.45]">{d.question}</div>
               <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-[20px] flex-shrink-0"
                 style={{
-                  background: d.status === 'answered' ? '#00E5A020' : '#FFD16620',
-                  color: d.status === 'answered' ? '#00E5A0' : '#FFD166',
+                  background: d.status === 'answered' ? '#00F5A020' : '#FBBF2420',
+                  color: d.status === 'answered' ? '#00F5A0' : '#FBBF24',
                 }}>{d.status === 'answered' ? 'Answered' : 'Open'}</span>
             </div>
             <div className="text-[11px] text-app-muted mt-1.5 flex gap-2">
@@ -618,9 +618,9 @@ function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
 
 // -- Daily Concept Panel ---------------------------------------
 const DAILY_VERDICT = {
-  correct:   { bg: `#00E5A015`,  border: `#00E5A040`,  text: '#00E5A0',  label: 'Great understanding!',   xp: 30 },
-  partial:   { bg: `#FFD16615`, border: `#FFD16640`, text: '#FFD166', label: 'Partially correct.',      xp: 15 },
-  incorrect: { bg: `#FF6B6B15`,    border: `#FF6B6B40`,    text: '#FF6B6B',    label: 'Needs more accuracy.',    xp:  5 },
+  correct:   { bg: `#00F5A015`,  border: `#00F5A040`,  text: '#00F5A0',  label: 'Great understanding!',   xp: 30 },
+  partial:   { bg: `#FBBF2415`, border: `#FBBF2440`, text: '#FBBF24', label: 'Partially correct.',      xp: 15 },
+  incorrect: { bg: `#FF5C5C15`,    border: `#FF5C5C40`,    text: '#FF5C5C',    label: 'Needs more accuracy.',    xp:  5 },
 }
 
 function DailyPanel({ squadId, userId, profileName, addXp, profile, ui }) {
@@ -742,7 +742,7 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile, ui }) {
 
       {/* Already submitted  show their explanation */}
       {done && data?.my_explanation && (
-        <div className="border border-app-green/20 rounded-[14px] px-3.5 py-3 mb-4" style={{ background: '#00E5A008' }}>
+        <div className="border border-app-green/20 rounded-[14px] px-3.5 py-3 mb-4" style={{ background: '#00F5A008' }}>
           <div className="text-[11px] font-extrabold text-app-green mb-1.5 flex items-center gap-1"><CheckCircle size={12} weight="fill" /> {ui.yourExplanation}</div>
           <div className="text-[13.5px] text-app-text leading-[1.6]">{data.my_explanation.explanation}</div>
         </div>
@@ -755,16 +755,16 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile, ui }) {
             placeholder={`Explain "${data?.concept?.concept}" in simple words`}
             rows={4}
             className="w-full bg-app-card rounded-[14px] px-3.5 py-3 text-app-text text-[13.5px] resize-none leading-[1.55] box-border outline-none"
-            style={{ border: `1.5px solid ${wordCount >= 10 ? '#FFD166' : 'rgba(255,255,255,0.03)'}` }} />
+            style={{ border: `1.5px solid ${wordCount >= 10 ? '#FBBF24' : 'rgba(255,255,255,0.03)'}` }} />
           <div className="flex justify-between items-center mt-1.5">
-            <span className="text-[11px]" style={{ color: wordCount >= 10 ? '#00E5A0' : '#6868a0' }}>{wordCount}/10 {ui.wordsMinimum}</span>
+            <span className="text-[11px]" style={{ color: wordCount >= 10 ? '#00F5A0' : '#7878A8' }}>{wordCount}/10 {ui.wordsMinimum}</span>
             <span className="text-[11px] text-app-muted">AI grades: 30 / 15 / 5 XP</span>
           </div>
           <button onClick={handleSubmit} disabled={submitting || wordCount < 10}
             className="mt-2.5 w-full border-none rounded-[12px] py-3 font-extrabold text-[14px]"
             style={{
-              background: wordCount >= 10 ? `linear-gradient(135deg,#FFD166,#ffb700)` : '#0b0b1c',
-              color: wordCount >= 10 ? '#04040e' : '#6868a0',
+              background: wordCount >= 10 ? `linear-gradient(135deg,#FBBF24,#ffb700)` : '#1A1A3A',
+              color: wordCount >= 10 ? '#0D0D1F' : '#7878A8',
               cursor: wordCount >= 10 ? 'pointer' : 'default',
             }}>
             {submitting && !reviewing ? 'Submitting' : <><Sparkle size={14} weight="fill" className="inline" /> Submit for AI Review</>}
@@ -784,7 +784,7 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile, ui }) {
           <div key={ex.id} className="bg-app-card border border-app-border rounded-[14px] px-3.5 py-3 mb-2.5">
             <div className="flex justify-between items-center mb-1.5">
               <div className="flex items-center gap-1.5">
-                <span className="text-[12px] font-bold" style={{ color: ex.user_id === userId ? '#00E5A0' : '#7B9CFF' }}>
+                <span className="text-[12px] font-bold" style={{ color: ex.user_id === userId ? '#00F5A0' : '#60A5FA' }}>
                   {ex.user_id === userId ? <><CheckCircle size={10} weight="fill" className="inline" /> You</> : ex.display_name}
                 </span>
                 {ev && <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-[20px]" style={{ background: ev.bg, color: ev.text }}>{ev.label}</span>}
@@ -1174,7 +1174,7 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
               }} className="mic-btn shrink-0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="1" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
               <button type="submit" disabled={!input.trim() || sending}
                 className="border-none rounded-[14px] px-4 text-[18px] font-black flex-shrink-0"
-                style={{ background: input.trim() ? `linear-gradient(135deg,#00E5A0,#33cc88)` : '#0b0b1c', color: input.trim() ? '#04040e' : '#6868a0', cursor: input.trim() ? 'pointer' : 'default' }}>?</button>
+                style={{ background: input.trim() ? `linear-gradient(135deg,#00F5A0,#00D68F)` : '#1A1A3A', color: input.trim() ? '#0D0D1F' : '#7878A8', cursor: input.trim() ? 'pointer' : 'default' }}>?</button>
             </form>
           </>
         )}

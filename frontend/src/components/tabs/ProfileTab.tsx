@@ -148,7 +148,7 @@ const ProfileTab: React.FC = () => {
         {/* Stats Row */}
         <div className="flex gap-2.5">
           <StatItem icon={Lightning} value={(user as any)?.xp || 0} label={ui.xpLabel || 'XP'} color="var(--t-warning)" />
-          <StatItem icon={Fire} value={(user as any)?.streak || 0} label={ui.streak || 'Streak'} color="#FF6B35" />
+          <StatItem icon={Fire} value={(user as any)?.streak || 0} label={ui.streak || 'Streak'} color="#F97316" />
           <StatItem icon={Medal} value={(user as any)?.battle_wins || 0} label={ui.wins || 'Wins'} color="var(--t-info)" />
         </div>
       </Card>
@@ -199,7 +199,7 @@ const ProfileTab: React.FC = () => {
           <QuickLinkCard
             icon={FilmSlate}
             label={ui.videos || 'Videos'}
-            color="#FF6B35"
+            color="#F97316"
             onClick={goToVideos}
           />
           <QuickLinkCard

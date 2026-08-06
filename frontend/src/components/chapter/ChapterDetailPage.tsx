@@ -72,11 +72,11 @@ interface SubTabConfig {
 }
 
 const SUB_TABS: SubTabConfig[] = [
-  { key: 'overview', labelKey: 'overview', icon: BookOpen, color: '#7B9CFF' },
-  { key: 'notes', labelKey: 'notes', icon: Notebook, color: '#00E5A0' },
-  { key: 'videos', labelKey: 'videos', icon: PlayCircle, color: '#FF6B35' },
-  { key: 'flashcards', labelKey: 'flashcards', icon: Cards, color: '#FFD166' },
-  { key: 'quiz', labelKey: 'quiz', icon: Target, color: '#FF6B6B' },
+  { key: 'overview', labelKey: 'overview', icon: BookOpen, color: '#60A5FA' },
+  { key: 'notes', labelKey: 'notes', icon: Notebook, color: '#00F5A0' },
+  { key: 'videos', labelKey: 'videos', icon: PlayCircle, color: '#F97316' },
+  { key: 'flashcards', labelKey: 'flashcards', icon: Cards, color: '#FBBF24' },
+  { key: 'quiz', labelKey: 'quiz', icon: Target, color: '#FF5C5C' },
   { key: 'ai', labelKey: 'aiTutor', icon: Robot, color: '#BB86FC' },
 ]
 
@@ -389,19 +389,19 @@ Return ONLY valid JSON. No markdown, no extra text.`
           <QuickActionCard
             icon={Target}
             label={ui.takeQuiz || 'Take Quiz'}
-            color="#FF6B6B"
+            color="#FF5C5C"
             onClick={() => setActiveTab('quiz')}
           />
           <QuickActionCard
             icon={PlayCircle}
             label={ui.watchVideo || 'Watch Video'}
-            color="#FF6B35"
+            color="#F97316"
             onClick={() => setActiveTab('videos')}
           />
           <QuickActionCard
             icon={Cards}
             label={ui.reviewFlashcards || 'Flashcards'}
-            color="#FFD166"
+            color="#FBBF24"
             onClick={() => setActiveTab('flashcards')}
           />
         </div>
@@ -2338,9 +2338,9 @@ Return ONLY a valid JSON array starting with [ and ending with ]. Each flashcard
 
 // ── Quiz Tab (Self-Contained Inline Quiz) ──
 const QUIZ_LENGTHS = [
-  { count: 5, label: 'Quick', icon: '⚡', color: '#00E5A0', time: '~3 min' },
-  { count: 10, label: 'Standard', icon: '📝', color: '#FFD166', time: '~6 min' },
-  { count: 15, label: 'Challenge', icon: '🔥', color: '#FF6B35', time: '~10 min' },
+  { count: 5, label: 'Quick', icon: '⚡', color: '#00F5A0', time: '~3 min' },
+  { count: 10, label: 'Standard', icon: '📝', color: '#FBBF24', time: '~6 min' },
+  { count: 15, label: 'Challenge', icon: '🔥', color: '#F97316', time: '~10 min' },
 ]
 
 type QuizState = 'setup' | 'active' | 'summary' | 'history' | 'bookmarks'
@@ -2714,7 +2714,7 @@ Return ONLY a single JSON object. The question, options, explanation must all be
   // Stats
   const correctCount = answers.filter((a) => a.correct).length
   const accuracy = answers.length ? Math.round((correctCount / answers.length) * 100) : 0
-  const accuracyColor = accuracy >= 70 ? '#00E5A0' : accuracy >= 40 ? '#FFD166' : '#FF6B6B'
+  const accuracyColor = accuracy >= 70 ? '#00F5A0' : accuracy >= 40 ? '#FBBF24' : '#FF5C5C'
 
   // Option styling
   const getOptionClass = (letter: string) => {
@@ -2830,7 +2830,7 @@ Return ONLY a single JSON object. The question, options, explanation must all be
     // If a history item is selected, show its details
     if (selectedHistory) {
       const accuracy = selectedHistory.total > 0 ? Math.round((selectedHistory.score / selectedHistory.total) * 100) : 0
-      const accColor = accuracy >= 70 ? '#00E5A0' : accuracy >= 50 ? '#FFD166' : '#FF6B6B'
+      const accColor = accuracy >= 70 ? '#00F5A0' : accuracy >= 50 ? '#FBBF24' : '#FF5C5C'
       return (
         <div className="space-y-4">
           {/* Header */}
@@ -2960,7 +2960,7 @@ Return ONLY a single JSON object. The question, options, explanation must all be
                 day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' 
               })
               const accuracy = h.total > 0 ? Math.round((h.score / h.total) * 100) : 0
-              const accColor = accuracy >= 70 ? '#00E5A0' : accuracy >= 50 ? '#FFD166' : '#FF6B6B'
+              const accColor = accuracy >= 70 ? '#00F5A0' : accuracy >= 50 ? '#FBBF24' : '#FF5C5C'
               return (
                 <div
                   key={h.id}
@@ -3080,7 +3080,7 @@ Return ONLY a single JSON object. The question, options, explanation must all be
               : summaryAccuracy >= 50
                 ? 'D'
                 : 'F'
-    const gradeColor = summaryAccuracy >= 70 ? '#00E5A0' : summaryAccuracy >= 50 ? '#FFD166' : '#FF6B6B'
+    const gradeColor = summaryAccuracy >= 70 ? '#00F5A0' : summaryAccuracy >= 50 ? '#FBBF24' : '#FF5C5C'
     const wrongAnswers = summaryAllAnswers.filter((a) => !a.correct)
 
     return (
@@ -3200,7 +3200,7 @@ Return ONLY a single JSON object. The question, options, explanation must all be
         <div className="flex gap-2">
           <button
             onClick={resetQuiz}
-            className="flex-1 bg-gradient-to-r from-app-green to-[#33cc88] text-app-bg text-[12px] font-bold rounded-xl py-2.5
+            className="flex-1 bg-gradient-to-r from-app-green to-[#00D68F] text-app-bg text-[12px] font-bold rounded-xl py-2.5
                       active:scale-[0.99] transition-all flex items-center justify-center gap-1.5"
           >
             <ArrowCounterClockwise size={14} weight="bold" />

@@ -25,7 +25,7 @@ const PLANS_PRICING = [
     name: 'Free',
     price: '₹0',
     period: 'forever',
-    color: '#6868a0',
+    color: '#7878A8',
     tagline: 'Start your AI journey',
     cta: 'Get Started Free',
     popular: false,
@@ -48,7 +48,7 @@ const PLANS_PRICING = [
     name: 'Basic',
     price: '₹99',
     period: 'per month',
-    color: '#FFD166',
+    color: '#FBBF24',
     tagline: 'For regular learners',
     cta: 'Start Basic',
     popular: false,
@@ -71,7 +71,7 @@ const PLANS_PRICING = [
     name: 'Pro',
     price: '₹249',
     period: 'per month',
-    color: '#7B9CFF',
+    color: '#60A5FA',
     tagline: 'Best for board exam prep',
     cta: 'Go Pro',
     popular: true,
@@ -94,7 +94,7 @@ const PLANS_PRICING = [
     name: 'Premium',
     price: '₹499',
     period: 'per month',
-    color: '#00E5A0',
+    color: '#00F5A0',
     tagline: 'Unlimited AI learning',
     cta: 'Go Premium',
     popular: false,
@@ -354,10 +354,10 @@ export default function LandingPage() {
                     background: plan.popular
                       ? `linear-gradient(135deg, ${plan.color}, #4466ee)`
                       : plan.key === 'free'
-                        ? 'linear-gradient(135deg, #00E5A0, #33cc88)'
+                        ? 'linear-gradient(135deg, #00F5A0, #00D68F)'
                         : `${plan.color}18`,
                     borderColor: plan.popular || plan.key === 'free' ? undefined : `${plan.color}50`,
-                    color: plan.popular || plan.key === 'free' ? (plan.popular ? '#fff' : '#04040e') : plan.color,
+                    color: plan.popular || plan.key === 'free' ? (plan.popular ? '#fff' : '#0D0D1F') : plan.color,
                   }}
                 >
                   {plan.cta}

@@ -55,23 +55,23 @@ const SUBJECT_ICONS: Record<string, React.ComponentType<any>> = {
 
 // Subject colors
 const SUBJECT_COLORS: Record<string, string> = {
-  Science: '#00E5A0',
-  Mathematics: '#7B9CFF',
-  'Social Science': '#FFD166',
-  'Social Studies': '#FFD166',
-  English: '#FF6B35',
-  Hindi: '#FF6B6B',
+  Science: '#00F5A0',
+  Mathematics: '#60A5FA',
+  'Social Science': '#FBBF24',
+  'Social Studies': '#FBBF24',
+  English: '#F97316',
+  Hindi: '#FF5C5C',
   Sanskrit: '#BB86FC',
-  Physics: '#00E5A0',
+  Physics: '#00F5A0',
   Chemistry: '#03DAC6',
   Biology: '#82B1FF',
-  'Computer Science': '#7B9CFF',
-  IT: '#7B9CFF',
-  Economics: '#FFD166',
+  'Computer Science': '#60A5FA',
+  IT: '#60A5FA',
+  Economics: '#FBBF24',
   History: '#FF8A80',
   Geography: '#CCFF90',
-  Accountancy: '#FFD166',
-  'Business Studies': '#FF6B35',
+  Accountancy: '#FBBF24',
+  'Business Studies': '#F97316',
 }
 
 interface LearnTabProps {
@@ -113,7 +113,7 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
     chapterCount,
   }) => {
     const IconComponent = SUBJECT_ICONS[subject] || BookOpen
-    const color = SUBJECT_COLORS[subject] || '#7B9CFF'
+    const color = SUBJECT_COLORS[subject] || '#60A5FA'
 
     return (
       <button
@@ -215,8 +215,8 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
                     style={{
                       width: `${progress}%`,
                       background: isComplete
-                        ? '#00E5A0'
-                        : 'linear-gradient(90deg, #7B9CFF, #a04dff)',
+                        ? '#00F5A0'
+                        : 'linear-gradient(90deg, #60A5FA, #a04dff)',
                     }}
                   />
                 </div>
@@ -254,7 +254,7 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
 
   // ── Subject Selected: Show Chapters ──
   if (selectedSubject) {
-    const subjectColor = SUBJECT_COLORS[selectedSubject] || '#7B9CFF'
+    const subjectColor = SUBJECT_COLORS[selectedSubject] || '#60A5FA'
     const SubjectIcon = SUBJECT_ICONS[selectedSubject] || BookOpen
 
     return (

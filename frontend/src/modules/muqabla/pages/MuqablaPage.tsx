@@ -31,13 +31,13 @@ class MuqablaErrorBoundary extends React.Component<
       return (
         <div style={{ padding: 32, textAlign: 'center', color: '#eee' }}>
           <p style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Something went wrong</p>
-          <p style={{ fontSize: 13, color: '#6868a0', marginBottom: 16 }}>
+          <p style={{ fontSize: 13, color: '#7878A8', marginBottom: 16 }}>
             {this.state.error?.message || 'An unexpected error occurred'}
           </p>
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
             style={{
-              background: '#ff6b35', color: '#fff', border: 'none',
+              background: '#F97316', color: '#fff', border: 'none',
               borderRadius: 12, padding: '10px 24px', fontSize: 14,
               fontWeight: 700, cursor: 'pointer',
             }}

@@ -13,7 +13,7 @@ const MARK_OPTIONS = [
 
 function MarksBadge({ awarded, total }) {
   const pct = Math.round((awarded / total) * 100)
-  const color = pct >= 80 ? "#00E5A0" : pct >= 55 ? "#FFD166" : "#FF6B6B"
+  const color = pct >= 80 ? "#00F5A0" : pct >= 55 ? "#FBBF24" : "#FF5C5C"
   const ui = li('English') // MarksBadge doesn't receive profile, use English for static labels
   return (
     <div className="text-center py-6">
@@ -202,7 +202,7 @@ export default function ExaminerLab({ profile, addXp, onBack }) {
     const awarded = result?.awarded ?? 0
     const total   = result?.total   ?? qData?.marks ?? 1
     const pct     = Math.round((awarded / total) * 100)
-    const mainColor = pct >= 80 ? "#00E5A0" : pct >= 55 ? "#FFD166" : "#FF6B6B"
+    const mainColor = pct >= 80 ? "#00F5A0" : pct >= 55 ? "#FBBF24" : "#FF5C5C"
     return (
       <div className="flex flex-col h-full min-h-0">
         <div className="bg-app-card border-b border-app-border px-4 py-3.5 flex items-center gap-3">

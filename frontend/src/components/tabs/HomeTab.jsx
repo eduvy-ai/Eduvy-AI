@@ -14,9 +14,9 @@ function useBhoolStats() {
 }
 
 function masteryColor(pct) {
-  if (pct >= 75) return '#00E5A0'
-  if (pct >= 45) return '#FFD166'
-  return '#FF6B6B'
+  if (pct >= 75) return '#00F5A0'
+  if (pct >= 45) return '#FBBF24'
+  return '#FF5C5C'
 }
 
 export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) {
@@ -234,10 +234,10 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
           </div>
           <div className="flex gap-2">
             {[
-              { key: "fresh",    icon: "😄", labelKey: "moodFresh",    color: '#00E5A0'  },
-              { key: "okay",     icon: "😐", labelKey: "moodOkay",     color: '#7B9CFF'   },
-              { key: "stressed", icon: "😟", labelKey: "moodStressed", color: '#FFD166' },
-              { key: "tired",    icon: "😴", labelKey: "moodTired",    color: '#6868a0'  },
+              { key: "fresh",    icon: "😄", labelKey: "moodFresh",    color: '#00F5A0'  },
+              { key: "okay",     icon: "😐", labelKey: "moodOkay",     color: '#60A5FA'   },
+              { key: "stressed", icon: "😟", labelKey: "moodStressed", color: '#FBBF24' },
+              { key: "tired",    icon: "😴", labelKey: "moodTired",    color: '#7878A8'  },
             ].map(m => (
               <button 
                 key={m.key} 
@@ -267,9 +267,9 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
       )}
 
       {/* ── Hero Card ──────────────────────────────────────── */}
-      <div className="bg-gradient-to-br from-[#0b1a2e] via-[#0b1422] to-[#0a1a15] border border-app-green/20 rounded-[20px] pt-5 px-5 pb-4 mb-3.5 relative overflow-hidden">
+      <div className="bg-gradient-to-br from-[#121235] via-[#151530] to-[#0D1F1A] border border-app-green/20 rounded-[20px] pt-5 px-5 pb-4 mb-3.5 relative overflow-hidden">
         {/* Decorative glow */}
-        <div className="absolute -top-10 -right-10 w-[120px] h-[120px] bg-[radial-gradient(circle,_#00E5A020,_transparent_70%)] pointer-events-none" />
+        <div className="absolute -top-10 -right-10 w-[120px] h-[120px] bg-[radial-gradient(circle,_#00F5A020,_transparent_70%)] pointer-events-none" />
 
         <div className="text-[13px] text-app-muted mb-1 flex items-center gap-1.5">
           {greeting.text} <greeting.Icon size={16} weight="fill" style={{ color: greeting.color }} />
@@ -283,8 +283,8 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
 
         {/* Stats row */}
         <div className="flex gap-2">
-          <StatChip icon={<Lightning size={14} weight="fill" />} value={`${xp} ${ui.xpLabel || 'XP'}`} color={'#FFD166'} />
-          <StatChip icon={<Fire size={14} weight="fill" />} value={`${streak} ${ui.streakLabel || 'day streak'}`} color={'#FF6B35'} />
+          <StatChip icon={<Lightning size={14} weight="fill" />} value={`${xp} ${ui.xpLabel || 'XP'}`} color={'#FBBF24'} />
+          <StatChip icon={<Fire size={14} weight="fill" />} value={`${streak} ${ui.streakLabel || 'day streak'}`} color={'#F97316'} />
           <StatChip icon={<Brain size={14} weight="fill" />} value={`${avgMastery}% ${ui.avgLabel || 'avg'}`} color={masteryColor(avgMastery)} />
         </div>
       </div>
@@ -473,9 +473,9 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
 function getTimeGreeting(lang) {
   const h = new Date().getHours()
   const ui = li(lang)
-  if (h < 12) return { text: ui.goodMorning, Icon: Sun, color: '#FFD166' }
+  if (h < 12) return { text: ui.goodMorning, Icon: Sun, color: '#FBBF24' }
   if (h < 17) return { text: ui.goodAfternoon, Icon: CloudSun, color: '#FF9F1C' }
-  if (h < 21) return { text: ui.goodEvening, Icon: SunHorizon, color: '#7B9CFF' }
+  if (h < 21) return { text: ui.goodEvening, Icon: SunHorizon, color: '#60A5FA' }
   return { text: ui.lateNightStudy, Icon: Sparkle, color: '#A78BFA' }
 }
 

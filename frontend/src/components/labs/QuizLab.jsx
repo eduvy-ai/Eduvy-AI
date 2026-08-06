@@ -10,9 +10,9 @@ import {
 
 const DIFFICULTIES = ["Easy", "Medium", "Hard"]
 const QUIZ_LENGTHS = [
-  { count: 5, label: "Quick", icon: "⚡", color: "#00E5A0", time: "~3 min" },
-  { count: 10, label: "Standard", icon: "📝", color: "#FFD166", time: "~6 min" },
-  { count: 15, label: "Challenge", icon: "🔥", color: "#FF6B35", time: "~10 min" },
+  { count: 5, label: "Quick", icon: "⚡", color: "#00F5A0", time: "~3 min" },
+  { count: 10, label: "Standard", icon: "📝", color: "#FBBF24", time: "~6 min" },
+  { count: 15, label: "Challenge", icon: "🔥", color: "#F97316", time: "~10 min" },
 ]
 
 // ── Bhool Curve: track every concept answered in localStorage ─
@@ -38,11 +38,11 @@ function _updateBhool(subject, concept, correct) {
 }
 
 const ERROR_TYPE_LABELS = {
-  CONCEPT_GAP:         { label: "Concept Gap",          color: "#FF6B6B" },
-  CALCULATION_ERROR:   { label: "Calculation Error",     color: "#FFD166" },
-  MISSING_PREREQUISITE:{ label: "Missing Prerequisite",  color: "#FF6B35" },
-  MISREAD_QUESTION:    { label: "Misread Question",      color: "#7B9CFF" },
-  CARELESS:            { label: "Careless Mistake",      color: "#6868a0" },
+  CONCEPT_GAP:         { label: "Concept Gap",          color: "#FF5C5C" },
+  CALCULATION_ERROR:   { label: "Calculation Error",     color: "#FBBF24" },
+  MISSING_PREREQUISITE:{ label: "Missing Prerequisite",  color: "#F97316" },
+  MISREAD_QUESTION:    { label: "Misread Question",      color: "#60A5FA" },
+  CARELESS:            { label: "Careless Mistake",      color: "#7878A8" },
 }
 
 // ── Quiz States ──
@@ -286,7 +286,7 @@ Return ONLY this JSON format:
   // Calculate stats
   const correctCount = answers.filter(a => a.correct).length
   const accuracy = answers.length ? Math.round((correctCount / answers.length) * 100) : 0
-  const accuracyColor = accuracy >= 70 ? "#00E5A0" : accuracy >= 40 ? "#FFD166" : "#FF6B6B"
+  const accuracyColor = accuracy >= 70 ? "#00F5A0" : accuracy >= 40 ? "#FBBF24" : "#FF5C5C"
   const timeTaken = endTime && startTime ? Math.round((endTime - startTime) / 1000) : 0
   const timePerQ = answers.length ? Math.round(timeTaken / answers.length) : 0
 
@@ -334,7 +334,7 @@ Return ONLY this JSON format:
             <label className="text-xs font-bold text-app-muted mb-2 block">{ui.difficulty || 'DIFFICULTY'}</label>
             <div className="flex gap-2">
               {DIFFICULTIES.map(d => {
-                const dColor = d === "Easy" ? "#00E5A0" : d === "Hard" ? "#FF6B6B" : "#FFD166"
+                const dColor = d === "Easy" ? "#00F5A0" : d === "Hard" ? "#FF5C5C" : "#FBBF24"
                 const isActive = difficulty === d
                 return (
                   <button key={d} onClick={() => setDiff(d)} 
@@ -342,7 +342,7 @@ Return ONLY this JSON format:
                     style={{ 
                       background: isActive ? `${dColor}18` : undefined, 
                       border: `1.5px solid ${isActive ? dColor : 'rgba(255,255,255,0.08)'}`, 
-                      color: isActive ? dColor : '#6868a0', 
+                      color: isActive ? dColor : '#7878A8', 
                       fontWeight: isActive ? 700 : 500 
                     }}>
                     {d}
@@ -391,7 +391,7 @@ Return ONLY this JSON format:
 
           {/* Start Button */}
           <button onClick={startQuiz} disabled={loading}
-            className="w-full bg-gradient-to-r from-app-green to-[#33cc88] text-app-bg text-[14px] font-extrabold rounded-xl py-3.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] transition-all flex items-center justify-center gap-2">
+            className="w-full bg-gradient-to-r from-app-green to-[#00D68F] text-app-bg text-[14px] font-extrabold rounded-xl py-3.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] transition-all flex items-center justify-center gap-2">
             {loading ? (
               <>{ui.generatingQ || 'Generating...'}</>
             ) : (
@@ -409,7 +409,7 @@ Return ONLY this JSON format:
   // ── SUMMARY SCREEN ──
   if (quizState === QUIZ_STATE.SUMMARY) {
     const grade = accuracy >= 90 ? 'A+' : accuracy >= 80 ? 'A' : accuracy >= 70 ? 'B' : accuracy >= 60 ? 'C' : accuracy >= 50 ? 'D' : 'F'
-    const gradeColor = accuracy >= 70 ? "#00E5A0" : accuracy >= 50 ? "#FFD166" : "#FF6B6B"
+    const gradeColor = accuracy >= 70 ? "#00F5A0" : accuracy >= 50 ? "#FBBF24" : "#FF5C5C"
     const wrongAnswers = answers.filter(a => !a.correct)
     
     return (
@@ -501,7 +501,7 @@ Return ONLY this JSON format:
               {ui.exitLab || 'Exit'}
             </button>
             <button onClick={resetQuiz}
-              className="flex-1 bg-gradient-to-r from-app-green to-[#33cc88] text-app-bg text-[13px] font-extrabold rounded-xl py-3 cursor-pointer active:scale-[0.99] transition-all flex items-center justify-center gap-2">
+              className="flex-1 bg-gradient-to-r from-app-green to-[#00D68F] text-app-bg text-[13px] font-extrabold rounded-xl py-3 cursor-pointer active:scale-[0.99] transition-all flex items-center justify-center gap-2">
               <ArrowCounterClockwise size={16} weight="bold" />
               {ui.playAgain || 'Play Again'}
             </button>
@@ -591,7 +591,7 @@ Return ONLY this JSON format:
                       <div className="text-center text-app-muted text-xs py-3.5">{ui.diagnosingMistake || 'Diagnosing...'}</div>
                     )}
                     {galtiDiag && (() => {
-                      const typeInfo = ERROR_TYPE_LABELS[galtiDiag.type] || { label: galtiDiag.type, color: "#6868a0" }
+                      const typeInfo = ERROR_TYPE_LABELS[galtiDiag.type] || { label: galtiDiag.type, color: "#7878A8" }
                       return (
                         <div className="rounded-xl p-3.5 border" style={{ background: `${typeInfo.color}10`, borderColor: `${typeInfo.color}30` }}>
                           <div className="flex items-center gap-2 mb-2.5">
@@ -618,7 +618,7 @@ Return ONLY this JSON format:
 
                 {/* Next/Finish Button */}
                 <button onClick={nextQuestion} disabled={loading}
-                  className="w-full bg-gradient-to-r from-app-green to-[#33cc88] text-app-bg text-[13px] font-extrabold rounded-xl py-3 cursor-pointer disabled:opacity-50 active:scale-[0.99] transition-all flex items-center justify-center gap-2">
+                  className="w-full bg-gradient-to-r from-app-green to-[#00D68F] text-app-bg text-[13px] font-extrabold rounded-xl py-3 cursor-pointer disabled:opacity-50 active:scale-[0.99] transition-all flex items-center justify-center gap-2">
                   {loading ? (
                     ui.generatingQ || 'Loading...'
                   ) : currentIndex + 1 >= quizLength ? (

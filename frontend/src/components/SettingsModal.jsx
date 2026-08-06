@@ -213,14 +213,14 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
                         key={p} 
                         className="rounded-[14px] py-3.5 px-4"
                         style={{
-                          background: isActive ? `${info.color}10` : '#0b0b1c',
+                          background: isActive ? `${info.color}10` : '#1A1A3A',
                           border: `1.5px solid ${isActive ? info.color + '50' : '#ffffff08'}`,
                           opacity: isLocked ? 0.55 : 1,
                         }}
                       >
                         <div className="flex items-center gap-2 mb-1.5">
                           <span className="text-lg">{info.icon}</span>
-                          <span className="text-sm font-extrabold" style={{ color: isActive ? info.color : '#eeeeff' }}>{info.label}</span>
+                          <span className="text-sm font-extrabold" style={{ color: isActive ? info.color : '#FFFFFF' }}>{info.label}</span>
                           {isActive && <span className="ml-auto text-[10px] font-bold rounded-md py-0.5 px-2" style={{ color: info.color, background: `${info.color}20` }}>{ui.active}</span>}
                         </div>
                         <div className="text-[11px] text-app-muted leading-relaxed">
@@ -261,7 +261,7 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
             const limit = usage?.daily_limit  || planInfo.aiCallsPerDay || 10
             const remaining = Math.max(0, limit - used)
             const pct = Math.min(100, limit > 0 ? Math.round((used / limit) * 100) : 0)
-            const barColor = pct >= 90 ? '#FF6B6B' : pct >= 70 ? '#FFD166' : '#00E5A0'
+            const barColor = pct >= 90 ? '#FF5C5C' : pct >= 70 ? '#FBBF24' : '#00F5A0'
             return (
               <div className="flex flex-col gap-4">
 

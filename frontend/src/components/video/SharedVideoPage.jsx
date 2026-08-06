@@ -35,7 +35,7 @@ export default function SharedVideoPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#04040e] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0D0D1F] flex items-center justify-center">
         <div className="text-white/60 text-sm">{ui.loadingVideo || 'Loading video…'}</div>
       </div>
     )
@@ -43,7 +43,7 @@ export default function SharedVideoPage() {
 
   if (error || !video) {
     return (
-      <div className="min-h-screen bg-[#04040e] flex flex-col items-center justify-center gap-4 px-4">
+      <div className="min-h-screen bg-[#0D0D1F] flex flex-col items-center justify-center gap-4 px-4">
         <p className="text-red-400 text-sm">{error || ui.videoNotFound || 'Video not found'}</p>
         <Link to="/" className="text-blue-400 text-sm underline">{ui.goHome || '← Go Home'}</Link>
       </div>
@@ -54,7 +54,7 @@ export default function SharedVideoPage() {
   const thumbUrl = mediaUrl(video.thumb_path)
 
   return (
-    <div className="min-h-screen bg-[#04040e] flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-[#0D0D1F] flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-3xl">
         <h1 className="text-white text-lg font-semibold mb-4 font-[Sora]">
           {video.title || ui.sharedVideo || 'Shared Video'}

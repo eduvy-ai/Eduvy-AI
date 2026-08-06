@@ -21,7 +21,7 @@ export const KaraokeText: FC<Props> = ({
   wordTimings,
   currentTimeMs,
   isPlaying,
-  accentColor = '#00E5A0',
+  accentColor = '#00F5A0',
 }) => {
   // Find the current word index based on time
   const currentWordIndex = useMemo(() => {

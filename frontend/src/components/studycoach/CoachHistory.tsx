@@ -32,11 +32,11 @@ const MODE_ICONS: Record<string, typeof Brain> = {
 }
 
 const MODE_COLORS: Record<string, string> = {
-  study_coach: '#00E5A0',
-  study_coach_eli10: '#FFD166',
-  study_coach_exam: '#7B9CFF',
+  study_coach: '#00F5A0',
+  study_coach_eli10: '#FBBF24',
+  study_coach_exam: '#60A5FA',
   study_coach_coding: '#A78BFA',
-  study_coach_revision: '#FF6B6B',
+  study_coach_revision: '#FF5C5C',
 }
 
 function formatDate(dateStr: string): string {
@@ -268,7 +268,7 @@ export default function CoachHistory({ onClose, onSelectSession, ui }: Props) {
                   <div className="space-y-2">
                     {dateSessions.map(session => {
                       const ModeIcon = MODE_ICONS[session.mode] || Brain
-                      const modeColor = MODE_COLORS[session.mode] || '#00E5A0'
+                      const modeColor = MODE_COLORS[session.mode] || '#00F5A0'
                       
                       return (
                         <div
