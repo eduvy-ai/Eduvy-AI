@@ -34,7 +34,6 @@ const AdminChaptersPage = lazy(() => import('../modules/admin/pages/academics/Ch
 
 // Admin users pages
 const AdminStudentsPage = lazy(() => import('../modules/admin/pages/users/StudentsPage'))
-const AdminTeachersPage = lazy(() => import('../modules/admin/pages/users/TeachersPage'))
 const AdminParentsPage = lazy(() => import('../modules/admin/pages/users/ParentsPage'))
 
 // Admin teachers pages (new sub-pages)

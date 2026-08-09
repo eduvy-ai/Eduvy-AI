@@ -17,7 +17,6 @@ import {
   Trash,
   MagnifyingGlass,
   Funnel,
-  Download,
   CloudArrowUp,
   Eye,
   Copy,
@@ -25,7 +24,6 @@ import {
   List,
   Play,
   Pencil,
-  X,
   Link,
 } from '@phosphor-icons/react'
 

@@ -10,7 +10,6 @@ import {
   Warning,
   CheckCircle,
   ArrowClockwise,
-  Info,
   XCircle,
   Folder,
   User,

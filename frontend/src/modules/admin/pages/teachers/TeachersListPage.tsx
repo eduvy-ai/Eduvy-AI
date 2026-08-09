@@ -129,20 +129,6 @@ const TeachersListPage: React.FC = () => {
     })
   }
 
-  const toggleSelectAll = () => {
-    const pageIds = paginatedTeachers.map(t => t.id)
-    const allSelected = pageIds.every(id => selectedIds.has(id))
-    if (allSelected) {
-      setSelectedIds(prev => {
-        const next = new Set(prev)
-        pageIds.forEach(id => next.delete(id))
-        return next
-      })
-    } else {
-      setSelectedIds(prev => new Set([...prev, ...pageIds]))
-    }
-  }
-
   const handleCreate = () => {
     setEditingTeacher(null)
     setFormData(defaultFormState)
@@ -207,7 +193,7 @@ const TeachersListPage: React.FC = () => {
           helper_name: formData.helper_name,
           helper_email: formData.helper_email,
           helper_type: 'teacher',
-          notes: formData.notes || undefined,
+          notes: formData.notes || '',
           is_active: formData.is_active,
           assigned_count: 0,
         })

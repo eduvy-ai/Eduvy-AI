@@ -3,23 +3,16 @@
 
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { helpersApi } from '../../api'
-import { adminService } from '../../service'
 import type { DrishtiHelper, StudentUser } from '../../types'
 import Modal from '../../../../shared/components/Modal'
 import Button from '../../../../shared/components/Button'
 import Loader from '../../../../shared/components/Loader'
 import {
   ChartBar,
-  ChalkboardTeacher,
-  Users,
   TrendUp,
-  TrendDown,
   Trophy,
-  Star,
-  Clock,
   Eye,
   MagnifyingGlass,
-  Funnel,
   ArrowUp,
   ArrowDown,
   Minus,
@@ -36,7 +29,6 @@ interface TeacherMetrics {
 
 const PerformancePage: React.FC = () => {
   // Data state
-  const [teachers, setTeachers] = useState<DrishtiHelper[]>([])
   const [metricsData, setMetricsData] = useState<TeacherMetrics[]>([])
   const [isLoading, setIsLoading] = useState(true)
   
@@ -60,7 +52,6 @@ const PerformancePage: React.FC = () => {
     try {
       const allHelpers = await helpersApi.getAll()
       const activeTeachers = allHelpers.filter(h => h.helper_type === 'teacher' && h.is_active)
-      setTeachers(activeTeachers)
       
       // Load students for each teacher
       const metricsPromises = activeTeachers.map(async (teacher) => {

@@ -7,21 +7,15 @@ import { useCanEdit } from '../../hooks'
 import type { DrishtiHelper, StudentUser } from '../../types'
 import Modal from '../../../../shared/components/Modal'
 import Button from '../../../../shared/components/Button'
-import Pagination from '../../../../shared/components/Pagination'
 import Loader from '../../../../shared/components/Loader'
 import {
   Users,
   UserPlus,
   UserMinus,
   MagnifyingGlass,
-  Eye,
-  X,
-  CheckCircle,
   ChalkboardTeacher,
   Student,
-  ArrowRight,
   Warning,
-  Funnel,
 } from '@phosphor-icons/react'
 
 const AssignmentsPage: React.FC = () => {
@@ -38,14 +32,9 @@ const AssignmentsPage: React.FC = () => {
   const [loadingAssignments, setLoadingAssignments] = useState(false)
   
   // UI state
-  const [searchQuery, setSearchQuery] = useState('')
-  const [filterTeacher, setFilterTeacher] = useState<string>('all')
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(25)
   
   // Modal state
   const [showAssignModal, setShowAssignModal] = useState(false)
-  const [showStudentsModal, setShowStudentsModal] = useState(false)
   const [studentSearchQuery, setStudentSearchQuery] = useState('')
   const [isAssigning, setIsAssigning] = useState(false)
   const [error, setError] = useState('')
@@ -168,12 +157,6 @@ const AssignmentsPage: React.FC = () => {
     setStudentSearchQuery('')
     setError('')
     setShowAssignModal(true)
-  }
-
-  // View all students modal
-  const handleViewAllStudents = () => {
-    if (!selectedTeacher) return
-    setShowStudentsModal(true)
   }
 
   // Stats

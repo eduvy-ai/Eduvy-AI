@@ -74,9 +74,9 @@ const ChaptersPage: React.FC = () => {
     curriculumLoadedRef.current = true
     try {
       const [boardsData, standardsData, subjectsData] = await Promise.all([
-        adminApi.curriculum.getBoards(),
-        adminApi.curriculum.getStandards(),
-        adminApi.curriculum.getSubjects(),
+        adminApi.boards.getAll(),
+        adminApi.standards.getAll(),
+        adminApi.subjects.getAll(),
       ])
       setBoards(boardsData)
       setStandards(standardsData)
