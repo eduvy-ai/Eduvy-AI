@@ -1,7 +1,7 @@
 // ─── Admin Dashboard Page ──────────────────────────────────────
 // Mission control with platform health, metrics, and quick actions
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAdminUser, useAIConfig, useStudents } from '../../../modules/admin/hooks'
 import { adminService } from '../../../modules/admin/service'
@@ -131,20 +131,31 @@ const AdminDashboard: React.FC = () => {
   const { aiUsage, fetchAIUsage } = useAIConfig()
   const { students, fetchStudents } = useStudents()
   
-  // Load dashboard data
+  // Refs to prevent duplicate fetches
+  const dataLoadedRef = useRef(false)
+  const fetchAIUsageRef = useRef(fetchAIUsage)
+  const fetchStudentsRef = useRef(fetchStudents)
+  
+  fetchAIUsageRef.current = fetchAIUsage
+  fetchStudentsRef.current = fetchStudents
+  
+  // Load dashboard data once
   useEffect(() => {
+    if (dataLoadedRef.current) return
+    dataLoadedRef.current = true
+    
     const loadData = async () => {
       try {
         await Promise.all([
-          fetchAIUsage(7),
-          fetchStudents({ search: '' }),
+          fetchAIUsageRef.current(7),
+          fetchStudentsRef.current({ search: '' }),
         ])
       } catch (error) {
         console.error('Failed to load dashboard data:', error)
       }
     }
     loadData()
-  }, [fetchAIUsage, fetchStudents])
+  }, [])
 
   // Calculate stats
   const totalStudents = students.length

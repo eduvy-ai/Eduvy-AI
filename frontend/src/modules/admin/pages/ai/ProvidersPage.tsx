@@ -1,13 +1,14 @@
 // ─── AI Providers Page ─────────────────────────────────────────
 // Manage AI providers, API keys, and model routing
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useAIConfig, useCanEdit } from '../../hooks'
 import { adminApi } from '../../api'
 import type { AIRouting, AIKeySlot } from '../../types'
 import { PLAN_LABELS } from '../../constants'
 import Modal from '../../../../shared/components/Modal'
 import Button from '../../../../shared/components/Button'
+import Loader from '../../../../shared/components/Loader'
 import {
   Robot,
   Key,
@@ -54,8 +55,13 @@ const ProvidersPage: React.FC = () => {
   // Routing form state
   const [routingForm, setRoutingForm] = useState<AIRouting[]>([])
 
+  // Ref to prevent duplicate fetches
+  const loadedRef = useRef(false)
+
   // Load config
   useEffect(() => {
+    if (loadedRef.current) return
+    loadedRef.current = true
     const load = async () => {
       setIsLoading(true)
       try {
@@ -147,7 +153,7 @@ const ProvidersPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <span className="animate-spin text-2xl">⏳</span>
+        <Loader size="lg" />
       </div>
     )
   }

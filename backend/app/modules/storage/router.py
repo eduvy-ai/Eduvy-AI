@@ -10,14 +10,16 @@ from app.services.r2_storage import get_r2_storage_stats, is_r2_configured, r2_s
 router = APIRouter(prefix="/storage", tags=["Storage"])
 
 
-def _is_admin(user_id: str) -> bool:
-    """Check if user is admin."""
+def _is_admin(token_sub: str) -> bool:
+    """Check if token subject is an admin (admin_id from admin token)."""
     conn = get_db()
     try:
         cur = conn.cursor()
-        cur.execute("SELECT is_admin FROM users WHERE id = %s", (user_id,))
-        row = cur.fetchone()
-        return row and row.get("is_admin", False)
+        # Admin tokens have integer admin_id as sub
+        # Check admin_users table
+        cur.execute("SELECT id FROM admin_users WHERE id = %s", (token_sub,))
+        admin_row = cur.fetchone()
+        return admin_row is not None
     finally:
         conn.close()
 

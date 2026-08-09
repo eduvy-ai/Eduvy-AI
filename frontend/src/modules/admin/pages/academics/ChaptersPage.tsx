@@ -2,9 +2,8 @@
 // CRUD interface for chapters with filtering by board/standard/subject
 
 import React, { useEffect, useState, useMemo } from 'react'
-import { useChapters, useBoards, useStandards, useCurriculum, useCanEdit } from '../../hooks'
+import { useChapters, useBoards, useStandards, useSubjects, useCanEdit } from '../../hooks'
 import { adminApi } from '../../api'
-import { adminService } from '../../service'
 import type { Chapter } from '../../types'
 import Modal from '../../../../shared/components/Modal'
 import Button from '../../../../shared/components/Button'
@@ -26,7 +25,7 @@ const ChaptersPage: React.FC = () => {
   const { chapters, fetchChapters, addChapter, updateChapter, removeChapter } = useChapters()
   const { boards, fetchBoards } = useBoards()
   const { standards, fetchStandards } = useStandards()
-  const { curriculum, fetchCurriculum } = useCurriculum()
+  const { subjects, fetchSubjects } = useSubjects()
   const canEdit = useCanEdit('academics')
   
   const [isLoading, setIsLoading] = useState(true)
@@ -49,11 +48,12 @@ const ChaptersPage: React.FC = () => {
   
   // Form state
   const [formData, setFormData] = useState({
-    board: '',
-    standard: '',
-    subject: '',
+    board_id: '',
+    standard_id: '',
+    subject_id: '',
     chapter_number: 1,
     chapter_name: '',
+    chapter_name_local: '',
     description: '',
     topics: '',
     is_active: true,
@@ -68,24 +68,30 @@ const ChaptersPage: React.FC = () => {
         await Promise.all([
           fetchBoards(),
           fetchStandards(),
-          fetchCurriculum({}),
         ])
       } finally {
         setIsLoading(false)
       }
     }
     load()
-  }, [fetchBoards, fetchStandards, fetchCurriculum])
+  }, [fetchBoards, fetchStandards])
+
+  // Load subjects when board+standard changes
+  useEffect(() => {
+    if (filterBoard && filterStandard) {
+      fetchSubjects({ board_id: filterBoard, standard_id: filterStandard })
+    }
+  }, [filterBoard, filterStandard, fetchSubjects])
 
   // Load chapters when filters change
   useEffect(() => {
     const loadChapters = async () => {
       setIsLoading(true)
       try {
-        const filters: { board?: string; standard?: string; subject?: string } = {}
-        if (filterBoard) filters.board = filterBoard
-        if (filterStandard) filters.standard = filterStandard
-        if (filterSubject) filters.subject = filterSubject
+        const filters: { board_id?: string; standard_id?: string; subject_id?: string } = {}
+        if (filterBoard) filters.board_id = filterBoard
+        if (filterStandard) filters.standard_id = filterStandard
+        if (filterSubject) filters.subject_id = filterSubject
         await fetchChapters(filters)
       } finally {
         setIsLoading(false)
@@ -94,16 +100,11 @@ const ChaptersPage: React.FC = () => {
     loadChapters()
   }, [filterBoard, filterStandard, filterSubject, fetchChapters])
 
-  // Get unique subjects from curriculum
-  const subjects = useMemo(() => {
-    return adminService.getSubjectsFromCurriculum(curriculum)
-  }, [curriculum])
-
   // Filter chapters by search
   const filteredChapters = chapters.filter(chapter =>
     chapter.chapter_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    chapter.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    chapter.board.toLowerCase().includes(searchQuery.toLowerCase())
+    (chapter.subject_name || chapter.subject_id).toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (chapter.board_name || chapter.board_id).toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   // Paginated data
@@ -121,17 +122,24 @@ const ChaptersPage: React.FC = () => {
   // Open create modal
   const handleCreate = () => {
     setEditingChapter(null)
+    const boardId = filterBoard || (boards[0]?.id || '')
+    const standardId = filterStandard || (standards[0]?.id || '')
     setFormData({
-      board: filterBoard || (boards[0]?.name || ''),
-      standard: filterStandard || (standards[0]?.name || ''),
-      subject: filterSubject || '',
+      board_id: boardId,
+      standard_id: standardId,
+      subject_id: filterSubject || '',
       chapter_number: chapters.length + 1,
       chapter_name: '',
+      chapter_name_local: '',
       description: '',
       topics: '',
       is_active: true,
       content_status: 'draft',
     })
+    // Load subjects for selected board+standard
+    if (boardId && standardId) {
+      fetchSubjects({ board_id: boardId, standard_id: standardId })
+    }
     setFormError('')
     setShowModal(true)
   }
@@ -140,11 +148,12 @@ const ChaptersPage: React.FC = () => {
   const handleEdit = (chapter: Chapter) => {
     setEditingChapter(chapter)
     setFormData({
-      board: chapter.board,
-      standard: chapter.standard,
-      subject: chapter.subject,
+      board_id: chapter.board_id,
+      standard_id: chapter.standard_id,
+      subject_id: chapter.subject_id,
       chapter_number: chapter.chapter_number,
       chapter_name: chapter.chapter_name,
+      chapter_name_local: chapter.chapter_name_local || '',
       description: chapter.description || '',
       topics: chapter.topics?.join(', ') || '',
       is_active: chapter.is_active,
@@ -166,15 +175,15 @@ const ChaptersPage: React.FC = () => {
     setFormError('')
 
     // Validation
-    if (!formData.board.trim()) {
+    if (!formData.board_id.trim()) {
       setFormError('Board is required')
       return
     }
-    if (!formData.standard.trim()) {
+    if (!formData.standard_id.trim()) {
       setFormError('Standard is required')
       return
     }
-    if (!formData.subject.trim()) {
+    if (!formData.subject_id.trim()) {
       setFormError('Subject is required')
       return
     }
@@ -196,6 +205,7 @@ const ChaptersPage: React.FC = () => {
       if (editingChapter) {
         const updated = await adminApi.chapters.update(editingChapter.id, {
           chapter_name: formData.chapter_name,
+          chapter_name_local: formData.chapter_name_local,
           description: formData.description,
           topics: topicsArray,
           is_active: formData.is_active,
@@ -204,11 +214,12 @@ const ChaptersPage: React.FC = () => {
         updateChapter(updated)
       } else {
         const created = await adminApi.chapters.create({
-          board: formData.board,
-          standard: formData.standard,
-          subject: formData.subject,
+          board_id: formData.board_id,
+          standard_id: formData.standard_id,
+          subject_id: formData.subject_id,
           chapter_number: formData.chapter_number,
           chapter_name: formData.chapter_name,
+          chapter_name_local: formData.chapter_name_local,
           description: formData.description,
           topics: topicsArray,
           is_active: formData.is_active,
@@ -433,22 +444,28 @@ const ChaptersPage: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <select
             value={filterBoard}
-            onChange={(e) => setFilterBoard(e.target.value)}
+            onChange={(e) => {
+              setFilterBoard(e.target.value)
+              setFilterSubject('') // Reset subject when board changes
+            }}
             className="h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text text-sm focus:outline-none focus:ring-2 focus:ring-app-green/50"
           >
             <option value="">All Boards</option>
             {boards.map(board => (
-              <option key={board.id} value={board.name}>{board.name}</option>
+              <option key={board.id} value={board.id}>{board.name}</option>
             ))}
           </select>
           <select
             value={filterStandard}
-            onChange={(e) => setFilterStandard(e.target.value)}
+            onChange={(e) => {
+              setFilterStandard(e.target.value)
+              setFilterSubject('') // Reset subject when standard changes
+            }}
             className="h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text text-sm focus:outline-none focus:ring-2 focus:ring-app-green/50"
           >
             <option value="">All Standards</option>
             {standards.map(std => (
-              <option key={std.id} value={std.name}>{std.name}</option>
+              <option key={std.id} value={std.id}>{std.name}</option>
             ))}
           </select>
           <select
@@ -458,7 +475,7 @@ const ChaptersPage: React.FC = () => {
           >
             <option value="">All Subjects</option>
             {subjects.map(subject => (
-              <option key={subject} value={subject}>{subject}</option>
+              <option key={subject.id} value={subject.id}>{subject.name}</option>
             ))}
           </select>
         </div>
@@ -516,42 +533,54 @@ const ChaptersPage: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-app-muted mb-1.5">Board</label>
               <select
-                value={formData.board}
-                onChange={(e) => setFormData(prev => ({ ...prev, board: e.target.value }))}
+                value={formData.board_id}
+                onChange={(e) => {
+                  const newBoardId = e.target.value
+                  setFormData(prev => ({ ...prev, board_id: newBoardId, subject_id: '' }))
+                  if (newBoardId && formData.standard_id) {
+                    fetchSubjects({ board_id: newBoardId, standard_id: formData.standard_id })
+                  }
+                }}
                 disabled={!!editingChapter}
                 className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50 disabled:opacity-50"
               >
                 <option value="">Select Board</option>
                 {boards.map(board => (
-                  <option key={board.id} value={board.name}>{board.name}</option>
+                  <option key={board.id} value={board.id}>{board.name}</option>
                 ))}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-app-muted mb-1.5">Standard</label>
               <select
-                value={formData.standard}
-                onChange={(e) => setFormData(prev => ({ ...prev, standard: e.target.value }))}
+                value={formData.standard_id}
+                onChange={(e) => {
+                  const newStandardId = e.target.value
+                  setFormData(prev => ({ ...prev, standard_id: newStandardId, subject_id: '' }))
+                  if (formData.board_id && newStandardId) {
+                    fetchSubjects({ board_id: formData.board_id, standard_id: newStandardId })
+                  }
+                }}
                 disabled={!!editingChapter}
                 className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50 disabled:opacity-50"
               >
                 <option value="">Select Standard</option>
                 {standards.map(std => (
-                  <option key={std.id} value={std.name}>{std.name}</option>
+                  <option key={std.id} value={std.id}>{std.name}</option>
                 ))}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-app-muted mb-1.5">Subject</label>
               <select
-                value={formData.subject}
-                onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
+                value={formData.subject_id}
+                onChange={(e) => setFormData(prev => ({ ...prev, subject_id: e.target.value }))}
                 disabled={!!editingChapter}
                 className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50 disabled:opacity-50"
               >
                 <option value="">Select Subject</option>
                 {subjects.map(subject => (
-                  <option key={subject} value={subject}>{subject}</option>
+                  <option key={subject.id} value={subject.id}>{subject.name}</option>
                 ))}
               </select>
             </div>
@@ -656,7 +685,7 @@ const ChaptersPage: React.FC = () => {
                 <div>
                   <div className="font-medium text-app-text">{deleteTarget.chapter_name}</div>
                   <div className="text-xs text-app-muted">
-                    Chapter {deleteTarget.chapter_number} · {deleteTarget.subject} · {deleteTarget.board}
+                    Chapter {deleteTarget.chapter_number} · {deleteTarget.subject_name || deleteTarget.subject_id} · {deleteTarget.board_name || deleteTarget.board_id}
                   </div>
                 </div>
               </div>

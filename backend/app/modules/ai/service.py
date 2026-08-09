@@ -155,6 +155,7 @@ class AIService:
         conn = get_db()
         try:
             cur = conn.cursor()
+            # Track AI usage
             cur.execute(
                 """INSERT INTO ai_usage (user_id, date, call_count, prompt_tokens, completion_tokens)
                    VALUES (%s, %s, 1, %s, %s)
@@ -166,6 +167,13 @@ class AIService:
                 (user_id, date, prompt_tokens, completion_tokens)
             )
             row = cur.fetchone()
+            
+            # Update user's last_active timestamp
+            cur.execute(
+                "UPDATE users SET last_active = %s WHERE id = %s",
+                (date, user_id)
+            )
+            
             conn.commit()
             return row["call_count"] if row else 1
         finally:

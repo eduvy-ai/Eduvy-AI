@@ -45,9 +45,9 @@ export const fetchChapters = createAsyncThunk(
  */
 export const fetchSubjects = createAsyncThunk(
   'chapters/fetchSubjects',
-  async ({ board, standard }: { board: string; standard: string }, { rejectWithValue }) => {
+  async ({ board_id, standard_id }: { board_id: string; standard_id: string }, { rejectWithValue }) => {
     try {
-      return await chaptersApi.getSubjects(board, standard)
+      return await chaptersApi.getSubjects(board_id, standard_id)
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to fetch subjects'
       return rejectWithValue(message)
@@ -76,11 +76,11 @@ export const fetchChapter = createAsyncThunk(
 export const fetchChaptersWithProgress = createAsyncThunk(
   'chapters/fetchChaptersWithProgress',
   async (
-    { board, standard, subject }: { board: string; standard: string; subject: string },
+    { board_id, standard_id, subject_id }: { board_id: string; standard_id: string; subject_id: string },
     { rejectWithValue }
   ) => {
     try {
-      return await chaptersApi.getWithProgress(board, standard, subject)
+      return await chaptersApi.getWithProgress(board_id, standard_id, subject_id)
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to fetch chapters with progress'
       return rejectWithValue(message)

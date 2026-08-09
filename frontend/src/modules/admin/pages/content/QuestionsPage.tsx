@@ -1,10 +1,16 @@
 // ─── Questions Bank Page ──────────────────────────────────
 // Manage question bank for quizzes and assessments
 
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useMemo, useRef } from 'react'
 import Pagination from '../../../../shared/components/Pagination'
+import Modal from '../../../../shared/components/Modal'
+import Button from '../../../../shared/components/Button'
+import Loader from '../../../../shared/components/Loader'
+import { useQuestions, useChapters } from '../../hooks'
+import { questionsApi } from '../../api'
+import type { Question, QuestionType, Difficulty, QuestionCreate, QuestionUpdate } from '../../types'
 import {
-  Question,
+  Question as QuestionIcon,
   Plus,
   Pencil,
   Trash,
@@ -15,123 +21,84 @@ import {
   Upload,
   Download,
   CheckCircle,
-  Warning,
+  X,
 } from '@phosphor-icons/react'
 
-interface QuestionItem {
-  id: string
-  question: string
-  type: 'mcq' | 'true_false' | 'fill_blank' | 'short_answer' | 'long_answer'
-  subject: string
-  chapter?: string
-  difficulty: 'easy' | 'medium' | 'hard'
-  options?: string[]
-  correct_answer: string | number
-  explanation?: string
-  times_used: number
-  accuracy_rate: number
-  tags: string[]
-  created_at: string
+// Default form state
+const defaultFormState = {
+  chapter_id: 0,
+  type: 'mcq' as QuestionType,
+  difficulty: 'medium' as Difficulty,
+  question: '',
+  options: ['', '', '', ''],
+  correct_answer: '0',
+  explanation: '',
+  tags: [] as string[],
 }
 
 const QuestionsPage: React.FC = () => {
-  const [questions, setQuestions] = useState<QuestionItem[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { questions, total, isLoading, fetchQuestions } = useQuestions()
+  const { chapters, fetchChapters } = useChapters()
+  
+  // List state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all')
-  const [subjectFilter, setSubjectFilter] = useState<string>('all')
+  const [chapterFilter, setChapterFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
-  const [totalCount, setTotalCount] = useState(0)
+  
+  // Modal state
+  const [showModal, setShowModal] = useState(false)
+  const [showPreviewModal, setShowPreviewModal] = useState(false)
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null)
+  const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null)
+  const [formError, setFormError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [tagInput, setTagInput] = useState('')
+  
+  // Form state
+  const [formData, setFormData] = useState(defaultFormState)
 
-  const loadQuestions = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      // TODO: Replace with real API call
-      const mockQuestions: QuestionItem[] = [
-        {
-          id: '1',
-          question: 'What is the value of √2 × √8?',
-          type: 'mcq',
-          subject: 'Mathematics',
-          chapter: 'Real Numbers',
-          difficulty: 'easy',
-          options: ['2', '4', '8', '16'],
-          correct_answer: 1,
-          explanation: '√2 × √8 = √(2×8) = √16 = 4',
-          times_used: 156,
-          accuracy_rate: 78,
-          tags: ['real numbers', 'square root'],
-          created_at: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          question: 'Water is a compound of hydrogen and oxygen.',
-          type: 'true_false',
-          subject: 'Science',
-          chapter: 'Chemical Reactions',
-          difficulty: 'easy',
-          correct_answer: 'true',
-          times_used: 234,
-          accuracy_rate: 92,
-          tags: ['water', 'compounds'],
-          created_at: new Date().toISOString(),
-        },
-        {
-          id: '3',
-          question: 'The chemical formula for water is ____.',
-          type: 'fill_blank',
-          subject: 'Science',
-          chapter: 'Chemical Reactions',
-          difficulty: 'easy',
-          correct_answer: 'H2O',
-          times_used: 189,
-          accuracy_rate: 85,
-          tags: ['water', 'formula'],
-          created_at: new Date().toISOString(),
-        },
-        {
-          id: '4',
-          question: 'Explain the process of photosynthesis in plants.',
-          type: 'long_answer',
-          subject: 'Science',
-          chapter: 'Life Processes',
-          difficulty: 'hard',
-          correct_answer: 'Photosynthesis is the process by which plants...',
-          times_used: 78,
-          accuracy_rate: 65,
-          tags: ['photosynthesis', 'plants'],
-          created_at: new Date().toISOString(),
-        },
-        {
-          id: '5',
-          question: 'If a polynomial p(x) = x² - 3x + 2, find p(2).',
-          type: 'short_answer',
-          subject: 'Mathematics',
-          chapter: 'Polynomials',
-          difficulty: 'medium',
-          correct_answer: '0',
-          explanation: 'p(2) = 2² - 3(2) + 2 = 4 - 6 + 2 = 0',
-          times_used: 123,
-          accuracy_rate: 71,
-          tags: ['polynomials', 'evaluation'],
-          created_at: new Date().toISOString(),
-        },
-      ]
+  // Refs to prevent duplicate fetches
+  const chaptersLoadedRef = useRef(false)
+  const lastFetchParamsRef = useRef<string>('')
 
-      setQuestions(mockQuestions)
-      setTotalCount(250)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [page, pageSize, typeFilter, difficultyFilter, subjectFilter, searchQuery])
-
+  // Load chapters once on mount
   useEffect(() => {
-    loadQuestions()
-  }, [loadQuestions])
+    if (!chaptersLoadedRef.current) {
+      chaptersLoadedRef.current = true
+      fetchChapters()
+    }
+  }, [fetchChapters])
 
+  // Load questions with filters
+  useEffect(() => {
+    const params: Record<string, unknown> = {
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+    }
+    if (typeFilter !== 'all') params.type = typeFilter
+    if (difficultyFilter !== 'all') params.difficulty = difficultyFilter
+    if (chapterFilter !== 'all') params.chapter_id = parseInt(chapterFilter)
+    if (searchQuery) params.search = searchQuery
+    
+    // Dedupe by comparing serialized params
+    const paramsKey = JSON.stringify(params)
+    if (paramsKey === lastFetchParamsRef.current) return
+    lastFetchParamsRef.current = paramsKey
+    
+    fetchQuestions(params)
+  }, [page, pageSize, typeFilter, difficultyFilter, chapterFilter, searchQuery, fetchQuestions])
+
+  // Refetch helper - resets the guard to force a fresh fetch
+  const refetchQuestions = () => {
+    lastFetchParamsRef.current = ''
+    fetchQuestions({ limit: pageSize, offset: (page - 1) * pageSize })
+  }
+
+  // Handlers
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev)
@@ -141,15 +108,181 @@ const QuestionsPage: React.FC = () => {
     })
   }
 
-  const getTypeBadge = (type: QuestionItem['type']) => {
-    const labels = {
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+    if (!confirm(`Delete ${selectedIds.size} questions?`)) return
+    
+    try {
+      await questionsApi.bulkDelete(Array.from(selectedIds))
+      setSelectedIds(new Set())
+      refetchQuestions()
+    } catch (error) {
+      console.error('Failed to delete questions:', error)
+      alert('Failed to delete questions')
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this question?')) return
+    try {
+      await questionsApi.delete(id)
+      refetchQuestions()
+    } catch (error) {
+      console.error('Failed to delete question:', error)
+      alert('Failed to delete question')
+    }
+  }
+
+  // Open create modal
+  const handleCreate = () => {
+    setEditingQuestion(null)
+    setFormData({
+      ...defaultFormState,
+      chapter_id: chapters.length > 0 ? chapters[0].id : 0,
+    })
+    setFormError('')
+    setTagInput('')
+    setShowModal(true)
+  }
+
+  // Open edit modal
+  const handleEdit = (question: Question) => {
+    setEditingQuestion(question)
+    setFormData({
+      chapter_id: question.chapter_id,
+      type: question.type,
+      difficulty: question.difficulty,
+      question: question.question,
+      options: question.options?.length ? question.options : ['', '', '', ''],
+      correct_answer: question.correct_answer,
+      explanation: question.explanation || '',
+      tags: question.tags || [],
+    })
+    setFormError('')
+    setTagInput('')
+    setShowModal(true)
+  }
+
+  // Duplicate question
+  const handleDuplicate = (question: Question) => {
+    setEditingQuestion(null)
+    setFormData({
+      chapter_id: question.chapter_id,
+      type: question.type,
+      difficulty: question.difficulty,
+      question: question.question + ' (Copy)',
+      options: question.options?.length ? [...question.options] : ['', '', '', ''],
+      correct_answer: question.correct_answer,
+      explanation: question.explanation || '',
+      tags: question.tags || [],
+    })
+    setFormError('')
+    setTagInput('')
+    setShowModal(true)
+  }
+
+  // Preview question
+  const handlePreview = (question: Question) => {
+    setPreviewQuestion(question)
+    setShowPreviewModal(true)
+  }
+
+  // Submit form
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setFormError('')
+
+    // Validation
+    if (!formData.chapter_id) {
+      setFormError('Please select a chapter')
+      return
+    }
+    if (!formData.question.trim()) {
+      setFormError('Question text is required')
+      return
+    }
+    if (formData.type === 'mcq') {
+      const validOptions = formData.options.filter(o => o.trim())
+      if (validOptions.length < 2) {
+        setFormError('MCQ requires at least 2 options')
+        return
+      }
+    }
+    if (!formData.correct_answer.trim()) {
+      setFormError('Correct answer is required')
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      if (editingQuestion) {
+        // Update existing
+        const updateData: QuestionUpdate = {
+          type: formData.type,
+          difficulty: formData.difficulty,
+          question: formData.question,
+          options: formData.type === 'mcq' ? formData.options.filter(o => o.trim()) : undefined,
+          correct_answer: formData.correct_answer,
+          explanation: formData.explanation || undefined,
+          tags: formData.tags.length > 0 ? formData.tags : undefined,
+        }
+        await questionsApi.update(editingQuestion.id, updateData)
+      } else {
+        // Create new
+        const createData: QuestionCreate = {
+          chapter_id: formData.chapter_id,
+          type: formData.type,
+          difficulty: formData.difficulty,
+          question: formData.question,
+          options: formData.type === 'mcq' ? formData.options.filter(o => o.trim()) : undefined,
+          correct_answer: formData.correct_answer,
+          explanation: formData.explanation || undefined,
+          tags: formData.tags.length > 0 ? formData.tags : undefined,
+        }
+        await questionsApi.create(createData)
+      }
+      
+      setShowModal(false)
+      refetchQuestions()
+    } catch (error: any) {
+      setFormError(error.message || 'Failed to save question')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Add tag
+  const addTag = () => {
+    const tag = tagInput.trim().toLowerCase()
+    if (tag && !formData.tags.includes(tag)) {
+      setFormData(prev => ({ ...prev, tags: [...prev.tags, tag] }))
+    }
+    setTagInput('')
+  }
+
+  // Remove tag
+  const removeTag = (tag: string) => {
+    setFormData(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }))
+  }
+
+  // Update option
+  const updateOption = (index: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      options: prev.options.map((opt, i) => i === index ? value : opt),
+    }))
+  }
+
+  const getTypeBadge = (type: QuestionType) => {
+    const labels: Record<QuestionType, string> = {
       mcq: 'MCQ',
       true_false: 'T/F',
       fill_blank: 'Fill',
       short_answer: 'Short',
       long_answer: 'Long',
     }
-    const styles = {
+    const styles: Record<QuestionType, string> = {
       mcq: 'bg-app-blue/10 text-app-blue',
       true_false: 'bg-app-green/10 text-app-green',
       fill_blank: 'bg-app-purple/10 text-app-purple',
@@ -163,8 +296,8 @@ const QuestionsPage: React.FC = () => {
     )
   }
 
-  const getDifficultyBadge = (difficulty: QuestionItem['difficulty']) => {
-    const styles = {
+  const getDifficultyBadge = (difficulty: Difficulty) => {
+    const styles: Record<Difficulty, string> = {
       easy: 'text-app-green',
       medium: 'text-app-yellow',
       hard: 'text-app-red',
@@ -172,7 +305,13 @@ const QuestionsPage: React.FC = () => {
     return <span className={`text-xs font-medium ${styles[difficulty]}`}>{difficulty}</span>
   }
 
-  const subjects = [...new Set(questions.map(q => q.subject))]
+  // Stats computed from current page data
+  const stats = useMemo(() => ({
+    mcq: questions.filter(q => q.type === 'mcq').length,
+    easy: questions.filter(q => q.difficulty === 'easy').length,
+    medium: questions.filter(q => q.difficulty === 'medium').length,
+    hard: questions.filter(q => q.difficulty === 'hard').length,
+  }), [questions])
 
   return (
     <div className="space-y-6">
@@ -180,7 +319,7 @@ const QuestionsPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black text-app-text flex items-center gap-2">
-            <Question size={28} className="text-app-purple" />
+            <QuestionIcon size={28} className="text-app-purple" />
             Question Bank
           </h1>
           <p className="text-sm text-app-muted mt-1">
@@ -189,21 +328,21 @@ const QuestionsPage: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => alert('Import questions')}
+            onClick={() => alert('Import questions - Coming soon')}
             className="px-3 py-2 text-sm text-app-muted hover:text-app-text bg-app-card border border-app-border rounded-lg transition-colors flex items-center gap-1"
           >
             <Upload size={14} />
             Import
           </button>
           <button
-            onClick={() => alert('Export questions')}
+            onClick={() => alert('Export questions - Coming soon')}
             className="px-3 py-2 text-sm text-app-muted hover:text-app-text bg-app-card border border-app-border rounded-lg transition-colors flex items-center gap-1"
           >
             <Download size={14} />
             Export
           </button>
           <button
-            onClick={() => alert('Create question')}
+            onClick={handleCreate}
             className="px-4 py-2 text-sm text-white bg-app-green rounded-lg hover:bg-app-green/80 transition-colors flex items-center gap-2"
           >
             <Plus size={16} />
@@ -215,31 +354,25 @@ const QuestionsPage: React.FC = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-app-card rounded-xl border border-app-border p-4">
-          <p className="text-2xl font-bold text-app-text">{totalCount}</p>
+          <p className="text-2xl font-bold text-app-text">{total}</p>
           <p className="text-xs text-app-muted">Total Questions</p>
         </div>
         <div className="bg-app-card rounded-xl border border-app-border p-4">
-          <p className="text-2xl font-bold text-app-blue">{questions.filter(q => q.type === 'mcq').length}</p>
-          <p className="text-xs text-app-muted">MCQs</p>
+          <p className="text-2xl font-bold text-app-blue">{stats.mcq}</p>
+          <p className="text-xs text-app-muted">MCQs (this page)</p>
         </div>
         <div className="bg-app-card rounded-xl border border-app-border p-4">
-          <p className="text-2xl font-bold text-app-green">{questions.filter(q => q.difficulty === 'easy').length}</p>
+          <p className="text-2xl font-bold text-app-green">{stats.easy}</p>
           <p className="text-xs text-app-muted">Easy</p>
         </div>
         <div className="bg-app-card rounded-xl border border-app-border p-4">
-          <p className="text-2xl font-bold text-app-yellow">{questions.filter(q => q.difficulty === 'medium').length}</p>
+          <p className="text-2xl font-bold text-app-yellow">{stats.medium}</p>
           <p className="text-xs text-app-muted">Medium</p>
         </div>
         <div className="bg-app-card rounded-xl border border-app-border p-4">
-          <p className="text-2xl font-bold text-app-red">{questions.filter(q => q.difficulty === 'hard').length}</p>
+          <p className="text-2xl font-bold text-app-red">{stats.hard}</p>
           <p className="text-xs text-app-muted">Hard</p>
         </div>
-      </div>
-
-      {/* Sample Data Notice */}
-      <div className="p-3 bg-app-yellow/10 border border-app-yellow/25 rounded-lg text-sm text-app-yellow flex items-center gap-2">
-        <Warning size={16} />
-        Showing sample data. Question bank API not yet implemented.
       </div>
 
       {/* Filters */}
@@ -258,7 +391,7 @@ const QuestionsPage: React.FC = () => {
           <Funnel size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-app-muted" />
           <select
             value={typeFilter}
-            onChange={e => setTypeFilter(e.target.value)}
+            onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
             className="pl-9 pr-8 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text appearance-none cursor-pointer focus:outline-none focus:border-app-green"
           >
             <option value="all">All Types</option>
@@ -271,7 +404,7 @@ const QuestionsPage: React.FC = () => {
         </div>
         <select
           value={difficultyFilter}
-          onChange={e => setDifficultyFilter(e.target.value)}
+          onChange={e => { setDifficultyFilter(e.target.value); setPage(1) }}
           className="px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text appearance-none cursor-pointer focus:outline-none focus:border-app-green"
         >
           <option value="all">All Difficulty</option>
@@ -280,18 +413,18 @@ const QuestionsPage: React.FC = () => {
           <option value="hard">Hard</option>
         </select>
         <select
-          value={subjectFilter}
-          onChange={e => setSubjectFilter(e.target.value)}
+          value={chapterFilter}
+          onChange={e => { setChapterFilter(e.target.value); setPage(1) }}
           className="px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text appearance-none cursor-pointer focus:outline-none focus:border-app-green"
         >
-          <option value="all">All Subjects</option>
-          {subjects.map(s => (
-            <option key={s} value={s}>{s}</option>
+          <option value="all">All Chapters</option>
+          {chapters.map(ch => (
+            <option key={ch.id} value={ch.id}>{ch.chapter_name}</option>
           ))}
         </select>
         {selectedIds.size > 0 && (
           <button
-            onClick={() => alert('Delete selected')}
+            onClick={handleBulkDelete}
             className="px-3 py-2 text-sm text-app-red bg-app-red/10 border border-app-red/25 rounded-lg hover:bg-app-red/20 transition-colors flex items-center gap-1"
           >
             <Trash size={14} />
@@ -304,11 +437,11 @@ const QuestionsPage: React.FC = () => {
       <div className="space-y-3">
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <div className="animate-spin w-8 h-8 border-2 border-app-green border-t-transparent rounded-full" />
+            <Loader size="lg" />
           </div>
         ) : questions.length === 0 ? (
           <div className="text-center py-12 text-app-muted">
-            No questions found
+            No questions found. {total === 0 && 'Add your first question to get started.'}
           </div>
         ) : (
           questions.map(question => (
@@ -329,20 +462,22 @@ const QuestionsPage: React.FC = () => {
                       <div className="flex items-center gap-2 mb-2">
                         {getTypeBadge(question.type)}
                         {getDifficultyBadge(question.difficulty)}
-                        <span className="text-xs text-app-muted">• {question.subject}</span>
-                        {question.chapter && (
-                          <span className="text-xs text-app-muted">• {question.chapter}</span>
+                        {question.subject_name && (
+                          <span className="text-xs text-app-muted">• {question.subject_name}</span>
+                        )}
+                        {question.chapter_name && (
+                          <span className="text-xs text-app-muted">• {question.chapter_name}</span>
                         )}
                       </div>
                       <p className="text-app-text font-medium">{question.question}</p>
                       
-                      {question.type === 'mcq' && question.options && (
+                      {question.type === 'mcq' && question.options && question.options.length > 0 && (
                         <div className="grid grid-cols-2 gap-2 mt-3">
                           {question.options.map((opt, idx) => (
                             <div
                               key={idx}
                               className={`px-3 py-1.5 rounded text-sm ${
-                                idx === question.correct_answer
+                                String(idx) === question.correct_answer
                                   ? 'bg-app-green/10 text-app-green border border-app-green/25'
                                   : 'bg-app-card2 text-app-muted'
                               }`}
@@ -354,7 +489,7 @@ const QuestionsPage: React.FC = () => {
                         </div>
                       )}
                       
-                      {question.tags.length > 0 && (
+                      {question.tags && question.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-3">
                           {question.tags.map(tag => (
                             <span key={tag} className="px-2 py-0.5 text-xs bg-app-purple/10 text-app-purple rounded">
@@ -367,28 +502,28 @@ const QuestionsPage: React.FC = () => {
                     
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => alert('Preview question')}
+                        onClick={() => handlePreview(question)}
                         className="p-1.5 text-app-blue hover:bg-app-blue/10 rounded-lg transition-colors"
                         title="Preview"
                       >
                         <Eye size={14} />
                       </button>
                       <button
-                        onClick={() => alert('Duplicate question')}
+                        onClick={() => handleDuplicate(question)}
                         className="p-1.5 text-app-muted hover:bg-app-card2 rounded-lg transition-colors"
                         title="Duplicate"
                       >
                         <Copy size={14} />
                       </button>
                       <button
-                        onClick={() => alert('Edit question')}
+                        onClick={() => handleEdit(question)}
                         className="p-1.5 text-app-green hover:bg-app-green/10 rounded-lg transition-colors"
                         title="Edit"
                       >
                         <Pencil size={14} />
                       </button>
                       <button
-                        onClick={() => alert('Delete question')}
+                        onClick={() => handleDelete(question.id)}
                         className="p-1.5 text-app-red hover:bg-app-red/10 rounded-lg transition-colors"
                         title="Delete"
                       >
@@ -414,18 +549,261 @@ const QuestionsPage: React.FC = () => {
       {/* Pagination */}
       <Pagination
         currentPage={page}
-        totalPages={Math.ceil(totalCount / pageSize)}
-        totalItems={totalCount}
+        totalPages={Math.ceil(total / pageSize)}
+        totalItems={total}
         pageSize={pageSize}
         onPageChange={setPage}
-        onPageSizeChange={setPageSize}
+        onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
       />
 
-      {/* Info Note */}
-      <div className="p-4 bg-app-blue/10 border border-app-blue/25 rounded-xl text-sm text-app-muted">
-        <p className="font-medium text-app-blue mb-1">Note</p>
-        <p>Question bank endpoint not yet implemented. Showing mock data for UI preview.</p>
-      </div>
+      {/* Create/Edit Modal */}
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingQuestion ? 'Edit Question' : 'Add Question'}
+        size="lg"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {formError && (
+            <div className="p-3 bg-app-red/10 border border-app-red/25 rounded-lg text-sm text-app-red">
+              {formError}
+            </div>
+          )}
+
+          {/* Chapter Selection */}
+          <div>
+            <label className="block text-sm font-medium text-app-text mb-1">Chapter *</label>
+            <select
+              value={formData.chapter_id}
+              onChange={e => setFormData(prev => ({ ...prev, chapter_id: parseInt(e.target.value) }))}
+              className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text focus:outline-none focus:border-app-green"
+              disabled={!!editingQuestion}
+            >
+              <option value={0}>Select Chapter...</option>
+              {chapters.map(ch => (
+                <option key={ch.id} value={ch.id}>{ch.chapter_name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Type & Difficulty */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-app-text mb-1">Type *</label>
+              <select
+                value={formData.type}
+                onChange={e => setFormData(prev => ({ ...prev, type: e.target.value as QuestionType }))}
+                className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text focus:outline-none focus:border-app-green"
+              >
+                <option value="mcq">Multiple Choice (MCQ)</option>
+                <option value="true_false">True/False</option>
+                <option value="fill_blank">Fill in the Blank</option>
+                <option value="short_answer">Short Answer</option>
+                <option value="long_answer">Long Answer</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-app-text mb-1">Difficulty *</label>
+              <select
+                value={formData.difficulty}
+                onChange={e => setFormData(prev => ({ ...prev, difficulty: e.target.value as Difficulty }))}
+                className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text focus:outline-none focus:border-app-green"
+              >
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Question Text */}
+          <div>
+            <label className="block text-sm font-medium text-app-text mb-1">Question *</label>
+            <textarea
+              value={formData.question}
+              onChange={e => setFormData(prev => ({ ...prev, question: e.target.value }))}
+              placeholder="Enter the question text..."
+              rows={3}
+              className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-green resize-none"
+            />
+          </div>
+
+          {/* MCQ Options */}
+          {formData.type === 'mcq' && (
+            <div>
+              <label className="block text-sm font-medium text-app-text mb-2">Options *</label>
+              <div className="space-y-2">
+                {formData.options.map((opt, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="correct_answer"
+                      checked={formData.correct_answer === String(idx)}
+                      onChange={() => setFormData(prev => ({ ...prev, correct_answer: String(idx) }))}
+                      className="accent-app-green"
+                    />
+                    <span className="text-sm text-app-muted w-6">{String.fromCharCode(65 + idx)}.</span>
+                    <input
+                      type="text"
+                      value={opt}
+                      onChange={e => updateOption(idx, e.target.value)}
+                      placeholder={`Option ${String.fromCharCode(65 + idx)}`}
+                      className="flex-1 px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-green"
+                    />
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-app-muted mt-1">Select the radio button to mark correct answer</p>
+            </div>
+          )}
+
+          {/* Answer for non-MCQ */}
+          {formData.type !== 'mcq' && (
+            <div>
+              <label className="block text-sm font-medium text-app-text mb-1">Correct Answer *</label>
+              {formData.type === 'true_false' ? (
+                <select
+                  value={formData.correct_answer}
+                  onChange={e => setFormData(prev => ({ ...prev, correct_answer: e.target.value }))}
+                  className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text focus:outline-none focus:border-app-green"
+                >
+                  <option value="true">True</option>
+                  <option value="false">False</option>
+                </select>
+              ) : (
+                <textarea
+                  value={formData.correct_answer}
+                  onChange={e => setFormData(prev => ({ ...prev, correct_answer: e.target.value }))}
+                  placeholder="Enter the correct answer..."
+                  rows={2}
+                  className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-green resize-none"
+                />
+              )}
+            </div>
+          )}
+
+          {/* Explanation */}
+          <div>
+            <label className="block text-sm font-medium text-app-text mb-1">Explanation (optional)</label>
+            <textarea
+              value={formData.explanation}
+              onChange={e => setFormData(prev => ({ ...prev, explanation: e.target.value }))}
+              placeholder="Explain the correct answer..."
+              rows={2}
+              className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-green resize-none"
+            />
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className="block text-sm font-medium text-app-text mb-1">Tags</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={tagInput}
+                onChange={e => setTagInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addTag()
+                  }
+                }}
+                placeholder="Add tag..."
+                className="flex-1 px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-green"
+              />
+              <button
+                type="button"
+                onClick={addTag}
+                className="px-3 py-2 bg-app-purple/10 text-app-purple rounded-lg text-sm hover:bg-app-purple/20 transition-colors"
+              >
+                Add
+              </button>
+            </div>
+            {formData.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {formData.tags.map(tag => (
+                  <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-app-purple/10 text-app-purple rounded">
+                    {tag}
+                    <button type="button" onClick={() => removeTag(tag)}>
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-4 border-t border-app-border">
+            <Button type="button" variant="ghost" onClick={() => setShowModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" isLoading={isSubmitting}>
+              {editingQuestion ? 'Update Question' : 'Create Question'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Preview Modal */}
+      <Modal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        title="Question Preview"
+        size="md"
+      >
+        {previewQuestion && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              {getTypeBadge(previewQuestion.type)}
+              {getDifficultyBadge(previewQuestion.difficulty)}
+            </div>
+            
+            <p className="text-app-text font-medium text-lg">{previewQuestion.question}</p>
+            
+            {previewQuestion.type === 'mcq' && previewQuestion.options && (
+              <div className="space-y-2">
+                {previewQuestion.options.map((opt, idx) => (
+                  <div
+                    key={idx}
+                    className={`px-4 py-2 rounded-lg ${
+                      String(idx) === previewQuestion.correct_answer
+                        ? 'bg-app-green/10 border border-app-green/25'
+                        : 'bg-app-card2'
+                    }`}
+                  >
+                    <span className="font-medium mr-2">{String.fromCharCode(65 + idx)}.</span>
+                    {opt}
+                    {String(idx) === previewQuestion.correct_answer && (
+                      <CheckCircle size={16} className="inline ml-2 text-app-green" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {previewQuestion.type !== 'mcq' && (
+              <div className="p-4 bg-app-green/10 border border-app-green/25 rounded-lg">
+                <p className="text-sm text-app-muted mb-1">Correct Answer:</p>
+                <p className="text-app-text font-medium">{previewQuestion.correct_answer}</p>
+              </div>
+            )}
+            
+            {previewQuestion.explanation && (
+              <div className="p-4 bg-app-blue/10 border border-app-blue/25 rounded-lg">
+                <p className="text-sm text-app-muted mb-1">Explanation:</p>
+                <p className="text-app-text">{previewQuestion.explanation}</p>
+              </div>
+            )}
+            
+            <div className="flex justify-end pt-4 border-t border-app-border">
+              <Button variant="ghost" onClick={() => setShowPreviewModal(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

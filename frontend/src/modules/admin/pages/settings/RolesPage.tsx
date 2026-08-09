@@ -3,6 +3,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react'
 import Pagination from '../../../../shared/components/Pagination'
+import Loader from '../../../../shared/components/Loader'
 import {
   UserGear,
   Plus,
@@ -210,7 +211,7 @@ const RolesPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {isLoading ? (
           <div className="col-span-2 flex justify-center py-12">
-            <div className="animate-spin w-8 h-8 border-2 border-app-green border-t-transparent rounded-full" />
+            <Loader size="lg" />
           </div>
         ) : roles.length === 0 ? (
           <div className="col-span-2 text-center py-12 text-app-muted">

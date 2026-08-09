@@ -3,6 +3,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react'
 import Pagination from '../../../../shared/components/Pagination'
+import Loader from '../../../../shared/components/Loader'
 import {
   FileText,
   MagnifyingGlass,
@@ -220,7 +221,7 @@ const LogsPage: React.FC = () => {
         <div className="divide-y divide-app-border/50 max-h-[600px] overflow-y-auto font-mono text-sm">
           {isLoading ? (
             <div className="p-8 flex justify-center">
-              <div className="animate-spin w-6 h-6 border-2 border-app-green border-t-transparent rounded-full" />
+              <Loader size="md" />
             </div>
           ) : logs.length === 0 ? (
             <div className="p-8 text-center text-app-muted">

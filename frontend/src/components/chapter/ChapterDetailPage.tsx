@@ -163,7 +163,7 @@ const ChapterDetailPage: React.FC = () => {
             </button>
             <div className="flex-1 min-w-0">
               <p className="text-[11px] text-app-muted font-semibold">
-                Chapter {chapter.chapter_number} • {chapter.subject}
+                Chapter {chapter.chapter_number} • {chapter.subject_name || chapter.subject_id}
               </p>
               <h1 className="text-[16px] font-black text-app-text truncate">
                 {chapter.chapter_name}

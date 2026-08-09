@@ -18,9 +18,9 @@ class ChapterService:
     
     @staticmethod
     def list_chapters(
-        board: Optional[str] = None,
-        standard: Optional[str] = None,
-        subject: Optional[str] = None,
+        board_id: Optional[str] = None,
+        standard_id: Optional[str] = None,
+        subject_id: Optional[str] = None,
         is_active: bool = True
     ) -> List[Dict]:
         """
@@ -32,27 +32,31 @@ class ChapterService:
             cur = conn.cursor()
             
             query = """
-                SELECT id, board, standard, subject, chapter_number, chapter_name,
-                       chapter_name_local, description, topics, is_active, created_at
-                FROM chapters
+                SELECT c.id, c.board_id, c.standard_id, c.subject_id, c.chapter_number, c.chapter_name,
+                       c.chapter_name_local, c.description, c.topics, c.is_active, c.created_at,
+                       b.name as board_name, st.name as standard_name, s.name as subject_name
+                FROM chapters c
+                LEFT JOIN boards b ON c.board_id = b.id
+                LEFT JOIN standards st ON c.standard_id = st.id
+                LEFT JOIN subjects s ON c.subject_id = s.id
                 WHERE 1=1
             """
             params = []
             
-            if board:
-                query += " AND board = %s"
-                params.append(board)
-            if standard:
-                query += " AND standard = %s"
-                params.append(standard)
-            if subject:
-                query += " AND subject = %s"
-                params.append(subject)
+            if board_id:
+                query += " AND c.board_id = %s"
+                params.append(board_id)
+            if standard_id:
+                query += " AND c.standard_id = %s"
+                params.append(standard_id)
+            if subject_id:
+                query += " AND c.subject_id = %s"
+                params.append(subject_id)
             if is_active is not None:
-                query += " AND is_active = %s"
+                query += " AND c.is_active = %s"
                 params.append(is_active)
             
-            query += " ORDER BY chapter_number ASC"
+            query += " ORDER BY c.chapter_number ASC"
             
             cur.execute(query, tuple(params))
             rows = cur.fetchall()
@@ -82,9 +86,14 @@ class ChapterService:
         try:
             cur = conn.cursor()
             cur.execute(
-                """SELECT id, board, standard, subject, chapter_number, chapter_name,
-                          chapter_name_local, description, topics, is_active, created_at
-                   FROM chapters WHERE id = %s""",
+                """SELECT c.id, c.board_id, c.standard_id, c.subject_id, c.chapter_number, c.chapter_name,
+                          c.chapter_name_local, c.description, c.topics, c.is_active, c.created_at,
+                          b.name as board_name, st.name as standard_name, s.name as subject_name
+                   FROM chapters c
+                   LEFT JOIN boards b ON c.board_id = b.id
+                   LEFT JOIN standards st ON c.standard_id = st.id
+                   LEFT JOIN subjects s ON c.subject_id = s.id
+                   WHERE c.id = %s""",
                 (chapter_id,)
             )
             row = cur.fetchone()
@@ -112,26 +121,26 @@ class ChapterService:
         try:
             cur = conn.cursor()
             
-            # Check for duplicate (same board+standard+subject+chapter_number)
+            # Check for duplicate (same board_id+standard_id+subject_id+chapter_number)
             cur.execute(
                 """SELECT id FROM chapters
-                   WHERE board = %s AND standard = %s AND subject = %s AND chapter_number = %s""",
-                (data.board, data.standard, data.subject, data.chapter_number)
+                   WHERE board_id = %s AND standard_id = %s AND subject_id = %s AND chapter_number = %s""",
+                (data.board_id, data.standard_id, data.subject_id, data.chapter_number)
             )
             if cur.fetchone():
                 raise HTTPException(
                     status_code=409,
-                    detail=f"Chapter {data.chapter_number} already exists for {data.board}/{data.standard}/{data.subject}"
+                    detail=f"Chapter {data.chapter_number} already exists for {data.board_id}/{data.standard_id}/{data.subject_id}"
                 )
             
             topics_json = json.dumps(data.topics or [])
             
             cur.execute(
-                """INSERT INTO chapters (board, standard, subject, chapter_number, chapter_name,
+                """INSERT INTO chapters (board_id, standard_id, subject_id, chapter_number, chapter_name,
                                          chapter_name_local, description, topics, is_active)
                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                    RETURNING id, created_at""",
-                (data.board, data.standard, data.subject, data.chapter_number, data.chapter_name,
+                (data.board_id, data.standard_id, data.subject_id, data.chapter_number, data.chapter_name,
                  data.chapter_name_local, data.description, topics_json, data.is_active)
             )
             row = cur.fetchone()
@@ -139,9 +148,9 @@ class ChapterService:
             
             return {
                 "id": row["id"],
-                "board": data.board,
-                "standard": data.standard,
-                "subject": data.subject,
+                "board_id": data.board_id,
+                "standard_id": data.standard_id,
+                "subject_id": data.subject_id,
                 "chapter_number": data.chapter_number,
                 "chapter_name": data.chapter_name,
                 "chapter_name_local": data.chapter_name_local,
@@ -228,7 +237,7 @@ class ChapterService:
             conn.close()
     
     @staticmethod
-    def get_subjects_with_chapters(board: str, standard: str) -> List[Dict]:
+    def get_subjects_with_chapters(board_id: str, standard_id: str) -> List[Dict]:
         """
         Get list of subjects with chapter counts for a board+standard.
         Useful for the Learn tab subject browser.
@@ -237,12 +246,13 @@ class ChapterService:
         try:
             cur = conn.cursor()
             cur.execute(
-                """SELECT subject, COUNT(*) as chapter_count
-                   FROM chapters
-                   WHERE board = %s AND standard = %s AND is_active = TRUE
-                   GROUP BY subject
-                   ORDER BY subject""",
-                (board, standard)
+                """SELECT c.subject_id, s.name as subject_name, COUNT(*) as chapter_count
+                   FROM chapters c
+                   LEFT JOIN subjects s ON c.subject_id = s.id
+                   WHERE c.board_id = %s AND c.standard_id = %s AND c.is_active = TRUE
+                   GROUP BY c.subject_id, s.name
+                   ORDER BY s.sort_order, s.name""",
+                (board_id, standard_id)
             )
             return [dict(row) for row in cur.fetchall()]
         finally:
@@ -251,9 +261,9 @@ class ChapterService:
     @staticmethod
     def get_chapters_with_progress(
         user_id: str,
-        board: str,
-        standard: str,
-        subject: str
+        board_id: str,
+        standard_id: str,
+        subject_id: str
     ) -> List[Dict]:
         """
         Get chapters with user's progress data.
@@ -270,7 +280,7 @@ class ChapterService:
             
             # Get base chapters
             chapters = ChapterService.list_chapters(
-                board=board, standard=standard, subject=subject, is_active=True
+                board_id=board_id, standard_id=standard_id, subject_id=subject_id, is_active=True
             )
             
             if not chapters:
@@ -395,18 +405,18 @@ class ChapterService:
                     # Skip if exists
                     cur.execute(
                         """SELECT id FROM chapters
-                           WHERE board = %s AND standard = %s AND subject = %s AND chapter_number = %s""",
-                        (data.board, data.standard, data.subject, data.chapter_number)
+                           WHERE board_id = %s AND standard_id = %s AND subject_id = %s AND chapter_number = %s""",
+                        (data.board_id, data.standard_id, data.subject_id, data.chapter_number)
                     )
                     if cur.fetchone():
                         continue
                     
                     topics_json = json.dumps(data.topics or [])
                     cur.execute(
-                        """INSERT INTO chapters (board, standard, subject, chapter_number, chapter_name,
+                        """INSERT INTO chapters (board_id, standard_id, subject_id, chapter_number, chapter_name,
                                                  chapter_name_local, description, topics, is_active)
                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-                        (data.board, data.standard, data.subject, data.chapter_number, data.chapter_name,
+                        (data.board_id, data.standard_id, data.subject_id, data.chapter_number, data.chapter_name,
                          data.chapter_name_local, data.description, topics_json, data.is_active)
                     )
                     created += 1

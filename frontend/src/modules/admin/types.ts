@@ -81,6 +81,17 @@ export interface Medium {
   is_active: boolean
 }
 
+export interface Subject {
+  id: string
+  name: string
+  board_id: string
+  standard_id: string
+  board_name?: string
+  standard_name?: string
+  sort_order: number
+  is_active: boolean
+}
+
 export interface CurriculumEntry {
   id: number
   board_id: string
@@ -92,16 +103,21 @@ export interface CurriculumEntry {
 
 export interface Chapter {
   id: number
-  board: string
-  standard: string
-  subject: string
+  board_id: string
+  standard_id: string
+  subject_id: string
   chapter_number: number
   chapter_name: string
+  chapter_name_local?: string
   description: string
   topics: string[]
   is_active: boolean
   content_status: 'draft' | 'review' | 'published'
   created_at: string
+  // Joined names from FK tables
+  board_name?: string
+  standard_name?: string
+  subject_name?: string
 }
 
 // ── User Management Types ──
@@ -302,6 +318,150 @@ export interface CommunityStats {
   doubts_this_week: number
 }
 
+// ── Content Studio Types ──
+export type QuestionType = 'mcq' | 'true_false' | 'fill_blank' | 'short_answer' | 'long_answer'
+export type Difficulty = 'easy' | 'medium' | 'hard'
+export type MediaType = 'image' | 'video' | 'audio' | 'document'
+export type AssessmentType = 'quiz' | 'mock_test' | 'practice' | 'assignment'
+export type AssessmentDifficulty = 'easy' | 'medium' | 'hard' | 'mixed'
+export type AssessmentStatus = 'draft' | 'published' | 'archived'
+
+export interface Question {
+  id: string
+  chapter_id: number
+  type: QuestionType
+  difficulty: Difficulty
+  question: string
+  options: string[]
+  correct_answer: string
+  explanation: string
+  tags: string[]
+  times_used: number
+  correct_count: number
+  accuracy_rate: number
+  is_active: boolean
+  created_by: string
+  created_at: string
+  // Joined fields
+  chapter_name?: string
+  subject_name?: string
+}
+
+export interface QuestionCreate {
+  chapter_id: number
+  type: QuestionType
+  difficulty: Difficulty
+  question: string
+  options?: string[]
+  correct_answer: string
+  explanation?: string
+  tags?: string[]
+}
+
+export interface QuestionUpdate {
+  type?: QuestionType
+  difficulty?: Difficulty
+  question?: string
+  options?: string[]
+  correct_answer?: string
+  explanation?: string
+  tags?: string[]
+  is_active?: boolean
+}
+
+export interface MediaFile {
+  id: string
+  name: string
+  type: MediaType
+  url: string
+  thumbnail_url: string
+  size_bytes: number
+  duration_sec?: number
+  dimensions: string
+  subject_id?: string
+  chapter_id?: number
+  usage_count: number
+  uploaded_by: string
+  uploaded_at: string
+  // Joined fields
+  chapter_name?: string
+  subject_name?: string
+}
+
+export interface MediaCreate {
+  name: string
+  type: MediaType
+  url: string
+  thumbnail_url?: string
+  size_bytes?: number
+  duration_sec?: number
+  dimensions?: string
+  subject_id?: string
+  chapter_id?: number
+}
+
+export interface Assessment {
+  id: number
+  title: string
+  description: string
+  board_id: string
+  standard_id: string
+  subject_id: string
+  chapter_id?: number
+  type: AssessmentType
+  difficulty: AssessmentDifficulty
+  question_ids: string[]
+  question_count: number
+  time_limit_min?: number
+  total_marks: number
+  pass_marks: number
+  status: AssessmentStatus
+  created_by: string
+  created_at: string
+  published_at?: string
+  // Joined fields
+  board_name?: string
+  standard_name?: string
+  subject_name?: string
+  chapter_name?: string
+}
+
+export interface AssessmentCreate {
+  title: string
+  description?: string
+  board_id: string
+  standard_id: string
+  subject_id: string
+  chapter_id?: number
+  type: AssessmentType
+  difficulty?: AssessmentDifficulty
+  question_ids?: string[]
+  time_limit_min?: number
+  total_marks?: number
+  pass_marks?: number
+}
+
+export interface AssessmentUpdate {
+  title?: string
+  description?: string
+  chapter_id?: number
+  type?: AssessmentType
+  difficulty?: AssessmentDifficulty
+  question_ids?: string[]
+  time_limit_min?: number
+  total_marks?: number
+  pass_marks?: number
+  status?: AssessmentStatus
+}
+
+// Paginated list response
+export interface PaginatedResponse<T> {
+  data: T[]
+  total: number
+  limit: number
+  offset: number
+}
+
 // ── Admin State ──
 export interface AdminState {
   // Auth
@@ -316,6 +476,7 @@ export interface AdminState {
   boards: Board[]
   standards: Standard[]
   mediums: Medium[]
+  subjects: Subject[]
   curriculum: CurriculumEntry[]
   chapters: Chapter[]
   students: StudentUser[]
@@ -323,6 +484,14 @@ export interface AdminState {
   squads: Squad[]
   doubts: SquadDoubt[]
   communityStats: CommunityStats | null
+  
+  // Content Studio
+  questions: Question[]
+  questionsTotal: number
+  media: MediaFile[]
+  mediaTotal: number
+  assessments: Assessment[]
+  assessmentsTotal: number
   
   // AI Config
   aiProviders: AIProvider[]
@@ -352,6 +521,7 @@ export const DEFAULT_ADMIN_STATE: AdminState = {
   boards: [],
   standards: [],
   mediums: [],
+  subjects: [],
   curriculum: [],
   chapters: [],
   students: [],
@@ -359,6 +529,13 @@ export const DEFAULT_ADMIN_STATE: AdminState = {
   squads: [],
   doubts: [],
   communityStats: null,
+  
+  questions: [],
+  questionsTotal: 0,
+  media: [],
+  mediaTotal: 0,
+  assessments: [],
+  assessmentsTotal: 0,
   
   aiProviders: [],
   aiRouting: [],

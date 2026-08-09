@@ -1,8 +1,13 @@
 // ─── Chapters Management Page ──────────────────────────────────
 // Manage curriculum chapters
 
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import Pagination from '../../../../shared/components/Pagination'
+import Modal from '../../../../shared/components/Modal'
+import Button from '../../../../shared/components/Button'
+import Loader from '../../../../shared/components/Loader'
+import { chaptersApi, adminApi } from '../../api'
+import type { Chapter } from '../../types'
 import {
   Book,
   Plus,
@@ -10,129 +15,136 @@ import {
   Trash,
   MagnifyingGlass,
   Funnel,
-  Eye,
   CheckCircle,
   Clock,
-  FileText,
-  Video,
-  Question,
+  Eye,
+  Archive,
   Warning,
 } from '@phosphor-icons/react'
 
-interface Chapter {
-  id: string
-  title: string
-  board: string
-  standard: string
-  subject: string
-  medium: string
-  order: number
-  status: 'draft' | 'published' | 'archived'
-  content_count: {
-    topics: number
-    videos: number
-    questions: number
-  }
-  created_at: string
-  updated_at: string
+// Default form state
+const defaultFormState = {
+  board_id: '',
+  standard_id: '',
+  subject_id: '',
+  chapter_number: 1,
+  chapter_name: '',
+  chapter_name_local: '',
+  description: '',
+  topics: [] as string[],
+  is_active: true,
+  content_status: 'draft' as 'draft' | 'review' | 'published',
 }
 
 const ChaptersPage: React.FC = () => {
+  // Data state
   const [chapters, setChapters] = useState<Chapter[]>([])
+  const [boards, setBoards] = useState<{ id: string; name: string }[]>([])
+  const [standards, setStandards] = useState<{ id: string; name: string }[]>([])
+  const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([])
+  
+  // UI state
   const [isLoading, setIsLoading] = useState(true)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [boardFilter, setBoardFilter] = useState<string>('all')
+  const [standardFilter, setStandardFilter] = useState<string>('all')
   const [subjectFilter, setSubjectFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
-  const [totalCount, setTotalCount] = useState(0)
+  
+  // Modal state
+  const [showModal, setShowModal] = useState(false)
+  const [editingChapter, setEditingChapter] = useState<Chapter | null>(null)
+  const [formError, setFormError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [topicInput, setTopicInput] = useState('')
+  
+  // Form state
+  const [formData, setFormData] = useState(defaultFormState)
 
+  // Refs to prevent duplicate fetches
+  const curriculumLoadedRef = useRef(false)
+  const lastChapterFilterRef = useRef<string>('')
+
+  // Load curriculum options
+  const loadCurriculumOptions = useCallback(async () => {
+    if (curriculumLoadedRef.current) return
+    curriculumLoadedRef.current = true
+    try {
+      const [boardsData, standardsData, subjectsData] = await Promise.all([
+        adminApi.curriculum.getBoards(),
+        adminApi.curriculum.getStandards(),
+        adminApi.curriculum.getSubjects(),
+      ])
+      setBoards(boardsData)
+      setStandards(standardsData)
+      setSubjects(subjectsData)
+    } catch (error) {
+      console.error('Failed to load curriculum options:', error)
+    }
+  }, [])
+
+  // Load chapters
   const loadChapters = useCallback(async () => {
+    // Dedupe by comparing filter state
+    const filterKey = JSON.stringify({ boardFilter, standardFilter, subjectFilter, statusFilter, searchQuery })
+    if (filterKey === lastChapterFilterRef.current) return
+    lastChapterFilterRef.current = filterKey
+    
     setIsLoading(true)
     try {
-      // TODO: Replace with real API call
-      const mockChapters: Chapter[] = [
-        {
-          id: '1',
-          title: 'Real Numbers',
-          board: 'CBSE',
-          standard: '10th',
-          subject: 'Mathematics',
-          medium: 'English',
-          order: 1,
-          status: 'published',
-          content_count: { topics: 8, videos: 5, questions: 45 },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          title: 'Polynomials',
-          board: 'CBSE',
-          standard: '10th',
-          subject: 'Mathematics',
-          medium: 'English',
-          order: 2,
-          status: 'published',
-          content_count: { topics: 6, videos: 4, questions: 38 },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: '3',
-          title: 'Chemical Reactions and Equations',
-          board: 'CBSE',
-          standard: '10th',
-          subject: 'Science',
-          medium: 'English',
-          order: 1,
-          status: 'published',
-          content_count: { topics: 10, videos: 7, questions: 52 },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: '4',
-          title: 'Light - Reflection and Refraction',
-          board: 'CBSE',
-          standard: '10th',
-          subject: 'Science',
-          medium: 'English',
-          order: 10,
-          status: 'draft',
-          content_count: { topics: 5, videos: 2, questions: 20 },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: '5',
-          title: 'A Letter to God',
-          board: 'CBSE',
-          standard: '10th',
-          subject: 'English',
-          medium: 'English',
-          order: 1,
-          status: 'published',
-          content_count: { topics: 4, videos: 2, questions: 25 },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ]
-
-      setChapters(mockChapters)
-      setTotalCount(mockChapters.length)
+      const filters: { board_id?: string; standard_id?: string; subject_id?: string } = {}
+      if (boardFilter !== 'all') filters.board_id = boardFilter
+      if (standardFilter !== 'all') filters.standard_id = standardFilter
+      if (subjectFilter !== 'all') filters.subject_id = subjectFilter
+      
+      const data = await chaptersApi.getAll(filters)
+      
+      // Apply client-side filters
+      let filtered = data
+      if (statusFilter !== 'all') {
+        filtered = filtered.filter(c => c.content_status === statusFilter)
+      }
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase()
+        filtered = filtered.filter(c => 
+          c.chapter_name.toLowerCase().includes(query) ||
+          c.description?.toLowerCase().includes(query) ||
+          c.topics?.some(t => t.toLowerCase().includes(query))
+        )
+      }
+      
+      setChapters(filtered)
+    } catch (error) {
+      console.error('Failed to load chapters:', error)
+      setChapters([])
     } finally {
       setIsLoading(false)
     }
-  }, [page, pageSize, boardFilter, subjectFilter, statusFilter, searchQuery])
+  }, [boardFilter, standardFilter, subjectFilter, statusFilter, searchQuery])
+
+  // Initial load
+  useEffect(() => {
+    loadCurriculumOptions()
+  }, [loadCurriculumOptions])
 
   useEffect(() => {
     loadChapters()
   }, [loadChapters])
 
-  const toggleSelect = (id: string) => {
+  // Refetch helper - resets the guard to force a fresh fetch
+  const refetchChapters = () => {
+    lastChapterFilterRef.current = ''
+    loadChapters()
+  }
+
+  // Paginated data
+  const paginatedChapters = chapters.slice((page - 1) * pageSize, page * pageSize)
+  const totalCount = chapters.length
+
+  const toggleSelect = (id: number) => {
     setSelectedIds(prev => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
@@ -141,35 +153,159 @@ const ChaptersPage: React.FC = () => {
     })
   }
 
-  const toggleSelectAll = () => {
-    if (selectedIds.size === chapters.length) {
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+    if (!confirm(`Delete ${selectedIds.size} chapters?`)) return
+    
+    try {
+      await chaptersApi.bulkDelete(Array.from(selectedIds))
       setSelectedIds(new Set())
-    } else {
-      setSelectedIds(new Set(chapters.map(c => c.id)))
+      refetchChapters()
+    } catch (error) {
+      console.error('Failed to delete chapters:', error)
+      alert('Failed to delete chapters')
     }
   }
 
-  const getStatusBadge = (status: Chapter['status']) => {
+  const handleDelete = async (id: number) => {
+    if (!confirm('Delete this chapter?')) return
+    try {
+      await chaptersApi.delete(id)
+      refetchChapters()
+    } catch (error) {
+      console.error('Failed to delete chapter:', error)
+      alert('Failed to delete chapter')
+    }
+  }
+
+  // Open create modal
+  const handleCreate = () => {
+    setEditingChapter(null)
+    setFormData({
+      ...defaultFormState,
+      board_id: boards.length > 0 ? boards[0].id : '',
+      standard_id: standards.length > 0 ? standards[0].id : '',
+      subject_id: subjects.length > 0 ? subjects[0].id : '',
+    })
+    setFormError('')
+    setTopicInput('')
+    setShowModal(true)
+  }
+
+  // Open edit modal
+  const handleEdit = (chapter: Chapter) => {
+    setEditingChapter(chapter)
+    setFormData({
+      board_id: chapter.board_id,
+      standard_id: chapter.standard_id,
+      subject_id: chapter.subject_id,
+      chapter_number: chapter.chapter_number,
+      chapter_name: chapter.chapter_name,
+      chapter_name_local: chapter.chapter_name_local || '',
+      description: chapter.description,
+      topics: chapter.topics || [],
+      is_active: chapter.is_active,
+      content_status: chapter.content_status,
+    })
+    setFormError('')
+    setTopicInput('')
+    setShowModal(true)
+  }
+
+  // Submit form
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setFormError('')
+
+    // Validation
+    if (!formData.board_id) {
+      setFormError('Please select a board')
+      return
+    }
+    if (!formData.standard_id) {
+      setFormError('Please select a standard')
+      return
+    }
+    if (!formData.subject_id) {
+      setFormError('Please select a subject')
+      return
+    }
+    if (!formData.chapter_name.trim()) {
+      setFormError('Chapter name is required')
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const chapterData = {
+        board_id: formData.board_id,
+        standard_id: formData.standard_id,
+        subject_id: formData.subject_id,
+        chapter_number: formData.chapter_number,
+        chapter_name: formData.chapter_name,
+        chapter_name_local: formData.chapter_name_local || undefined,
+        description: formData.description,
+        topics: formData.topics,
+        is_active: formData.is_active,
+        content_status: formData.content_status,
+      }
+      
+      if (editingChapter) {
+        await chaptersApi.update(editingChapter.id, chapterData)
+      } else {
+        await chaptersApi.create(chapterData as Omit<Chapter, 'id' | 'created_at'>)
+      }
+      
+      setShowModal(false)
+      refetchChapters()
+    } catch (error: any) {
+      setFormError(error.message || 'Failed to save chapter')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Add topic
+  const addTopic = () => {
+    const topic = topicInput.trim()
+    if (topic && !formData.topics.includes(topic)) {
+      setFormData(prev => ({ ...prev, topics: [...prev.topics, topic] }))
+    }
+    setTopicInput('')
+  }
+
+  // Remove topic
+  const removeTopic = (topic: string) => {
+    setFormData(prev => ({ ...prev, topics: prev.topics.filter(t => t !== topic) }))
+  }
+
+  const getStatusBadge = (status: 'draft' | 'review' | 'published') => {
     const styles = {
-      draft: 'bg-app-muted/10 text-app-muted border-app-muted/25',
-      published: 'bg-app-green/10 text-app-green border-app-green/25',
-      archived: 'bg-app-yellow/10 text-app-yellow border-app-yellow/25',
+      draft: 'bg-app-yellow/10 text-app-yellow',
+      review: 'bg-app-blue/10 text-app-blue',
+      published: 'bg-app-green/10 text-app-green',
     }
     const icons = {
-      draft: <Clock size={12} />,
-      published: <CheckCircle size={12} />,
-      archived: <Clock size={12} />,
+      draft: <Clock size={12} className="mr-1" />,
+      review: <Eye size={12} className="mr-1" />,
+      published: <CheckCircle size={12} className="mr-1" />,
     }
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border ${styles[status]}`}>
-        {icons[status]}
-        {status}
+      <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded capitalize ${styles[status]}`}>
+        {icons[status]} {status}
       </span>
     )
   }
 
-  const boards = [...new Set(chapters.map(c => c.board))]
-  const subjects = [...new Set(chapters.map(c => c.subject))]
+  // Stats
+  const stats = {
+    total: chapters.length,
+    published: chapters.filter(c => c.content_status === 'published').length,
+    draft: chapters.filter(c => c.content_status === 'draft').length,
+    review: chapters.filter(c => c.content_status === 'review').length,
+    inactive: chapters.filter(c => !c.is_active).length,
+  }
 
   return (
     <div className="space-y-6">
@@ -181,11 +317,11 @@ const ChaptersPage: React.FC = () => {
             Chapters
           </h1>
           <p className="text-sm text-app-muted mt-1">
-            Manage curriculum chapters and content
+            Manage curriculum chapters for all boards and subjects
           </p>
         </div>
         <button
-          onClick={() => alert('Create chapter')}
+          onClick={handleCreate}
           className="px-4 py-2 text-sm text-white bg-app-green rounded-lg hover:bg-app-green/80 transition-colors flex items-center gap-2"
         >
           <Plus size={16} />
@@ -194,29 +330,27 @@ const ChaptersPage: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-app-card rounded-xl border border-app-border p-4">
-          <p className="text-2xl font-bold text-app-text">{chapters.length}</p>
+          <p className="text-2xl font-bold text-app-text">{stats.total}</p>
           <p className="text-xs text-app-muted">Total Chapters</p>
         </div>
         <div className="bg-app-card rounded-xl border border-app-border p-4">
-          <p className="text-2xl font-bold text-app-green">{chapters.filter(c => c.status === 'published').length}</p>
+          <p className="text-2xl font-bold text-app-green">{stats.published}</p>
           <p className="text-xs text-app-muted">Published</p>
         </div>
         <div className="bg-app-card rounded-xl border border-app-border p-4">
-          <p className="text-2xl font-bold text-app-muted">{chapters.filter(c => c.status === 'draft').length}</p>
-          <p className="text-xs text-app-muted">Drafts</p>
+          <p className="text-2xl font-bold text-app-yellow">{stats.draft}</p>
+          <p className="text-xs text-app-muted">Draft</p>
         </div>
         <div className="bg-app-card rounded-xl border border-app-border p-4">
-          <p className="text-2xl font-bold text-app-purple">{subjects.length}</p>
-          <p className="text-xs text-app-muted">Subjects</p>
+          <p className="text-2xl font-bold text-app-blue">{stats.review}</p>
+          <p className="text-xs text-app-muted">In Review</p>
         </div>
-      </div>
-
-      {/* Sample Data Notice */}
-      <div className="p-3 bg-app-yellow/10 border border-app-yellow/25 rounded-lg text-sm text-app-yellow flex items-center gap-2">
-        <Warning size={16} />
-        Showing sample data. Content chapters API is separate from admin module.
+        <div className="bg-app-card rounded-xl border border-app-border p-4">
+          <p className="text-2xl font-bold text-app-red">{stats.inactive}</p>
+          <p className="text-xs text-app-muted">Inactive</p>
+        </div>
       </div>
 
       {/* Filters */}
@@ -235,38 +369,48 @@ const ChaptersPage: React.FC = () => {
           <Funnel size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-app-muted" />
           <select
             value={boardFilter}
-            onChange={e => setBoardFilter(e.target.value)}
+            onChange={e => { setBoardFilter(e.target.value); setPage(1) }}
             className="pl-9 pr-8 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text appearance-none cursor-pointer focus:outline-none focus:border-app-green"
           >
             <option value="all">All Boards</option>
             {boards.map(b => (
-              <option key={b} value={b}>{b}</option>
+              <option key={b.id} value={b.id}>{b.name}</option>
             ))}
           </select>
         </div>
         <select
+          value={standardFilter}
+          onChange={e => { setStandardFilter(e.target.value); setPage(1) }}
+          className="px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text appearance-none cursor-pointer focus:outline-none focus:border-app-green"
+        >
+          <option value="all">All Standards</option>
+          {standards.map(s => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
+        <select
           value={subjectFilter}
-          onChange={e => setSubjectFilter(e.target.value)}
+          onChange={e => { setSubjectFilter(e.target.value); setPage(1) }}
           className="px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text appearance-none cursor-pointer focus:outline-none focus:border-app-green"
         >
           <option value="all">All Subjects</option>
           {subjects.map(s => (
-            <option key={s} value={s}>{s}</option>
+            <option key={s.id} value={s.id}>{s.name}</option>
           ))}
         </select>
         <select
           value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
+          onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
           className="px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text appearance-none cursor-pointer focus:outline-none focus:border-app-green"
         >
           <option value="all">All Status</option>
-          <option value="published">Published</option>
           <option value="draft">Draft</option>
-          <option value="archived">Archived</option>
+          <option value="review">Review</option>
+          <option value="published">Published</option>
         </select>
         {selectedIds.size > 0 && (
           <button
-            onClick={() => alert('Delete selected')}
+            onClick={handleBulkDelete}
             className="px-3 py-2 text-sm text-app-red bg-app-red/10 border border-app-red/25 rounded-lg hover:bg-app-red/20 transition-colors flex items-center gap-1"
           >
             <Trash size={14} />
@@ -275,116 +419,94 @@ const ChaptersPage: React.FC = () => {
         )}
       </div>
 
-      {/* Table */}
-      <div className="bg-app-card rounded-xl border border-app-border overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-app-border text-left">
-              <th className="p-3 w-10">
+      {/* Chapters List */}
+      <div className="space-y-3">
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader size="lg" />
+          </div>
+        ) : paginatedChapters.length === 0 ? (
+          <div className="text-center py-12 text-app-muted">
+            No chapters found. {totalCount === 0 && 'Add your first chapter to get started.'}
+          </div>
+        ) : (
+          paginatedChapters.map(chapter => (
+            <div
+              key={chapter.id}
+              className="bg-app-card rounded-xl border border-app-border p-4 hover:border-app-border/80 transition-colors"
+            >
+              <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
-                  checked={chapters.length > 0 && selectedIds.size === chapters.length}
-                  onChange={toggleSelectAll}
-                  className="rounded border-app-border"
+                  checked={selectedIds.has(chapter.id)}
+                  onChange={() => toggleSelect(chapter.id)}
+                  className="rounded border-app-border mt-1"
                 />
-              </th>
-              <th className="p-3 text-xs font-semibold text-app-muted uppercase">Chapter</th>
-              <th className="p-3 text-xs font-semibold text-app-muted uppercase">Board</th>
-              <th className="p-3 text-xs font-semibold text-app-muted uppercase">Standard</th>
-              <th className="p-3 text-xs font-semibold text-app-muted uppercase">Subject</th>
-              <th className="p-3 text-xs font-semibold text-app-muted uppercase">Content</th>
-              <th className="p-3 text-xs font-semibold text-app-muted uppercase">Status</th>
-              <th className="p-3 text-xs font-semibold text-app-muted uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={8} className="p-8 text-center">
-                  <div className="flex justify-center">
-                    <div className="animate-spin w-6 h-6 border-2 border-app-green border-t-transparent rounded-full" />
-                  </div>
-                </td>
-              </tr>
-            ) : chapters.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="p-8 text-center text-app-muted">
-                  No chapters found
-                </td>
-              </tr>
-            ) : (
-              chapters.map(chapter => (
-                <tr key={chapter.id} className="border-b border-app-border/50 hover:bg-app-card2 transition-colors">
-                  <td className="p-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.has(chapter.id)}
-                      onChange={() => toggleSelect(chapter.id)}
-                      className="rounded border-app-border"
-                    />
-                  </td>
-                  <td className="p-3">
-                    <div>
-                      <p className="font-medium text-app-text">{chapter.title}</p>
-                      <p className="text-xs text-app-muted">Chapter {chapter.order}</p>
+                <div className="flex-1">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-medium text-app-muted bg-app-card2 px-2 py-0.5 rounded">
+                          Ch. {chapter.chapter_number}
+                        </span>
+                        {getStatusBadge(chapter.content_status)}
+                        {!chapter.is_active && (
+                          <span className="inline-flex items-center px-2 py-0.5 text-xs text-app-red bg-app-red/10 rounded">
+                            <Archive size={12} className="mr-1" /> Inactive
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-app-text font-medium">{chapter.chapter_name}</p>
+                      {chapter.chapter_name_local && (
+                        <p className="text-sm text-app-muted">{chapter.chapter_name_local}</p>
+                      )}
+                      
+                      <div className="flex items-center gap-4 mt-2 text-xs text-app-muted">
+                        <span>{chapter.board_name || chapter.board_id}</span>
+                        <span>•</span>
+                        <span>{chapter.standard_name || chapter.standard_id}</span>
+                        <span>•</span>
+                        <span>{chapter.subject_name || chapter.subject_id}</span>
+                      </div>
+                      
+                      {chapter.topics && chapter.topics.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-3">
+                          {chapter.topics.slice(0, 5).map(topic => (
+                            <span key={topic} className="px-2 py-0.5 text-xs bg-app-purple/10 text-app-purple rounded">
+                              {topic}
+                            </span>
+                          ))}
+                          {chapter.topics.length > 5 && (
+                            <span className="px-2 py-0.5 text-xs text-app-muted">
+                              +{chapter.topics.length - 5} more
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </td>
-                  <td className="p-3">
-                    <span className="text-sm text-app-text">{chapter.board}</span>
-                  </td>
-                  <td className="p-3">
-                    <span className="text-sm text-app-muted">{chapter.standard}</span>
-                  </td>
-                  <td className="p-3">
-                    <span className="text-sm text-app-purple">{chapter.subject}</span>
-                  </td>
-                  <td className="p-3">
-                    <div className="flex items-center gap-3 text-xs text-app-muted">
-                      <span className="flex items-center gap-1">
-                        <FileText size={12} />
-                        {chapter.content_count.topics}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Video size={12} />
-                        {chapter.content_count.videos}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Question size={12} />
-                        {chapter.content_count.questions}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="p-3">{getStatusBadge(chapter.status)}</td>
-                  <td className="p-3">
+                    
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => alert('Preview chapter')}
-                        className="p-1.5 text-app-blue hover:bg-app-blue/10 rounded-lg transition-colors"
-                        title="Preview"
-                      >
-                        <Eye size={14} />
-                      </button>
-                      <button
-                        onClick={() => alert('Edit chapter')}
+                        onClick={() => handleEdit(chapter)}
                         className="p-1.5 text-app-green hover:bg-app-green/10 rounded-lg transition-colors"
                         title="Edit"
                       >
                         <Pencil size={14} />
                       </button>
                       <button
-                        onClick={() => alert('Delete chapter')}
+                        onClick={() => handleDelete(chapter.id)}
                         className="p-1.5 text-app-red hover:bg-app-red/10 rounded-lg transition-colors"
                         title="Delete"
                       >
                         <Trash size={14} />
                       </button>
                     </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Pagination */}
@@ -394,14 +516,192 @@ const ChaptersPage: React.FC = () => {
         totalItems={totalCount}
         pageSize={pageSize}
         onPageChange={setPage}
-        onPageSizeChange={setPageSize}
+        onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
       />
 
-      {/* Info Note */}
-      <div className="p-4 bg-app-blue/10 border border-app-blue/25 rounded-xl text-sm text-app-muted">
-        <p className="font-medium text-app-blue mb-1">Note</p>
-        <p>Chapters management endpoint not yet implemented. Showing mock data for UI preview.</p>
-      </div>
+      {/* Create/Edit Modal */}
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingChapter ? 'Edit Chapter' : 'Add Chapter'}
+        size="lg"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {formError && (
+            <div className="p-3 bg-app-red/10 border border-app-red/25 rounded-lg text-sm text-app-red flex items-center gap-2">
+              <Warning size={16} /> {formError}
+            </div>
+          )}
+
+          {/* Curriculum Selection */}
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-app-text mb-1">Board *</label>
+              <select
+                value={formData.board_id}
+                onChange={e => setFormData(prev => ({ ...prev, board_id: e.target.value }))}
+                className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text focus:outline-none focus:border-app-green"
+                disabled={!!editingChapter}
+              >
+                <option value="">Select Board...</option>
+                {boards.map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-app-text mb-1">Standard *</label>
+              <select
+                value={formData.standard_id}
+                onChange={e => setFormData(prev => ({ ...prev, standard_id: e.target.value }))}
+                className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text focus:outline-none focus:border-app-green"
+                disabled={!!editingChapter}
+              >
+                <option value="">Select Standard...</option>
+                {standards.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-app-text mb-1">Subject *</label>
+              <select
+                value={formData.subject_id}
+                onChange={e => setFormData(prev => ({ ...prev, subject_id: e.target.value }))}
+                className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text focus:outline-none focus:border-app-green"
+                disabled={!!editingChapter}
+              >
+                <option value="">Select Subject...</option>
+                {subjects.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Chapter Number & Status */}
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-app-text mb-1">Chapter Number *</label>
+              <input
+                type="number"
+                value={formData.chapter_number}
+                onChange={e => setFormData(prev => ({ ...prev, chapter_number: parseInt(e.target.value) || 1 }))}
+                min={1}
+                className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text focus:outline-none focus:border-app-green"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-app-text mb-1">Status</label>
+              <select
+                value={formData.content_status}
+                onChange={e => setFormData(prev => ({ ...prev, content_status: e.target.value as 'draft' | 'review' | 'published' }))}
+                className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text focus:outline-none focus:border-app-green"
+              >
+                <option value="draft">Draft</option>
+                <option value="review">Review</option>
+                <option value="published">Published</option>
+              </select>
+            </div>
+            <div className="flex items-end">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.is_active}
+                  onChange={e => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                  className="rounded border-app-border accent-app-green"
+                />
+                <span className="text-sm text-app-text">Active</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Chapter Name */}
+          <div>
+            <label className="block text-sm font-medium text-app-text mb-1">Chapter Name *</label>
+            <input
+              type="text"
+              value={formData.chapter_name}
+              onChange={e => setFormData(prev => ({ ...prev, chapter_name: e.target.value }))}
+              placeholder="Enter chapter name..."
+              className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-green"
+            />
+          </div>
+
+          {/* Chapter Name Local */}
+          <div>
+            <label className="block text-sm font-medium text-app-text mb-1">Chapter Name (Local Language)</label>
+            <input
+              type="text"
+              value={formData.chapter_name_local}
+              onChange={e => setFormData(prev => ({ ...prev, chapter_name_local: e.target.value }))}
+              placeholder="अध्याय का नाम..."
+              className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-green"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-app-text mb-1">Description</label>
+            <textarea
+              value={formData.description}
+              onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Brief description of the chapter..."
+              rows={3}
+              className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-green resize-none"
+            />
+          </div>
+
+          {/* Topics */}
+          <div>
+            <label className="block text-sm font-medium text-app-text mb-1">Topics</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={topicInput}
+                onChange={e => setTopicInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addTopic()
+                  }
+                }}
+                placeholder="Add topic..."
+                className="flex-1 px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-green"
+              />
+              <button
+                type="button"
+                onClick={addTopic}
+                className="px-3 py-2 bg-app-purple/10 text-app-purple rounded-lg text-sm hover:bg-app-purple/20 transition-colors"
+              >
+                Add
+              </button>
+            </div>
+            {formData.topics.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {formData.topics.map(topic => (
+                  <span key={topic} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-app-purple/10 text-app-purple rounded">
+                    {topic}
+                    <button type="button" onClick={() => removeTopic(topic)} className="hover:text-app-red">
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-4 border-t border-app-border">
+            <Button type="button" variant="ghost" onClick={() => setShowModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" isLoading={isSubmitting}>
+              {editingChapter ? 'Update Chapter' : 'Create Chapter'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

@@ -1,7 +1,8 @@
 // ─── AI Prompts Management Page ──────────────────────────────────
 // Manage AI system prompts and templates
 
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
+import Loader from '../../../../shared/components/Loader'
 import {
   ChatTeardrop,
   Plus,
@@ -42,11 +43,16 @@ const PromptsPage: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [showPreview, setShowPreview] = useState(false)
   const [previewPrompt, setPreviewPrompt] = useState<AIPrompt | null>(null)
+  
+  // Ref to prevent duplicate loads
+  const loadedRef = useRef(false)
 
   const loadPrompts = useCallback(async () => {
+    if (loadedRef.current) return
+    loadedRef.current = true
     setIsLoading(true)
     try {
-      // TODO: Replace with real API call
+      // TODO: Replace with real API call when prompts API is implemented
       const mockPrompts: AIPrompt[] = [
         {
           id: '1',
@@ -168,7 +174,7 @@ Provide a clear, step-by-step explanation...`,
     } finally {
       setIsLoading(false)
     }
-  }, [searchQuery, categoryFilter])
+  }, [])
 
   useEffect(() => {
     loadPrompts()
@@ -279,7 +285,7 @@ Provide a clear, step-by-step explanation...`,
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {isLoading ? (
           <div className="col-span-2 flex justify-center py-12">
-            <div className="animate-spin w-8 h-8 border-2 border-app-green border-t-transparent rounded-full" />
+            <Loader size="lg" />
           </div>
         ) : filteredPrompts.length === 0 ? (
           <div className="col-span-2 text-center py-12 text-app-muted">

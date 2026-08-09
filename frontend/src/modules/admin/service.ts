@@ -276,9 +276,9 @@ export const adminService = {
    * Validate chapter data
    */
   validateChapter: (data: Partial<Chapter>): string | null => {
-    if (!data.board?.trim()) return 'Board is required'
-    if (!data.standard?.trim()) return 'Standard is required'
-    if (!data.subject?.trim()) return 'Subject is required'
+    if (!data.board_id?.trim()) return 'Board is required'
+    if (!data.standard_id?.trim()) return 'Standard is required'
+    if (!data.subject_id?.trim()) return 'Subject is required'
     if (!data.chapter_name?.trim()) return 'Chapter name is required'
     if (typeof data.chapter_number !== 'number' || data.chapter_number < 1) return 'Chapter number must be positive'
     return null

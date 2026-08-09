@@ -3,7 +3,7 @@
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import adminService, { getAdminToken } from './service'
-import adminApi from './api'
+import adminApi, { QuestionListParams, MediaListParams, AssessmentListParams } from './api'
 import { DEFAULT_ADMIN_STATE } from './types'
 import type {
   AdminState,
@@ -115,6 +115,19 @@ export const fetchMediums = createAsyncThunk(
   }
 )
 
+export const fetchSubjects = createAsyncThunk(
+  'admin/fetchSubjects',
+  async (filters: { board_id?: string; standard_id?: string } | undefined, { rejectWithValue }) => {
+    try {
+      const subjects = await adminApi.subjects.getAll(filters)
+      return subjects
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch subjects'
+      return rejectWithValue(message)
+    }
+  }
+)
+
 export const fetchCurriculum = createAsyncThunk(
   'admin/fetchCurriculum',
   async (filters: { board_id?: string; standard_id?: string; medium_id?: string } | undefined, { rejectWithValue }) => {
@@ -130,7 +143,7 @@ export const fetchCurriculum = createAsyncThunk(
 
 export const fetchChapters = createAsyncThunk(
   'admin/fetchChapters',
-  async (filters: { board?: string; standard?: string; subject?: string } | undefined, { rejectWithValue }) => {
+  async (filters: { board_id?: string; standard_id?: string; subject_id?: string } | undefined, { rejectWithValue }) => {
     try {
       const chapters = await adminApi.chapters.getAll(filters)
       return adminService.sortChapters(chapters)
@@ -192,6 +205,47 @@ export const fetchAIUsage = createAsyncThunk(
       return usage
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to fetch AI usage'
+      return rejectWithValue(message)
+    }
+  }
+)
+
+// ── Content Studio Thunks ──
+
+export const fetchQuestions = createAsyncThunk(
+  'admin/fetchQuestions',
+  async (params: QuestionListParams = {}, { rejectWithValue }) => {
+    try {
+      const response = await adminApi.questions.getAll(params)
+      return response
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch questions'
+      return rejectWithValue(message)
+    }
+  }
+)
+
+export const fetchMedia = createAsyncThunk(
+  'admin/fetchMedia',
+  async (params: MediaListParams = {}, { rejectWithValue }) => {
+    try {
+      const response = await adminApi.media.getAll(params)
+      return response
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch media'
+      return rejectWithValue(message)
+    }
+  }
+)
+
+export const fetchAssessments = createAsyncThunk(
+  'admin/fetchAssessments',
+  async (params: AssessmentListParams = {}, { rejectWithValue }) => {
+    try {
+      const response = await adminApi.assessments.getAll(params)
+      return response
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch assessments'
       return rejectWithValue(message)
     }
   }
@@ -406,6 +460,9 @@ const adminSlice = createSlice({
       .addCase(fetchMediums.fulfilled, (state, action) => {
         state.mediums = action.payload
       })
+      .addCase(fetchSubjects.fulfilled, (state, action) => {
+        state.subjects = action.payload
+      })
       .addCase(fetchCurriculum.fulfilled, (state, action) => {
         state.curriculum = action.payload
       })
@@ -430,6 +487,45 @@ const adminSlice = createSlice({
       })
       .addCase(fetchAIUsage.fulfilled, (state, action) => {
         state.aiUsage = action.payload
+      })
+    
+    // ── Content Studio ──
+    builder
+      .addCase(fetchQuestions.pending, (state) => {
+        state.isLoading = true
+      })
+      .addCase(fetchQuestions.fulfilled, (state, action) => {
+        state.isLoading = false
+        state.questions = action.payload.data
+        state.questionsTotal = action.payload.total
+      })
+      .addCase(fetchQuestions.rejected, (state, action) => {
+        state.isLoading = false
+        state.error = action.payload as string
+      })
+      .addCase(fetchMedia.pending, (state) => {
+        state.isLoading = true
+      })
+      .addCase(fetchMedia.fulfilled, (state, action) => {
+        state.isLoading = false
+        state.media = action.payload.data
+        state.mediaTotal = action.payload.total
+      })
+      .addCase(fetchMedia.rejected, (state, action) => {
+        state.isLoading = false
+        state.error = action.payload as string
+      })
+      .addCase(fetchAssessments.pending, (state) => {
+        state.isLoading = true
+      })
+      .addCase(fetchAssessments.fulfilled, (state, action) => {
+        state.isLoading = false
+        state.assessments = action.payload.data
+        state.assessmentsTotal = action.payload.total
+      })
+      .addCase(fetchAssessments.rejected, (state, action) => {
+        state.isLoading = false
+        state.error = action.payload as string
       })
   },
 })

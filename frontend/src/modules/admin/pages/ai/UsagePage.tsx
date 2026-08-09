@@ -1,13 +1,14 @@
 // ─── AI Usage Page ─────────────────────────────────────────────
 // Monitor AI usage, costs, and per-user consumption
 
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useRef } from 'react'
 import { adminApi } from '../../api'
 import type { AIUsageSummary, AIUserUsage } from '../../types'
 import { PLAN_LABELS } from '../../constants'
 import { adminService } from '../../service'
 import Table, { type TableColumn } from '../../../../shared/components/Table'
 import Pagination from '../../../../shared/components/Pagination'
+import Loader from '../../../../shared/components/Loader'
 import {
   Lightning,
   Coins,
@@ -32,17 +33,25 @@ const UsagePage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
 
+  // Ref to track last loaded dateRange
+  const lastDateRangeRef = useRef<number | null>(null)
+
   // Load data
   useEffect(() => {
+    if (lastDateRangeRef.current === dateRange) return
+    lastDateRangeRef.current = dateRange
     const load = async () => {
       setIsLoading(true)
       try {
         const [summaryData, userData] = await Promise.all([
           adminApi.aiUsage.getSummary(dateRange),
-          adminApi.aiUsage.getUserUsage(),
+          adminApi.aiUsage.getUserUsage(dateRange),
         ])
+        console.log('UsagePage loaded data:', { summaryData, userData })
         setSummary(summaryData)
         setUserUsage(userData)
+      } catch (err) {
+        console.error('UsagePage load error:', err)
       } finally {
         setIsLoading(false)
       }
@@ -171,7 +180,7 @@ const UsagePage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <span className="animate-spin text-2xl">⏳</span>
+        <Loader size="lg" />
       </div>
     )
   }
@@ -264,9 +273,9 @@ const UsagePage: React.FC = () => {
       </div>
 
       {/* Usage by Plan */}
-      {summary?.by_plan && Object.keys(summary.by_plan).length > 0 && (
-        <div className="bg-app-card rounded-xl border border-app-border p-4">
-          <h3 className="font-bold text-app-text mb-4">Usage by Plan</h3>
+      <div className="bg-app-card rounded-xl border border-app-border p-4">
+        <h3 className="font-bold text-app-text mb-4">Usage by Plan</h3>
+        {summary?.by_plan && Object.keys(summary.by_plan).length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {Object.entries(summary.by_plan).map(([plan, data]) => (
               <div key={plan} className="p-3 bg-app-card2 rounded-xl">
@@ -278,36 +287,64 @@ const UsagePage: React.FC = () => {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="py-8 flex items-center justify-center text-app-muted text-sm">
+            <div className="text-center">
+              <Users size={32} className="mx-auto mb-2 opacity-50" />
+              <p>No plan usage data yet</p>
+              <p className="text-xs opacity-70">Usage breakdown by plan will appear here</p>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Daily Breakdown Chart */}
-      {summary?.daily_breakdown && summary.daily_breakdown.length > 0 && (
-        <div className="bg-app-card rounded-xl border border-app-border p-4">
-          <h3 className="font-bold text-app-text mb-4">Daily Breakdown</h3>
-          <div className="h-32 flex items-end gap-1">
-            {summary.daily_breakdown.map((day, i) => {
-              const maxCalls = Math.max(...summary.daily_breakdown.map(d => d.calls))
-              const height = maxCalls > 0 ? (day.calls / maxCalls) * 100 : 0
-              
-              return (
-                <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
+      <div className="bg-app-card rounded-xl border border-app-border p-4">
+        <h3 className="font-bold text-app-text mb-4">Daily Breakdown</h3>
+        {summary?.daily_breakdown && summary.daily_breakdown.length > 0 ? (
+          <div className="space-y-2">
+            {/* Chart bars */}
+            <div className="h-32 flex items-end gap-[2px]">
+              {summary.daily_breakdown.map((day) => {
+                const maxCalls = Math.max(...summary.daily_breakdown.map(d => d.calls))
+                const height = maxCalls > 0 ? (day.calls / maxCalls) * 100 : 0
+                
+                return (
                   <div
-                    className="w-full bg-app-green/60 rounded-t hover:bg-app-green transition-colors cursor-pointer"
+                    key={day.date}
+                    className={`flex-1 rounded-t transition-colors cursor-pointer ${
+                      day.calls > 0 ? 'bg-app-green/60 hover:bg-app-green' : 'bg-app-card2 hover:bg-app-border'
+                    }`}
                     style={{ height: `${Math.max(height, 4)}%` }}
-                    title={`${day.date}: ${adminService.formatNumber(day.calls)} calls`}
+                    title={`${new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}: ${adminService.formatNumber(day.calls)} calls`}
                   />
-                  {i % Math.ceil(summary.daily_breakdown.length / 7) === 0 && (
-                    <span className="text-[10px] text-app-muted">
-                      {new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </span>
-                  )}
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
+            {/* Date labels */}
+            <div className="flex justify-between text-[10px] text-app-muted">
+              <span>{new Date(summary.daily_breakdown[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+              {summary.daily_breakdown.length > 2 && (
+                <span>{new Date(summary.daily_breakdown[Math.floor(summary.daily_breakdown.length / 2)].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+              )}
+              <span>{new Date(summary.daily_breakdown[summary.daily_breakdown.length - 1].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+            </div>
+            {/* Summary stats */}
+            <div className="flex items-center justify-between text-xs text-app-muted pt-2 border-t border-app-border/50">
+              <span>{summary.daily_breakdown.length} days shown</span>
+              <span>Days with activity: {summary.daily_breakdown.filter(d => d.calls > 0).length}</span>
+            </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="h-32 flex items-center justify-center text-app-muted text-sm">
+            <div className="text-center">
+              <ChartLine size={32} className="mx-auto mb-2 opacity-50" />
+              <p>No usage data yet</p>
+              <p className="text-xs opacity-70">AI calls will appear here when users start using the service</p>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* User Usage Table */}
       <div className="space-y-4">

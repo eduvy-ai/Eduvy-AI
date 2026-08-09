@@ -38,6 +38,15 @@ class MediumUpsert(BaseModel):
     is_active: bool = True
 
 
+class SubjectUpsert(BaseModel):
+    id: str
+    name: str
+    board_id: str
+    standard_id: str
+    sort_order: int = 0
+    is_active: bool = True
+
+
 class CurriculumRow(BaseModel):
     board_id: str
     standard_id: str

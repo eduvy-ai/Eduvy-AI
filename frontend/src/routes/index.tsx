@@ -29,13 +29,18 @@ const AdminDashboard = lazy(() => import('../modules/admin/pages/Dashboard'))
 const AdminBoardsPage = lazy(() => import('../modules/admin/pages/academics/BoardsPage'))
 const AdminStandardsPage = lazy(() => import('../modules/admin/pages/academics/StandardsPage'))
 const AdminMediumsPage = lazy(() => import('../modules/admin/pages/academics/MediumsPage'))
+const AdminSubjectsPage = lazy(() => import('../modules/admin/pages/academics/SubjectsPage'))
 const AdminChaptersPage = lazy(() => import('../modules/admin/pages/academics/ChaptersPage'))
-const AdminCurriculumPage = lazy(() => import('../modules/admin/pages/academics/CurriculumPage'))
 
 // Admin users pages
 const AdminStudentsPage = lazy(() => import('../modules/admin/pages/users/StudentsPage'))
 const AdminTeachersPage = lazy(() => import('../modules/admin/pages/users/TeachersPage'))
 const AdminParentsPage = lazy(() => import('../modules/admin/pages/users/ParentsPage'))
+
+// Admin teachers pages (new sub-pages)
+const AdminTeachersListPage = lazy(() => import('../modules/admin/pages/teachers/TeachersListPage'))
+const AdminTeacherAssignmentsPage = lazy(() => import('../modules/admin/pages/teachers/AssignmentsPage'))
+const AdminTeacherPerformancePage = lazy(() => import('../modules/admin/pages/teachers/PerformancePage'))
 
 // Admin community pages
 const AdminSquadsPage = lazy(() => import('../modules/admin/pages/community/SquadsPage'))
@@ -60,6 +65,7 @@ const AdminFeaturesPage = lazy(() => import('../modules/admin/pages/settings/Fea
 const AdminProvidersPage = lazy(() => import('../modules/admin/pages/ai/ProvidersPage'))
 const AdminUsagePage = lazy(() => import('../modules/admin/pages/ai/UsagePage'))
 const AdminPromptsPage = lazy(() => import('../modules/admin/pages/ai/PromptsPage'))
+const AdminCostsPage = lazy(() => import('../modules/admin/pages/ai/CostsPage'))
 
 // Admin content pages
 const AdminContentChaptersPage = lazy(() => import('../modules/admin/pages/content/ChaptersPage'))
@@ -143,8 +149,8 @@ const AppRoutes: React.FC = () => {
           <Route path="academics/boards" element={<AdminBoardsPage />} />
           <Route path="academics/standards" element={<AdminStandardsPage />} />
           <Route path="academics/mediums" element={<AdminMediumsPage />} />
+          <Route path="academics/subjects" element={<AdminSubjectsPage />} />
           <Route path="academics/chapters" element={<AdminChaptersPage />} />
-          <Route path="academics/curriculum" element={<AdminCurriculumPage />} />
           
           {/* Content Studio */}
           <Route path="content" element={<Navigate to="/admin/content/chapters" replace />} />
@@ -154,8 +160,13 @@ const AppRoutes: React.FC = () => {
           
           {/* Users */}
           <Route path="students" element={<AdminStudentsPage />} />
-          <Route path="teachers" element={<AdminTeachersPage />} />
           <Route path="parents" element={<AdminParentsPage />} />
+          
+          {/* Teachers */}
+          <Route path="teachers" element={<Navigate to="/admin/teachers/list" replace />} />
+          <Route path="teachers/list" element={<AdminTeachersListPage />} />
+          <Route path="teachers/assignments" element={<AdminTeacherAssignmentsPage />} />
+          <Route path="teachers/performance" element={<AdminTeacherPerformancePage />} />
           
           {/* Community */}
           <Route path="community" element={<Navigate to="/admin/community/squads" replace />} />
@@ -171,7 +182,7 @@ const AppRoutes: React.FC = () => {
           <Route path="ai/providers" element={<AdminProvidersPage />} />
           <Route path="ai/prompts" element={<AdminPromptsPage />} />
           <Route path="ai/usage" element={<AdminUsagePage />} />
-          <Route path="ai/costs" element={<AdminUsagePage />} />
+          <Route path="ai/costs" element={<AdminCostsPage />} />
           
           {/* Analytics */}
           <Route path="analytics" element={<Navigate to="/admin/analytics/overview" replace />} />

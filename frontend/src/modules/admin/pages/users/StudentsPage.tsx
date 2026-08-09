@@ -1,7 +1,7 @@
 // ─── Students Management Page ──────────────────────────────────
 // View and manage student users
 
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useRef } from 'react'
 import { useStudents, useCanEdit } from '../../hooks'
 import { adminApi } from '../../api'
 import { adminService } from '../../service'
@@ -51,6 +51,10 @@ const StudentsPage: React.FC = () => {
     plan_expires_at: '',
     is_drishti: false,
   })
+  
+  // Ref to keep fetch function stable
+  const fetchStudentsRef = useRef(fetchStudents)
+  fetchStudentsRef.current = fetchStudents
 
   // Load students
   useEffect(() => {
@@ -61,7 +65,7 @@ const StudentsPage: React.FC = () => {
         if (searchQuery) filters.search = searchQuery
         if (filterPlan) filters.plan = filterPlan
         if (filterDrishti !== 'all') filters.drishti = filterDrishti === 'yes'
-        await fetchStudents(filters)
+        await fetchStudentsRef.current(filters)
       } finally {
         setIsLoading(false)
       }
@@ -70,7 +74,7 @@ const StudentsPage: React.FC = () => {
     // Debounce search
     const timeout = setTimeout(load, 300)
     return () => clearTimeout(timeout)
-  }, [searchQuery, filterPlan, filterDrishti, fetchStudents])
+  }, [searchQuery, filterPlan, filterDrishti])
 
   // Filter locally for instant feedback
   const filteredStudents = useMemo(() => {

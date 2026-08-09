@@ -1,12 +1,19 @@
 // ─── Media Library Page ──────────────────────────────────
-// Manage media files (images, videos, audio)
+// Manage media files (images, videos, audio, documents)
 
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useMemo, useRef } from 'react'
 import Pagination from '../../../../shared/components/Pagination'
+import Modal from '../../../../shared/components/Modal'
+import Button from '../../../../shared/components/Button'
+import Loader from '../../../../shared/components/Loader'
+import { useMedia, useChapters } from '../../hooks'
+import { mediaApi } from '../../api'
+import type { MediaFile, MediaType, MediaCreate } from '../../types'
 import {
   Image,
   Video,
   FileAudio,
+  FileDoc,
   Trash,
   MagnifyingGlass,
   Funnel,
@@ -17,34 +24,51 @@ import {
   GridFour,
   List,
   Play,
+  Pencil,
+  X,
+  Link,
 } from '@phosphor-icons/react'
 
-interface MediaFile {
-  id: string
-  name: string
-  type: 'image' | 'video' | 'audio'
-  url: string
-  thumbnail?: string
-  size: number
-  duration?: number // for video/audio in seconds
-  dimensions?: { width: number; height: number }
-  subject?: string
-  chapter?: string
-  uploaded_at: string
-  uploaded_by?: string
-  usage_count: number
+// Default form state
+const defaultFormState: MediaCreate = {
+  name: '',
+  type: 'image' as MediaType,
+  url: '',
+  thumbnail_url: '',
+  size_bytes: 0,
+  duration_sec: undefined,
+  dimensions: '',
+  subject_id: undefined,
+  chapter_id: undefined,
 }
 
 const MediaPage: React.FC = () => {
-  const [files, setFiles] = useState<MediaFile[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { media, total, isLoading, fetchMedia } = useMedia()
+  const { chapters, fetchChapters } = useChapters()
+  
+  // List state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [chapterFilter, setChapterFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(24)
-  const [totalCount, setTotalCount] = useState(0)
+  
+  // Modal state
+  const [showModal, setShowModal] = useState(false)
+  const [showPreviewModal, setShowPreviewModal] = useState(false)
+  const [editingMedia, setEditingMedia] = useState<MediaFile | null>(null)
+  const [previewMedia, setPreviewMedia] = useState<MediaFile | null>(null)
+  const [formError, setFormError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Form state
+  const [formData, setFormData] = useState<MediaCreate>(defaultFormState)
+
+  // Refs to prevent duplicate fetches
+  const chaptersLoadedRef = useRef(false)
+  const lastFetchParamsRef = useRef<string>('')
 
   const formatSize = (bytes: number) => {
     if (bytes === 0) return '0 B'
@@ -60,100 +84,37 @@ const MediaPage: React.FC = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  const loadFiles = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      // TODO: Replace with real API call
-      const mockFiles: MediaFile[] = [
-        {
-          id: '1',
-          name: 'algebra_intro.mp4',
-          type: 'video',
-          url: '/media/videos/algebra_intro.mp4',
-          thumbnail: '/media/thumbs/algebra_intro.jpg',
-          size: 45678900,
-          duration: 324,
-          dimensions: { width: 1920, height: 1080 },
-          subject: 'Mathematics',
-          chapter: 'Algebra',
-          uploaded_at: new Date().toISOString(),
-          uploaded_by: 'admin@eduvy.ai',
-          usage_count: 156,
-        },
-        {
-          id: '2',
-          name: 'photosynthesis_diagram.png',
-          type: 'image',
-          url: '/media/images/photosynthesis_diagram.png',
-          size: 1234567,
-          dimensions: { width: 1200, height: 800 },
-          subject: 'Science',
-          chapter: 'Life Processes',
-          uploaded_at: new Date().toISOString(),
-          usage_count: 89,
-        },
-        {
-          id: '3',
-          name: 'chemical_reactions_lecture.mp3',
-          type: 'audio',
-          url: '/media/audio/chemical_reactions_lecture.mp3',
-          size: 12345678,
-          duration: 1245,
-          subject: 'Science',
-          chapter: 'Chemical Reactions',
-          uploaded_at: new Date().toISOString(),
-          usage_count: 234,
-        },
-        {
-          id: '4',
-          name: 'quadratic_equations.mp4',
-          type: 'video',
-          url: '/media/videos/quadratic_equations.mp4',
-          thumbnail: '/media/thumbs/quadratic_equations.jpg',
-          size: 67890123,
-          duration: 456,
-          dimensions: { width: 1920, height: 1080 },
-          subject: 'Mathematics',
-          chapter: 'Polynomials',
-          uploaded_at: new Date().toISOString(),
-          usage_count: 198,
-        },
-        {
-          id: '5',
-          name: 'human_heart.jpg',
-          type: 'image',
-          url: '/media/images/human_heart.jpg',
-          size: 2345678,
-          dimensions: { width: 1500, height: 1000 },
-          subject: 'Science',
-          chapter: 'Life Processes',
-          uploaded_at: new Date().toISOString(),
-          usage_count: 312,
-        },
-        {
-          id: '6',
-          name: 'periodic_table.png',
-          type: 'image',
-          url: '/media/images/periodic_table.png',
-          size: 3456789,
-          dimensions: { width: 2000, height: 1200 },
-          subject: 'Science',
-          chapter: 'Elements',
-          uploaded_at: new Date().toISOString(),
-          usage_count: 456,
-        },
-      ]
-
-      setFiles(mockFiles)
-      setTotalCount(120)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [page, pageSize, typeFilter, searchQuery])
-
+  // Load chapters once on mount
   useEffect(() => {
-    loadFiles()
-  }, [loadFiles])
+    if (!chaptersLoadedRef.current) {
+      chaptersLoadedRef.current = true
+      fetchChapters()
+    }
+  }, [fetchChapters])
+
+  // Load media with filters
+  useEffect(() => {
+    const params: Record<string, unknown> = {
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+    }
+    if (typeFilter !== 'all') params.type = typeFilter
+    if (chapterFilter !== 'all') params.chapter_id = parseInt(chapterFilter)
+    if (searchQuery) params.search = searchQuery
+    
+    // Dedupe by comparing serialized params
+    const paramsKey = JSON.stringify(params)
+    if (paramsKey === lastFetchParamsRef.current) return
+    lastFetchParamsRef.current = paramsKey
+    
+    fetchMedia(params)
+  }, [page, pageSize, typeFilter, chapterFilter, searchQuery, fetchMedia])
+
+  // Refetch helper - resets the guard to force a fresh fetch
+  const refetchMedia = () => {
+    lastFetchParamsRef.current = ''
+    fetchMedia({ limit: pageSize, offset: (page - 1) * pageSize })
+  }
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -164,22 +125,120 @@ const MediaPage: React.FC = () => {
     })
   }
 
-  const getTypeIcon = (type: MediaFile['type']) => {
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+    if (!confirm(`Delete ${selectedIds.size} files?`)) return
+    
+    try {
+      await mediaApi.bulkDelete(Array.from(selectedIds))
+      setSelectedIds(new Set())
+      refetchMedia()
+    } catch (error) {
+      console.error('Failed to delete files:', error)
+      alert('Failed to delete files')
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this file?')) return
+    try {
+      await mediaApi.delete(id)
+      refetchMedia()
+    } catch (error) {
+      console.error('Failed to delete file:', error)
+      alert('Failed to delete file')
+    }
+  }
+
+  // Open create modal
+  const handleCreate = () => {
+    setEditingMedia(null)
+    setFormData(defaultFormState)
+    setFormError('')
+    setShowModal(true)
+  }
+
+  // Open edit modal
+  const handleEdit = (item: MediaFile) => {
+    setEditingMedia(item)
+    setFormData({
+      name: item.name,
+      type: item.type,
+      url: item.url,
+      thumbnail_url: item.thumbnail_url || '',
+      size_bytes: item.size_bytes,
+      duration_sec: item.duration_sec,
+      dimensions: item.dimensions || '',
+      subject_id: item.subject_id,
+      chapter_id: item.chapter_id,
+    })
+    setFormError('')
+    setShowModal(true)
+  }
+
+  // Preview media
+  const handlePreview = (item: MediaFile) => {
+    setPreviewMedia(item)
+    setShowPreviewModal(true)
+  }
+
+  // Copy URL
+  const handleCopyUrl = (url: string) => {
+    navigator.clipboard.writeText(url)
+    alert('URL copied to clipboard!')
+  }
+
+  // Submit form
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setFormError('')
+
+    // Validation
+    if (!formData.name.trim()) {
+      setFormError('Name is required')
+      return
+    }
+    if (!formData.url.trim()) {
+      setFormError('URL is required')
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      if (editingMedia) {
+        await mediaApi.update(editingMedia.id, formData)
+      } else {
+        await mediaApi.create(formData)
+      }
+      
+      setShowModal(false)
+      refetchMedia()
+    } catch (error: any) {
+      setFormError(error.message || 'Failed to save media')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const getTypeIcon = (type: MediaType) => {
     const icons = {
       image: <Image size={20} className="text-app-green" />,
       video: <Video size={20} className="text-app-blue" />,
       audio: <FileAudio size={20} className="text-app-purple" />,
+      document: <FileDoc size={20} className="text-app-yellow" />,
     }
-    return icons[type]
+    return icons[type] || icons.document
   }
 
-  const stats = {
-    total: files.length,
-    images: files.filter(f => f.type === 'image').length,
-    videos: files.filter(f => f.type === 'video').length,
-    audio: files.filter(f => f.type === 'audio').length,
-    totalSize: files.reduce((acc, f) => acc + f.size, 0),
-  }
+  // Stats
+  const stats = useMemo(() => ({
+    images: media.filter(f => f.type === 'image').length,
+    videos: media.filter(f => f.type === 'video').length,
+    audio: media.filter(f => f.type === 'audio').length,
+    documents: media.filter(f => f.type === 'document').length,
+    totalSize: media.reduce((acc, f) => acc + f.size_bytes, 0),
+  }), [media])
 
   return (
     <div className="space-y-6">
@@ -191,22 +250,22 @@ const MediaPage: React.FC = () => {
             Media Library
           </h1>
           <p className="text-sm text-app-muted mt-1">
-            Manage images, videos, and audio files
+            Manage images, videos, audio, and documents
           </p>
         </div>
         <button
-          onClick={() => alert('Upload media')}
+          onClick={handleCreate}
           className="px-4 py-2 text-sm text-white bg-app-green rounded-lg hover:bg-app-green/80 transition-colors flex items-center gap-2"
         >
           <CloudArrowUp size={16} />
-          Upload
+          Add Media
         </button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-app-card rounded-xl border border-app-border p-4">
-          <p className="text-2xl font-bold text-app-text">{totalCount}</p>
+          <p className="text-2xl font-bold text-app-text">{total}</p>
           <p className="text-xs text-app-muted">Total Files</p>
         </div>
         <div className="bg-app-card rounded-xl border border-app-border p-4">
@@ -243,35 +302,43 @@ const MediaPage: React.FC = () => {
           <Funnel size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-app-muted" />
           <select
             value={typeFilter}
-            onChange={e => setTypeFilter(e.target.value)}
+            onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
             className="pl-9 pr-8 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text appearance-none cursor-pointer focus:outline-none focus:border-app-green"
           >
             <option value="all">All Types</option>
             <option value="image">Images</option>
             <option value="video">Videos</option>
             <option value="audio">Audio</option>
+            <option value="document">Documents</option>
           </select>
         </div>
-        
-        {/* View Mode Toggle */}
-        <div className="flex items-center bg-app-card border border-app-border rounded-lg overflow-hidden">
+        <select
+          value={chapterFilter}
+          onChange={e => { setChapterFilter(e.target.value); setPage(1) }}
+          className="px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text appearance-none cursor-pointer focus:outline-none focus:border-app-green"
+        >
+          <option value="all">All Chapters</option>
+          {chapters.map(ch => (
+            <option key={ch.id} value={ch.id}>{ch.chapter_name}</option>
+          ))}
+        </select>
+        <div className="flex items-center gap-1 bg-app-card border border-app-border rounded-lg p-1">
           <button
             onClick={() => setViewMode('grid')}
-            className={`p-2 ${viewMode === 'grid' ? 'bg-app-green text-white' : 'text-app-muted hover:text-app-text'}`}
+            className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-app-green/20 text-app-green' : 'text-app-muted hover:text-app-text'}`}
           >
             <GridFour size={16} />
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`p-2 ${viewMode === 'list' ? 'bg-app-green text-white' : 'text-app-muted hover:text-app-text'}`}
+            className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-app-green/20 text-app-green' : 'text-app-muted hover:text-app-text'}`}
           >
             <List size={16} />
           </button>
         </div>
-        
         {selectedIds.size > 0 && (
           <button
-            onClick={() => alert('Delete selected')}
+            onClick={handleBulkDelete}
             className="px-3 py-2 text-sm text-app-red bg-app-red/10 border border-app-red/25 rounded-lg hover:bg-app-red/20 transition-colors flex items-center gap-1"
           >
             <Trash size={14} />
@@ -280,213 +347,313 @@ const MediaPage: React.FC = () => {
         )}
       </div>
 
-      {/* Files Display */}
+      {/* Media Grid/List */}
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <div className="animate-spin w-8 h-8 border-2 border-app-green border-t-transparent rounded-full" />
+          <Loader size="lg" />
         </div>
-      ) : files.length === 0 ? (
+      ) : media.length === 0 ? (
         <div className="text-center py-12 text-app-muted">
-          No files found
+          No media files found. {total === 0 && 'Add your first file to get started.'}
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-          {files.map(file => (
+          {media.map(item => (
             <div
-              key={file.id}
-              className={`bg-app-card rounded-xl border overflow-hidden transition-colors ${
-                selectedIds.has(file.id) ? 'border-app-green' : 'border-app-border hover:border-app-border/80'
-              }`}
+              key={item.id}
+              className="bg-app-card rounded-xl border border-app-border overflow-hidden hover:border-app-green/50 transition-colors group"
             >
-              {/* Thumbnail */}
-              <div
-                className="relative aspect-video bg-app-card2 flex items-center justify-center cursor-pointer"
-                onClick={() => toggleSelect(file.id)}
-              >
-                {file.type === 'image' ? (
-                  <Image size={40} className="text-app-green/50" />
-                ) : file.type === 'video' ? (
-                  <>
-                    <Video size={40} className="text-app-blue/50" />
-                    {file.duration && (
-                      <span className="absolute bottom-2 right-2 px-1.5 py-0.5 text-xs bg-black/70 text-white rounded">
-                        {formatDuration(file.duration)}
-                      </span>
-                    )}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Play size={32} weight="fill" className="text-white/80" />
-                    </div>
-                  </>
+              <div className="relative aspect-square">
+                {item.type === 'image' ? (
+                  <img src={item.thumbnail_url || item.url} alt={item.name} className="w-full h-full object-cover" />
+                ) : item.type === 'video' ? (
+                  <div className="w-full h-full bg-app-card2 flex items-center justify-center">
+                    <Play size={32} className="text-app-blue" />
+                  </div>
                 ) : (
-                  <FileAudio size={40} className="text-app-purple/50" />
+                  <div className="w-full h-full bg-app-card2 flex items-center justify-center">
+                    {getTypeIcon(item.type)}
+                  </div>
                 )}
-                
-                {/* Selection checkbox */}
-                <div className="absolute top-2 left-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(file.id)}
-                    onChange={() => toggleSelect(file.id)}
-                    className="rounded border-app-border"
-                    onClick={e => e.stopPropagation()}
-                  />
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(item.id)}
+                  onChange={() => toggleSelect(item.id)}
+                  className="absolute top-2 left-2 rounded border-app-border"
+                />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <button onClick={() => handlePreview(item)} className="p-2 bg-app-blue rounded-full text-white">
+                    <Eye size={14} />
+                  </button>
+                  <button onClick={() => handleEdit(item)} className="p-2 bg-app-green rounded-full text-white">
+                    <Pencil size={14} />
+                  </button>
+                  <button onClick={() => handleDelete(item.id)} className="p-2 bg-app-red rounded-full text-white">
+                    <Trash size={14} />
+                  </button>
                 </div>
               </div>
-              
-              {/* Info */}
               <div className="p-3">
-                <p className="text-sm font-medium text-app-text truncate">{file.name}</p>
-                <div className="flex items-center justify-between mt-1 text-xs text-app-muted">
-                  <span>{formatSize(file.size)}</span>
-                  <span>Used {file.usage_count}×</span>
+                <p className="text-sm text-app-text font-medium truncate">{item.name}</p>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-xs text-app-muted">{formatSize(item.size_bytes)}</span>
+                  {item.duration_sec && (
+                    <span className="text-xs text-app-muted">{formatDuration(item.duration_sec)}</span>
+                  )}
                 </div>
-              </div>
-              
-              {/* Actions */}
-              <div className="flex items-center border-t border-app-border">
-                <button
-                  onClick={() => alert('Preview')}
-                  className="flex-1 p-2 text-app-blue hover:bg-app-blue/10 transition-colors"
-                  title="Preview"
-                >
-                  <Eye size={14} className="mx-auto" />
-                </button>
-                <button
-                  onClick={() => alert('Copy URL')}
-                  className="flex-1 p-2 text-app-muted hover:bg-app-card2 transition-colors border-l border-app-border"
-                  title="Copy URL"
-                >
-                  <Copy size={14} className="mx-auto" />
-                </button>
-                <button
-                  onClick={() => alert('Download')}
-                  className="flex-1 p-2 text-app-green hover:bg-app-green/10 transition-colors border-l border-app-border"
-                  title="Download"
-                >
-                  <Download size={14} className="mx-auto" />
-                </button>
-                <button
-                  onClick={() => alert('Delete')}
-                  className="flex-1 p-2 text-app-red hover:bg-app-red/10 transition-colors border-l border-app-border"
-                  title="Delete"
-                >
-                  <Trash size={14} className="mx-auto" />
-                </button>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="bg-app-card rounded-xl border border-app-border overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-app-border text-left">
-                <th className="p-3 w-10">
-                  <input
-                    type="checkbox"
-                    checked={files.length > 0 && selectedIds.size === files.length}
-                    onChange={() => {
-                      if (selectedIds.size === files.length) {
-                        setSelectedIds(new Set())
-                      } else {
-                        setSelectedIds(new Set(files.map(f => f.id)))
-                      }
-                    }}
-                    className="rounded border-app-border"
-                  />
-                </th>
-                <th className="p-3 text-xs font-semibold text-app-muted uppercase">File</th>
-                <th className="p-3 text-xs font-semibold text-app-muted uppercase">Type</th>
-                <th className="p-3 text-xs font-semibold text-app-muted uppercase">Size</th>
-                <th className="p-3 text-xs font-semibold text-app-muted uppercase">Used</th>
-                <th className="p-3 text-xs font-semibold text-app-muted uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {files.map(file => (
-                <tr key={file.id} className="border-b border-app-border/50 hover:bg-app-card2 transition-colors">
-                  <td className="p-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.has(file.id)}
-                      onChange={() => toggleSelect(file.id)}
-                      className="rounded border-app-border"
-                    />
-                  </td>
-                  <td className="p-3">
-                    <div className="flex items-center gap-3">
-                      {getTypeIcon(file.type)}
-                      <div>
-                        <p className="font-medium text-app-text">{file.name}</p>
-                        <p className="text-xs text-app-muted">
-                          {file.subject && `${file.subject}`}
-                          {file.chapter && ` • ${file.chapter}`}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <span className="text-sm text-app-muted capitalize">{file.type}</span>
-                    {file.duration && (
-                      <span className="text-xs text-app-muted ml-2">
-                        ({formatDuration(file.duration)})
-                      </span>
-                    )}
-                  </td>
-                  <td className="p-3">
-                    <span className="text-sm text-app-muted">{formatSize(file.size)}</span>
-                  </td>
-                  <td className="p-3">
-                    <span className="text-sm text-app-muted">{file.usage_count}×</span>
-                  </td>
-                  <td className="p-3">
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => alert('Preview')}
-                        className="p-1.5 text-app-blue hover:bg-app-blue/10 rounded-lg transition-colors"
-                        title="Preview"
-                      >
-                        <Eye size={14} />
-                      </button>
-                      <button
-                        onClick={() => alert('Download')}
-                        className="p-1.5 text-app-green hover:bg-app-green/10 rounded-lg transition-colors"
-                        title="Download"
-                      >
-                        <Download size={14} />
-                      </button>
-                      <button
-                        onClick={() => alert('Delete')}
-                        className="p-1.5 text-app-red hover:bg-app-red/10 rounded-lg transition-colors"
-                        title="Delete"
-                      >
-                        <Trash size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-2">
+          {media.map(item => (
+            <div
+              key={item.id}
+              className="bg-app-card rounded-xl border border-app-border p-4 flex items-center gap-4 hover:border-app-green/50 transition-colors"
+            >
+              <input
+                type="checkbox"
+                checked={selectedIds.has(item.id)}
+                onChange={() => toggleSelect(item.id)}
+                className="rounded border-app-border"
+              />
+              <div className="w-12 h-12 rounded-lg bg-app-card2 flex items-center justify-center overflow-hidden">
+                {item.type === 'image' ? (
+                  <img src={item.thumbnail_url || item.url} alt={item.name} className="w-full h-full object-cover" />
+                ) : (
+                  getTypeIcon(item.type)
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-app-text font-medium truncate">{item.name}</p>
+                <p className="text-xs text-app-muted">
+                  {formatSize(item.size_bytes)}
+                  {item.duration_sec && ` • ${formatDuration(item.duration_sec)}`}
+                  {item.chapter_name && ` • ${item.chapter_name}`}
+                </p>
+              </div>
+              <div className="flex items-center gap-1">
+                <button onClick={() => handleCopyUrl(item.url)} className="p-1.5 text-app-muted hover:text-app-text hover:bg-app-card2 rounded-lg">
+                  <Copy size={14} />
+                </button>
+                <button onClick={() => handlePreview(item)} className="p-1.5 text-app-blue hover:bg-app-blue/10 rounded-lg">
+                  <Eye size={14} />
+                </button>
+                <button onClick={() => handleEdit(item)} className="p-1.5 text-app-green hover:bg-app-green/10 rounded-lg">
+                  <Pencil size={14} />
+                </button>
+                <button onClick={() => handleDelete(item.id)} className="p-1.5 text-app-red hover:bg-app-red/10 rounded-lg">
+                  <Trash size={14} />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
       {/* Pagination */}
       <Pagination
         currentPage={page}
-        totalPages={Math.ceil(totalCount / pageSize)}
-        totalItems={totalCount}
+        totalPages={Math.ceil(total / pageSize)}
+        totalItems={total}
         pageSize={pageSize}
         onPageChange={setPage}
-        onPageSizeChange={setPageSize}
-        pageSizeOptions={[12, 24, 48, 96]}
+        onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
       />
 
-      {/* Info Note */}
-      <div className="p-4 bg-app-blue/10 border border-app-blue/25 rounded-xl text-sm text-app-muted">
-        <p className="font-medium text-app-blue mb-1">Note</p>
-        <p>Media library endpoint not yet implemented. Showing mock data for UI preview.</p>
-      </div>
+      {/* Create/Edit Modal */}
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingMedia ? 'Edit Media' : 'Add Media'}
+        size="md"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {formError && (
+            <div className="p-3 bg-app-red/10 border border-app-red/25 rounded-lg text-sm text-app-red">
+              {formError}
+            </div>
+          )}
+
+          {/* Name */}
+          <div>
+            <label className="block text-sm font-medium text-app-text mb-1">Name *</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="Enter file name..."
+              className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-green"
+            />
+          </div>
+
+          {/* Type */}
+          <div>
+            <label className="block text-sm font-medium text-app-text mb-1">Type *</label>
+            <select
+              value={formData.type}
+              onChange={e => setFormData(prev => ({ ...prev, type: e.target.value as MediaType }))}
+              className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text focus:outline-none focus:border-app-green"
+            >
+              <option value="image">Image</option>
+              <option value="video">Video</option>
+              <option value="audio">Audio</option>
+              <option value="document">Document</option>
+            </select>
+          </div>
+
+          {/* URL */}
+          <div>
+            <label className="block text-sm font-medium text-app-text mb-1">URL *</label>
+            <div className="relative">
+              <Link size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-app-muted" />
+              <input
+                type="url"
+                value={formData.url}
+                onChange={e => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                placeholder="https://..."
+                className="w-full pl-9 pr-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-green"
+              />
+            </div>
+          </div>
+
+          {/* Thumbnail URL */}
+          <div>
+            <label className="block text-sm font-medium text-app-text mb-1">Thumbnail URL</label>
+            <input
+              type="url"
+              value={formData.thumbnail_url || ''}
+              onChange={e => setFormData(prev => ({ ...prev, thumbnail_url: e.target.value }))}
+              placeholder="https://..."
+              className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-green"
+            />
+          </div>
+
+          {/* Chapter */}
+          <div>
+            <label className="block text-sm font-medium text-app-text mb-1">Chapter (optional)</label>
+            <select
+              value={formData.chapter_id || ''}
+              onChange={e => setFormData(prev => ({ ...prev, chapter_id: e.target.value ? parseInt(e.target.value) : undefined }))}
+              className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text focus:outline-none focus:border-app-green"
+            >
+              <option value="">No chapter</option>
+              {chapters.map(ch => (
+                <option key={ch.id} value={ch.id}>{ch.chapter_name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Duration (for video/audio) */}
+          {(formData.type === 'video' || formData.type === 'audio') && (
+            <div>
+              <label className="block text-sm font-medium text-app-text mb-1">Duration (seconds)</label>
+              <input
+                type="number"
+                value={formData.duration_sec || ''}
+                onChange={e => setFormData(prev => ({ ...prev, duration_sec: e.target.value ? parseInt(e.target.value) : undefined }))}
+                placeholder="0"
+                min={0}
+                className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-green"
+              />
+            </div>
+          )}
+
+          {/* Dimensions (for images/videos) */}
+          {(formData.type === 'image' || formData.type === 'video') && (
+            <div>
+              <label className="block text-sm font-medium text-app-text mb-1">Dimensions</label>
+              <input
+                type="text"
+                value={formData.dimensions || ''}
+                onChange={e => setFormData(prev => ({ ...prev, dimensions: e.target.value }))}
+                placeholder="1920x1080"
+                className="w-full px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-green"
+              />
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-4 border-t border-app-border">
+            <Button type="button" variant="ghost" onClick={() => setShowModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" isLoading={isSubmitting}>
+              {editingMedia ? 'Update Media' : 'Add Media'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Preview Modal */}
+      <Modal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        title="Media Preview"
+        size="lg"
+      >
+        {previewMedia && (
+          <div className="space-y-4">
+            <div className="aspect-video bg-app-card2 rounded-lg overflow-hidden flex items-center justify-center">
+              {previewMedia.type === 'image' ? (
+                <img src={previewMedia.url} alt={previewMedia.name} className="max-w-full max-h-full object-contain" />
+              ) : previewMedia.type === 'video' ? (
+                <video src={previewMedia.url} controls className="max-w-full max-h-full" />
+              ) : previewMedia.type === 'audio' ? (
+                <audio src={previewMedia.url} controls className="w-full" />
+              ) : (
+                <div className="text-center">
+                  <FileDoc size={48} className="text-app-yellow mx-auto mb-2" />
+                  <a href={previewMedia.url} target="_blank" rel="noopener noreferrer" className="text-app-blue hover:underline">
+                    Open Document
+                  </a>
+                </div>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-app-muted">Name</p>
+                <p className="text-app-text font-medium">{previewMedia.name}</p>
+              </div>
+              <div>
+                <p className="text-app-muted">Type</p>
+                <p className="text-app-text font-medium capitalize">{previewMedia.type}</p>
+              </div>
+              <div>
+                <p className="text-app-muted">Size</p>
+                <p className="text-app-text font-medium">{formatSize(previewMedia.size_bytes)}</p>
+              </div>
+              {previewMedia.duration_sec && (
+                <div>
+                  <p className="text-app-muted">Duration</p>
+                  <p className="text-app-text font-medium">{formatDuration(previewMedia.duration_sec)}</p>
+                </div>
+              )}
+              {previewMedia.dimensions && (
+                <div>
+                  <p className="text-app-muted">Dimensions</p>
+                  <p className="text-app-text font-medium">{previewMedia.dimensions}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-app-muted">Used</p>
+                <p className="text-app-text font-medium">{previewMedia.usage_count} times</p>
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-3 pt-4 border-t border-app-border">
+              <Button variant="ghost" onClick={() => handleCopyUrl(previewMedia.url)}>
+                <Copy size={14} className="mr-1" /> Copy URL
+              </Button>
+              <Button variant="ghost" onClick={() => setShowPreviewModal(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

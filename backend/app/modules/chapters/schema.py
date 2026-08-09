@@ -8,9 +8,9 @@ from pydantic import BaseModel, Field
 
 class ChapterBase(BaseModel):
     """Base chapter fields."""
-    board: str = Field(..., description="Education board (e.g., CBSE, GSEB)")
-    standard: str = Field(..., description="Class/grade (e.g., Class 6)")
-    subject: str = Field(..., description="Subject name (e.g., Science)")
+    board_id: str = Field(..., description="Education board ID (FK to boards.id)")
+    standard_id: str = Field(..., description="Standard ID (FK to standards.id)")
+    subject_id: str = Field(..., description="Subject ID (FK to subjects.id)")
     chapter_number: int = Field(..., ge=1, le=30, description="Chapter number in textbook")
     chapter_name: str = Field(..., min_length=2, max_length=200, description="Chapter title")
     chapter_name_local: str = Field("", max_length=300, description="Chapter name in regional language")
@@ -36,6 +36,9 @@ class ChapterUpdate(BaseModel):
 class ChapterResponse(ChapterBase):
     """Schema for chapter response."""
     id: int
+    board_name: Optional[str] = None
+    standard_name: Optional[str] = None
+    subject_name: Optional[str] = None
     created_at: datetime
     
     class Config:
@@ -44,9 +47,9 @@ class ChapterResponse(ChapterBase):
 
 class ChapterListParams(BaseModel):
     """Query parameters for listing chapters."""
-    board: Optional[str] = None
-    standard: Optional[str] = None
-    subject: Optional[str] = None
+    board_id: Optional[str] = None
+    standard_id: Optional[str] = None
+    subject_id: Optional[str] = None
     is_active: Optional[bool] = True
 
 

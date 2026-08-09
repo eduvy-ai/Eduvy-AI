@@ -1,7 +1,7 @@
 // ─── Admin Layout ──────────────────────────────────────────────
 // Main layout shell for admin platform with sidebar navigation
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { useAdminAuth, useAdminUI } from '../modules/admin/hooks'
 import { ADMIN_NAV_ITEMS, type NavItem } from '../modules/admin/constants'
@@ -49,15 +49,23 @@ const NAV_ICONS: Record<string, React.ComponentType<any>> = {
 const AdminLayout: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, isAuthenticated, isInitialized, isLoading, initialize, logout } = useAdminAuth()
+  const { user, isAuthenticated, isInitialized, initialize, logout } = useAdminAuth()
   const { sidebarCollapsed } = useAdminUI()
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  
+  // Ref to track initialization
+  const initializedRef = useRef(false)
+  const initializeRef = useRef(initialize)
+  initializeRef.current = initialize
 
   // Initialize admin auth on mount
   useEffect(() => {
-    initialize()
-  }, [initialize])
+    if (!initializedRef.current) {
+      initializedRef.current = true
+      initializeRef.current()
+    }
+  }, [])
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -128,8 +136,8 @@ const AdminLayout: React.FC = () => {
     navigate('/auth')
   }
 
-  // Loading state
-  if (!isInitialized || isLoading) {
+  // Only show loading during initial auth check, not during content fetches
+  if (!isInitialized) {
     return (
       <div className="min-h-screen bg-app-bg flex items-center justify-center">
         <Loader size="lg" />

@@ -340,8 +340,8 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
 
       {/* Subject Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {subjects.map(({ subject, chapter_count }) => (
-          <SubjectCard key={subject} subject={subject} chapterCount={chapter_count} />
+        {subjects.map(({ subject_id, subject_name, chapter_count }) => (
+          <SubjectCard key={subject_id} subject={subject_name} chapterCount={chapter_count} />
         ))}
       </div>
 

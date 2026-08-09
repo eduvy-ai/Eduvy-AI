@@ -39,8 +39,8 @@ export function useChapters() {
   )
 
   const loadSubjects = useCallback(
-    (board: string, standard: string) => {
-      dispatch(fetchSubjects({ board, standard }))
+    (board_id: string, standard_id: string) => {
+      dispatch(fetchSubjects({ board_id, standard_id }))
     },
     [dispatch]
   )
@@ -53,8 +53,8 @@ export function useChapters() {
   )
 
   const loadChaptersWithProgress = useCallback(
-    (board: string, standard: string, subject: string) => {
-      dispatch(fetchChaptersWithProgress({ board, standard, subject }))
+    (board_id: string, standard_id: string, subject_id: string) => {
+      dispatch(fetchChaptersWithProgress({ board_id, standard_id, subject_id }))
     },
     [dispatch]
   )
@@ -96,15 +96,15 @@ export function useChapters() {
 /**
  * Hook to load chapters for a specific subject on mount.
  */
-export function useChaptersBySubject(board: string, standard: string, subject: string) {
+export function useChaptersBySubject(board_id: string, standard_id: string, subject_id: string) {
   const dispatch = useDispatch<AppDispatch>()
   const { chapters, isLoading, error } = useSelector((state: RootState) => state.chapters)
 
   useEffect(() => {
-    if (board && standard && subject) {
-      dispatch(fetchChapters({ board, standard, subject }))
+    if (board_id && standard_id && subject_id) {
+      dispatch(fetchChapters({ board_id, standard_id, subject_id }))
     }
-  }, [dispatch, board, standard, subject])
+  }, [dispatch, board_id, standard_id, subject_id])
 
   return { chapters, isLoading, error }
 }
@@ -112,17 +112,17 @@ export function useChaptersBySubject(board: string, standard: string, subject: s
 /**
  * Hook to load chapters with progress for the Learn tab.
  */
-export function useChaptersWithProgress(board: string, standard: string, subject: string) {
+export function useChaptersWithProgress(board_id: string, standard_id: string, subject_id: string) {
   const dispatch = useDispatch<AppDispatch>()
   const { chaptersWithProgress, isLoading, error } = useSelector(
     (state: RootState) => state.chapters
   )
 
   useEffect(() => {
-    if (board && standard && subject) {
-      dispatch(fetchChaptersWithProgress({ board, standard, subject }))
+    if (board_id && standard_id && subject_id) {
+      dispatch(fetchChaptersWithProgress({ board_id, standard_id, subject_id }))
     }
-  }, [dispatch, board, standard, subject])
+  }, [dispatch, board_id, standard_id, subject_id])
 
   return { chapters: chaptersWithProgress, isLoading, error }
 }
@@ -130,15 +130,15 @@ export function useChaptersWithProgress(board: string, standard: string, subject
 /**
  * Hook to load subjects with chapter counts.
  */
-export function useSubjectsWithChapters(board: string, standard: string) {
+export function useSubjectsWithChapters(board_id: string, standard_id: string) {
   const dispatch = useDispatch<AppDispatch>()
   const { subjects, isLoading, error } = useSelector((state: RootState) => state.chapters)
 
   useEffect(() => {
-    if (board && standard) {
-      dispatch(fetchSubjects({ board, standard }))
+    if (board_id && standard_id) {
+      dispatch(fetchSubjects({ board_id, standard_id }))
     }
-  }, [dispatch, board, standard])
+  }, [dispatch, board_id, standard_id])
 
   return { subjects, isLoading, error }
 }

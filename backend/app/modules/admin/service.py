@@ -363,7 +363,114 @@ class AdminService:
         finally:
             conn.close()
 
-    # ── Curriculum ────────────────────────────────────────────
+    # ── Subjects ──────────────────────────────────────────────
+
+    @staticmethod
+    def list_subjects(board_id: str = None, standard_id: str = None) -> List[Dict]:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            query = """
+                SELECT s.*, b.name as board_name, st.name as standard_name
+                FROM subjects s
+                LEFT JOIN boards b ON s.board_id = b.id
+                LEFT JOIN standards st ON s.standard_id = st.id
+                WHERE 1=1
+            """
+            params = []
+            if board_id:
+                query += " AND s.board_id = %s"
+                params.append(board_id)
+            if standard_id:
+                query += " AND s.standard_id = %s"
+                params.append(standard_id)
+            query += " ORDER BY b.sort_order, st.sort_order, s.sort_order"
+            cur.execute(query, params)
+            return [dict(row) for row in cur.fetchall()]
+        finally:
+            conn.close()
+
+    @staticmethod
+    def upsert_subject(subj_id: str, name: str, board_id: str, standard_id: str, sort_order: int = 0, is_active: bool = True) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """INSERT INTO subjects (id, name, board_id, standard_id, sort_order, is_active)
+                   VALUES (%s, %s, %s, %s, %s, %s)
+                   ON CONFLICT (id) DO UPDATE SET
+                   name=EXCLUDED.name, board_id=EXCLUDED.board_id, standard_id=EXCLUDED.standard_id,
+                   sort_order=EXCLUDED.sort_order, is_active=EXCLUDED.is_active
+                   RETURNING *""",
+                (subj_id.lower().strip(), name.strip(), board_id, standard_id, sort_order, is_active)
+            )
+            row = cur.fetchone()
+            conn.commit()
+            return dict(row)
+        finally:
+            conn.close()
+
+    @staticmethod
+    def delete_subject(subj_id: str) -> Dict:
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM subjects WHERE id=%s", (subj_id,))
+            conn.commit()
+            return {"ok": True}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def import_subjects(rows: List[Dict]) -> Dict:
+        """Bulk upsert subjects. Returns {inserted, updated}."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            inserted = 0
+            updated = 0
+            for row in rows:
+                sid = str(row.get("id", "")).strip().lower()
+                if not sid:
+                    continue
+                cur.execute("SELECT id FROM subjects WHERE id=%s", (sid,))
+                exists = cur.fetchone()
+                cur.execute(
+                    """INSERT INTO subjects (id, name, board_id, standard_id, sort_order, is_active)
+                       VALUES (%s,%s,%s,%s,%s,%s)
+                       ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, board_id=EXCLUDED.board_id,
+                       standard_id=EXCLUDED.standard_id, sort_order=EXCLUDED.sort_order, is_active=EXCLUDED.is_active""",
+                    (sid, str(row.get("name", "")).strip(),
+                     str(row.get("board_id", "")).strip(),
+                     str(row.get("standard_id", "")).strip(),
+                     int(row.get("sort_order", 0)),
+                     bool(row.get("is_active", True)))
+                )
+                if exists:
+                    updated += 1
+                else:
+                    inserted += 1
+            conn.commit()
+            return {"inserted": inserted, "updated": updated}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def bulk_delete_subjects(ids: List[str]) -> Dict:
+        if not ids:
+            return {"deleted": 0}
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            placeholders = ",".join(["%s"] * len(ids))
+            cur.execute(f"DELETE FROM subjects WHERE id IN ({placeholders})", ids)
+            deleted = cur.rowcount
+            conn.commit()
+            return {"deleted": deleted}
+        finally:
+            conn.close()
+
+    # ── Curriculum (deprecated) ───────────────────────────────
 
     @staticmethod
     def list_curriculum() -> List[Dict]:
@@ -796,20 +903,74 @@ class AdminService:
         conn = get_db()
         try:
             cur = conn.cursor()
-            # All-time totals
-            cur.execute("SELECT COALESCE(SUM(call_count),0) AS calls, COALESCE(SUM(prompt_tokens+completion_tokens),0) AS tokens FROM ai_usage")
+            # All-time totals with separate prompt/completion tokens
+            cur.execute("""
+                SELECT 
+                    COALESCE(SUM(call_count), 0) AS total_calls,
+                    COALESCE(SUM(prompt_tokens), 0) AS total_prompt_tokens,
+                    COALESCE(SUM(completion_tokens), 0) AS total_completion_tokens
+                FROM ai_usage
+            """)
             row = cur.fetchone()
-            all_time = {"calls": int(row["calls"]), "tokens": int(row["tokens"])}
-            # Daily breakdown for past N days
+            total_calls = int(row["total_calls"])
+            total_prompt_tokens = int(row["total_prompt_tokens"])
+            total_completion_tokens = int(row["total_completion_tokens"])
+            
+            # Daily breakdown for past N days (fill in gaps with zeros)
             cur.execute(
-                """SELECT date, SUM(call_count) AS calls, SUM(prompt_tokens+completion_tokens) AS tokens
+                """SELECT date, 
+                          SUM(call_count) AS calls, 
+                          SUM(prompt_tokens) AS prompt_tokens,
+                          SUM(completion_tokens) AS completion_tokens
                    FROM ai_usage
                    WHERE date::date >= CURRENT_DATE - (%s || ' days')::interval
-                   GROUP BY date ORDER BY date DESC""",
+                   GROUP BY date""",
                 (days,)
             )
-            daily = [{"date": r["date"], "calls": int(r["calls"]), "tokens": int(r["tokens"])} for r in cur.fetchall()]
-            return {"all_time": all_time, "daily": daily}
+            usage_by_date = {r["date"]: {
+                "calls": int(r["calls"]),
+                "prompt_tokens": int(r["prompt_tokens"]),
+                "completion_tokens": int(r["completion_tokens"]),
+            } for r in cur.fetchall()}
+            
+            # Generate all dates in range and fill gaps with zeros
+            from datetime import date, timedelta
+            today = date.today()
+            daily_breakdown = []
+            for i in range(days - 1, -1, -1):  # oldest to newest
+                d = (today - timedelta(days=i)).isoformat()
+                if d in usage_by_date:
+                    daily_breakdown.append({"date": d, **usage_by_date[d]})
+                else:
+                    daily_breakdown.append({
+                        "date": d,
+                        "calls": 0,
+                        "prompt_tokens": 0,
+                        "completion_tokens": 0,
+                    })
+            
+            # Usage by plan
+            cur.execute("""
+                SELECT us.plan, 
+                       COUNT(DISTINCT u.user_id) AS users,
+                       SUM(u.call_count) AS calls
+                FROM ai_usage u
+                LEFT JOIN users us ON us.id = u.user_id
+                WHERE u.date::date >= CURRENT_DATE - (%s || ' days')::interval
+                GROUP BY us.plan
+            """, (days,))
+            by_plan = {}
+            for r in cur.fetchall():
+                plan = r["plan"] or "free"
+                by_plan[plan] = {"users": int(r["users"]), "calls": int(r["calls"])}
+            
+            return {
+                "total_calls": total_calls,
+                "total_prompt_tokens": total_prompt_tokens,
+                "total_completion_tokens": total_completion_tokens,
+                "daily_breakdown": daily_breakdown,
+                "by_plan": by_plan,
+            }
         finally:
             conn.close()
 
@@ -830,6 +991,40 @@ class AdminService:
             )
             rows = [dict(r) for r in cur.fetchall()]
             return {"rows": rows}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_usage_by_users(days: int = 7) -> List[Dict]:
+        """Get aggregated AI usage per user for the past N days."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """SELECT u.user_id, 
+                          us.name, 
+                          us.email, 
+                          us.plan,
+                          SUM(u.call_count) AS calls,
+                          SUM(u.prompt_tokens) AS prompt_tokens,
+                          SUM(u.completion_tokens) AS completion_tokens
+                   FROM ai_usage u
+                   LEFT JOIN users us ON us.id = u.user_id
+                   WHERE u.date::date >= CURRENT_DATE - (%s || ' days')::interval
+                   GROUP BY u.user_id, us.name, us.email, us.plan
+                   ORDER BY SUM(u.call_count) DESC 
+                   LIMIT 100""",
+                (days,)
+            )
+            return [{
+                "user_id": r["user_id"],
+                "name": r["name"] or "Unknown",
+                "email": r["email"] or "",
+                "plan": r["plan"] or "free",
+                "calls": int(r["calls"]),
+                "prompt_tokens": int(r["prompt_tokens"]),
+                "completion_tokens": int(r["completion_tokens"]),
+            } for r in cur.fetchall()]
         finally:
             conn.close()
 
@@ -1484,32 +1679,50 @@ class AdminService:
             cur.execute("SELECT COUNT(*) AS total FROM users")
             total_users = cur.fetchone()["total"]
             
-            # Active today
-            cur.execute("SELECT COUNT(*) AS total FROM users WHERE last_active::date = CURRENT_DATE")
+            # Active today (handle empty last_active)
+            cur.execute("""
+                SELECT COUNT(*) AS total FROM users 
+                WHERE last_active != '' AND last_active::date = CURRENT_DATE
+            """)
             active_today = cur.fetchone()["total"]
             
             # Active this week
-            cur.execute("SELECT COUNT(*) AS total FROM users WHERE last_active::date > CURRENT_DATE - INTERVAL '7 days'")
+            cur.execute("""
+                SELECT COUNT(*) AS total FROM users 
+                WHERE last_active != '' AND last_active::date > CURRENT_DATE - INTERVAL '7 days'
+            """)
             active_7d = cur.fetchone()["total"]
             
             # Active this month
-            cur.execute("SELECT COUNT(*) AS total FROM users WHERE last_active::date > CURRENT_DATE - INTERVAL '30 days'")
+            cur.execute("""
+                SELECT COUNT(*) AS total FROM users 
+                WHERE last_active != '' AND last_active::date > CURRENT_DATE - INTERVAL '30 days'
+            """)
             active_30d = cur.fetchone()["total"]
             
-            # Signups today
-            cur.execute("SELECT COUNT(*) AS total FROM users WHERE created_at::date = CURRENT_DATE")
+            # Signups today (handle empty created_at)
+            cur.execute("""
+                SELECT COUNT(*) AS total FROM users 
+                WHERE created_at != '' AND created_at::date = CURRENT_DATE
+            """)
             signups_today = cur.fetchone()["total"]
             
             # Signups this week
-            cur.execute("SELECT COUNT(*) AS total FROM users WHERE created_at::date > CURRENT_DATE - INTERVAL '7 days'")
+            cur.execute("""
+                SELECT COUNT(*) AS total FROM users 
+                WHERE created_at != '' AND created_at::date > CURRENT_DATE - INTERVAL '7 days'
+            """)
             signups_7d = cur.fetchone()["total"]
             
             # Total AI calls today
-            cur.execute("SELECT COALESCE(SUM(call_count), 0) AS total FROM ai_usage WHERE date = CURRENT_DATE")
+            cur.execute("SELECT COALESCE(SUM(call_count), 0) AS total FROM ai_usage WHERE date = CURRENT_DATE::text")
             ai_calls_today = cur.fetchone()["total"]
             
             # Total AI calls this week
-            cur.execute("SELECT COALESCE(SUM(call_count), 0) AS total FROM ai_usage WHERE date > CURRENT_DATE - INTERVAL '7 days'")
+            cur.execute("""
+                SELECT COALESCE(SUM(call_count), 0) AS total FROM ai_usage 
+                WHERE date != '' AND date::date > CURRENT_DATE - INTERVAL '7 days'
+            """)
             ai_calls_7d = cur.fetchone()["total"]
             
             # Paid subscriptions
@@ -1601,7 +1814,7 @@ class AdminService:
             cur.execute("""
                 SELECT created_at::date AS date, COUNT(*) AS count
                 FROM users
-                WHERE created_at::date > CURRENT_DATE - INTERVAL '30 days'
+                WHERE created_at != '' AND created_at::date > CURRENT_DATE - INTERVAL '30 days'
                 GROUP BY created_at::date
                 ORDER BY date
             """)
@@ -1611,7 +1824,7 @@ class AdminService:
             cur.execute("""
                 SELECT last_active::date AS date, COUNT(*) AS count
                 FROM users
-                WHERE last_active::date > CURRENT_DATE - INTERVAL '30 days'
+                WHERE last_active != '' AND last_active::date > CURRENT_DATE - INTERVAL '30 days'
                 GROUP BY last_active::date
                 ORDER BY date
             """)

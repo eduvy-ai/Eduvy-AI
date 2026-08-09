@@ -23,9 +23,9 @@ router = APIRouter(prefix="/chapters", tags=["Chapters"])
 
 @router.get("", response_model=List[ChapterResponse])
 async def list_chapters(
-    board: Optional[str] = Query(None, description="Filter by board (e.g., CBSE)"),
-    standard: Optional[str] = Query(None, description="Filter by standard (e.g., Class 6)"),
-    subject: Optional[str] = Query(None, description="Filter by subject (e.g., Science)"),
+    board_id: Optional[str] = Query(None, description="Filter by board ID (FK to boards.id)"),
+    standard_id: Optional[str] = Query(None, description="Filter by standard ID (FK to standards.id)"),
+    subject_id: Optional[str] = Query(None, description="Filter by subject ID (FK to subjects.id)"),
     is_active: bool = Query(True, description="Filter by active status"),
 ):
     """
@@ -34,34 +34,34 @@ async def list_chapters(
     """
     return await asyncio.to_thread(
         ChapterService.list_chapters,
-        board=board,
-        standard=standard,
-        subject=subject,
+        board_id=board_id,
+        standard_id=standard_id,
+        subject_id=subject_id,
         is_active=is_active,
     )
 
 
 @router.get("/subjects")
 async def get_subjects_with_chapters(
-    board: str = Query(..., description="Education board"),
-    standard: str = Query(..., description="Class/grade"),
+    board_id: str = Query(..., description="Board ID (FK to boards.id)"),
+    standard_id: str = Query(..., description="Standard ID (FK to standards.id)"),
 ):
     """
     Get list of subjects with chapter counts for the Learn tab.
-    Returns: [{"subject": "Science", "chapter_count": 15}, ...]
+    Returns: [{"subject_id": "math", "subject_name": "Mathematics", "chapter_count": 15}, ...]
     """
     return await asyncio.to_thread(
         ChapterService.get_subjects_with_chapters,
-        board=board,
-        standard=standard,
+        board_id=board_id,
+        standard_id=standard_id,
     )
 
 
 @router.get("/with-progress", response_model=List[ChapterWithProgress])
 async def get_chapters_with_progress(
-    board: str = Query(..., description="Education board"),
-    standard: str = Query(..., description="Class/grade"),
-    subject: str = Query(..., description="Subject name"),
+    board_id: str = Query(..., description="Board ID (FK to boards.id)"),
+    standard_id: str = Query(..., description="Standard ID (FK to standards.id)"),
+    subject_id: str = Query(..., description="Subject ID (FK to subjects.id)"),
     user_id: str = Depends(get_current_user),
 ):
     """
@@ -71,9 +71,9 @@ async def get_chapters_with_progress(
     return await asyncio.to_thread(
         ChapterService.get_chapters_with_progress,
         user_id=user_id,
-        board=board,
-        standard=standard,
-        subject=subject,
+        board_id=board_id,
+        standard_id=standard_id,
+        subject_id=subject_id,
     )
 
 

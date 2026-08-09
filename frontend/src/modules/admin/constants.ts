@@ -14,10 +14,11 @@ export const ADMIN_ENDPOINTS = {
   login: '/api/admin/login',
   me: '/api/admin/me',
   
-  // Curriculum
+  // Academics
   boards: '/api/admin/boards',
   standards: '/api/admin/standards',
   mediums: '/api/admin/mediums',
+  subjects: '/api/admin/subjects',
   curriculum: '/api/admin/curriculum',
   chapters: '/api/chapters',
   
@@ -72,8 +73,8 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
       { key: 'boards', label: 'Boards', path: '/admin/academics/boards' },
       { key: 'standards', label: 'Standards', path: '/admin/academics/standards' },
       { key: 'mediums', label: 'Mediums', path: '/admin/academics/mediums' },
+      { key: 'subjects', label: 'Subjects', path: '/admin/academics/subjects' },
       { key: 'chapters', label: 'Chapters', path: '/admin/academics/chapters' },
-      { key: 'curriculum', label: 'Curriculum', path: '/admin/academics/curriculum' },
     ],
   },
   {
@@ -95,6 +96,11 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     key: 'teachers',
     label: 'Teachers',
     icon: 'Chalkboard',
+    children: [
+      { key: 'all-teachers', label: 'All Teachers', path: '/admin/teachers/list' },
+      { key: 'assignments', label: 'Assignments', path: '/admin/teachers/assignments' },
+      { key: 'performance', label: 'Performance', path: '/admin/teachers/performance' },
+    ],
   },
   {
     key: 'parents',

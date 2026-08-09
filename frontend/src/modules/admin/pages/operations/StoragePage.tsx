@@ -2,7 +2,8 @@
 // Monitor R2 cloud storage usage
 
 import React, { useEffect, useState, useCallback } from 'react'
-import { adminApi } from '../../api'
+import { adminApi, type StorageStats } from '../../api'
+import Loader from '../../../../shared/components/Loader'
 import {
   HardDrive,
   CloudArrowUp,
@@ -11,19 +12,10 @@ import {
   ArrowClockwise,
   Info,
   XCircle,
+  Folder,
+  User,
+  File,
 } from '@phosphor-icons/react'
-
-interface StorageStats {
-  configured: boolean
-  message?: string
-  total_gb?: number
-  limit_gb?: number
-  usage_percent?: number
-  remaining_gb?: number
-  is_warning?: boolean
-  is_limit_reached?: boolean
-  files_count?: number
-}
 
 const StoragePage: React.FC = () => {
   const [stats, setStats] = useState<StorageStats | null>(null)
@@ -35,17 +27,7 @@ const StoragePage: React.FC = () => {
     setError('')
     try {
       const result = await adminApi.storage.getStats()
-      // Backend returns different structure, normalize it
-      setStats({
-        configured: true,
-        total_gb: result.used_gb,
-        limit_gb: result.limit_gb,
-        usage_percent: result.limit_gb > 0 ? (result.used_gb / result.limit_gb) * 100 : 0,
-        remaining_gb: result.limit_gb - result.used_gb,
-        is_warning: (result.used_gb / result.limit_gb) > 0.8,
-        is_limit_reached: result.used_gb >= result.limit_gb,
-        files_count: result.files_count,
-      })
+      setStats(result)
     } catch (err: any) {
       // Check if R2 is not configured
       if (err.response?.data?.configured === false) {
@@ -68,7 +50,7 @@ const StoragePage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin w-8 h-8 border-2 border-app-green border-t-transparent rounded-full" />
+        <Loader size="lg" />
       </div>
     )
   }
@@ -214,7 +196,7 @@ const StoragePage: React.FC = () => {
           iconColor="text-app-purple"
           iconBg="bg-app-purple/10"
           label="Total Used"
-          value={`${stats?.total_gb?.toFixed(2) || 0} GB`}
+          value={`${stats?.total_gb?.toFixed(3) || 0} GB`}
         />
         <StatCard
           icon={<CloudArrowUp size={24} />}
@@ -224,19 +206,110 @@ const StoragePage: React.FC = () => {
           value={`${stats?.remaining_gb?.toFixed(2) || 0} GB`}
         />
         <StatCard
-          icon={<Info size={24} />}
+          icon={<File size={24} />}
           iconColor="text-app-blue"
           iconBg="bg-app-blue/10"
           label="Files Stored"
-          value={stats?.files_count?.toLocaleString() || '—'}
+          value={stats?.file_count?.toLocaleString() || '0'}
         />
         <StatCard
           icon={<CheckCircle size={24} />}
           iconColor="text-app-cyan"
           iconBg="bg-app-cyan/10"
           label="Storage Limit"
-          value={`${stats?.limit_gb || 10} GB`}
+          value={`${stats?.limit_gb || 5} GB`}
         />
+      </div>
+
+      {/* Category Breakdown & Top Users */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* By Category */}
+        <div className="bg-app-card rounded-xl border border-app-border p-6">
+          <h3 className="text-lg font-bold text-app-text mb-4 flex items-center gap-2">
+            <Folder size={20} className="text-app-purple" />
+            Storage by Category
+          </h3>
+          {stats?.by_category && Object.keys(stats.by_category).length > 0 ? (
+            <div className="space-y-3">
+              {Object.entries(stats.by_category)
+                .sort((a, b) => b[1].bytes - a[1].bytes)
+                .map(([category, data]) => {
+                  const totalBytes = stats.total_bytes || 1
+                  const percentage = (data.bytes / totalBytes) * 100
+                  return (
+                    <div key={category}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-app-text capitalize">{category.replace(/_/g, ' ')}</span>
+                        <span className="text-xs text-app-muted">
+                          {formatBytes(data.bytes)} · {data.count} files
+                        </span>
+                      </div>
+                      <div className="h-2 bg-app-card2 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-app-purple/60 rounded-full"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-app-muted text-sm">
+              <Folder size={32} className="mx-auto mb-2 opacity-50" />
+              No files stored yet
+            </div>
+          )}
+        </div>
+
+        {/* Top Users */}
+        <div className="bg-app-card rounded-xl border border-app-border p-6">
+          <h3 className="text-lg font-bold text-app-text mb-4 flex items-center gap-2">
+            <User size={20} className="text-app-blue" />
+            Top Users by Storage
+          </h3>
+          {stats?.top_users && stats.top_users.length > 0 ? (
+            <div className="space-y-3">
+              {stats.top_users.map((user, idx) => {
+                const totalBytes = stats.total_bytes || 1
+                const percentage = (user.bytes / totalBytes) * 100
+                return (
+                  <div key={user.user_id} className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                      idx === 0 ? 'bg-app-yellow/20 text-app-yellow' :
+                      idx === 1 ? 'bg-gray-300/20 text-gray-300' :
+                      idx === 2 ? 'bg-app-orange/20 text-app-orange' :
+                      'bg-app-card2 text-app-muted'
+                    }`}>
+                      {idx + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-app-text truncate" title={user.user_id}>
+                          {user.user_id.slice(0, 8)}...
+                        </span>
+                        <span className="text-xs text-app-muted">
+                          {formatBytes(user.bytes)} · {user.count} files
+                        </span>
+                      </div>
+                      <div className="h-1.5 bg-app-card2 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-app-blue/60 rounded-full"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-app-muted text-sm">
+              <User size={32} className="mx-auto mb-2 opacity-50" />
+              No user data available
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Info Note */}
@@ -244,11 +317,20 @@ const StoragePage: React.FC = () => {
         <p className="font-medium text-app-blue mb-1">About R2 Storage</p>
         <p>
           Files are stored in Cloudflare R2 for fast global delivery. Audio files, images, and other
-          media are automatically uploaded here. The 10GB limit is enforced to control costs.
+          media are automatically uploaded here. The {stats?.limit_gb || 5}GB limit is enforced to control costs.
         </p>
       </div>
     </div>
   )
+}
+
+// Format bytes to human readable
+const formatBytes = (bytes: number): string => {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`
 }
 
 // Stat Card Component

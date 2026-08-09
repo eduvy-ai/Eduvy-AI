@@ -5,6 +5,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { adminApi } from '../../api'
 import type { RevenueAnalytics } from '../../types'
 import { PLAN_LABELS } from '../../constants'
+import Loader from '../../../../shared/components/Loader'
 import {
   CurrencyDollar,
   Crown,
@@ -39,7 +40,7 @@ const RevenuePage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin w-8 h-8 border-2 border-app-green border-t-transparent rounded-full" />
+        <Loader size="lg" />
       </div>
     )
   }

@@ -2,6 +2,7 @@
 // Toggle feature flags for the application
 
 import React, { useEffect, useState, useCallback } from 'react'
+import Loader from '../../../../shared/components/Loader'
 import {
   ToggleLeft,
   ToggleRight,
@@ -250,7 +251,7 @@ const FeaturesPage: React.FC = () => {
       <div className="space-y-3">
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <div className="animate-spin w-8 h-8 border-2 border-app-green border-t-transparent rounded-full" />
+            <Loader size="lg" />
           </div>
         ) : filteredFeatures.length === 0 ? (
           <div className="text-center py-12 text-app-muted">

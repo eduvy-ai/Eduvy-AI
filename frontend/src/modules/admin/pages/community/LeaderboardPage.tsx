@@ -4,6 +4,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { adminApi } from '../../api'
 import type { StudentAnalytics } from '../../types'
+import Loader from '../../../../shared/components/Loader'
 import {
   Trophy,
   Medal,
@@ -241,7 +242,7 @@ const LeaderboardPage: React.FC = () => {
               <tr>
                 <td colSpan={6} className="p-8 text-center">
                   <div className="flex justify-center">
-                    <div className="animate-spin w-6 h-6 border-2 border-app-green border-t-transparent rounded-full" />
+                    <Loader size="md" />
                   </div>
                 </td>
               </tr>

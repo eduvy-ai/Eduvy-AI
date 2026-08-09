@@ -17,12 +17,16 @@ import {
   fetchBoards,
   fetchStandards,
   fetchMediums,
+  fetchSubjects,
   fetchCurriculum,
   fetchChapters,
   fetchStudents,
   fetchHelpers,
   fetchAIConfig,
   fetchAIUsage,
+  fetchQuestions,
+  fetchMedia,
+  fetchAssessments,
   addBoard,
   updateBoard,
   removeBoard,
@@ -67,9 +71,12 @@ import type {
  */
 export const useAdminAuth = () => {
   const dispatch = useDispatch<AppDispatch>()
-  const { user, token, isAuthenticated, isLoading, isInitialized, error } = useSelector(
-    (state: RootState) => state.admin
-  )
+  const user = useSelector((state: RootState) => state.admin.user)
+  const token = useSelector((state: RootState) => state.admin.token)
+  const isAuthenticated = useSelector((state: RootState) => state.admin.isAuthenticated)
+  const isLoading = useSelector((state: RootState) => state.admin.isLoading)
+  const isInitialized = useSelector((state: RootState) => state.admin.isInitialized)
+  const error = useSelector((state: RootState) => state.admin.error)
 
   const handleLogin = useCallback(
     (credentials: AdminLoginRequest) => dispatch(adminLogin(credentials)),
@@ -149,9 +156,9 @@ export const useCanEdit = (section: AdminSection): boolean => {
  */
 export const useAdminUI = () => {
   const dispatch = useDispatch<AppDispatch>()
-  const { activeSection, sidebarCollapsed, searchQuery } = useSelector(
-    (state: RootState) => state.admin
-  )
+  const activeSection = useSelector((state: RootState) => state.admin.activeSection)
+  const sidebarCollapsed = useSelector((state: RootState) => state.admin.sidebarCollapsed)
+  const searchQuery = useSelector((state: RootState) => state.admin.searchQuery)
 
   const handleSetSection = useCallback(
     (section: AdminSection) => dispatch(setActiveSection(section)),
@@ -258,6 +265,25 @@ export const useMediums = () => {
 }
 
 /**
+ * Subjects data hook
+ */
+export const useSubjects = () => {
+  const dispatch = useDispatch<AppDispatch>()
+  const subjects = useSelector((state: RootState) => state.admin.subjects)
+
+  const fetch = useCallback(
+    (filters?: { board_id?: string; standard_id?: string }) =>
+      dispatch(fetchSubjects(filters)),
+    [dispatch]
+  )
+
+  return {
+    subjects,
+    fetchSubjects: fetch,
+  }
+}
+
+/**
  * Curriculum data hook
  */
 export const useCurriculum = () => {
@@ -293,7 +319,7 @@ export const useChapters = () => {
   const chapters = useSelector((state: RootState) => state.admin.chapters)
 
   const fetch = useCallback(
-    (filters?: { board?: string; standard?: string; subject?: string }) =>
+    (filters?: { board_id?: string; standard_id?: string; subject_id?: string }) =>
       dispatch(fetchChapters(filters)),
     [dispatch]
   )
@@ -370,7 +396,9 @@ export const useHelpers = () => {
  */
 export const useAIConfig = () => {
   const dispatch = useDispatch<AppDispatch>()
-  const { aiRouting, aiKeySlots, aiUsage } = useSelector((state: RootState) => state.admin)
+  const aiRouting = useSelector((state: RootState) => state.admin.aiRouting)
+  const aiKeySlots = useSelector((state: RootState) => state.admin.aiKeySlots)
+  const aiUsage = useSelector((state: RootState) => state.admin.aiUsage)
 
   const fetchConfig = useCallback(() => dispatch(fetchAIConfig()), [dispatch])
 
@@ -389,11 +417,108 @@ export const useAIConfig = () => {
  * Dashboard stats hook (placeholder - to be expanded)
  */
 export const useDashboardStats = () => {
-  const { dashboardStats, platformHealth } = useSelector((state: RootState) => state.admin)
+  const dashboardStats = useSelector((state: RootState) => state.admin.dashboardStats)
+  const platformHealth = useSelector((state: RootState) => state.admin.platformHealth)
 
   return {
     stats: dashboardStats,
     health: platformHealth,
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// Content Studio Hooks
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * Questions data hook
+ */
+export const useQuestions = () => {
+  const dispatch = useDispatch<AppDispatch>()
+  const questions = useSelector((state: RootState) => state.admin.questions)
+  const questionsTotal = useSelector((state: RootState) => state.admin.questionsTotal)
+  const isLoading = useSelector((state: RootState) => state.admin.isLoading)
+
+  const fetch = useCallback(
+    (params?: {
+      chapter_id?: number
+      subject_id?: string
+      type?: string
+      difficulty?: string
+      search?: string
+      is_active?: boolean
+      limit?: number
+      offset?: number
+    }) => dispatch(fetchQuestions(params || {})),
+    [dispatch]
+  )
+
+  return {
+    questions,
+    total: questionsTotal,
+    isLoading,
+    fetchQuestions: fetch,
+  }
+}
+
+/**
+ * Media data hook
+ */
+export const useMedia = () => {
+  const dispatch = useDispatch<AppDispatch>()
+  const media = useSelector((state: RootState) => state.admin.media)
+  const mediaTotal = useSelector((state: RootState) => state.admin.mediaTotal)
+  const isLoading = useSelector((state: RootState) => state.admin.isLoading)
+
+  const fetch = useCallback(
+    (params?: {
+      type?: string
+      chapter_id?: number
+      subject_id?: string
+      search?: string
+      limit?: number
+      offset?: number
+    }) => dispatch(fetchMedia(params || {})),
+    [dispatch]
+  )
+
+  return {
+    media,
+    total: mediaTotal,
+    isLoading,
+    fetchMedia: fetch,
+  }
+}
+
+/**
+ * Assessments data hook
+ */
+export const useAssessments = () => {
+  const dispatch = useDispatch<AppDispatch>()
+  const assessments = useSelector((state: RootState) => state.admin.assessments)
+  const assessmentsTotal = useSelector((state: RootState) => state.admin.assessmentsTotal)
+  const isLoading = useSelector((state: RootState) => state.admin.isLoading)
+
+  const fetch = useCallback(
+    (params?: {
+      board_id?: string
+      standard_id?: string
+      subject_id?: string
+      chapter_id?: number
+      type?: string
+      status?: string
+      search?: string
+      limit?: number
+      offset?: number
+    }) => dispatch(fetchAssessments(params || {})),
+    [dispatch]
+  )
+
+  return {
+    assessments,
+    total: assessmentsTotal,
+    isLoading,
+    fetchAssessments: fetch,
   }
 }
 

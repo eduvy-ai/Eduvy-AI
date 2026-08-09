@@ -9,7 +9,7 @@ from jose import JWTError, jwt
 
 from app.modules.admin.schemas import (
     AdminLoginRequest, AdminSetupRequest,
-    BoardUpsert, StandardUpsert, MediumUpsert,
+    BoardUpsert, StandardUpsert, MediumUpsert, SubjectUpsert,
     CurriculumRow, CurriculumUpdate, CurriculumImport,
     UserPlanUpdate, UserAIConfig, CreateDrishtiStudent,
     AIRoutingUpdate, AIKeyUpsert,
@@ -170,7 +170,47 @@ async def bulk_delete_mediums(data: BulkDeleteStr, admin_id: int = Depends(get_a
     return await asyncio.to_thread(AdminService.bulk_delete_mediums, data.ids)
 
 
-# ── Curriculum ────────────────────────────────────────────────
+# ── Subjects ──────────────────────────────────────────────────
+
+@router.get("/subjects")
+async def list_subjects(
+    board_id: str = Query(None),
+    standard_id: str = Query(None),
+    admin_id: int = Depends(get_admin_user),
+):
+    return await asyncio.to_thread(AdminService.list_subjects, board_id, standard_id)
+
+
+@router.post("/subjects", status_code=201)
+async def create_subject(data: SubjectUpsert, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(
+        AdminService.upsert_subject, data.id, data.name, data.board_id, data.standard_id, data.sort_order, data.is_active
+    )
+
+
+@router.put("/subjects/{subj_id}")
+async def update_subject(subj_id: str, data: SubjectUpsert, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(
+        AdminService.upsert_subject, subj_id, data.name, data.board_id, data.standard_id, data.sort_order, data.is_active
+    )
+
+
+@router.delete("/subjects/{subj_id}")
+async def delete_subject(subj_id: str, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.delete_subject, subj_id)
+
+
+@router.post("/subjects/import")
+async def import_subjects(rows: list = Body(...), admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.import_subjects, rows)
+
+
+@router.post("/subjects/bulk-delete")
+async def bulk_delete_subjects(data: BulkDeleteStr, admin_id: int = Depends(get_admin_user)):
+    return await asyncio.to_thread(AdminService.bulk_delete_subjects, data.ids)
+
+
+# ── Curriculum (deprecated) ───────────────────────────────────
 
 @router.get("/curriculum")
 async def list_curriculum(admin_id: int = Depends(get_admin_user)):
@@ -273,8 +313,9 @@ async def usage_summary(days: int = Query(7), admin_id: int = Depends(get_admin_
 
 
 @router.get("/usage/users")
-async def usage_by_date(date: str = Query(...), admin_id: int = Depends(get_admin_user)):
-    return await asyncio.to_thread(AdminService.get_usage_by_date, date)
+async def usage_by_users(days: int = Query(7), admin_id: int = Depends(get_admin_user)):
+    """Get top users by AI usage for the past N days."""
+    return await asyncio.to_thread(AdminService.get_usage_by_users, days)
 
 
 # ── AI Config ─────────────────────────────────────────────────

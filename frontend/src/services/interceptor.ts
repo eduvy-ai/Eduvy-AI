@@ -5,12 +5,16 @@ import axiosInstance from './axios'
 import { getAuthToken, clearAuth } from '../shared/utils/localStorage'
 
 // ── Request Interceptor ──
-// Automatically attach JWT token to all requests
+// Automatically attach JWT token to all requests (unless already set)
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = getAuthToken()
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+    // Only add user token if Authorization header is not already set
+    // This allows admin API calls to use their own token
+    if (!config.headers.Authorization) {
+      const token = getAuthToken()
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
     }
     return config
   },
@@ -26,11 +30,16 @@ axiosInstance.interceptors.response.use(
     return response
   },
   (error) => {
-    // Handle 401 Unauthorized - clear auth and redirect to login
+    // Handle 401 Unauthorized - only clear user auth, not admin auth
+    // Admin API calls should handle their own 401 errors
     if (error.response?.status === 401) {
-      clearAuth()
-      // Dispatch event so App can handle redirect
-      window.dispatchEvent(new CustomEvent('auth:logout'))
+      const url = error.config?.url || ''
+      // Only clear user auth for non-admin routes
+      if (!url.includes('/api/admin/')) {
+        clearAuth()
+        // Dispatch event so App can handle redirect
+        window.dispatchEvent(new CustomEvent('auth:logout'))
+      }
     }
 
     // Handle network errors

@@ -3,6 +3,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react'
 import Pagination from '../../../../shared/components/Pagination'
+import Loader from '../../../../shared/components/Loader'
 import {
   Lightning,
   Clock,
@@ -242,7 +243,7 @@ const JobsPage: React.FC = () => {
               <tr>
                 <td colSpan={7} className="p-8 text-center">
                   <div className="flex justify-center">
-                    <div className="animate-spin w-6 h-6 border-2 border-app-green border-t-transparent rounded-full" />
+                    <Loader size="md" />
                   </div>
                 </td>
               </tr>

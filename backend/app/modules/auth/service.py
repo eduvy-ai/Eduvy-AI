@@ -91,6 +91,8 @@ class AuthService:
         Also checks admin_users table — if admin, returns is_admin flag.
         Returns: {"token": str, "profile": dict, "is_admin"?: bool}
         """
+        from datetime import date
+        
         email = email.strip().lower()
         
         # Generic error message to prevent user enumeration
@@ -101,6 +103,10 @@ class AuthService:
         if user:
             if not user.get("password_hash") or not verify_password(password, user["password_hash"]):
                 raise HTTPException(status_code=401, detail=INVALID)
+            
+            # Update last_active on login
+            db.users.update(user["id"], {"last_active": date.today().isoformat()})
+            
             token = create_token(user["id"])
             user.pop("password_hash", None)
             return {"token": token, "profile": user}

@@ -11,6 +11,7 @@ import type {
   Board,
   Standard,
   Medium,
+  Subject,
   CurriculumEntry,
   Chapter,
   StudentUser,
@@ -27,6 +28,15 @@ import type {
   AnalyticsOverview,
   StudentAnalytics,
   RevenueAnalytics,
+  Question,
+  QuestionCreate,
+  QuestionUpdate,
+  MediaFile,
+  MediaCreate,
+  Assessment,
+  AssessmentCreate,
+  AssessmentUpdate,
+  PaginatedResponse,
 } from './types'
 
 // ── Helper: Get admin token ──
@@ -206,6 +216,51 @@ export const mediumsApi = {
   },
 }
 
+// ── Subject APIs ──
+export const subjectsApi = {
+  getAll: async (filters?: { board_id?: string; standard_id?: string }): Promise<Subject[]> => {
+    const params = new URLSearchParams()
+    if (filters?.board_id) params.append('board_id', filters.board_id)
+    if (filters?.standard_id) params.append('standard_id', filters.standard_id)
+    
+    const url = params.toString() ? `${ADMIN_ENDPOINTS.subjects}?${params}` : ADMIN_ENDPOINTS.subjects
+    const response = await axiosInstance.get<Subject[]>(url, adminConfig())
+    return response.data
+  },
+
+  create: async (data: Subject): Promise<Subject> => {
+    const response = await axiosInstance.post<Subject>(ADMIN_ENDPOINTS.subjects, data, adminConfig())
+    return response.data
+  },
+
+  update: async (id: string, data: Partial<Subject>): Promise<Subject> => {
+    const response = await axiosInstance.put<Subject>(`${ADMIN_ENDPOINTS.subjects}/${id}`, data, adminConfig())
+    return response.data
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await axiosInstance.delete(`${ADMIN_ENDPOINTS.subjects}/${id}`, adminConfig())
+  },
+
+  bulkImport: async (subjects: Subject[]): Promise<{ imported: number }> => {
+    const response = await axiosInstance.post<{ imported: number }>(
+      `${ADMIN_ENDPOINTS.subjects}/import`,
+      subjects,
+      adminConfig()
+    )
+    return response.data
+  },
+
+  bulkDelete: async (ids: string[]): Promise<{ deleted: number }> => {
+    const response = await axiosInstance.post<{ deleted: number }>(
+      `${ADMIN_ENDPOINTS.subjects}/bulk-delete`,
+      { ids },
+      adminConfig()
+    )
+    return response.data
+  },
+}
+
 // ── Curriculum APIs ──
 export const curriculumApi = {
   getAll: async (filters?: { board_id?: string; standard_id?: string; medium_id?: string }): Promise<CurriculumEntry[]> => {
@@ -254,11 +309,11 @@ export const curriculumApi = {
 
 // ── Chapter APIs ──
 export const chaptersApi = {
-  getAll: async (filters?: { board?: string; standard?: string; subject?: string }): Promise<Chapter[]> => {
+  getAll: async (filters?: { board_id?: string; standard_id?: string; subject_id?: string }): Promise<Chapter[]> => {
     const params = new URLSearchParams()
-    if (filters?.board) params.append('board', filters.board)
-    if (filters?.standard) params.append('standard', filters.standard)
-    if (filters?.subject) params.append('subject', filters.subject)
+    if (filters?.board_id) params.append('board_id', filters.board_id)
+    if (filters?.standard_id) params.append('standard_id', filters.standard_id)
+    if (filters?.subject_id) params.append('subject_id', filters.subject_id)
     
     const url = params.toString() ? `${ADMIN_ENDPOINTS.chapters}?${params}` : ADMIN_ENDPOINTS.chapters
     const response = await axiosInstance.get<Chapter[]>(url, adminConfig())
@@ -416,17 +471,65 @@ export const helpersApi = {
 }
 
 // ── AI Configuration APIs ──
+
+// Backend response types (what the server actually returns)
+interface BackendAIConfigResponse {
+  routing: Record<string, { provider: string; model: string }>
+  key_status: Record<string, boolean>
+  key_slots: Record<string, {
+    db_slots: Record<string, boolean>
+    db_hints: Record<string, string>
+    env_count: number
+    pool_size: number
+  }>
+}
+
 export const aiConfigApi = {
   getConfig: async (): Promise<{ routing: AIRouting[]; keys: AIKeySlot[] }> => {
-    const response = await axiosInstance.get<{ routing: AIRouting[]; keys: AIKeySlot[] }>(
+    const response = await axiosInstance.get<BackendAIConfigResponse>(
       ADMIN_ENDPOINTS.aiConfig,
       adminConfig()
     )
-    return response.data
+    
+    // Transform backend format to frontend format
+    const data = response.data
+    
+    // Transform routing dict to array
+    const routing: AIRouting[] = Object.entries(data.routing || {}).map(([plan, config]) => ({
+      plan,
+      provider: config.provider,
+      model: config.model,
+    }))
+    
+    // Transform key_slots to flat array
+    const keys: AIKeySlot[] = []
+    for (const [provider, slots] of Object.entries(data.key_slots || {})) {
+      for (const [slotStr, isActive] of Object.entries(slots.db_slots || {})) {
+        const slot = parseInt(slotStr)
+        const maskedKey = slots.db_hints?.[slotStr] || ''
+        if (isActive || maskedKey) {
+          keys.push({
+            provider,
+            slot,
+            masked_key: maskedKey,
+            is_active: isActive,
+          })
+        }
+      }
+    }
+    
+    return { routing, keys }
   },
 
   updateRouting: async (routing: AIRouting[]): Promise<void> => {
-    await axiosInstance.put(`${ADMIN_ENDPOINTS.aiConfig}/routing`, { routing }, adminConfig())
+    // Send each routing update individually (backend expects single plan updates)
+    for (const route of routing) {
+      await axiosInstance.put(ADMIN_ENDPOINTS.aiConfig, {
+        plan: route.plan,
+        provider: route.provider,
+        model: route.model,
+      }, adminConfig())
+    }
   },
 
   addKey: async (provider: string, slot: number, key: string): Promise<void> => {
@@ -438,8 +541,11 @@ export const aiConfigApi = {
   },
 
   getModels: async (provider: string): Promise<string[]> => {
-    const response = await axiosInstance.get<string[]>(`${ADMIN_ENDPOINTS.aiModels}/${provider}`, adminConfig())
-    return response.data
+    const response = await axiosInstance.get<{ provider: string; models: string[] }>(
+      `${ADMIN_ENDPOINTS.aiModels}/${provider}`,
+      adminConfig()
+    )
+    return response.data.models
   },
 
   getDashboard: async (fromDate?: string, toDate?: string): Promise<any> => {
@@ -463,25 +569,44 @@ export const aiUsageApi = {
     return response.data
   },
 
-  getUserUsage: async (date?: string): Promise<AIUserUsage[]> => {
-    const url = date ? `${ADMIN_ENDPOINTS.usageUsers}?date=${date}` : ADMIN_ENDPOINTS.usageUsers
-    const response = await axiosInstance.get<AIUserUsage[]>(url, adminConfig())
+  getUserUsage: async (days: number = 7): Promise<AIUserUsage[]> => {
+    const response = await axiosInstance.get<AIUserUsage[]>(
+      `${ADMIN_ENDPOINTS.usageUsers}?days=${days}`,
+      adminConfig()
+    )
     return response.data
   },
 }
 
 // ── Storage APIs ──
+export interface StorageStats {
+  configured: boolean
+  message?: string
+  total_bytes?: number
+  total_gb?: number
+  limit_bytes?: number
+  limit_gb?: number
+  usage_percent?: number
+  remaining_bytes?: number
+  remaining_gb?: number
+  file_count?: number
+  by_category?: Record<string, { bytes: number; count: number }>
+  top_users?: { user_id: string; bytes: number; count: number }[]
+  is_limit_reached?: boolean
+  is_warning?: boolean
+}
+
 export const storageApi = {
-  getStats: async (): Promise<{ used_gb: number; limit_gb: number; files_count: number }> => {
-    const response = await axiosInstance.get<{ used_gb: number; limit_gb: number; files_count: number }>(
+  getStats: async (): Promise<StorageStats> => {
+    const response = await axiosInstance.get<StorageStats>(
       ADMIN_ENDPOINTS.storageStats,
       adminConfig()
     )
     return response.data
   },
 
-  getHealth: async (): Promise<{ status: string; latency_ms: number }> => {
-    const response = await axiosInstance.get<{ status: string; latency_ms: number }>(
+  getHealth: async (): Promise<{ status: string; can_upload: boolean; usage_percent?: number; remaining_gb?: number; message?: string }> => {
+    const response = await axiosInstance.get<{ status: string; can_upload: boolean; usage_percent?: number; remaining_gb?: number; message?: string }>(
       ADMIN_ENDPOINTS.storageHealth
     )
     return response.data
@@ -609,11 +734,181 @@ export const analyticsApi = {
 }
 
 // ── Export all APIs ──
+// ── Questions APIs ──
+export interface QuestionListParams {
+  chapter_id?: number
+  subject_id?: string
+  type?: string
+  difficulty?: string
+  search?: string
+  is_active?: boolean
+  limit?: number
+  offset?: number
+}
+
+export const questionsApi = {
+  getAll: async (params: QuestionListParams = {}): Promise<PaginatedResponse<Question>> => {
+    const response = await axiosInstance.get<PaginatedResponse<Question>>(
+      '/api/admin/questions',
+      { ...adminConfig(), params }
+    )
+    return response.data
+  },
+
+  getById: async (id: string): Promise<Question> => {
+    const response = await axiosInstance.get<Question>(`/api/admin/questions/${id}`, adminConfig())
+    return response.data
+  },
+
+  create: async (data: QuestionCreate): Promise<Question> => {
+    const response = await axiosInstance.post<Question>('/api/admin/questions', data, adminConfig())
+    return response.data
+  },
+
+  update: async (id: string, data: QuestionUpdate): Promise<Question> => {
+    const response = await axiosInstance.put<Question>(`/api/admin/questions/${id}`, data, adminConfig())
+    return response.data
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await axiosInstance.delete(`/api/admin/questions/${id}`, adminConfig())
+  },
+
+  bulkImport: async (questions: QuestionCreate[]): Promise<{ created: number }> => {
+    const response = await axiosInstance.post<{ created: number }>(
+      '/api/admin/questions/bulk',
+      { questions },
+      adminConfig()
+    )
+    return response.data
+  },
+
+  bulkDelete: async (ids: string[]): Promise<{ deleted: number }> => {
+    const response = await axiosInstance.post<{ deleted: number }>(
+      '/api/admin/questions/bulk-delete',
+      { ids },
+      adminConfig()
+    )
+    return response.data
+  },
+}
+
+// ── Media APIs ──
+export interface MediaListParams {
+  type?: string
+  chapter_id?: number
+  subject_id?: string
+  search?: string
+  limit?: number
+  offset?: number
+}
+
+export const mediaApi = {
+  getAll: async (params: MediaListParams = {}): Promise<PaginatedResponse<MediaFile>> => {
+    const response = await axiosInstance.get<PaginatedResponse<MediaFile>>(
+      '/api/admin/media',
+      { ...adminConfig(), params }
+    )
+    return response.data
+  },
+
+  getById: async (id: string): Promise<MediaFile> => {
+    const response = await axiosInstance.get<MediaFile>(`/api/admin/media/${id}`, adminConfig())
+    return response.data
+  },
+
+  create: async (data: MediaCreate): Promise<MediaFile> => {
+    const response = await axiosInstance.post<MediaFile>('/api/admin/media', data, adminConfig())
+    return response.data
+  },
+
+  update: async (id: string, data: Partial<MediaCreate>): Promise<MediaFile> => {
+    const response = await axiosInstance.put<MediaFile>(`/api/admin/media/${id}`, data, adminConfig())
+    return response.data
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await axiosInstance.delete(`/api/admin/media/${id}`, adminConfig())
+  },
+
+  bulkDelete: async (ids: string[]): Promise<{ deleted: number }> => {
+    const response = await axiosInstance.post<{ deleted: number }>(
+      '/api/admin/media/bulk-delete',
+      { ids },
+      adminConfig()
+    )
+    return response.data
+  },
+}
+
+// ── Assessments APIs ──
+export interface AssessmentListParams {
+  board_id?: string
+  standard_id?: string
+  subject_id?: string
+  chapter_id?: number
+  type?: string
+  status?: string
+  search?: string
+  limit?: number
+  offset?: number
+}
+
+export const assessmentsApi = {
+  getAll: async (params: AssessmentListParams = {}): Promise<PaginatedResponse<Assessment>> => {
+    const response = await axiosInstance.get<PaginatedResponse<Assessment>>(
+      '/api/admin/assessments',
+      { ...adminConfig(), params }
+    )
+    return response.data
+  },
+
+  getById: async (id: number): Promise<Assessment> => {
+    const response = await axiosInstance.get<Assessment>(`/api/admin/assessments/${id}`, adminConfig())
+    return response.data
+  },
+
+  create: async (data: AssessmentCreate): Promise<Assessment> => {
+    const response = await axiosInstance.post<Assessment>('/api/admin/assessments', data, adminConfig())
+    return response.data
+  },
+
+  update: async (id: number, data: AssessmentUpdate): Promise<Assessment> => {
+    const response = await axiosInstance.put<Assessment>(`/api/admin/assessments/${id}`, data, adminConfig())
+    return response.data
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await axiosInstance.delete(`/api/admin/assessments/${id}`, adminConfig())
+  },
+
+  publish: async (id: number): Promise<Assessment> => {
+    const response = await axiosInstance.post<Assessment>(`/api/admin/assessments/${id}/publish`, {}, adminConfig())
+    return response.data
+  },
+
+  archive: async (id: number): Promise<Assessment> => {
+    const response = await axiosInstance.post<Assessment>(`/api/admin/assessments/${id}/archive`, {}, adminConfig())
+    return response.data
+  },
+
+  bulkDelete: async (ids: number[]): Promise<{ deleted: number }> => {
+    const response = await axiosInstance.post<{ deleted: number }>(
+      '/api/admin/assessments/bulk-delete',
+      { ids },
+      adminConfig()
+    )
+    return response.data
+  },
+}
+
+// ── Combined Admin API ──
 export const adminApi = {
   auth: adminAuthApi,
   boards: boardsApi,
   standards: standardsApi,
   mediums: mediumsApi,
+  subjects: subjectsApi,
   curriculum: curriculumApi,
   chapters: chaptersApi,
   users: usersApi,
@@ -623,6 +918,9 @@ export const adminApi = {
   storage: storageApi,
   community: communityApi,
   analytics: analyticsApi,
+  questions: questionsApi,
+  media: mediaApi,
+  assessments: assessmentsApi,
 }
 
 export default adminApi

@@ -385,6 +385,21 @@ def create_all_tables():
         )
     """)
 
+    # ── Subjects (per board+standard) ─────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS subjects (
+            id          TEXT PRIMARY KEY,
+            name        TEXT NOT NULL,
+            board_id    TEXT NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
+            standard_id TEXT NOT NULL REFERENCES standards(id) ON DELETE CASCADE,
+            sort_order  INTEGER DEFAULT 0,
+            is_active   BOOLEAN DEFAULT TRUE,
+            UNIQUE (board_id, standard_id, name)
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_subjects_board_std ON subjects(board_id, standard_id)")
+
+    # ── Curriculum (deprecated - kept for migration) ──────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS curriculum (
             id          SERIAL PRIMARY KEY,
@@ -401,9 +416,9 @@ def create_all_tables():
     cur.execute("""
         CREATE TABLE IF NOT EXISTS chapters (
             id              SERIAL PRIMARY KEY,
-            board           TEXT NOT NULL,
-            standard        TEXT NOT NULL,
-            subject         TEXT NOT NULL,
+            board_id        TEXT NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
+            standard_id     TEXT NOT NULL REFERENCES standards(id) ON DELETE CASCADE,
+            subject_id      TEXT NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
             chapter_number  INTEGER NOT NULL,
             chapter_name    TEXT NOT NULL,
             chapter_name_local TEXT DEFAULT '',
@@ -411,10 +426,10 @@ def create_all_tables():
             topics          TEXT DEFAULT '[]',
             is_active       BOOLEAN DEFAULT TRUE,
             created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE (board, standard, subject, chapter_number)
+            UNIQUE (board_id, standard_id, subject_id, chapter_number)
         )
     """)
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_chapters_lookup ON chapters(board, standard, subject)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_chapters_lookup ON chapters(board_id, standard_id, subject_id)")
     # Migration: add chapter_name_local if table already exists without it
     cur.execute("""DO $$ BEGIN
         ALTER TABLE chapters ADD COLUMN chapter_name_local TEXT DEFAULT '';

@@ -5,15 +5,20 @@
 
 export interface Chapter {
   id: number
-  board: string
-  standard: string
-  subject: string
+  board_id: string
+  standard_id: string
+  subject_id: string
   chapter_number: number
   chapter_name: string
+  chapter_name_local?: string
   description: string | null
   topics: string[]
   is_active: boolean
   created_at: string
+  // Joined names from FK tables
+  board_name?: string
+  standard_name?: string
+  subject_name?: string
 }
 
 export interface ChapterWithProgress extends Chapter {
@@ -24,16 +29,18 @@ export interface ChapterWithProgress extends Chapter {
 }
 
 export interface SubjectWithChapters {
-  subject: string
+  subject_id: string
+  subject_name: string
   chapter_count: number
 }
 
 export interface ChapterCreate {
-  board: string
-  standard: string
-  subject: string
+  board_id: string
+  standard_id: string
+  subject_id: string
   chapter_number: number
   chapter_name: string
+  chapter_name_local?: string
   description?: string
   topics?: string[]
   is_active?: boolean
@@ -47,9 +54,9 @@ export interface ChapterUpdate {
 }
 
 export interface ChapterListParams {
-  board?: string
-  standard?: string
-  subject?: string
+  board_id?: string
+  standard_id?: string
+  subject_id?: string
   is_active?: boolean
 }
 
