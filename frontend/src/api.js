@@ -860,6 +860,74 @@ export async function apiApplyReferralCode(code) {
   return data  // { success, xp_awarded, message }
 }
 
+// ── Schools ───────────────────────────────────────────────────
+
+export async function apiGetSchoolByCode(code) {
+  const res = await fetch(`${API_BASE_URL}/api/schools/code/${encodeURIComponent(code)}`, {
+    signal: AbortSignal.timeout(8000),
+  })
+  const data = await safeJson(res).catch(() => ({}))
+  if (!res.ok) throw new Error(data.detail || `Invalid school code`)
+  return data  // { name, city, is_active }
+}
+
+export async function apiJoinSchool(code) {
+  const res = await fetch(`${API_BASE_URL}/api/schools/join`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify({ school_code: code }),
+    signal: AbortSignal.timeout(10000),
+  })
+  const data = await safeJson(res).catch(() => ({}))
+  if (!res.ok) throw new Error(data.detail || `Failed to join school`)
+  return data  // { success, school_name, message }
+}
+
+// ── School Billing (Admin) ────────────────────────────────────
+
+export async function apiGetSchoolPlanPrices() {
+  const res = await fetch(`${API_BASE_URL}/api/payments/school-plans`, {
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return safeJson(res)  // { school_basic: {...}, school_pro: {...} }
+}
+
+export async function apiCreateSchoolPaymentOrder(schoolId, plan, adminToken) {
+  const res = await fetch(`${API_BASE_URL}/api/payments/school/create-order`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json', 
+      'Authorization': `Bearer ${adminToken}`,
+    },
+    body: JSON.stringify({ school_id: schoolId, plan }),
+    signal: AbortSignal.timeout(15000),
+  })
+  const data = await safeJson(res).catch(() => ({}))
+  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)
+  return data  // { order_id, amount, currency, key_id, plan, school_name }
+}
+
+export async function apiVerifySchoolPayment(schoolId, orderId, paymentId, signature, adminToken) {
+  const res = await fetch(`${API_BASE_URL}/api/payments/school/verify`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json', 
+      'Authorization': `Bearer ${adminToken}`,
+    },
+    body: JSON.stringify({ 
+      school_id: schoolId, 
+      razorpay_order_id: orderId, 
+      razorpay_payment_id: paymentId, 
+      razorpay_signature: signature,
+    }),
+    signal: AbortSignal.timeout(15000),
+  })
+  const data = await safeJson(res).catch(() => ({}))
+  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)
+  return data  // { success, plan, expires_at, student_limit }
+}
+
 // ── Payments (Razorpay) ───────────────────────────────────────
 
 export async function apiGetPlanPrices() {

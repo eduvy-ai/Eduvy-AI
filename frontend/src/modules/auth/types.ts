@@ -48,6 +48,7 @@ export interface AuthResponse {
   token: string
   profile: UserProfile
   is_admin?: boolean
+  must_change_password?: boolean
 }
 
 // ── Auth State ──
@@ -58,6 +59,7 @@ export interface AuthState {
   isLoading: boolean
   isInitialized: boolean
   error: string | null
+  mustChangePassword: boolean
 }
 
 // ── Default Values ──

@@ -5,6 +5,7 @@ import React, { useEffect } from 'react'
 import { useAuth } from './modules/auth/hooks'
 import AppRoutes from './routes'
 import Loader from './shared/components/Loader'
+import ChangePasswordModal from './modules/auth/components/ChangePasswordModal'
 import { GraduationCap } from '@phosphor-icons/react'
 
 const App: React.FC = () => {
@@ -38,7 +39,12 @@ const App: React.FC = () => {
     )
   }
 
-  return <AppRoutes />
+  return (
+    <>
+      <AppRoutes />
+      <ChangePasswordModal />
+    </>
+  )
 }
 
 export default App

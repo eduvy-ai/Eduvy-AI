@@ -1,11 +1,11 @@
 // ─── Students Management Page ──────────────────────────────────
 // View and manage student users
 
-import React, { useEffect, useState, useMemo, useRef } from 'react'
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { useStudents, useCanEdit } from '../../hooks'
-import { adminApi } from '../../api'
+import { adminApi, boardsApi, standardsApi } from '../../api'
 import { adminService } from '../../service'
-import type { StudentUser } from '../../types'
+import type { StudentUser, Board, Standard } from '../../types'
 import { PLAN_LABELS } from '../../constants'
 import Modal from '../../../../shared/components/Modal'
 import Button from '../../../../shared/components/Button'
@@ -24,10 +24,25 @@ import {
   GraduationCap,
   Calendar,
   CheckCircle,
+  Plus,
+  Upload,
+  FileText,
+  DownloadSimple,
 } from '@phosphor-icons/react'
 
+// Default create form state
+const defaultCreateForm = {
+  name: '',
+  email: '',
+  password: '',
+  standard: 'Class 10',
+  board: 'CBSE',
+  language: 'English',
+  plan: 'free',
+}
+
 const StudentsPage: React.FC = () => {
-  const { students, fetchStudents, updateStudentLocal, removeStudents } = useStudents()
+  const { students, fetchStudents, updateStudentLocal, removeStudents, addStudentLocal } = useStudents()
   const canEdit = useCanEdit('students')
   
   const [isLoading, setIsLoading] = useState(true)
@@ -36,10 +51,16 @@ const StudentsPage: React.FC = () => {
   const [filterDrishti, setFilterDrishti] = useState<'all' | 'yes' | 'no'>('all')
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<StudentUser | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [formError, setFormError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Dropdown options
+  const [availableBoards, setAvailableBoards] = useState<Board[]>([])
+  const [availableStandards, setAvailableStandards] = useState<Standard[]>([])
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -52,9 +73,43 @@ const StudentsPage: React.FC = () => {
     is_drishti: false,
   })
   
+  // Create form state
+  const [createForm, setCreateForm] = useState(defaultCreateForm)
+  
+  // Bulk import state
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false)
+  const [bulkImportData, setBulkImportData] = useState('')
+  const [bulkImportSendEmail, setBulkImportSendEmail] = useState(true)
+  const [bulkImportResult, setBulkImportResult] = useState<{
+    success: number
+    failed: number
+    errors: Array<{ row: number; email: string; error: string }>
+    created_students: Array<{ id: string; name: string; email: string; temp_password: string }>
+  } | null>(null)
+  const [isBulkImporting, setIsBulkImporting] = useState(false)
+  
   // Ref to keep fetch function stable
   const fetchStudentsRef = useRef(fetchStudents)
   fetchStudentsRef.current = fetchStudents
+
+  // Fetch dropdown options
+  const fetchOptions = useCallback(async () => {
+    try {
+      const [boards, standards] = await Promise.all([
+        boardsApi.getAll(),
+        standardsApi.getAll()
+      ])
+      setAvailableBoards(boards.filter(b => b.is_active))
+      setAvailableStandards(standards.filter(s => s.is_active))
+    } catch (error) {
+      console.error('Failed to load options:', error)
+    }
+  }, [])
+
+  // Load options on mount
+  useEffect(() => {
+    fetchOptions()
+  }, [fetchOptions])
 
   // Load students
   useEffect(() => {
@@ -151,6 +206,143 @@ const StudentsPage: React.FC = () => {
       setShowEditModal(false)
     } catch (error: any) {
       setFormError(error.response?.data?.detail || 'Failed to update student')
+    }
+  }
+
+  // Open create modal
+  const handleCreate = () => {
+    setCreateForm(defaultCreateForm)
+    setFormError('')
+    setShowCreateModal(true)
+  }
+
+  // Save create
+  const handleSaveCreate = async () => {
+    setFormError('')
+    
+    if (!createForm.name.trim()) {
+      setFormError('Name is required')
+      return
+    }
+    if (!createForm.email.trim()) {
+      setFormError('Email is required')
+      return
+    }
+    if (!createForm.password.trim() || createForm.password.length < 6) {
+      setFormError('Password must be at least 6 characters')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const newStudent = await adminApi.users.create({
+        name: createForm.name.trim(),
+        email: createForm.email.trim().toLowerCase(),
+        password: createForm.password,
+        standard: createForm.standard,
+        board: createForm.board,
+        language: createForm.language,
+        plan: createForm.plan,
+      })
+      
+      // Add to local state
+      if (addStudentLocal) {
+        addStudentLocal(newStudent as StudentUser)
+      }
+      
+      setShowCreateModal(false)
+      // Refresh list
+      fetchStudentsRef.current()
+    } catch (error: any) {
+      setFormError(error.response?.data?.detail || 'Failed to create student')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Open bulk import modal
+  const handleBulkImport = () => {
+    setBulkImportData('')
+    setBulkImportResult(null)
+    setFormError('')
+    setBulkImportSendEmail(true)
+    setShowBulkImportModal(true)
+  }
+
+  // Parse CSV/text input
+  const parseBulkImportData = (text: string) => {
+    const lines = text.trim().split('\n')
+    const students: Array<{
+      name: string
+      email: string
+      standard?: string
+      board?: string
+      language?: string
+      plan?: string
+    }> = []
+
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('#')) continue // Skip empty lines and comments
+      
+      const parts = trimmed.split(',').map(p => p.trim())
+      if (parts.length >= 2) {
+        students.push({
+          name: parts[0],
+          email: parts[1],
+          standard: parts[2] || 'Class 10',
+          board: parts[3] || 'CBSE',
+          language: parts[4] || 'English',
+          plan: parts[5] || 'free',
+        })
+      }
+    }
+    return students
+  }
+
+  // Download sample CSV
+  const downloadSampleCSV = () => {
+    const sample = `# Name, Email, Standard, Board, Language, Plan
+# Lines starting with # are ignored
+John Doe, john@example.com, Class 10, CBSE, English, free
+Jane Smith, jane@example.com, Class 9, Maharashtra Board, Marathi, basic
+Rahul Kumar, rahul@example.com, Class 11, CBSE, Hindi, pro`
+    
+    const blob = new Blob([sample], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'students_import_sample.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // Submit bulk import
+  const handleSubmitBulkImport = async () => {
+    setFormError('')
+    const students = parseBulkImportData(bulkImportData)
+    
+    if (students.length === 0) {
+      setFormError('No valid students found. Check format: Name, Email, Standard, Board, Language, Plan')
+      return
+    }
+
+    setIsBulkImporting(true)
+    try {
+      const result = await adminApi.users.bulkImport({
+        students,
+        send_email: bulkImportSendEmail,
+      })
+      setBulkImportResult(result)
+      
+      // Refresh list if any succeeded
+      if (result.success > 0) {
+        fetchStudentsRef.current()
+      }
+    } catch (error: any) {
+      setFormError(error.response?.data?.detail || 'Bulk import failed')
+    } finally {
+      setIsBulkImporting(false)
     }
   }
 
@@ -370,16 +562,38 @@ const StudentsPage: React.FC = () => {
             {filteredStudents.length} students {hasFilters && '(filtered)'}
           </p>
         </div>
-        {canEdit && selectedIds.size > 0 && (
-          <Button
-            variant="danger"
-            size="sm"
-            leftIcon={<Trash size={16} />}
-            onClick={handleBulkDeleteClick}
-          >
-            Delete {selectedIds.size} selected
-          </Button>
-        )}
+        <div className="flex items-center gap-3">
+          {canEdit && selectedIds.size > 0 && (
+            <Button
+              variant="danger"
+              size="sm"
+              leftIcon={<Trash size={16} />}
+              onClick={handleBulkDeleteClick}
+            >
+              Delete {selectedIds.size}
+            </Button>
+          )}
+          {canEdit && (
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                leftIcon={<Upload size={16} />}
+                onClick={handleBulkImport}
+              >
+                Bulk Import
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<Plus size={16} />}
+                onClick={handleCreate}
+              >
+                Add Student
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -625,6 +839,282 @@ const StudentsPage: React.FC = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Create Student Modal */}
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Add Student"
+        size="md"
+      >
+        <div className="space-y-4">
+          {formError && (
+            <div className="p-3 rounded-xl bg-app-red/10 border border-app-red/30 text-sm text-app-red">
+              {formError}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-app-muted mb-1.5">Name *</label>
+            <input
+              type="text"
+              value={createForm.name}
+              onChange={(e) => setCreateForm(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+              placeholder="Student name"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-app-muted mb-1.5">Email *</label>
+            <input
+              type="email"
+              value={createForm.email}
+              onChange={(e) => setCreateForm(prev => ({ ...prev, email: e.target.value }))}
+              className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+              placeholder="student@example.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-app-muted mb-1.5">Password *</label>
+            <input
+              type="password"
+              value={createForm.password}
+              onChange={(e) => setCreateForm(prev => ({ ...prev, password: e.target.value }))}
+              className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+              placeholder="Minimum 6 characters"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-app-muted mb-1.5">Standard</label>
+              <select
+                value={createForm.standard}
+                onChange={(e) => setCreateForm(prev => ({ ...prev, standard: e.target.value }))}
+                className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+              >
+                {availableStandards.length > 0 ? (
+                  availableStandards.map(s => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="Class 1">Class 1</option>
+                    <option value="Class 2">Class 2</option>
+                    <option value="Class 3">Class 3</option>
+                    <option value="Class 4">Class 4</option>
+                    <option value="Class 5">Class 5</option>
+                    <option value="Class 6">Class 6</option>
+                    <option value="Class 7">Class 7</option>
+                    <option value="Class 8">Class 8</option>
+                    <option value="Class 9">Class 9</option>
+                    <option value="Class 10">Class 10</option>
+                    <option value="Class 11">Class 11</option>
+                    <option value="Class 12">Class 12</option>
+                  </>
+                )}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-app-muted mb-1.5">Board</label>
+              <select
+                value={createForm.board}
+                onChange={(e) => setCreateForm(prev => ({ ...prev, board: e.target.value }))}
+                className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+              >
+                {availableBoards.length > 0 ? (
+                  availableBoards.map(b => (
+                    <option key={b.id} value={b.name}>{b.name}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="CBSE">CBSE</option>
+                    <option value="ICSE">ICSE</option>
+                    <option value="Maharashtra Board">Maharashtra Board</option>
+                    <option value="GSEB">GSEB</option>
+                  </>
+                )}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-app-muted mb-1.5">Language</label>
+              <select
+                value={createForm.language}
+                onChange={(e) => setCreateForm(prev => ({ ...prev, language: e.target.value }))}
+                className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+              >
+                <option value="English">English</option>
+                <option value="Hindi">Hindi</option>
+                <option value="Marathi">Marathi</option>
+                <option value="Gujarati">Gujarati</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-app-muted mb-1.5">Plan</label>
+              <select
+                value={createForm.plan}
+                onChange={(e) => setCreateForm(prev => ({ ...prev, plan: e.target.value }))}
+                className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+              >
+                <option value="free">Free</option>
+                <option value="basic">Basic</option>
+                <option value="pro">Pro</option>
+                <option value="premium">Premium</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="ghost" onClick={() => setShowCreateModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleSaveCreate} disabled={isSubmitting}>
+              {isSubmitting ? 'Creating...' : 'Create Student'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Bulk Import Modal */}
+      <Modal
+        isOpen={showBulkImportModal}
+        onClose={() => setShowBulkImportModal(false)}
+        title="Bulk Import Students"
+        size="lg"
+      >
+        <div className="space-y-4">
+          {formError && (
+            <div className="p-3 rounded-xl bg-app-red/10 border border-app-red/30 text-sm text-app-red">
+              {formError}
+            </div>
+          )}
+
+          {!bulkImportResult ? (
+            <>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-app-muted">
+                  Paste CSV data or type students line by line
+                </p>
+                <button
+                  onClick={downloadSampleCSV}
+                  className="flex items-center gap-1.5 text-sm text-app-blue hover:underline"
+                >
+                  <DownloadSimple size={14} />
+                  Sample CSV
+                </button>
+              </div>
+
+              <div className="bg-app-card2 rounded-xl border border-white/10 p-3">
+                <div className="flex items-center gap-2 mb-2 text-xs text-app-muted">
+                  <FileText size={14} />
+                  <span>Format: Name, Email, Standard, Board, Language, Plan</span>
+                </div>
+                <textarea
+                  value={bulkImportData}
+                  onChange={(e) => setBulkImportData(e.target.value)}
+                  placeholder={`John Doe, john@example.com, Class 10, CBSE, English, free\nJane Smith, jane@example.com, Class 9, Maharashtra Board, Marathi, basic`}
+                  className="w-full h-48 bg-transparent text-app-text text-sm font-mono resize-none focus:outline-none"
+                />
+              </div>
+
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={bulkImportSendEmail}
+                  onChange={(e) => setBulkImportSendEmail(e.target.checked)}
+                  className="w-4 h-4 rounded border-white/20 bg-app-card2 text-app-green focus:ring-app-green/50"
+                />
+                <span className="text-sm text-app-text">
+                  Send welcome email with temporary password
+                </span>
+              </label>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <Button variant="ghost" onClick={() => setShowBulkImportModal(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  variant="primary" 
+                  onClick={handleSubmitBulkImport} 
+                  disabled={isBulkImporting || !bulkImportData.trim()}
+                >
+                  {isBulkImporting ? 'Importing...' : 'Import Students'}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Import Results */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-app-green/10 border border-app-green/30 rounded-xl p-4 text-center">
+                  <div className="text-3xl font-bold text-app-green">{bulkImportResult.success}</div>
+                  <div className="text-sm text-app-muted">Imported</div>
+                </div>
+                <div className="bg-app-red/10 border border-app-red/30 rounded-xl p-4 text-center">
+                  <div className="text-3xl font-bold text-app-red">{bulkImportResult.failed}</div>
+                  <div className="text-sm text-app-muted">Failed</div>
+                </div>
+              </div>
+
+              {bulkImportResult.errors.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-app-text">Errors</h4>
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {bulkImportResult.errors.map((err, idx) => (
+                      <div key={idx} className="text-xs text-app-red bg-app-red/5 rounded px-2 py-1">
+                        Row {err.row}: {err.email} - {err.error}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {bulkImportResult.created_students.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-app-text">Created Students</h4>
+                  <div className="max-h-48 overflow-y-auto">
+                    <table className="w-full text-xs">
+                      <thead className="text-app-muted">
+                        <tr>
+                          <th className="text-left py-1">Name</th>
+                          <th className="text-left py-1">Email</th>
+                          <th className="text-left py-1">Temp Password</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-app-text">
+                        {bulkImportResult.created_students.map((student) => (
+                          <tr key={student.id} className="border-t border-white/5">
+                            <td className="py-1.5">{student.name}</td>
+                            <td className="py-1.5">{student.email}</td>
+                            <td className="py-1.5 font-mono text-app-green">{student.temp_password}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-2">
+                <Button variant="ghost" onClick={() => {
+                  setBulkImportResult(null)
+                  setBulkImportData('')
+                }}>
+                  Import More
+                </Button>
+                <Button variant="primary" onClick={() => setShowBulkImportModal(false)}>
+                  Done
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
       </Modal>
 
       {/* Delete Confirmation Modal */}

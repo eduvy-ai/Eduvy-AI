@@ -89,7 +89,7 @@ class AuthService:
         """
         Authenticate user with email and password.
         Also checks admin_users table — if admin, returns is_admin flag.
-        Returns: {"token": str, "profile": dict, "is_admin"?: bool}
+        Returns: {"token": str, "profile": dict, "is_admin"?: bool, "must_change_password"?: bool}
         """
         from datetime import date
         
@@ -109,7 +109,14 @@ class AuthService:
             
             token = create_token(user["id"])
             user.pop("password_hash", None)
-            return {"token": token, "profile": user}
+            
+            # Check if user needs to change password (OTP flow)
+            must_change = user.get("must_change_password", False)
+            
+            response = {"token": token, "profile": user}
+            if must_change:
+                response["must_change_password"] = True
+            return response
         
         # If not found in students, try admin_users table
         from app.modules.admin.service import AdminService
@@ -138,3 +145,29 @@ class AuthService:
         user.pop("password_hash", None)
         
         return user
+    
+    @staticmethod
+    def change_password(user_id: str, new_password: str, clear_must_change: bool = True) -> Dict:
+        """
+        Change user password. Optionally clears must_change_password flag.
+        Used for first-login password change flow.
+        """
+        if len(new_password) < 6:
+            raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+        
+        user = db.users.get_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Hash new password
+        new_hash = hash_password(new_password)
+        
+        # Update password and clear flag
+        update_data = {"password_hash": new_hash}
+        if clear_must_change:
+            update_data["must_change_password"] = False
+            update_data["temp_password"] = ""
+        
+        db.users.update(user_id, update_data)
+        
+        return {"ok": True, "message": "Password changed successfully"}

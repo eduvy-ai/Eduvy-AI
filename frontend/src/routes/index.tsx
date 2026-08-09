@@ -23,6 +23,7 @@ const SharedVideoPage = lazy(() => import('../components/video/SharedVideoPage')
 
 // Admin pages (new Redux-connected module)
 const AdminLogin = lazy(() => import('../modules/admin/pages/Login'))
+const AdminChangePassword = lazy(() => import('../modules/admin/pages/ChangePassword'))
 const AdminDashboard = lazy(() => import('../modules/admin/pages/Dashboard'))
 
 // Admin academics pages
@@ -36,8 +37,11 @@ const AdminChaptersPage = lazy(() => import('../modules/admin/pages/academics/Ch
 const AdminStudentsPage = lazy(() => import('../modules/admin/pages/users/StudentsPage'))
 const AdminParentsPage = lazy(() => import('../modules/admin/pages/users/ParentsPage'))
 
+// Admin schools pages (B2B)
+const AdminSchoolsPage = lazy(() => import('../modules/admin/pages/schools/SchoolsPage'))
+
 // Admin teachers pages (new sub-pages)
-const AdminTeachersListPage = lazy(() => import('../modules/admin/pages/teachers/TeachersListPage'))
+const AdminTeachersListPage = lazy(() => import('../modules/admin/pages/teachers/TeachersPageRouter'))
 const AdminTeacherAssignmentsPage = lazy(() => import('../modules/admin/pages/teachers/AssignmentsPage'))
 const AdminTeacherPerformancePage = lazy(() => import('../modules/admin/pages/teachers/PerformancePage'))
 
@@ -133,6 +137,7 @@ const AppRoutes: React.FC = () => {
 
         {/* Admin login - public */}
         <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/change-password" element={<AdminChangePassword />} />
         
         {/* Legacy admin panel (kept for backwards compatibility) */}
         <Route path="/admin-legacy" element={<AdminPanelLegacy />} />
@@ -160,6 +165,9 @@ const AppRoutes: React.FC = () => {
           {/* Users */}
           <Route path="students" element={<AdminStudentsPage />} />
           <Route path="parents" element={<AdminParentsPage />} />
+          
+          {/* Schools (B2B) */}
+          <Route path="schools" element={<AdminSchoolsPage />} />
           
           {/* Teachers */}
           <Route path="teachers" element={<Navigate to="/admin/teachers/list" replace />} />

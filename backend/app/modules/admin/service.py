@@ -38,13 +38,12 @@ def _normalize_role(role: str) -> str:
     return role_map.get(role, role)
 
 
-def _make_admin_token(admin_id: int) -> str:
+def _make_admin_token(admin_id: int, school_id: int = None) -> str:
     exp = datetime.now(timezone.utc) + timedelta(days=_ADMIN_JWT_DAYS)
-    return jwt.encode(
-        {"sub": str(admin_id), "role": "admin", "exp": exp},
-        _JWT_SECRET,
-        algorithm=_JWT_ALGORITHM,
-    )
+    payload = {"sub": str(admin_id), "role": "admin", "exp": exp}
+    if school_id:
+        payload["school_id"] = school_id
+    return jwt.encode(payload, _JWT_SECRET, algorithm=_JWT_ALGORITHM)
 
 
 class AdminService:
@@ -94,7 +93,10 @@ class AdminService:
         try:
             cur = conn.cursor()
             email = email.strip().lower()
-            cur.execute("SELECT id, email, name, role, created_at FROM admin_users WHERE email = %s", (email,))
+            cur.execute("""
+                SELECT id, email, name, role, school_id, must_change_password, created_at 
+                FROM admin_users WHERE email = %s
+            """, (email,))
             admin = cur.fetchone()
             if not admin:
                 raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -105,12 +107,14 @@ class AdminService:
             if not pw_row or not _verify(password, pw_row["password_hash"]):
                 raise HTTPException(status_code=401, detail="Invalid email or password")
             
-            token = _make_admin_token(admin["id"])
+            token = _make_admin_token(admin["id"], admin.get("school_id"))
             user = {
                 "id": admin["id"],
                 "email": admin["email"],
                 "name": admin["name"],
                 "role": _normalize_role(admin["role"]),
+                "school_id": admin.get("school_id"),
+                "must_change_password": admin.get("must_change_password", False),
                 "created_at": str(admin["created_at"]) if admin["created_at"] else None,
             }
             return {"token": token, "user": user}
@@ -123,7 +127,10 @@ class AdminService:
         conn = get_db()
         try:
             cur = conn.cursor()
-            cur.execute("SELECT id, email, name, role, created_at FROM admin_users WHERE id = %s", (admin_id,))
+            cur.execute("""
+                SELECT id, email, name, role, school_id, must_change_password, created_at 
+                FROM admin_users WHERE id = %s
+            """, (admin_id,))
             row = cur.fetchone()
             if not row:
                 raise HTTPException(status_code=404, detail="Admin not found")
@@ -132,35 +139,89 @@ class AdminService:
                 "email": row["email"],
                 "name": row["name"],
                 "role": _normalize_role(row["role"]),
+                "school_id": row.get("school_id"),
+                "must_change_password": row.get("must_change_password", False),
                 "created_at": str(row["created_at"]) if row["created_at"] else None,
             }
+        finally:
+            conn.close()
+
+    @staticmethod
+    def change_password(admin_id: int, new_password: str) -> Dict:
+        """Change admin password (clears must_change_password flag)."""
+        if len(new_password) < 8:
+            raise HTTPException(status_code=422, detail="Password must be at least 8 characters")
+        
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            pw_hash = _hash(new_password)
+            cur.execute("""
+                UPDATE admin_users 
+                SET password_hash = %s, must_change_password = FALSE 
+                WHERE id = %s
+                RETURNING id
+            """, (pw_hash, admin_id))
+            if not cur.fetchone():
+                raise HTTPException(status_code=404, detail="Admin not found")
+            conn.commit()
+            return {"success": True, "message": "Password changed successfully"}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_school_id(admin_id: int) -> int | None:
+        """Get school_id for an admin (None for superadmin)."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT school_id FROM admin_users WHERE id = %s", (admin_id,))
+            row = cur.fetchone()
+            return row["school_id"] if row else None
         finally:
             conn.close()
     
     # ── Boards ────────────────────────────────────────────────
     
     @staticmethod
-    def list_boards() -> List[Dict]:
+    def _school_id_filter(school_id: int = None) -> tuple:
+        """Return SQL filter and params for school_id scoping."""
+        if school_id is None:
+            return "school_id IS NULL", []
+        return "school_id = %s", [school_id]
+    
+    @staticmethod
+    def _make_scoped_id(base_id: str, school_id: int = None) -> str:
+        """Create school-scoped ID for curriculum items."""
+        base = base_id.lower().strip()
+        if school_id is None:
+            return base  # Global template keeps original ID
+        return f"s{school_id}_{base}"  # School-specific gets prefixed
+    
+    @staticmethod
+    def list_boards(school_id: int = None) -> List[Dict]:
         conn = get_db()
         try:
             cur = conn.cursor()
-            cur.execute("SELECT * FROM boards ORDER BY sort_order, name")
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            cur.execute(f"SELECT * FROM boards WHERE {filter_sql} ORDER BY sort_order, name", params)
             return [dict(r) for r in cur.fetchall()]
         finally:
             conn.close()
     
     @staticmethod
-    def upsert_board(board_id: str, name: str, sort_order: int, is_active: bool) -> Dict:
+    def upsert_board(board_id: str, name: str, sort_order: int, is_active: bool, school_id: int = None) -> Dict:
         conn = get_db()
         try:
             cur = conn.cursor()
+            scoped_id = AdminService._make_scoped_id(board_id, school_id)
             cur.execute(
-                """INSERT INTO boards (id, name, sort_order, is_active)
-                   VALUES (%s,%s,%s,%s)
+                """INSERT INTO boards (id, name, sort_order, is_active, school_id)
+                   VALUES (%s,%s,%s,%s,%s)
                    ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name,
                    sort_order=EXCLUDED.sort_order, is_active=EXCLUDED.is_active
                    RETURNING *""",
-                (board_id.lower().strip(), name.strip(), sort_order, is_active)
+                (scoped_id, name.strip(), sort_order, is_active, school_id)
             )
             row = cur.fetchone()
             conn.commit()
@@ -169,20 +230,21 @@ class AdminService:
             conn.close()
     
     @staticmethod
-    def delete_board(board_id: str) -> Dict:
+    def delete_board(board_id: str, school_id: int = None) -> Dict:
         conn = get_db()
         try:
             cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
             # Cascade: remove all curriculum rows that reference this board
-            cur.execute("DELETE FROM curriculum WHERE board_id=%s", (board_id,))
-            cur.execute("DELETE FROM boards WHERE id=%s", (board_id,))
+            cur.execute(f"DELETE FROM curriculum WHERE board_id=%s AND {filter_sql}", [board_id] + params)
+            cur.execute(f"DELETE FROM boards WHERE id=%s AND {filter_sql}", [board_id] + params)
             conn.commit()
             return {"ok": True}
         finally:
             conn.close()
 
     @staticmethod
-    def import_boards(rows: List[Dict]) -> Dict:
+    def import_boards(rows: List[Dict], school_id: int = None) -> Dict:
         """Bulk upsert boards. Returns {inserted, updated}."""
         conn = get_db()
         try:
@@ -193,15 +255,16 @@ class AdminService:
                 bid = str(row.get("id", "")).strip().lower()
                 if not bid:
                     continue
-                cur.execute("SELECT id FROM boards WHERE id=%s", (bid,))
+                scoped_id = AdminService._make_scoped_id(bid, school_id)
+                cur.execute("SELECT id FROM boards WHERE id=%s", (scoped_id,))
                 exists = cur.fetchone()
                 cur.execute(
-                    """INSERT INTO boards (id, name, sort_order, is_active)
-                       VALUES (%s,%s,%s,%s)
+                    """INSERT INTO boards (id, name, sort_order, is_active, school_id)
+                       VALUES (%s,%s,%s,%s,%s)
                        ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name,
                        sort_order=EXCLUDED.sort_order, is_active=EXCLUDED.is_active""",
-                    (bid, str(row.get("name", "")).strip(),
-                     int(row.get("sort_order", 0)), bool(row.get("is_active", True)))
+                    (scoped_id, str(row.get("name", "")).strip(),
+                     int(row.get("sort_order", 0)), bool(row.get("is_active", True)), school_id)
                 )
                 if exists:
                     updated += 1
@@ -215,27 +278,29 @@ class AdminService:
     # ── Standards ─────────────────────────────────────────────
     
     @staticmethod
-    def list_standards() -> List[Dict]:
+    def list_standards(school_id: int = None) -> List[Dict]:
         conn = get_db()
         try:
             cur = conn.cursor()
-            cur.execute("SELECT * FROM standards ORDER BY grade_num")
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            cur.execute(f"SELECT * FROM standards WHERE {filter_sql} ORDER BY grade_num", params)
             return [dict(r) for r in cur.fetchall()]
         finally:
             conn.close()
     
     @staticmethod
-    def upsert_standard(std_id: str, name: str, grade_num: int, sort_order: int, is_active: bool) -> Dict:
+    def upsert_standard(std_id: str, name: str, grade_num: int, sort_order: int, is_active: bool, school_id: int = None) -> Dict:
         conn = get_db()
         try:
             cur = conn.cursor()
+            scoped_id = AdminService._make_scoped_id(std_id, school_id)
             cur.execute(
-                """INSERT INTO standards (id, name, grade_num, sort_order, is_active)
-                   VALUES (%s,%s,%s,%s,%s)
+                """INSERT INTO standards (id, name, grade_num, sort_order, is_active, school_id)
+                   VALUES (%s,%s,%s,%s,%s,%s)
                    ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, grade_num=EXCLUDED.grade_num,
                    sort_order=EXCLUDED.sort_order, is_active=EXCLUDED.is_active
                    RETURNING *""",
-                (std_id.lower().strip(), name.strip(), grade_num, sort_order, is_active)
+                (scoped_id, name.strip(), grade_num, sort_order, is_active, school_id)
             )
             row = cur.fetchone()
             conn.commit()
@@ -244,13 +309,14 @@ class AdminService:
             conn.close()
     
     @staticmethod
-    def delete_standard(std_id: str) -> Dict:
+    def delete_standard(std_id: str, school_id: int = None) -> Dict:
         conn = get_db()
         try:
             cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
             # Cascade: remove all curriculum rows that reference this standard
-            cur.execute("DELETE FROM curriculum WHERE standard_id=%s", (std_id,))
-            cur.execute("DELETE FROM standards WHERE id=%s", (std_id,))
+            cur.execute(f"DELETE FROM curriculum WHERE standard_id=%s AND {filter_sql}", [std_id] + params)
+            cur.execute(f"DELETE FROM standards WHERE id=%s AND {filter_sql}", [std_id] + params)
             conn.commit()
             return {"ok": True}
         finally:
@@ -259,27 +325,29 @@ class AdminService:
     # ── Mediums ───────────────────────────────────────────────
     
     @staticmethod
-    def list_mediums() -> List[Dict]:
+    def list_mediums(school_id: int = None) -> List[Dict]:
         conn = get_db()
         try:
             cur = conn.cursor()
-            cur.execute("SELECT * FROM mediums ORDER BY sort_order, name")
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            cur.execute(f"SELECT * FROM mediums WHERE {filter_sql} ORDER BY sort_order, name", params)
             return [dict(r) for r in cur.fetchall()]
         finally:
             conn.close()
     
     @staticmethod
-    def upsert_medium(med_id: str, name: str, sort_order: int, is_active: bool) -> Dict:
+    def upsert_medium(med_id: str, name: str, sort_order: int, is_active: bool, school_id: int = None) -> Dict:
         conn = get_db()
         try:
             cur = conn.cursor()
+            scoped_id = AdminService._make_scoped_id(med_id, school_id)
             cur.execute(
-                """INSERT INTO mediums (id, name, sort_order, is_active)
-                   VALUES (%s,%s,%s,%s)
+                """INSERT INTO mediums (id, name, sort_order, is_active, school_id)
+                   VALUES (%s,%s,%s,%s,%s)
                    ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name,
                    sort_order=EXCLUDED.sort_order, is_active=EXCLUDED.is_active
                    RETURNING *""",
-                (med_id.lower().strip(), name.strip(), sort_order, is_active)
+                (scoped_id, name.strip(), sort_order, is_active, school_id)
             )
             row = cur.fetchone()
             conn.commit()
@@ -288,20 +356,21 @@ class AdminService:
             conn.close()
     
     @staticmethod
-    def delete_medium(med_id: str) -> Dict:
+    def delete_medium(med_id: str, school_id: int = None) -> Dict:
         conn = get_db()
         try:
             cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
             # Cascade: remove all curriculum rows that reference this medium
-            cur.execute("DELETE FROM curriculum WHERE medium_id=%s", (med_id,))
-            cur.execute("DELETE FROM mediums WHERE id=%s", (med_id,))
+            cur.execute(f"DELETE FROM curriculum WHERE medium_id=%s AND {filter_sql}", [med_id] + params)
+            cur.execute(f"DELETE FROM mediums WHERE id=%s AND {filter_sql}", [med_id] + params)
             conn.commit()
             return {"ok": True}
         finally:
             conn.close()
 
     @staticmethod
-    def import_standards(rows: List[Dict]) -> Dict:
+    def import_standards(rows: List[Dict], school_id: int = None) -> Dict:
         """Bulk upsert standards. Returns {inserted, updated}."""
         conn = get_db()
         try:
@@ -312,16 +381,17 @@ class AdminService:
                 sid = str(row.get("id", "")).strip().lower()
                 if not sid:
                     continue
-                cur.execute("SELECT id FROM standards WHERE id=%s", (sid,))
+                scoped_id = AdminService._make_scoped_id(sid, school_id)
+                cur.execute("SELECT id FROM standards WHERE id=%s", (scoped_id,))
                 exists = cur.fetchone()
                 cur.execute(
-                    """INSERT INTO standards (id, name, grade_num, sort_order, is_active)
-                       VALUES (%s,%s,%s,%s,%s)
+                    """INSERT INTO standards (id, name, grade_num, sort_order, is_active, school_id)
+                       VALUES (%s,%s,%s,%s,%s,%s)
                        ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, grade_num=EXCLUDED.grade_num,
                        sort_order=EXCLUDED.sort_order, is_active=EXCLUDED.is_active""",
-                    (sid, str(row.get("name", "")).strip(),
+                    (scoped_id, str(row.get("name", "")).strip(),
                      int(row.get("grade_num", 0)), int(row.get("sort_order", 0)),
-                     bool(row.get("is_active", True)))
+                     bool(row.get("is_active", True)), school_id)
                 )
                 if exists:
                     updated += 1
@@ -333,7 +403,7 @@ class AdminService:
             conn.close()
 
     @staticmethod
-    def import_mediums(rows: List[Dict]) -> Dict:
+    def import_mediums(rows: List[Dict], school_id: int = None) -> Dict:
         """Bulk upsert mediums. Returns {inserted, updated}."""
         conn = get_db()
         try:
@@ -344,15 +414,16 @@ class AdminService:
                 mid = str(row.get("id", "")).strip().lower()
                 if not mid:
                     continue
-                cur.execute("SELECT id FROM mediums WHERE id=%s", (mid,))
+                scoped_id = AdminService._make_scoped_id(mid, school_id)
+                cur.execute("SELECT id FROM mediums WHERE id=%s", (scoped_id,))
                 exists = cur.fetchone()
                 cur.execute(
-                    """INSERT INTO mediums (id, name, sort_order, is_active)
-                       VALUES (%s,%s,%s,%s)
+                    """INSERT INTO mediums (id, name, sort_order, is_active, school_id)
+                       VALUES (%s,%s,%s,%s,%s)
                        ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name,
                        sort_order=EXCLUDED.sort_order, is_active=EXCLUDED.is_active""",
-                    (mid, str(row.get("name", "")).strip(),
-                     int(row.get("sort_order", 0)), bool(row.get("is_active", True)))
+                    (scoped_id, str(row.get("name", "")).strip(),
+                     int(row.get("sort_order", 0)), bool(row.get("is_active", True)), school_id)
                 )
                 if exists:
                     updated += 1
@@ -366,18 +437,18 @@ class AdminService:
     # ── Subjects ──────────────────────────────────────────────
 
     @staticmethod
-    def list_subjects(board_id: str = None, standard_id: str = None) -> List[Dict]:
+    def list_subjects(board_id: str = None, standard_id: str = None, school_id: int = None) -> List[Dict]:
         conn = get_db()
         try:
             cur = conn.cursor()
-            query = """
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            query = f"""
                 SELECT s.*, b.name as board_name, st.name as standard_name
                 FROM subjects s
                 LEFT JOIN boards b ON s.board_id = b.id
                 LEFT JOIN standards st ON s.standard_id = st.id
-                WHERE 1=1
+                WHERE s.{filter_sql}
             """
-            params = []
             if board_id:
                 query += " AND s.board_id = %s"
                 params.append(board_id)
@@ -391,18 +462,21 @@ class AdminService:
             conn.close()
 
     @staticmethod
-    def upsert_subject(subj_id: str, name: str, board_id: str, standard_id: str, sort_order: int = 0, is_active: bool = True) -> Dict:
+    def upsert_subject(subj_id: str, name: str, board_id: str, standard_id: str, sort_order: int = 0, is_active: bool = True, school_id: int = None) -> Dict:
         conn = get_db()
         try:
             cur = conn.cursor()
+            scoped_id = AdminService._make_scoped_id(subj_id, school_id)
+            scoped_board_id = AdminService._make_scoped_id(board_id, school_id) if board_id else board_id
+            scoped_standard_id = AdminService._make_scoped_id(standard_id, school_id) if standard_id else standard_id
             cur.execute(
-                """INSERT INTO subjects (id, name, board_id, standard_id, sort_order, is_active)
-                   VALUES (%s, %s, %s, %s, %s, %s)
+                """INSERT INTO subjects (id, name, board_id, standard_id, sort_order, is_active, school_id)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s)
                    ON CONFLICT (id) DO UPDATE SET
                    name=EXCLUDED.name, board_id=EXCLUDED.board_id, standard_id=EXCLUDED.standard_id,
                    sort_order=EXCLUDED.sort_order, is_active=EXCLUDED.is_active
                    RETURNING *""",
-                (subj_id.lower().strip(), name.strip(), board_id, standard_id, sort_order, is_active)
+                (scoped_id, name.strip(), scoped_board_id, scoped_standard_id, sort_order, is_active, school_id)
             )
             row = cur.fetchone()
             conn.commit()
@@ -411,18 +485,19 @@ class AdminService:
             conn.close()
 
     @staticmethod
-    def delete_subject(subj_id: str) -> Dict:
+    def delete_subject(subj_id: str, school_id: int = None) -> Dict:
         conn = get_db()
         try:
             cur = conn.cursor()
-            cur.execute("DELETE FROM subjects WHERE id=%s", (subj_id,))
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            cur.execute(f"DELETE FROM subjects WHERE id=%s AND {filter_sql}", [subj_id] + params)
             conn.commit()
             return {"ok": True}
         finally:
             conn.close()
 
     @staticmethod
-    def import_subjects(rows: List[Dict]) -> Dict:
+    def import_subjects(rows: List[Dict], school_id: int = None) -> Dict:
         """Bulk upsert subjects. Returns {inserted, updated}."""
         conn = get_db()
         try:
@@ -433,18 +508,23 @@ class AdminService:
                 sid = str(row.get("id", "")).strip().lower()
                 if not sid:
                     continue
-                cur.execute("SELECT id FROM subjects WHERE id=%s", (sid,))
+                scoped_id = AdminService._make_scoped_id(sid, school_id)
+                board_id = str(row.get("board_id", "")).strip()
+                standard_id = str(row.get("standard_id", "")).strip()
+                scoped_board_id = AdminService._make_scoped_id(board_id, school_id) if board_id else board_id
+                scoped_standard_id = AdminService._make_scoped_id(standard_id, school_id) if standard_id else standard_id
+                
+                cur.execute("SELECT id FROM subjects WHERE id=%s", (scoped_id,))
                 exists = cur.fetchone()
                 cur.execute(
-                    """INSERT INTO subjects (id, name, board_id, standard_id, sort_order, is_active)
-                       VALUES (%s,%s,%s,%s,%s,%s)
+                    """INSERT INTO subjects (id, name, board_id, standard_id, sort_order, is_active, school_id)
+                       VALUES (%s,%s,%s,%s,%s,%s,%s)
                        ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, board_id=EXCLUDED.board_id,
                        standard_id=EXCLUDED.standard_id, sort_order=EXCLUDED.sort_order, is_active=EXCLUDED.is_active""",
-                    (sid, str(row.get("name", "")).strip(),
-                     str(row.get("board_id", "")).strip(),
-                     str(row.get("standard_id", "")).strip(),
+                    (scoped_id, str(row.get("name", "")).strip(),
+                     scoped_board_id, scoped_standard_id,
                      int(row.get("sort_order", 0)),
-                     bool(row.get("is_active", True)))
+                     bool(row.get("is_active", True)), school_id)
                 )
                 if exists:
                     updated += 1
@@ -456,14 +536,15 @@ class AdminService:
             conn.close()
 
     @staticmethod
-    def bulk_delete_subjects(ids: List[str]) -> Dict:
+    def bulk_delete_subjects(ids: List[str], school_id: int = None) -> Dict:
         if not ids:
             return {"deleted": 0}
         conn = get_db()
         try:
             cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
             placeholders = ",".join(["%s"] * len(ids))
-            cur.execute(f"DELETE FROM subjects WHERE id IN ({placeholders})", ids)
+            cur.execute(f"DELETE FROM subjects WHERE id IN ({placeholders}) AND {filter_sql}", ids + params)
             deleted = cur.rowcount
             conn.commit()
             return {"deleted": deleted}
@@ -473,18 +554,20 @@ class AdminService:
     # ── Curriculum (deprecated) ───────────────────────────────
 
     @staticmethod
-    def list_curriculum() -> List[Dict]:
+    def list_curriculum(school_id: int = None) -> List[Dict]:
         conn = get_db()
         try:
             cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
             cur.execute(
-                """SELECT c.id, c.board_id, c.standard_id, c.medium_id, c.subjects, c.is_active,
+                f"""SELECT c.id, c.board_id, c.standard_id, c.medium_id, c.subjects, c.is_active,
                           b.name AS board_name, s.name AS standard_name, m.name AS medium_name
                    FROM curriculum c
                    LEFT JOIN boards b ON c.board_id = b.id
                    LEFT JOIN standards s ON c.standard_id = s.id
                    LEFT JOIN mediums m ON c.medium_id = m.id
-                   ORDER BY c.board_id, c.standard_id, c.medium_id"""
+                   WHERE c.{filter_sql}
+                   ORDER BY c.board_id, c.standard_id, c.medium_id""", params
             )
             rows = cur.fetchall()
             result = []
@@ -501,18 +584,21 @@ class AdminService:
             conn.close()
 
     @staticmethod
-    def create_curriculum(board_id: str, standard_id: str, medium_id: str, subjects: List[str], is_active: bool = True) -> Dict:
+    def create_curriculum(board_id: str, standard_id: str, medium_id: str, subjects: List[str], is_active: bool = True, school_id: int = None) -> Dict:
         import json as _json
         conn = get_db()
         try:
             cur = conn.cursor()
+            scoped_board_id = AdminService._make_scoped_id(board_id, school_id)
+            scoped_standard_id = AdminService._make_scoped_id(standard_id, school_id)
+            scoped_medium_id = AdminService._make_scoped_id(medium_id, school_id)
             cur.execute(
-                """INSERT INTO curriculum (board_id, standard_id, medium_id, subjects, is_active)
-                   VALUES (%s,%s,%s,%s,%s)
+                """INSERT INTO curriculum (board_id, standard_id, medium_id, subjects, is_active, school_id)
+                   VALUES (%s,%s,%s,%s,%s,%s)
                    ON CONFLICT (board_id, standard_id, medium_id)
                    DO UPDATE SET subjects=EXCLUDED.subjects, is_active=EXCLUDED.is_active
                    RETURNING *""",
-                (board_id, standard_id, medium_id, _json.dumps(subjects), is_active)
+                (scoped_board_id, scoped_standard_id, scoped_medium_id, _json.dumps(subjects), is_active, school_id)
             )
             row = cur.fetchone()
             conn.commit()
@@ -526,25 +612,27 @@ class AdminService:
             conn.close()
 
     @staticmethod
-    def update_curriculum(row_id: int, subjects: List[str] = None, is_active: bool = None) -> Dict:
+    def update_curriculum(row_id: int, subjects: List[str] = None, is_active: bool = None, school_id: int = None) -> Dict:
         import json as _json
         conn = get_db()
         try:
             cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            
             if subjects is not None and is_active is not None:
                 cur.execute(
-                    "UPDATE curriculum SET subjects=%s, is_active=%s WHERE id=%s RETURNING *",
-                    (_json.dumps(subjects), is_active, row_id)
+                    f"UPDATE curriculum SET subjects=%s, is_active=%s WHERE id=%s AND {filter_sql} RETURNING *",
+                    [_json.dumps(subjects), is_active, row_id] + params
                 )
             elif subjects is not None:
                 cur.execute(
-                    "UPDATE curriculum SET subjects=%s WHERE id=%s RETURNING *",
-                    (_json.dumps(subjects), row_id)
+                    f"UPDATE curriculum SET subjects=%s WHERE id=%s AND {filter_sql} RETURNING *",
+                    [_json.dumps(subjects), row_id] + params
                 )
             elif is_active is not None:
                 cur.execute(
-                    "UPDATE curriculum SET is_active=%s WHERE id=%s RETURNING *",
-                    (is_active, row_id)
+                    f"UPDATE curriculum SET is_active=%s WHERE id=%s AND {filter_sql} RETURNING *",
+                    [is_active, row_id] + params
                 )
             row = cur.fetchone()
             if not row:
@@ -560,77 +648,82 @@ class AdminService:
             conn.close()
 
     @staticmethod
-    def delete_curriculum(row_id: int) -> Dict:
+    def delete_curriculum(row_id: int, school_id: int = None) -> Dict:
         conn = get_db()
         try:
             cur = conn.cursor()
-            cur.execute("DELETE FROM curriculum WHERE id=%s", (row_id,))
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            cur.execute(f"DELETE FROM curriculum WHERE id=%s AND {filter_sql}", [row_id] + params)
             conn.commit()
             return {"ok": True}
         finally:
             conn.close()
 
     @staticmethod
-    def bulk_delete_standards(ids: List[str]) -> Dict:
+    def bulk_delete_standards(ids: List[str], school_id: int = None) -> Dict:
         if not ids:
             return {"deleted": 0}
         conn = get_db()
         try:
             cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
             placeholders = ",".join(["%s"] * len(ids))
-            cur.execute(f"DELETE FROM curriculum WHERE standard_id IN ({placeholders})", ids)
-            cur.execute(f"DELETE FROM standards WHERE id IN ({placeholders})", ids)
+            cur.execute(f"DELETE FROM curriculum WHERE standard_id IN ({placeholders}) AND {filter_sql}", ids + params)
+            cur.execute(f"DELETE FROM standards WHERE id IN ({placeholders}) AND {filter_sql}", ids + params)
             conn.commit()
             return {"deleted": len(ids)}
         finally:
             conn.close()
 
     @staticmethod
-    def bulk_delete_boards(ids: List[str]) -> Dict:
+    def bulk_delete_boards(ids: List[str], school_id: int = None) -> Dict:
         if not ids:
             return {"deleted": 0}
         conn = get_db()
         try:
             cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
             placeholders = ",".join(["%s"] * len(ids))
-            cur.execute(f"DELETE FROM curriculum WHERE board_id IN ({placeholders})", ids)
-            cur.execute(f"DELETE FROM boards WHERE id IN ({placeholders})", ids)
+            cur.execute(f"DELETE FROM curriculum WHERE board_id IN ({placeholders}) AND {filter_sql}", ids + params)
+            cur.execute(f"DELETE FROM boards WHERE id IN ({placeholders}) AND {filter_sql}", ids + params)
             conn.commit()
             return {"deleted": len(ids)}
         finally:
             conn.close()
 
     @staticmethod
-    def bulk_delete_mediums(ids: List[str]) -> Dict:
+    def bulk_delete_mediums(ids: List[str], school_id: int = None) -> Dict:
         if not ids:
             return {"deleted": 0}
         conn = get_db()
         try:
             cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
             placeholders = ",".join(["%s"] * len(ids))
-            cur.execute(f"DELETE FROM curriculum WHERE medium_id IN ({placeholders})", ids)
-            cur.execute(f"DELETE FROM mediums WHERE id IN ({placeholders})", ids)
+            cur.execute(f"DELETE FROM curriculum WHERE medium_id IN ({placeholders}) AND {filter_sql}", ids + params)
+            cur.execute(f"DELETE FROM mediums WHERE id IN ({placeholders}) AND {filter_sql}", ids + params)
             conn.commit()
             return {"deleted": len(ids)}
         finally:
             conn.close()
 
     @staticmethod
-    def bulk_delete_curriculum(ids: List[int]) -> Dict:
+    def bulk_delete_curriculum(ids: List[int], school_id: int = None) -> Dict:
         if not ids:
             return {"deleted": 0}
         conn = get_db()
         try:
             cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
             placeholders = ",".join(["%s"] * len(ids))
-            cur.execute(f"DELETE FROM curriculum WHERE id IN ({placeholders})", ids)
+            cur.execute(f"DELETE FROM curriculum WHERE id IN ({placeholders}) AND {filter_sql}", ids + params)
             conn.commit()
             return {"deleted": len(ids)}
         finally:
             conn.close()
 
     @staticmethod
-    def import_curriculum(rows: List[Dict]) -> Dict:
+    def import_curriculum(rows: List[Dict], school_id: int = None) -> Dict:
         import json as _json
         conn = get_db()
         created = 0
@@ -639,12 +732,18 @@ class AdminService:
             cur = conn.cursor()
             for r in rows:
                 try:
+                    board_id = r["board_id"]
+                    standard_id = r["standard_id"]
+                    medium_id = r["medium_id"]
+                    scoped_board_id = AdminService._make_scoped_id(board_id, school_id)
+                    scoped_standard_id = AdminService._make_scoped_id(standard_id, school_id)
+                    scoped_medium_id = AdminService._make_scoped_id(medium_id, school_id)
                     cur.execute(
-                        """INSERT INTO curriculum (board_id, standard_id, medium_id, subjects, is_active)
-                           VALUES (%s,%s,%s,%s,TRUE)
+                        """INSERT INTO curriculum (board_id, standard_id, medium_id, subjects, is_active, school_id)
+                           VALUES (%s,%s,%s,%s,TRUE,%s)
                            ON CONFLICT (board_id, standard_id, medium_id)
                            DO UPDATE SET subjects=EXCLUDED.subjects, is_active=TRUE""",
-                        (r["board_id"], r["standard_id"], r["medium_id"], _json.dumps(r.get("subjects", [])))
+                        (scoped_board_id, scoped_standard_id, scoped_medium_id, _json.dumps(r.get("subjects", [])), school_id)
                     )
                     created += 1
                 except Exception as e:
@@ -654,15 +753,369 @@ class AdminService:
         finally:
             conn.close()
 
+    @staticmethod
+    def import_global_curriculum(school_id: int) -> Dict:
+        """Import all global curriculum (school_id=NULL) to a specific school."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            counts = {"boards": 0, "standards": 0, "mediums": 0, "subjects": 0, "curriculum": 0, "chapters": 0}
+            
+            # Copy boards
+            cur.execute("SELECT * FROM boards WHERE school_id IS NULL")
+            for row in cur.fetchall():
+                new_id = f"s{school_id}_{row['id']}"
+                cur.execute(
+                    """INSERT INTO boards (id, name, sort_order, is_active, school_id)
+                       VALUES (%s, %s, %s, %s, %s)
+                       ON CONFLICT (id) DO NOTHING""",
+                    (new_id, row['name'], row['sort_order'], row['is_active'], school_id)
+                )
+                counts["boards"] += 1
+            
+            # Copy standards
+            cur.execute("SELECT * FROM standards WHERE school_id IS NULL")
+            for row in cur.fetchall():
+                new_id = f"s{school_id}_{row['id']}"
+                cur.execute(
+                    """INSERT INTO standards (id, name, grade_num, sort_order, is_active, school_id)
+                       VALUES (%s, %s, %s, %s, %s, %s)
+                       ON CONFLICT (id) DO NOTHING""",
+                    (new_id, row['name'], row['grade_num'], row['sort_order'], row['is_active'], school_id)
+                )
+                counts["standards"] += 1
+            
+            # Copy mediums
+            cur.execute("SELECT * FROM mediums WHERE school_id IS NULL")
+            for row in cur.fetchall():
+                new_id = f"s{school_id}_{row['id']}"
+                cur.execute(
+                    """INSERT INTO mediums (id, name, sort_order, is_active, school_id)
+                       VALUES (%s, %s, %s, %s, %s)
+                       ON CONFLICT (id) DO NOTHING""",
+                    (new_id, row['name'], row['sort_order'], row['is_active'], school_id)
+                )
+                counts["mediums"] += 1
+            
+            # Copy subjects
+            cur.execute("SELECT * FROM subjects WHERE school_id IS NULL")
+            for row in cur.fetchall():
+                new_id = f"s{school_id}_{row['id']}"
+                new_board_id = f"s{school_id}_{row['board_id']}"
+                new_standard_id = f"s{school_id}_{row['standard_id']}"
+                cur.execute(
+                    """INSERT INTO subjects (id, name, board_id, standard_id, sort_order, is_active, school_id)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s)
+                       ON CONFLICT (id) DO NOTHING""",
+                    (new_id, row['name'], new_board_id, new_standard_id, row['sort_order'], row['is_active'], school_id)
+                )
+                counts["subjects"] += 1
+            
+            # Copy curriculum
+            cur.execute("SELECT * FROM curriculum WHERE school_id IS NULL")
+            for row in cur.fetchall():
+                new_board_id = f"s{school_id}_{row['board_id']}"
+                new_standard_id = f"s{school_id}_{row['standard_id']}"
+                new_medium_id = f"s{school_id}_{row['medium_id']}"
+                cur.execute(
+                    """INSERT INTO curriculum (board_id, standard_id, medium_id, subjects, is_active, school_id)
+                       VALUES (%s, %s, %s, %s, %s, %s)
+                       ON CONFLICT (board_id, standard_id, medium_id) DO NOTHING""",
+                    (new_board_id, new_standard_id, new_medium_id, row['subjects'], row['is_active'], school_id)
+                )
+                counts["curriculum"] += 1
+            
+            # Copy chapters
+            cur.execute("SELECT * FROM chapters WHERE school_id IS NULL")
+            for row in cur.fetchall():
+                new_board_id = f"s{school_id}_{row['board_id']}"
+                new_standard_id = f"s{school_id}_{row['standard_id']}"
+                new_subject_id = f"s{school_id}_{row['subject_id']}"
+                cur.execute(
+                    """INSERT INTO chapters (board_id, standard_id, subject_id, chapter_number, chapter_name, 
+                                             chapter_name_local, description, topics, is_active, school_id)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                       ON CONFLICT (board_id, standard_id, subject_id, chapter_number) DO NOTHING""",
+                    (new_board_id, new_standard_id, new_subject_id, row['chapter_number'], row['chapter_name'],
+                     row.get('chapter_name_local', ''), row.get('description', ''), row.get('topics', '[]'),
+                     row['is_active'], school_id)
+                )
+                counts["chapters"] += 1
+            
+            conn.commit()
+            return {"success": True, "imported": counts}
+        finally:
+            conn.close()
+
+    # ── Chapters ──────────────────────────────────────────────
+
+    @staticmethod
+    def list_chapters_admin(
+        board_id: str = None,
+        standard_id: str = None,
+        subject_id: str = None,
+        is_active: bool = None,
+        school_id: int = None
+    ) -> List[Dict]:
+        """List chapters with school_id filtering for admin."""
+        import json as _json
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            
+            query = f"""
+                SELECT c.id, c.board_id, c.standard_id, c.subject_id, c.chapter_number, c.chapter_name,
+                       c.chapter_name_local, c.description, c.topics, c.is_active, c.created_at,
+                       b.name as board_name, st.name as standard_name, s.name as subject_name
+                FROM chapters c
+                LEFT JOIN boards b ON c.board_id = b.id
+                LEFT JOIN standards st ON c.standard_id = st.id
+                LEFT JOIN subjects s ON c.subject_id = s.id
+                WHERE c.{filter_sql}
+            """
+            
+            if board_id:
+                query += " AND c.board_id = %s"
+                params.append(board_id)
+            if standard_id:
+                query += " AND c.standard_id = %s"
+                params.append(standard_id)
+            if subject_id:
+                query += " AND c.subject_id = %s"
+                params.append(subject_id)
+            if is_active is not None:
+                query += " AND c.is_active = %s"
+                params.append(is_active)
+            
+            query += " ORDER BY c.chapter_number ASC"
+            cur.execute(query, params)
+            
+            result = []
+            for row in cur.fetchall():
+                chapter = dict(row)
+                if chapter.get("topics"):
+                    try:
+                        if isinstance(chapter["topics"], str):
+                            chapter["topics"] = _json.loads(chapter["topics"])
+                    except Exception:
+                        chapter["topics"] = []
+                else:
+                    chapter["topics"] = []
+                result.append(chapter)
+            return result
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_chapter_admin(chapter_id: int, school_id: int = None) -> Dict:
+        """Get a single chapter with school_id verification."""
+        import json as _json
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            
+            cur.execute(
+                f"""SELECT c.id, c.board_id, c.standard_id, c.subject_id, c.chapter_number, c.chapter_name,
+                          c.chapter_name_local, c.description, c.topics, c.is_active, c.created_at,
+                          b.name as board_name, st.name as standard_name, s.name as subject_name
+                   FROM chapters c
+                   LEFT JOIN boards b ON c.board_id = b.id
+                   LEFT JOIN standards st ON c.standard_id = st.id
+                   LEFT JOIN subjects s ON c.subject_id = s.id
+                   WHERE c.id = %s AND c.{filter_sql}""",
+                [chapter_id] + params
+            )
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Chapter not found")
+            
+            chapter = dict(row)
+            if chapter.get("topics"):
+                try:
+                    if isinstance(chapter["topics"], str):
+                        chapter["topics"] = _json.loads(chapter["topics"])
+                except Exception:
+                    chapter["topics"] = []
+            else:
+                chapter["topics"] = []
+            return chapter
+        finally:
+            conn.close()
+
+    @staticmethod
+    def create_chapter_admin(
+        board_id: str, standard_id: str, subject_id: str, chapter_number: int,
+        chapter_name: str, chapter_name_local: str = "", description: str = "",
+        topics: List = None, is_active: bool = True, school_id: int = None
+    ) -> Dict:
+        """Create a chapter with school_id."""
+        import json as _json
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            
+            # Check duplicate
+            cur.execute(
+                f"""SELECT id FROM chapters
+                   WHERE board_id = %s AND standard_id = %s AND subject_id = %s 
+                   AND chapter_number = %s AND {filter_sql}""",
+                [board_id, standard_id, subject_id, chapter_number] + params
+            )
+            if cur.fetchone():
+                raise HTTPException(status_code=409, detail="Chapter already exists")
+            
+            topics_json = _json.dumps(topics or [])
+            cur.execute(
+                """INSERT INTO chapters (board_id, standard_id, subject_id, chapter_number, chapter_name,
+                                         chapter_name_local, description, topics, is_active, school_id)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                   RETURNING id, created_at""",
+                (board_id, standard_id, subject_id, chapter_number, chapter_name,
+                 chapter_name_local, description, topics_json, is_active, school_id)
+            )
+            row = cur.fetchone()
+            conn.commit()
+            
+            return {
+                "id": row["id"],
+                "board_id": board_id,
+                "standard_id": standard_id,
+                "subject_id": subject_id,
+                "chapter_number": chapter_number,
+                "chapter_name": chapter_name,
+                "chapter_name_local": chapter_name_local,
+                "description": description,
+                "topics": topics or [],
+                "is_active": is_active,
+                "created_at": str(row["created_at"]),
+            }
+        finally:
+            conn.close()
+
+    @staticmethod
+    def update_chapter_admin(
+        chapter_id: int, chapter_name: str = None, chapter_name_local: str = None,
+        description: str = None, topics: List = None, is_active: bool = None, school_id: int = None
+    ) -> Dict:
+        """Update a chapter with school_id verification."""
+        import json as _json
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            
+            # Verify chapter belongs to school
+            cur.execute(f"SELECT id FROM chapters WHERE id = %s AND {filter_sql}", [chapter_id] + params)
+            if not cur.fetchone():
+                raise HTTPException(status_code=404, detail="Chapter not found")
+            
+            updates = []
+            update_params = []
+            if chapter_name is not None:
+                updates.append("chapter_name = %s")
+                update_params.append(chapter_name)
+            if chapter_name_local is not None:
+                updates.append("chapter_name_local = %s")
+                update_params.append(chapter_name_local)
+            if description is not None:
+                updates.append("description = %s")
+                update_params.append(description)
+            if topics is not None:
+                updates.append("topics = %s")
+                update_params.append(_json.dumps(topics))
+            if is_active is not None:
+                updates.append("is_active = %s")
+                update_params.append(is_active)
+            
+            if not updates:
+                return AdminService.get_chapter_admin(chapter_id, school_id)
+            
+            update_params.append(chapter_id)
+            cur.execute(f"UPDATE chapters SET {', '.join(updates)} WHERE id = %s", update_params)
+            conn.commit()
+            
+            return AdminService.get_chapter_admin(chapter_id, school_id)
+        finally:
+            conn.close()
+
+    @staticmethod
+    def delete_chapter_admin(chapter_id: int, school_id: int = None) -> Dict:
+        """Delete a chapter with school_id verification."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            cur.execute(f"DELETE FROM chapters WHERE id = %s AND {filter_sql}", [chapter_id] + params)
+            deleted = cur.rowcount
+            conn.commit()
+            return {"deleted": deleted > 0}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def bulk_create_chapters_admin(chapters: List[Dict], school_id: int = None) -> Dict:
+        """Bulk create chapters with school_id."""
+        import json as _json
+        conn = get_db()
+        created = 0
+        try:
+            cur = conn.cursor()
+            for ch in chapters:
+                try:
+                    topics_json = _json.dumps(ch.get("topics", []))
+                    cur.execute(
+                        """INSERT INTO chapters (board_id, standard_id, subject_id, chapter_number, chapter_name,
+                                                 chapter_name_local, description, topics, is_active, school_id)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                           ON CONFLICT (board_id, standard_id, subject_id, chapter_number) DO NOTHING""",
+                        (ch["board_id"], ch["standard_id"], ch["subject_id"], ch["chapter_number"],
+                         ch["chapter_name"], ch.get("chapter_name_local", ""), ch.get("description", ""),
+                         topics_json, ch.get("is_active", True), school_id)
+                    )
+                    if cur.rowcount > 0:
+                        created += 1
+                except Exception:
+                    pass  # Skip duplicates
+            conn.commit()
+            return {"created": created}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def bulk_delete_chapters_admin(ids: List[int], school_id: int = None) -> Dict:
+        """Bulk delete chapters with school_id filtering."""
+        if not ids:
+            return {"deleted": 0}
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            placeholders = ",".join(["%s"] * len(ids))
+            cur.execute(f"DELETE FROM chapters WHERE id IN ({placeholders}) AND {filter_sql}", ids + params)
+            deleted = cur.rowcount
+            conn.commit()
+            return {"deleted": deleted}
+        finally:
+            conn.close()
+
     # ── Users ─────────────────────────────────────────────────
 
     @staticmethod
-    def list_users(search: str = "", plan: str = "", drishti_only: bool = False) -> List[Dict]:
+    def list_users(search: str = "", plan: str = "", drishti_only: bool = False, school_id: int = None) -> List[Dict]:
         conn = get_db()
         try:
             cur = conn.cursor()
             conditions = []
             params = []
+            
+            # School admin can only see their school's students
+            if school_id is not None:
+                conditions.append("school_id = %s")
+                params.append(school_id)
+            
             if search:
                 conditions.append("(LOWER(name) LIKE %s OR LOWER(email) LIKE %s)")
                 like = f"%{search.lower()}%"
@@ -676,7 +1129,7 @@ class AdminService:
             cur.execute(
                 f"""SELECT id, name, email, standard, board, language, plan,
                            plan_expires_at, xp, streak, is_drishti,
-                           ai_provider, ai_model, ai_admin_override, created_at
+                           ai_provider, ai_model, ai_admin_override, school_id, created_at
                     FROM users {where}
                     ORDER BY created_at DESC LIMIT 500""",
                 params
@@ -686,10 +1139,24 @@ class AdminService:
             conn.close()
 
     @staticmethod
-    def update_user_plan(user_id: str, plan: str, plan_expires_at: str = None) -> Dict:
+    def _verify_user_school(cur, user_id: str, school_id: int) -> bool:
+        """Verify a user belongs to a school. Returns True if OK, raises 403 if not."""
+        if school_id is None:
+            return True  # Superadmin can access all
+        cur.execute("SELECT school_id FROM users WHERE id = %s", (user_id,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="User not found")
+        if row["school_id"] != school_id:
+            raise HTTPException(status_code=403, detail="Cannot modify users from other schools")
+        return True
+
+    @staticmethod
+    def update_user_plan(user_id: str, plan: str, plan_expires_at: str = None, school_id: int = None) -> Dict:
         conn = get_db()
         try:
             cur = conn.cursor()
+            AdminService._verify_user_school(cur, user_id, school_id)
             cur.execute(
                 "UPDATE users SET plan=%s, plan_expires_at=%s WHERE id=%s",
                 (plan, plan_expires_at or "", user_id)
@@ -700,10 +1167,11 @@ class AdminService:
             conn.close()
 
     @staticmethod
-    def toggle_drishti(user_id: str, is_drishti: bool) -> Dict:
+    def toggle_drishti(user_id: str, is_drishti: bool, school_id: int = None) -> Dict:
         conn = get_db()
         try:
             cur = conn.cursor()
+            AdminService._verify_user_school(cur, user_id, school_id)
             cur.execute("UPDATE users SET is_drishti=%s WHERE id=%s", (is_drishti, user_id))
             conn.commit()
             return {"ok": True}
@@ -711,10 +1179,11 @@ class AdminService:
             conn.close()
 
     @staticmethod
-    def update_user_ai_config(user_id: str, provider: str, model: str, override: bool) -> Dict:
+    def update_user_ai_config(user_id: str, provider: str, model: str, override: bool, school_id: int = None) -> Dict:
         conn = get_db()
         try:
             cur = conn.cursor()
+            AdminService._verify_user_school(cur, user_id, school_id)
             cur.execute(
                 "UPDATE users SET ai_provider=%s, ai_model=%s, ai_admin_override=%s WHERE id=%s",
                 (provider, model, override, user_id)
@@ -725,7 +1194,7 @@ class AdminService:
             conn.close()
 
     @staticmethod
-    def create_drishti_student(name: str, email: str, password: str, standard: str, board: str, language: str) -> Dict:
+    def create_drishti_student(name: str, email: str, password: str, standard: str, board: str, language: str, school_id: int = None) -> Dict:
         import uuid
         import bcrypt as _bcrypt
         conn = get_db()
@@ -738,9 +1207,9 @@ class AdminService:
             pw_hash = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
             user_id = str(uuid.uuid4())
             cur.execute(
-                """INSERT INTO users (id, name, email, password_hash, standard, board, language, is_drishti, plan)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,TRUE,'free')""",
-                (user_id, name.strip(), email, pw_hash, standard, board, language)
+                """INSERT INTO users (id, name, email, password_hash, standard, board, language, is_drishti, plan, school_id)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,TRUE,'free',%s)""",
+                (user_id, name.strip(), email, pw_hash, standard, board, language, school_id)
             )
             conn.commit()
             return {"id": user_id, "name": name, "email": email}
@@ -748,23 +1217,254 @@ class AdminService:
             conn.close()
 
     @staticmethod
-    def bulk_delete_users(ids: List[str]) -> Dict:
+    def bulk_delete_users(ids: List[str], school_id: int = None) -> Dict:
         if not ids:
             return {"deleted": 0}
         conn = get_db()
         try:
             cur = conn.cursor()
             placeholders = ",".join(["%s"] * len(ids))
-            cur.execute(f"DELETE FROM users WHERE id IN ({placeholders})", ids)
+            
+            # School admin can only delete their school's users
+            if school_id is not None:
+                cur.execute(
+                    f"DELETE FROM users WHERE id IN ({placeholders}) AND school_id = %s",
+                    [*ids, school_id]
+                )
+            else:
+                cur.execute(f"DELETE FROM users WHERE id IN ({placeholders})", ids)
+            
+            deleted = cur.rowcount
             conn.commit()
-            return {"deleted": len(ids)}
+            return {"deleted": deleted}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def create_student(name: str, email: str, password: str, standard: str, board: str, language: str, plan: str = "free", school_id: int = None, send_welcome_email: bool = False) -> Dict:
+        """Create a student. School admins automatically assign their school_id.
+        
+        If password is empty and send_welcome_email=True, generates a temp password and sends email.
+        """
+        import uuid
+        import bcrypt as _bcrypt
+        import secrets
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            email = email.strip().lower()
+            cur.execute("SELECT id FROM users WHERE email=%s", (email,))
+            if cur.fetchone():
+                raise HTTPException(status_code=409, detail="Email already registered")
+            
+            # Generate temp password if not provided or if sending welcome email
+            must_change = False
+            temp_password = ""
+            actual_password = password
+            if not password or send_welcome_email:
+                # Generate 8-char alphanumeric temp password
+                temp_password = secrets.token_urlsafe(6)[:8]
+                actual_password = temp_password
+                must_change = True
+            
+            pw_hash = _bcrypt.hashpw(actual_password.encode(), _bcrypt.gensalt()).decode()
+            user_id = str(uuid.uuid4())
+            cur.execute(
+                """INSERT INTO users (id, name, email, password_hash, standard, board, language, plan, school_id, must_change_password, temp_password)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                (user_id, name.strip(), email, pw_hash, standard, board, language, plan, school_id, must_change, temp_password)
+            )
+            conn.commit()
+            
+            result = {
+                "id": user_id, 
+                "name": name, 
+                "email": email, 
+                "standard": standard, 
+                "board": board, 
+                "language": language, 
+                "plan": plan, 
+                "school_id": school_id,
+                "must_change_password": must_change,
+            }
+            if temp_password:
+                result["temp_password"] = temp_password
+            return result
+        finally:
+            conn.close()
+
+    @staticmethod
+    def bulk_import_students(students: list, school_id: int = None, send_email: bool = True) -> Dict:
+        """Bulk import students with auto-generated temp passwords."""
+        import uuid
+        import bcrypt as _bcrypt
+        import secrets
+        
+        results = {
+            "success": 0,
+            "failed": 0,
+            "errors": [],
+            "created_students": []
+        }
+        
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            
+            # Get school name for email
+            school_name = None
+            if school_id:
+                cur.execute("SELECT name FROM schools WHERE id = %s", (school_id,))
+                row = cur.fetchone()
+                if row:
+                    school_name = row["name"]
+            
+            for idx, student_data in enumerate(students):
+                try:
+                    email = student_data.get("email", "").strip().lower()
+                    name = student_data.get("name", "").strip()
+                    
+                    if not email or not name:
+                        results["errors"].append({
+                            "row": idx + 1,
+                            "email": email,
+                            "error": "Name and email are required"
+                        })
+                        results["failed"] += 1
+                        continue
+                    
+                    # Check if email exists
+                    cur.execute("SELECT id FROM users WHERE email=%s", (email,))
+                    if cur.fetchone():
+                        results["errors"].append({
+                            "row": idx + 1,
+                            "email": email,
+                            "error": "Email already registered"
+                        })
+                        results["failed"] += 1
+                        continue
+                    
+                    # Generate temp password
+                    temp_password = secrets.token_urlsafe(6)[:8]
+                    pw_hash = _bcrypt.hashpw(temp_password.encode(), _bcrypt.gensalt()).decode()
+                    user_id = str(uuid.uuid4())
+                    
+                    cur.execute(
+                        """INSERT INTO users (id, name, email, password_hash, standard, board, language, plan, school_id, must_change_password, temp_password)
+                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,TRUE,%s)""",
+                        (
+                            user_id,
+                            name,
+                            email,
+                            pw_hash,
+                            student_data.get("standard", "Class 10"),
+                            student_data.get("board", "CBSE"),
+                            student_data.get("language", "English"),
+                            student_data.get("plan", "free"),
+                            school_id,
+                            temp_password
+                        )
+                    )
+                    
+                    results["success"] += 1
+                    results["created_students"].append({
+                        "id": user_id,
+                        "name": name,
+                        "email": email,
+                        "temp_password": temp_password,
+                        "standard": student_data.get("standard", "Class 10"),
+                        "board": student_data.get("board", "CBSE"),
+                    })
+                    
+                except Exception as e:
+                    results["errors"].append({
+                        "row": idx + 1,
+                        "email": student_data.get("email", ""),
+                        "error": str(e)
+                    })
+                    results["failed"] += 1
+            
+            conn.commit()
+            
+            # Send welcome emails (async would be better but keeping it simple)
+            if send_email:
+                from app.utils.email import send_email as send_email_func, student_welcome_html, student_welcome_plain
+                import asyncio
+                
+                for student in results["created_students"]:
+                    try:
+                        html = student_welcome_html(
+                            student_name=student["name"],
+                            student_email=student["email"],
+                            temp_password=student["temp_password"],
+                            school_name=school_name
+                        )
+                        plain = student_welcome_plain(
+                            student_name=student["name"],
+                            student_email=student["email"],
+                            temp_password=student["temp_password"],
+                            school_name=school_name
+                        )
+                        # Run async email in sync context
+                        asyncio.get_event_loop().run_until_complete(
+                            send_email_func(
+                                to_email=student["email"],
+                                subject="Welcome to Eduvy-AI! 🎓",
+                                html_body=html,
+                                plain_body=plain
+                            )
+                        )
+                    except Exception as e:
+                        # Don't fail the whole import if email fails
+                        pass
+            
+            return results
+        finally:
+            conn.close()
+
+    @staticmethod
+    def update_student(user_id: str, name: str = None, standard: str = None, board: str = None, language: str = None, plan: str = None, plan_expires_at: str = None, school_id: int = None) -> Dict:
+        """Update student details."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            AdminService._verify_user_school(cur, user_id, school_id)
+            
+            updates = []
+            params = []
+            if name is not None:
+                updates.append("name = %s")
+                params.append(name)
+            if standard is not None:
+                updates.append("standard = %s")
+                params.append(standard)
+            if board is not None:
+                updates.append("board = %s")
+                params.append(board)
+            if language is not None:
+                updates.append("language = %s")
+                params.append(language)
+            if plan is not None:
+                updates.append("plan = %s")
+                params.append(plan)
+            if plan_expires_at is not None:
+                updates.append("plan_expires_at = %s")
+                params.append(plan_expires_at)
+            
+            if not updates:
+                return {"ok": True}
+            
+            params.append(user_id)
+            cur.execute(f"UPDATE users SET {', '.join(updates)} WHERE id = %s", params)
+            conn.commit()
+            return {"ok": True}
         finally:
             conn.close()
 
     # ── API / Model Dashboard ──────────────────────────────────
 
     @staticmethod
-    def get_api_dashboard(from_date: str = None, to_date: str = None) -> Dict:
+    def get_api_dashboard(from_date: str = None, to_date: str = None, school_id: int = None) -> Dict:
         """Return live provider pool status, plan routing, and usage estimates for a date range."""
         from services.ai_service import _KEY_POOLS, _PLAN_ROUTING
         conn = get_db()
@@ -774,22 +1474,32 @@ class AdminService:
             start_date = from_date if from_date else today
             end_date = to_date if to_date else today
 
+            # Build school filter
+            school_filter = ""
+            school_params = []
+            if school_id is not None:
+                school_filter = "AND u.school_id = %s"
+                school_params = [school_id]
+
             # Calls + tokens grouped by user plan for date range
             cur.execute(
-                """SELECT u.plan,
+                f"""SELECT u.plan,
                           COALESCE(SUM(a.call_count), 0)                        AS calls,
                           COALESCE(SUM(a.prompt_tokens + a.completion_tokens), 0) AS tokens
                    FROM ai_usage a
                    JOIN users u ON u.id = a.user_id
-                   WHERE a.date >= %s AND a.date <= %s
+                   WHERE a.date >= %s AND a.date <= %s {school_filter}
                    GROUP BY u.plan""",
-                (start_date, end_date),
+                [start_date, end_date] + school_params,
             )
             plan_usage: dict = {r["plan"]: {"calls": int(r["calls"]), "tokens": int(r["tokens"])}
                                 for r in cur.fetchall()}
 
-            # Total users per plan
-            cur.execute("SELECT plan, COUNT(*) AS cnt FROM users GROUP BY plan")
+            # Total users per plan (filtered by school if applicable)
+            if school_id is not None:
+                cur.execute("SELECT plan, COUNT(*) AS cnt FROM users WHERE school_id = %s GROUP BY plan", (school_id,))
+            else:
+                cur.execute("SELECT plan, COUNT(*) AS cnt FROM users GROUP BY plan")
             plan_user_counts: dict = {r["plan"]: int(r["cnt"]) for r in cur.fetchall()}
 
             # Estimate provider call/token counts from plan routing
@@ -899,34 +1609,67 @@ class AdminService:
     # ── AI Usage ──────────────────────────────────────────────
 
     @staticmethod
-    def get_usage_summary(days: int = 7) -> Dict:
+    def get_usage_summary(days: int = 7, school_id: int = None) -> Dict:
         conn = get_db()
         try:
             cur = conn.cursor()
-            # All-time totals with separate prompt/completion tokens
-            cur.execute("""
-                SELECT 
-                    COALESCE(SUM(call_count), 0) AS total_calls,
-                    COALESCE(SUM(prompt_tokens), 0) AS total_prompt_tokens,
-                    COALESCE(SUM(completion_tokens), 0) AS total_completion_tokens
-                FROM ai_usage
-            """)
+            
+            # Build school filter for queries that join with users
+            school_filter = ""
+            school_params = []
+            if school_id is not None:
+                school_filter = "AND u.school_id = %s"
+                school_params = [school_id]
+            
+            # All-time totals with separate prompt/completion tokens (filtered by school)
+            if school_id is not None:
+                cur.execute("""
+                    SELECT 
+                        COALESCE(SUM(a.call_count), 0) AS total_calls,
+                        COALESCE(SUM(a.prompt_tokens), 0) AS total_prompt_tokens,
+                        COALESCE(SUM(a.completion_tokens), 0) AS total_completion_tokens
+                    FROM ai_usage a
+                    JOIN users u ON u.id = a.user_id
+                    WHERE u.school_id = %s
+                """, (school_id,))
+            else:
+                cur.execute("""
+                    SELECT 
+                        COALESCE(SUM(call_count), 0) AS total_calls,
+                        COALESCE(SUM(prompt_tokens), 0) AS total_prompt_tokens,
+                        COALESCE(SUM(completion_tokens), 0) AS total_completion_tokens
+                    FROM ai_usage
+                """)
             row = cur.fetchone()
             total_calls = int(row["total_calls"])
             total_prompt_tokens = int(row["total_prompt_tokens"])
             total_completion_tokens = int(row["total_completion_tokens"])
             
             # Daily breakdown for past N days (fill in gaps with zeros)
-            cur.execute(
-                """SELECT date, 
-                          SUM(call_count) AS calls, 
-                          SUM(prompt_tokens) AS prompt_tokens,
-                          SUM(completion_tokens) AS completion_tokens
-                   FROM ai_usage
-                   WHERE date::date >= CURRENT_DATE - (%s || ' days')::interval
-                   GROUP BY date""",
-                (days,)
-            )
+            if school_id is not None:
+                cur.execute(
+                    """SELECT a.date, 
+                              SUM(a.call_count) AS calls, 
+                              SUM(a.prompt_tokens) AS prompt_tokens,
+                              SUM(a.completion_tokens) AS completion_tokens
+                       FROM ai_usage a
+                       JOIN users u ON u.id = a.user_id
+                       WHERE a.date::date >= CURRENT_DATE - (%s || ' days')::interval
+                       AND u.school_id = %s
+                       GROUP BY a.date""",
+                    (days, school_id)
+                )
+            else:
+                cur.execute(
+                    """SELECT date, 
+                              SUM(call_count) AS calls, 
+                              SUM(prompt_tokens) AS prompt_tokens,
+                              SUM(completion_tokens) AS completion_tokens
+                       FROM ai_usage
+                       WHERE date::date >= CURRENT_DATE - (%s || ' days')::interval
+                       GROUP BY date""",
+                    (days,)
+                )
             usage_by_date = {r["date"]: {
                 "calls": int(r["calls"]),
                 "prompt_tokens": int(r["prompt_tokens"]),
@@ -950,15 +1693,27 @@ class AdminService:
                     })
             
             # Usage by plan
-            cur.execute("""
-                SELECT us.plan, 
-                       COUNT(DISTINCT u.user_id) AS users,
-                       SUM(u.call_count) AS calls
-                FROM ai_usage u
-                LEFT JOIN users us ON us.id = u.user_id
-                WHERE u.date::date >= CURRENT_DATE - (%s || ' days')::interval
-                GROUP BY us.plan
-            """, (days,))
+            if school_id is not None:
+                cur.execute("""
+                    SELECT us.plan, 
+                           COUNT(DISTINCT u.user_id) AS users,
+                           SUM(u.call_count) AS calls
+                    FROM ai_usage u
+                    LEFT JOIN users us ON us.id = u.user_id
+                    WHERE u.date::date >= CURRENT_DATE - (%s || ' days')::interval
+                    AND us.school_id = %s
+                    GROUP BY us.plan
+                """, (days, school_id))
+            else:
+                cur.execute("""
+                    SELECT us.plan, 
+                           COUNT(DISTINCT u.user_id) AS users,
+                           SUM(u.call_count) AS calls
+                    FROM ai_usage u
+                    LEFT JOIN users us ON us.id = u.user_id
+                    WHERE u.date::date >= CURRENT_DATE - (%s || ' days')::interval
+                    GROUP BY us.plan
+                """, (days,))
             by_plan = {}
             for r in cur.fetchall():
                 plan = r["plan"] or "free"
@@ -995,13 +1750,21 @@ class AdminService:
             conn.close()
 
     @staticmethod
-    def get_usage_by_users(days: int = 7) -> List[Dict]:
+    def get_usage_by_users(days: int = 7, school_id: int = None) -> List[Dict]:
         """Get aggregated AI usage per user for the past N days."""
         conn = get_db()
         try:
             cur = conn.cursor()
+            
+            # Build school filter
+            school_filter = ""
+            school_params = []
+            if school_id is not None:
+                school_filter = "AND us.school_id = %s"
+                school_params = [school_id]
+            
             cur.execute(
-                """SELECT u.user_id, 
+                f"""SELECT u.user_id, 
                           us.name, 
                           us.email, 
                           us.plan,
@@ -1011,10 +1774,11 @@ class AdminService:
                    FROM ai_usage u
                    LEFT JOIN users us ON us.id = u.user_id
                    WHERE u.date::date >= CURRENT_DATE - (%s || ' days')::interval
+                   {school_filter}
                    GROUP BY u.user_id, us.name, us.email, us.plan
                    ORDER BY SUM(u.call_count) DESC 
                    LIMIT 100""",
-                (days,)
+                [days] + school_params
             )
             return [{
                 "user_id": r["user_id"],
@@ -1669,76 +2433,100 @@ class AdminService:
     # ── Analytics ─────────────────────────────────────────────
 
     @staticmethod
-    def get_analytics_overview() -> Dict:
-        """Get high-level platform analytics."""
+    def get_analytics_overview(school_id: int = None) -> Dict:
+        """Get high-level platform analytics. Scoped to school if school_id provided."""
         conn = get_db()
         try:
             cur = conn.cursor()
             
+            # Build school filter
+            school_filter = ""
+            school_params = []
+            if school_id is not None:
+                school_filter = "WHERE school_id = %s"
+                school_params = [school_id]
+            
             # Total users
-            cur.execute("SELECT COUNT(*) AS total FROM users")
+            cur.execute(f"SELECT COUNT(*) AS total FROM users {school_filter}", school_params)
             total_users = cur.fetchone()["total"]
             
             # Active today (handle empty last_active)
-            cur.execute("""
-                SELECT COUNT(*) AS total FROM users 
-                WHERE last_active != '' AND last_active::date = CURRENT_DATE
-            """)
+            where = f"WHERE last_active != '' AND last_active::date = CURRENT_DATE"
+            if school_id is not None:
+                where += " AND school_id = %s"
+            cur.execute(f"SELECT COUNT(*) AS total FROM users {where}", school_params)
             active_today = cur.fetchone()["total"]
             
             # Active this week
-            cur.execute("""
-                SELECT COUNT(*) AS total FROM users 
-                WHERE last_active != '' AND last_active::date > CURRENT_DATE - INTERVAL '7 days'
-            """)
+            where = f"WHERE last_active != '' AND last_active::date > CURRENT_DATE - INTERVAL '7 days'"
+            if school_id is not None:
+                where += " AND school_id = %s"
+            cur.execute(f"SELECT COUNT(*) AS total FROM users {where}", school_params)
             active_7d = cur.fetchone()["total"]
             
             # Active this month
-            cur.execute("""
-                SELECT COUNT(*) AS total FROM users 
-                WHERE last_active != '' AND last_active::date > CURRENT_DATE - INTERVAL '30 days'
-            """)
+            where = f"WHERE last_active != '' AND last_active::date > CURRENT_DATE - INTERVAL '30 days'"
+            if school_id is not None:
+                where += " AND school_id = %s"
+            cur.execute(f"SELECT COUNT(*) AS total FROM users {where}", school_params)
             active_30d = cur.fetchone()["total"]
             
             # Signups today (handle empty created_at)
-            cur.execute("""
-                SELECT COUNT(*) AS total FROM users 
-                WHERE created_at != '' AND created_at::date = CURRENT_DATE
-            """)
+            where = f"WHERE created_at != '' AND created_at::date = CURRENT_DATE"
+            if school_id is not None:
+                where += " AND school_id = %s"
+            cur.execute(f"SELECT COUNT(*) AS total FROM users {where}", school_params)
             signups_today = cur.fetchone()["total"]
             
             # Signups this week
-            cur.execute("""
-                SELECT COUNT(*) AS total FROM users 
-                WHERE created_at != '' AND created_at::date > CURRENT_DATE - INTERVAL '7 days'
-            """)
+            where = f"WHERE created_at != '' AND created_at::date > CURRENT_DATE - INTERVAL '7 days'"
+            if school_id is not None:
+                where += " AND school_id = %s"
+            cur.execute(f"SELECT COUNT(*) AS total FROM users {where}", school_params)
             signups_7d = cur.fetchone()["total"]
             
-            # Total AI calls today
-            cur.execute("SELECT COALESCE(SUM(call_count), 0) AS total FROM ai_usage WHERE date = CURRENT_DATE::text")
+            # Total AI calls today (join with users for school filtering)
+            if school_id is not None:
+                cur.execute("""
+                    SELECT COALESCE(SUM(a.call_count), 0) AS total 
+                    FROM ai_usage a JOIN users u ON a.user_id = u.id
+                    WHERE a.date = CURRENT_DATE::text AND u.school_id = %s
+                """, [school_id])
+            else:
+                cur.execute("SELECT COALESCE(SUM(call_count), 0) AS total FROM ai_usage WHERE date = CURRENT_DATE::text")
             ai_calls_today = cur.fetchone()["total"]
             
             # Total AI calls this week
-            cur.execute("""
-                SELECT COALESCE(SUM(call_count), 0) AS total FROM ai_usage 
-                WHERE date != '' AND date::date > CURRENT_DATE - INTERVAL '7 days'
-            """)
+            if school_id is not None:
+                cur.execute("""
+                    SELECT COALESCE(SUM(a.call_count), 0) AS total 
+                    FROM ai_usage a JOIN users u ON a.user_id = u.id
+                    WHERE a.date != '' AND a.date::date > CURRENT_DATE - INTERVAL '7 days' AND u.school_id = %s
+                """, [school_id])
+            else:
+                cur.execute("""
+                    SELECT COALESCE(SUM(call_count), 0) AS total FROM ai_usage 
+                    WHERE date != '' AND date::date > CURRENT_DATE - INTERVAL '7 days'
+                """)
             ai_calls_7d = cur.fetchone()["total"]
             
             # Paid subscriptions
-            cur.execute("SELECT COUNT(*) AS total FROM users WHERE plan != 'free' AND (plan_expires_at = '' OR plan_expires_at > CURRENT_DATE::text)")
+            where = "WHERE plan != 'free' AND (plan_expires_at = '' OR plan_expires_at > CURRENT_DATE::text)"
+            if school_id is not None:
+                where += " AND school_id = %s"
+            cur.execute(f"SELECT COUNT(*) AS total FROM users {where}", school_params)
             paid_subs = cur.fetchone()["total"]
             
             # Users by plan
-            cur.execute("SELECT plan, COUNT(*) AS count FROM users GROUP BY plan")
+            cur.execute(f"SELECT plan, COUNT(*) AS count FROM users {school_filter} GROUP BY plan", school_params)
             by_plan = {r["plan"]: r["count"] for r in cur.fetchall()}
             
             # Average streak
-            cur.execute("SELECT COALESCE(AVG(streak), 0) AS avg FROM users")
+            cur.execute(f"SELECT COALESCE(AVG(streak), 0) AS avg FROM users {school_filter}", school_params)
             avg_streak = round(cur.fetchone()["avg"], 1)
             
             # Total XP
-            cur.execute("SELECT COALESCE(SUM(xp), 0) AS total FROM users")
+            cur.execute(f"SELECT COALESCE(SUM(xp), 0) AS total FROM users {school_filter}", school_params)
             total_xp = cur.fetchone()["total"]
             
             return {
@@ -1759,75 +2547,106 @@ class AdminService:
             conn.close()
 
     @staticmethod
-    def get_analytics_students() -> Dict:
-        """Get detailed student analytics."""
+    def get_analytics_students(school_id: int = None) -> Dict:
+        """Get detailed student analytics. Scoped to school if school_id provided."""
         conn = get_db()
         try:
             cur = conn.cursor()
             
+            # Build school filter
+            school_filter = ""
+            school_params = []
+            if school_id is not None:
+                school_filter = "WHERE school_id = %s"
+                school_params = [school_id]
+            
             # By board
-            cur.execute("SELECT board, COUNT(*) AS count FROM users GROUP BY board ORDER BY count DESC")
+            cur.execute(f"SELECT board, COUNT(*) AS count FROM users {school_filter} GROUP BY board ORDER BY count DESC", school_params)
             by_board = {r["board"]: r["count"] for r in cur.fetchall()}
             
             # By standard
-            cur.execute("SELECT standard, COUNT(*) AS count FROM users GROUP BY standard ORDER BY count DESC")
+            cur.execute(f"SELECT standard, COUNT(*) AS count FROM users {school_filter} GROUP BY standard ORDER BY count DESC", school_params)
             by_standard = {r["standard"]: r["count"] for r in cur.fetchall()}
             
             # By language/medium
-            cur.execute("SELECT language, COUNT(*) AS count FROM users GROUP BY language ORDER BY count DESC")
+            cur.execute(f"SELECT language, COUNT(*) AS count FROM users {school_filter} GROUP BY language ORDER BY count DESC", school_params)
             by_language = {r["language"]: r["count"] for r in cur.fetchall()}
             
-            # By school (top 20)
-            cur.execute("""
-                SELECT school, COUNT(*) AS count 
-                FROM users 
-                WHERE school != '' AND school IS NOT NULL
-                GROUP BY school 
-                ORDER BY count DESC 
-                LIMIT 20
-            """)
-            by_school = [{"school": r["school"], "count": r["count"]} for r in cur.fetchall()]
+            # By school (top 20) - only for superadmin
+            if school_id is None:
+                cur.execute("""
+                    SELECT school, COUNT(*) AS count 
+                    FROM users 
+                    WHERE school != '' AND school IS NOT NULL
+                    GROUP BY school 
+                    ORDER BY count DESC 
+                    LIMIT 20
+                """)
+                by_school = [{"school": r["school"], "count": r["count"]} for r in cur.fetchall()]
+            else:
+                by_school = []
             
             # Drishti students
-            cur.execute("SELECT COUNT(*) AS total FROM users WHERE is_drishti = TRUE")
+            if school_id is not None:
+                cur.execute("SELECT COUNT(*) AS total FROM users WHERE is_drishti = TRUE AND school_id = %s", [school_id])
+            else:
+                cur.execute("SELECT COUNT(*) AS total FROM users WHERE is_drishti = TRUE")
             drishti_count = cur.fetchone()["total"]
             
             # Top 10 by XP
-            cur.execute("""
-                SELECT id, name, xp, streak, plan, standard, board
-                FROM users
-                ORDER BY xp DESC
-                LIMIT 10
-            """)
+            if school_id is not None:
+                cur.execute("""
+                    SELECT id, name, xp, streak, plan, standard, board
+                    FROM users WHERE school_id = %s
+                    ORDER BY xp DESC LIMIT 10
+                """, [school_id])
+            else:
+                cur.execute("""
+                    SELECT id, name, xp, streak, plan, standard, board
+                    FROM users
+                    ORDER BY xp DESC
+                    LIMIT 10
+                """)
             top_by_xp = [dict(r) for r in cur.fetchall()]
             
             # Top 10 by streak
-            cur.execute("""
-                SELECT id, name, xp, streak, plan, standard, board
-                FROM users
-                ORDER BY streak DESC
-                LIMIT 10
-            """)
+            if school_id is not None:
+                cur.execute("""
+                    SELECT id, name, xp, streak, plan, standard, board
+                    FROM users WHERE school_id = %s
+                    ORDER BY streak DESC LIMIT 10
+                """, [school_id])
+            else:
+                cur.execute("""
+                    SELECT id, name, xp, streak, plan, standard, board
+                    FROM users
+                    ORDER BY streak DESC
+                    LIMIT 10
+                """)
             top_by_streak = [dict(r) for r in cur.fetchall()]
             
             # Growth chart (last 30 days)
-            cur.execute("""
+            where = "WHERE created_at != '' AND created_at::date > CURRENT_DATE - INTERVAL '30 days'"
+            if school_id is not None:
+                where += " AND school_id = %s"
+            cur.execute(f"""
                 SELECT created_at::date AS date, COUNT(*) AS count
-                FROM users
-                WHERE created_at != '' AND created_at::date > CURRENT_DATE - INTERVAL '30 days'
+                FROM users {where}
                 GROUP BY created_at::date
                 ORDER BY date
-            """)
+            """, school_params)
             growth_chart = [{"date": str(r["date"]), "count": r["count"]} for r in cur.fetchall()]
             
             # Activity chart (last 30 days)
-            cur.execute("""
+            where = "WHERE last_active != '' AND last_active::date > CURRENT_DATE - INTERVAL '30 days'"
+            if school_id is not None:
+                where += " AND school_id = %s"
+            cur.execute(f"""
                 SELECT last_active::date AS date, COUNT(*) AS count
-                FROM users
-                WHERE last_active != '' AND last_active::date > CURRENT_DATE - INTERVAL '30 days'
+                FROM users {where}
                 GROUP BY last_active::date
                 ORDER BY date
-            """)
+            """, school_params)
             activity_chart = [{"date": str(r["date"]), "count": r["count"]} for r in cur.fetchall()]
             
             return {
@@ -1896,3 +2715,478 @@ class AdminService:
         finally:
             conn.close()
 
+    # ── School Teachers (B2B) ─────────────────────────────────
+
+    @staticmethod
+    def list_school_teachers(school_id: int = None) -> List[Dict]:
+        """List teachers for a school."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            cur.execute(f"SELECT * FROM school_teachers WHERE {filter_sql} ORDER BY name", params)
+            return [dict(r) for r in cur.fetchall()]
+        finally:
+            conn.close()
+
+    @staticmethod
+    def create_school_teacher(name: str, email: str, phone: str, subjects: List[str], 
+                               standards: List[str], notes: str, school_id: int) -> Dict:
+        """Create a teacher for a school."""
+        import json as _json
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """INSERT INTO school_teachers (school_id, name, email, phone, subjects, standards, notes)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s)
+                   RETURNING *""",
+                (school_id, name.strip(), email.strip().lower(), phone.strip(),
+                 _json.dumps(subjects), _json.dumps(standards), notes.strip())
+            )
+            row = cur.fetchone()
+            conn.commit()
+            result = dict(row)
+            result["subjects"] = _json.loads(result["subjects"]) if isinstance(result["subjects"], str) else result["subjects"]
+            result["standards"] = _json.loads(result["standards"]) if isinstance(result["standards"], str) else result["standards"]
+            return result
+        finally:
+            conn.close()
+
+    @staticmethod
+    def update_school_teacher(teacher_id: int, name: str = None, email: str = None, phone: str = None,
+                               subjects: List[str] = None, standards: List[str] = None, 
+                               notes: str = None, is_active: bool = None, school_id: int = None) -> Dict:
+        """Update a school teacher."""
+        import json as _json
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            
+            # Verify teacher belongs to school
+            cur.execute(f"SELECT id FROM school_teachers WHERE id = %s AND {filter_sql}", [teacher_id] + params)
+            if not cur.fetchone():
+                raise HTTPException(status_code=404, detail="Teacher not found")
+            
+            updates = []
+            update_params = []
+            if name is not None:
+                updates.append("name = %s")
+                update_params.append(name.strip())
+            if email is not None:
+                updates.append("email = %s")
+                update_params.append(email.strip().lower())
+            if phone is not None:
+                updates.append("phone = %s")
+                update_params.append(phone.strip())
+            if subjects is not None:
+                updates.append("subjects = %s")
+                update_params.append(_json.dumps(subjects))
+            if standards is not None:
+                updates.append("standards = %s")
+                update_params.append(_json.dumps(standards))
+            if notes is not None:
+                updates.append("notes = %s")
+                update_params.append(notes.strip())
+            if is_active is not None:
+                updates.append("is_active = %s")
+                update_params.append(is_active)
+            
+            updates.append("updated_at = CURRENT_TIMESTAMP")
+            
+            update_params.append(teacher_id)
+            cur.execute(f"UPDATE school_teachers SET {', '.join(updates)} WHERE id = %s RETURNING *", update_params)
+            row = cur.fetchone()
+            conn.commit()
+            result = dict(row)
+            result["subjects"] = _json.loads(result["subjects"]) if isinstance(result["subjects"], str) else result["subjects"]
+            result["standards"] = _json.loads(result["standards"]) if isinstance(result["standards"], str) else result["standards"]
+            return result
+        finally:
+            conn.close()
+
+    @staticmethod
+    def delete_school_teacher(teacher_id: int, school_id: int = None) -> Dict:
+        """Delete a school teacher."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            cur.execute(f"DELETE FROM school_teachers WHERE id = %s AND {filter_sql}", [teacher_id] + params)
+            deleted = cur.rowcount
+            conn.commit()
+            return {"deleted": deleted > 0}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def bulk_delete_school_teachers(ids: List[int], school_id: int = None) -> Dict:
+        """Bulk delete school teachers."""
+        if not ids:
+            return {"deleted": 0}
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            placeholders = ",".join(["%s"] * len(ids))
+            cur.execute(f"DELETE FROM school_teachers WHERE id IN ({placeholders}) AND {filter_sql}", ids + params)
+            deleted = cur.rowcount
+            conn.commit()
+            return {"deleted": deleted}
+        finally:
+            conn.close()
+
+    # ── Questions (B2B) ───────────────────────────────────────
+
+    @staticmethod
+    def list_questions(chapter_id: int = None, type: str = None, difficulty: str = None, 
+                       search: str = None, limit: int = 100, offset: int = 0, school_id: int = None) -> Dict:
+        """List questions with filters."""
+        import json as _json
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            
+            conditions = [filter_sql]
+            if chapter_id:
+                conditions.append("chapter_id = %s")
+                params.append(chapter_id)
+            if type:
+                conditions.append("type = %s")
+                params.append(type)
+            if difficulty:
+                conditions.append("difficulty = %s")
+                params.append(difficulty)
+            if search:
+                conditions.append("(LOWER(question) LIKE %s OR LOWER(tags::text) LIKE %s)")
+                like = f"%{search.lower()}%"
+                params.extend([like, like])
+            
+            where = " AND ".join(conditions)
+            
+            # Get total
+            cur.execute(f"SELECT COUNT(*) AS total FROM questions WHERE {where}", params)
+            total = cur.fetchone()["total"]
+            
+            # Get items
+            cur.execute(
+                f"""SELECT q.*, c.chapter_name 
+                    FROM questions q
+                    LEFT JOIN chapters c ON q.chapter_id = c.id
+                    WHERE q.{where}
+                    ORDER BY q.created_at DESC
+                    LIMIT %s OFFSET %s""",
+                params + [limit, offset]
+            )
+            
+            items = []
+            for row in cur.fetchall():
+                item = dict(row)
+                if isinstance(item.get("options"), str):
+                    item["options"] = _json.loads(item["options"])
+                if isinstance(item.get("tags"), str):
+                    item["tags"] = _json.loads(item["tags"])
+                items.append(item)
+            
+            return {"items": items, "total": total}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_question(question_id: int, school_id: int = None) -> Dict:
+        """Get a single question."""
+        import json as _json
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            cur.execute(
+                f"""SELECT q.*, c.chapter_name 
+                    FROM questions q
+                    LEFT JOIN chapters c ON q.chapter_id = c.id
+                    WHERE q.id = %s AND q.{filter_sql}""",
+                [question_id] + params
+            )
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Question not found")
+            item = dict(row)
+            if isinstance(item.get("options"), str):
+                item["options"] = _json.loads(item["options"])
+            if isinstance(item.get("tags"), str):
+                item["tags"] = _json.loads(item["tags"])
+            return item
+        finally:
+            conn.close()
+
+    @staticmethod
+    def create_question(chapter_id: int, type: str, difficulty: str, question: str, 
+                        options: List[str], correct_answer: str, explanation: str,
+                        tags: List[str], created_by: str, school_id: int = None) -> Dict:
+        """Create a question."""
+        import json as _json
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """INSERT INTO questions (school_id, chapter_id, type, difficulty, question, 
+                                          options, correct_answer, explanation, tags, created_by)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                   RETURNING *""",
+                (school_id, chapter_id, type, difficulty, question.strip(),
+                 _json.dumps(options), correct_answer, explanation.strip(),
+                 _json.dumps(tags), created_by)
+            )
+            row = cur.fetchone()
+            conn.commit()
+            item = dict(row)
+            item["options"] = _json.loads(item["options"]) if isinstance(item["options"], str) else item["options"]
+            item["tags"] = _json.loads(item["tags"]) if isinstance(item["tags"], str) else item["tags"]
+            return item
+        finally:
+            conn.close()
+
+    @staticmethod
+    def update_question(question_id: int, type: str = None, difficulty: str = None, question: str = None,
+                        options: List[str] = None, correct_answer: str = None, explanation: str = None,
+                        tags: List[str] = None, is_active: bool = None, school_id: int = None) -> Dict:
+        """Update a question."""
+        import json as _json
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            
+            # Verify question belongs to school
+            cur.execute(f"SELECT id FROM questions WHERE id = %s AND {filter_sql}", [question_id] + params)
+            if not cur.fetchone():
+                raise HTTPException(status_code=404, detail="Question not found")
+            
+            updates = []
+            update_params = []
+            if type is not None:
+                updates.append("type = %s")
+                update_params.append(type)
+            if difficulty is not None:
+                updates.append("difficulty = %s")
+                update_params.append(difficulty)
+            if question is not None:
+                updates.append("question = %s")
+                update_params.append(question.strip())
+            if options is not None:
+                updates.append("options = %s")
+                update_params.append(_json.dumps(options))
+            if correct_answer is not None:
+                updates.append("correct_answer = %s")
+                update_params.append(correct_answer)
+            if explanation is not None:
+                updates.append("explanation = %s")
+                update_params.append(explanation.strip())
+            if tags is not None:
+                updates.append("tags = %s")
+                update_params.append(_json.dumps(tags))
+            if is_active is not None:
+                updates.append("is_active = %s")
+                update_params.append(is_active)
+            
+            updates.append("updated_at = CURRENT_TIMESTAMP")
+            
+            if not updates:
+                return AdminService.get_question(question_id, school_id)
+            
+            update_params.append(question_id)
+            cur.execute(f"UPDATE questions SET {', '.join(updates)} WHERE id = %s RETURNING *", update_params)
+            row = cur.fetchone()
+            conn.commit()
+            item = dict(row)
+            item["options"] = _json.loads(item["options"]) if isinstance(item["options"], str) else item["options"]
+            item["tags"] = _json.loads(item["tags"]) if isinstance(item["tags"], str) else item["tags"]
+            return item
+        finally:
+            conn.close()
+
+    @staticmethod
+    def delete_question(question_id: int, school_id: int = None) -> Dict:
+        """Delete a question."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            cur.execute(f"DELETE FROM questions WHERE id = %s AND {filter_sql}", [question_id] + params)
+            deleted = cur.rowcount
+            conn.commit()
+            return {"deleted": deleted > 0}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def bulk_delete_questions(ids: List[int], school_id: int = None) -> Dict:
+        """Bulk delete questions."""
+        if not ids:
+            return {"deleted": 0}
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            placeholders = ",".join(["%s"] * len(ids))
+            cur.execute(f"DELETE FROM questions WHERE id IN ({placeholders}) AND {filter_sql}", ids + params)
+            deleted = cur.rowcount
+            conn.commit()
+            return {"deleted": deleted}
+        finally:
+            conn.close()
+
+    # ── Media (B2B) ───────────────────────────────────────────
+
+    @staticmethod
+    def list_media(type: str = None, chapter_id: int = None, subject_id: str = None,
+                   search: str = None, limit: int = 100, offset: int = 0, school_id: int = None) -> Dict:
+        """List media files with filters."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            
+            conditions = [filter_sql]
+            if type:
+                conditions.append("type = %s")
+                params.append(type)
+            if chapter_id:
+                conditions.append("chapter_id = %s")
+                params.append(chapter_id)
+            if subject_id:
+                conditions.append("subject_id = %s")
+                params.append(subject_id)
+            if search:
+                conditions.append("LOWER(name) LIKE %s")
+                params.append(f"%{search.lower()}%")
+            
+            where = " AND ".join(conditions)
+            
+            # Get total
+            cur.execute(f"SELECT COUNT(*) AS total FROM media_files WHERE {where}", params)
+            total = cur.fetchone()["total"]
+            
+            # Get items
+            cur.execute(
+                f"""SELECT * FROM media_files
+                    WHERE {where}
+                    ORDER BY created_at DESC
+                    LIMIT %s OFFSET %s""",
+                params + [limit, offset]
+            )
+            
+            items = [dict(row) for row in cur.fetchall()]
+            return {"items": items, "total": total}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_media(media_id: int, school_id: int = None) -> Dict:
+        """Get a single media file."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            cur.execute(f"SELECT * FROM media_files WHERE id = %s AND {filter_sql}", [media_id] + params)
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Media not found")
+            return dict(row)
+        finally:
+            conn.close()
+
+    @staticmethod
+    def create_media(name: str, type: str, url: str, thumbnail_url: str, size_bytes: int,
+                     duration_sec: int, dimensions: str, subject_id: str, chapter_id: int,
+                     created_by: str, school_id: int = None) -> Dict:
+        """Create a media file entry."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """INSERT INTO media_files (school_id, name, type, url, thumbnail_url, size_bytes,
+                                            duration_sec, dimensions, subject_id, chapter_id, created_by)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                   RETURNING *""",
+                (school_id, name.strip(), type, url, thumbnail_url, size_bytes,
+                 duration_sec, dimensions, subject_id, chapter_id, created_by)
+            )
+            row = cur.fetchone()
+            conn.commit()
+            return dict(row)
+        finally:
+            conn.close()
+
+    @staticmethod
+    def update_media(media_id: int, name: str = None, subject_id: str = None, chapter_id: int = None,
+                     is_active: bool = None, school_id: int = None) -> Dict:
+        """Update a media file."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            
+            # Verify media belongs to school
+            cur.execute(f"SELECT id FROM media_files WHERE id = %s AND {filter_sql}", [media_id] + params)
+            if not cur.fetchone():
+                raise HTTPException(status_code=404, detail="Media not found")
+            
+            updates = []
+            update_params = []
+            if name is not None:
+                updates.append("name = %s")
+                update_params.append(name.strip())
+            if subject_id is not None:
+                updates.append("subject_id = %s")
+                update_params.append(subject_id)
+            if chapter_id is not None:
+                updates.append("chapter_id = %s")
+                update_params.append(chapter_id)
+            if is_active is not None:
+                updates.append("is_active = %s")
+                update_params.append(is_active)
+            
+            if not updates:
+                return AdminService.get_media(media_id, school_id)
+            
+            update_params.append(media_id)
+            cur.execute(f"UPDATE media_files SET {', '.join(updates)} WHERE id = %s RETURNING *", update_params)
+            row = cur.fetchone()
+            conn.commit()
+            return dict(row)
+        finally:
+            conn.close()
+
+    @staticmethod
+    def delete_media(media_id: int, school_id: int = None) -> Dict:
+        """Delete a media file."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            cur.execute(f"DELETE FROM media_files WHERE id = %s AND {filter_sql}", [media_id] + params)
+            deleted = cur.rowcount
+            conn.commit()
+            return {"deleted": deleted > 0}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def bulk_delete_media(ids: List[int], school_id: int = None) -> Dict:
+        """Bulk delete media files."""
+        if not ids:
+            return {"deleted": 0}
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            placeholders = ",".join(["%s"] * len(ids))
+            cur.execute(f"DELETE FROM media_files WHERE id IN ({placeholders}) AND {filter_sql}", ids + params)
+            deleted = cur.rowcount
+            conn.commit()
+            return {"deleted": deleted}
+        finally:
+            conn.close()

@@ -14,6 +14,7 @@ const initialState: AuthState = {
   isLoading: false,
   isInitialized: false,
   error: null,
+  mustChangePassword: false,
 }
 
 // ── Async Thunks ──
@@ -85,6 +86,22 @@ export const refreshUser = createAsyncThunk(
   }
 )
 
+/**
+ * Change password (first-login flow)
+ */
+export const changePassword = createAsyncThunk(
+  'auth/changePassword',
+  async (newPassword: string, { rejectWithValue }) => {
+    try {
+      const response = await authService.changePassword(newPassword)
+      return response
+    } catch (error: any) {
+      const message = error.response?.data?.detail || error.message || 'Failed to change password'
+      return rejectWithValue(message)
+    }
+  }
+)
+
 // ── Slice ──
 const authSlice = createSlice({
   name: 'auth',
@@ -138,6 +155,7 @@ const authSlice = createSlice({
         state.user = action.payload.profile
         state.token = action.payload.token
         state.error = null
+        state.mustChangePassword = action.payload.must_change_password || false
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false
@@ -191,6 +209,22 @@ const authSlice = createSlice({
         if (action.payload) {
           state.user = action.payload
         }
+      })
+    
+    // ── Change Password ──
+    builder
+      .addCase(changePassword.pending, (state) => {
+        state.isLoading = true
+        state.error = null
+      })
+      .addCase(changePassword.fulfilled, (state) => {
+        state.isLoading = false
+        state.mustChangePassword = false
+        state.error = null
+      })
+      .addCase(changePassword.rejected, (state, action) => {
+        state.isLoading = false
+        state.error = action.payload as string
       })
   },
 })

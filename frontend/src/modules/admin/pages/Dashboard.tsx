@@ -1,10 +1,11 @@
 // ─── Admin Dashboard Page ──────────────────────────────────────
 // Mission control with platform health, metrics, and quick actions
 
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAdminUser, useAIConfig, useStudents } from '../../../modules/admin/hooks'
 import { adminService } from '../../../modules/admin/service'
+import { curriculumApi } from '../../../modules/admin/api'
 import {
   Users,
   ChartLineUp,
@@ -17,6 +18,8 @@ import {
   CheckCircle,
   XCircle,
   Minus,
+  Download,
+  Spinner,
 } from '@phosphor-icons/react'
 
 // Stat card component
@@ -131,6 +134,10 @@ const AdminDashboard: React.FC = () => {
   const { aiUsage, fetchAIUsage } = useAIConfig()
   const { students, fetchStudents } = useStudents()
   
+  // Import state (for school admins)
+  const [isImporting, setIsImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{ success: boolean; message: string } | null>(null)
+  
   // Refs to prevent duplicate fetches
   const dataLoadedRef = useRef(false)
   const fetchAIUsageRef = useRef(fetchAIUsage)
@@ -138,6 +145,36 @@ const AdminDashboard: React.FC = () => {
   
   fetchAIUsageRef.current = fetchAIUsage
   fetchStudentsRef.current = fetchStudents
+  
+  // Check if school admin
+  const isSchoolAdmin = user?.school_id != null
+  
+  // Handle import global curriculum
+  const handleImportGlobal = async () => {
+    if (!confirm('Import standard curriculum from Eduvy? This will copy all boards, standards, mediums, subjects, and chapters to your school.')) {
+      return
+    }
+    
+    setIsImporting(true)
+    setImportResult(null)
+    
+    try {
+      const result = await curriculumApi.importGlobal()
+      const { imported } = result
+      const total = imported.boards + imported.standards + imported.mediums + imported.subjects + imported.curriculum + imported.chapters
+      setImportResult({
+        success: true,
+        message: `Successfully imported ${total} items (${imported.boards} boards, ${imported.standards} standards, ${imported.mediums} mediums, ${imported.subjects} subjects, ${imported.chapters} chapters)`
+      })
+    } catch (error: any) {
+      setImportResult({
+        success: false,
+        message: error.response?.data?.detail || 'Failed to import curriculum'
+      })
+    } finally {
+      setIsImporting(false)
+    }
+  }
   
   // Load dashboard data once
   useEffect(() => {
@@ -225,6 +262,46 @@ const AdminDashboard: React.FC = () => {
         {/* Quick Actions */}
         <div className="lg:col-span-2 bg-app-card rounded-2xl border border-app-border p-5">
           <h2 className="text-lg font-bold text-app-text mb-4">Quick Actions</h2>
+          
+          {/* School Admin Import Banner */}
+          {isSchoolAdmin && (
+            <div className="mb-4 p-4 bg-app-blue/10 border border-app-blue/25 rounded-xl">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-app-blue/20 border border-app-blue/30 flex items-center justify-center text-app-blue shrink-0">
+                  <Download size={20} />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-app-text mb-1">Import Standard Curriculum</h3>
+                  <p className="text-xs text-app-muted mb-3">
+                    Import boards, standards, mediums, subjects, and chapters from Eduvy's standard curriculum.
+                  </p>
+                  {importResult && (
+                    <div className={`text-xs mb-3 p-2 rounded-lg ${importResult.success ? 'bg-app-green/10 text-app-green' : 'bg-app-red/10 text-app-red'}`}>
+                      {importResult.message}
+                    </div>
+                  )}
+                  <button
+                    onClick={handleImportGlobal}
+                    disabled={isImporting}
+                    className="px-4 py-2 bg-app-blue text-white text-sm font-semibold rounded-lg hover:bg-app-blue/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {isImporting ? (
+                      <>
+                        <Spinner size={16} className="animate-spin" />
+                        Importing...
+                      </>
+                    ) : (
+                      <>
+                        <Download size={16} />
+                        Import Curriculum
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div className="grid sm:grid-cols-2 gap-3">
             <QuickAction
               icon={<BookOpen size={18} />}

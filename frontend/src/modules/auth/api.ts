@@ -8,6 +8,7 @@ const AUTH_ENDPOINTS = {
   login: '/api/auth/login',
   register: '/api/auth/register',
   me: '/api/auth/me',
+  changePassword: '/api/auth/change-password',
 } as const
 
 export const authApi = {
@@ -43,6 +44,17 @@ export const authApi = {
       // 401 or 404 means not authenticated
       return null
     }
+  },
+
+  /**
+   * Change password (first-login flow)
+   */
+  changePassword: async (newPassword: string): Promise<{ ok: boolean; message: string }> => {
+    const response = await axiosInstance.post<{ ok: boolean; message: string }>(
+      AUTH_ENDPOINTS.changePassword,
+      { new_password: newPassword }
+    )
+    return response.data
   },
 }
 

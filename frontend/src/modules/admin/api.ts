@@ -94,6 +94,18 @@ export const adminAuthApi = {
     const response = await axiosInstance.get<AdminUser>(ADMIN_ENDPOINTS.me, adminConfig())
     return response.data
   },
+
+  /**
+   * Change admin password (required on first login for school admins)
+   */
+  changePassword: async (newPassword: string): Promise<{ success: boolean; message: string }> => {
+    const response = await axiosInstance.post<{ success: boolean; message: string }>(
+      ADMIN_ENDPOINTS.changePassword,
+      { new_password: newPassword },
+      adminConfig()
+    )
+    return response.data
+  },
 }
 
 // ── Board APIs ──
@@ -305,6 +317,15 @@ export const curriculumApi = {
     )
     return response.data
   },
+
+  importGlobal: async (): Promise<{ success: boolean; imported: { boards: number; standards: number; mediums: number; subjects: number; curriculum: number; chapters: number } }> => {
+    const response = await axiosInstance.post(
+      `${ADMIN_ENDPOINTS.curriculum}/import-global`,
+      {},
+      adminConfig()
+    )
+    return response.data
+  },
 }
 
 // ── Chapter APIs ──
@@ -342,7 +363,7 @@ export const chaptersApi = {
   bulkCreate: async (chapters: Omit<Chapter, 'id' | 'created_at'>[]): Promise<{ created: number }> => {
     const response = await axiosInstance.post<{ created: number }>(
       `${ADMIN_ENDPOINTS.chapters}/bulk`,
-      chapters,
+      { chapters },
       adminConfig()
     )
     return response.data
@@ -398,6 +419,62 @@ export const usersApi = {
   createDrishtiStudent: async (data: { email: string; password: string; name: string }): Promise<StudentUser> => {
     const response = await axiosInstance.post<StudentUser>(
       `${ADMIN_ENDPOINTS.users}/drishti`,
+      data,
+      adminConfig()
+    )
+    return response.data
+  },
+
+  create: async (data: {
+    name: string
+    email: string
+    password: string
+    standard?: string
+    board?: string
+    language?: string
+    plan?: string
+  }): Promise<StudentUser> => {
+    const response = await axiosInstance.post<StudentUser>(
+      ADMIN_ENDPOINTS.users,
+      data,
+      adminConfig()
+    )
+    return response.data
+  },
+
+  update: async (userId: string, data: {
+    name?: string
+    standard?: string
+    board?: string
+    language?: string
+    plan?: string
+    plan_expires_at?: string
+  }): Promise<void> => {
+    await axiosInstance.put(
+      `${ADMIN_ENDPOINTS.users}/${userId}`,
+      data,
+      adminConfig()
+    )
+  },
+
+  bulkImport: async (data: {
+    students: Array<{
+      name: string
+      email: string
+      standard?: string
+      board?: string
+      language?: string
+      plan?: string
+    }>
+    send_email?: boolean
+  }): Promise<{
+    success: number
+    failed: number
+    errors: Array<{ row: number; email: string; error: string }>
+    created_students: Array<{ id: string; name: string; email: string; temp_password: string }>
+  }> => {
+    const response = await axiosInstance.post(
+      `${ADMIN_ENDPOINTS.users}/bulk-import`,
       data,
       adminConfig()
     )
@@ -463,6 +540,61 @@ export const helpersApi = {
   bulkDelete: async (ids: number[]): Promise<{ deleted: number }> => {
     const response = await axiosInstance.post<{ deleted: number }>(
       `${ADMIN_ENDPOINTS.helpers}/bulk-delete`,
+      { ids },
+      adminConfig()
+    )
+    return response.data
+  },
+}
+
+// ── School Teachers APIs (B2B) ──
+export interface SchoolTeacher {
+  id: number
+  school_id: number
+  name: string
+  email: string
+  phone: string
+  subjects: string[]
+  standards: string[]
+  is_active: boolean
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
+export interface SchoolTeacherCreate {
+  name: string
+  email: string
+  phone?: string
+  subjects?: string[]
+  standards?: string[]
+  notes?: string
+}
+
+export const schoolTeachersApi = {
+  getAll: async (): Promise<SchoolTeacher[]> => {
+    const response = await axiosInstance.get<SchoolTeacher[]>(ADMIN_ENDPOINTS.schoolTeachers, adminConfig())
+    return response.data
+  },
+
+  create: async (data: SchoolTeacherCreate): Promise<SchoolTeacher> => {
+    const response = await axiosInstance.post<SchoolTeacher>(ADMIN_ENDPOINTS.schoolTeachers, data, adminConfig())
+    return response.data
+  },
+
+  update: async (id: number, data: Partial<SchoolTeacherCreate & { is_active?: boolean }>): Promise<SchoolTeacher> => {
+    const response = await axiosInstance.put<SchoolTeacher>(`${ADMIN_ENDPOINTS.schoolTeachers}/${id}`, data, adminConfig())
+    return response.data
+  },
+
+  delete: async (id: number): Promise<{ deleted: boolean }> => {
+    const response = await axiosInstance.delete<{ deleted: boolean }>(`${ADMIN_ENDPOINTS.schoolTeachers}/${id}`, adminConfig())
+    return response.data
+  },
+
+  bulkDelete: async (ids: number[]): Promise<{ deleted: number }> => {
+    const response = await axiosInstance.post<{ deleted: number }>(
+      `${ADMIN_ENDPOINTS.schoolTeachers}/bulk-delete`,
       { ids },
       adminConfig()
     )

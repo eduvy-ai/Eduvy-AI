@@ -43,6 +43,7 @@ import {
   updateChapter,
   removeChapter,
   updateStudentLocal,
+  addStudentLocal,
   removeStudents,
   addHelper,
   updateHelper,
@@ -357,12 +358,18 @@ export const useStudents = () => {
     [dispatch]
   )
 
+  const addLocal = useCallback(
+    (student: StudentUser) => dispatch(addStudentLocal(student)),
+    [dispatch]
+  )
+
   const remove = useCallback((ids: string[]) => dispatch(removeStudents(ids)), [dispatch])
 
   return {
     students,
     fetchStudents: fetch,
     updateStudentLocal: updateLocal,
+    addStudentLocal: addLocal,
     removeStudents: remove,
   }
 }

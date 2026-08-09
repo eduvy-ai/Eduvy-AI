@@ -9,6 +9,7 @@ export type AdminRole =
   | 'content_manager'
   | 'ai_manager'
   | 'teacher'
+  | 'school_admin'
   | 'moderator'
   | 'support'
   | 'finance'
@@ -23,6 +24,7 @@ export type AdminSection =
   | 'students'
   | 'teachers'
   | 'parents'
+  | 'schools'
   | 'community'
   | 'assessments'
   | 'ai_studio'
@@ -36,6 +38,8 @@ export interface AdminUser {
   email: string
   name: string
   role: AdminRole
+  school_id?: number | null  // null for superadmin, number for school admin
+  must_change_password?: boolean  // true on first login for school admins
   permissions: Record<AdminSection, PermissionLevel>
   created_at: string
   last_login?: string
@@ -554,52 +558,57 @@ export const DEFAULT_ADMIN_STATE: AdminState = {
 export const ROLE_PERMISSIONS: Record<AdminRole, Record<AdminSection, PermissionLevel>> = {
   super_admin: {
     dashboard: 'full', academics: 'full', content_studio: 'full', students: 'full',
-    teachers: 'full', parents: 'full', community: 'full', assessments: 'full',
+    teachers: 'full', parents: 'full', schools: 'full', community: 'full', assessments: 'full',
     ai_studio: 'full', analytics: 'full', operations: 'full', settings: 'full',
   },
   admin: {
     dashboard: 'full', academics: 'full', content_studio: 'full', students: 'full',
-    teachers: 'full', parents: 'full', community: 'full', assessments: 'full',
+    teachers: 'full', parents: 'full', schools: 'full', community: 'full', assessments: 'full',
     ai_studio: 'full', analytics: 'full', operations: 'full', settings: 'read',
   },
   academic_manager: {
     dashboard: 'full', academics: 'full', content_studio: 'full', students: 'full',
-    teachers: 'full', parents: 'none', community: 'none', assessments: 'full',
+    teachers: 'full', parents: 'none', schools: 'read', community: 'none', assessments: 'full',
     ai_studio: 'none', analytics: 'full', operations: 'none', settings: 'none',
   },
   content_manager: {
     dashboard: 'full', academics: 'read', content_studio: 'full', students: 'none',
-    teachers: 'none', parents: 'none', community: 'none', assessments: 'full',
+    teachers: 'none', parents: 'none', schools: 'none', community: 'none', assessments: 'full',
     ai_studio: 'none', analytics: 'full', operations: 'none', settings: 'none',
   },
   ai_manager: {
     dashboard: 'full', academics: 'none', content_studio: 'none', students: 'none',
-    teachers: 'none', parents: 'none', community: 'none', assessments: 'none',
+    teachers: 'none', parents: 'none', schools: 'none', community: 'none', assessments: 'none',
     ai_studio: 'full', analytics: 'full', operations: 'none', settings: 'none',
   },
   teacher: {
     dashboard: 'full', academics: 'read', content_studio: 'read', students: 'read',
-    teachers: 'none', parents: 'none', community: 'none', assessments: 'read',
+    teachers: 'none', parents: 'none', schools: 'none', community: 'none', assessments: 'read',
     ai_studio: 'none', analytics: 'read', operations: 'none', settings: 'none',
+  },
+  school_admin: {
+    dashboard: 'full', academics: 'full', content_studio: 'full', students: 'full',
+    teachers: 'full', parents: 'full', schools: 'full', community: 'full', assessments: 'full',
+    ai_studio: 'read', analytics: 'full', operations: 'read', settings: 'read',
   },
   moderator: {
     dashboard: 'full', academics: 'none', content_studio: 'none', students: 'read',
-    teachers: 'none', parents: 'none', community: 'full', assessments: 'none',
+    teachers: 'none', parents: 'none', schools: 'none', community: 'full', assessments: 'none',
     ai_studio: 'none', analytics: 'none', operations: 'none', settings: 'none',
   },
   support: {
     dashboard: 'full', academics: 'none', content_studio: 'none', students: 'full',
-    teachers: 'none', parents: 'full', community: 'full', assessments: 'none',
+    teachers: 'none', parents: 'full', schools: 'read', community: 'full', assessments: 'none',
     ai_studio: 'none', analytics: 'none', operations: 'none', settings: 'none',
   },
   finance: {
     dashboard: 'full', academics: 'none', content_studio: 'none', students: 'none',
-    teachers: 'none', parents: 'none', community: 'none', assessments: 'none',
+    teachers: 'none', parents: 'none', schools: 'read', community: 'none', assessments: 'none',
     ai_studio: 'none', analytics: 'full', operations: 'none', settings: 'none',
   },
   viewer: {
     dashboard: 'full', academics: 'read', content_studio: 'read', students: 'read',
-    teachers: 'read', parents: 'read', community: 'read', assessments: 'read',
+    teachers: 'read', parents: 'read', schools: 'read', community: 'read', assessments: 'read',
     ai_studio: 'none', analytics: 'read', operations: 'none', settings: 'none',
   },
 }

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { BOARDS, LANGS, SUBS } from '../shared.js'
-import { getDeviceId, apiCreateProfile, apiApplyReferralCode } from '../api.js'
+import { getDeviceId, apiCreateProfile, apiApplyReferralCode, apiJoinSchool, apiGetSchoolByCode } from '../api.js'
 import { li } from '../i18n/index.js'
-import { HandWaving, CheckCircle, Books, Confetti, GraduationCap, ClipboardText, Globe, House, BookOpen, Robot, PlayCircle, Microphone, Target, PencilLine, Flower, Check } from '@phosphor-icons/react'
+import { HandWaving, CheckCircle, Books, Confetti, GraduationCap, ClipboardText, Globe, House, BookOpen, Robot, PlayCircle, Microphone, Target, PencilLine, Flower, Check, Building } from '@phosphor-icons/react'
 
 const CLASSES = Array.from({ length: 4 }, (_, i) => `Class ${i + 9}`)
 
@@ -68,6 +68,9 @@ export default function Onboard({ onComplete }) {
   const [saving, setSaving]       = useState(false)
   const [refCode, setRefCode]     = useState('')
   const [refMsg, setRefMsg]       = useState('')
+  const [schoolCode, setSchoolCode] = useState('')
+  const [schoolInfo, setSchoolInfo] = useState(null)
+  const [schoolError, setSchoolError] = useState('')
 
   // Dynamic lists from API (with static fallbacks)
   const [boardList,   setBoardList]   = useState(BOARDS)
@@ -88,6 +91,31 @@ export default function Onboard({ onComplete }) {
       if (!meds.includes(language)) setLang(meds[0] || "English")
     })
   }, [board, standard])
+
+  // Validate school code when it changes
+  useEffect(() => {
+    if (schoolCode.length >= 6) {
+      const timeout = setTimeout(async () => {
+        try {
+          const info = await apiGetSchoolByCode(schoolCode)
+          if (info.is_active) {
+            setSchoolInfo(info)
+            setSchoolError('')
+          } else {
+            setSchoolInfo(null)
+            setSchoolError('This school is no longer active')
+          }
+        } catch {
+          setSchoolInfo(null)
+          setSchoolError('Invalid school code')
+        }
+      }, 500)
+      return () => clearTimeout(timeout)
+    } else {
+      setSchoolInfo(null)
+      setSchoolError('')
+    }
+  }, [schoolCode])
 
   // When board, standard, or language (medium) changes → refresh subjects
   useEffect(() => {
@@ -144,6 +172,14 @@ export default function Onboard({ onComplete }) {
       }
       // Short pause so user can see the message
       await new Promise(r => setTimeout(r, 800))
+    }
+    // Join school if school code was provided and validated
+    if (schoolCode.trim() && schoolInfo) {
+      try {
+        await apiJoinSchool(schoolCode.trim().toUpperCase())
+      } catch {
+        // Non-blocking — user can join later from settings
+      }
     }
     setSaving(false)
     onComplete(profileData)
@@ -221,6 +257,31 @@ export default function Onboard({ onComplete }) {
                   onChange={e => setParent(e.target.value)}
                   maxLength={10}
                 />
+              </div>
+
+              <div>
+                <label className="text-xs text-app-muted font-semibold mb-1.5 block flex items-center gap-1.5">
+                  <Building size={13} weight="duotone" className="text-app-blue" /> School Code (optional)
+                </label>
+                <input
+                  className={inputClass}
+                  type="text"
+                  placeholder="e.g. ABC12345"
+                  value={schoolCode}
+                  onChange={e => setSchoolCode(e.target.value.toUpperCase())}
+                  maxLength={10}
+                />
+                {schoolInfo && (
+                  <div className="mt-1.5 py-2 px-3 bg-app-green/15 border border-app-green/30 rounded-lg text-xs text-app-green flex items-center gap-1.5">
+                    <CheckCircle size={13} weight="fill" /> {schoolInfo.name}{schoolInfo.city ? ` • ${schoolInfo.city}` : ''}
+                  </div>
+                )}
+                {schoolError && (
+                  <div className="text-xs text-app-red mt-1.5">{schoolError}</div>
+                )}
+                <div className="text-[11px] text-app-muted mt-1">
+                  Got a school code from your teacher? Enter it to join your school.
+                </div>
               </div>
 
               <div>

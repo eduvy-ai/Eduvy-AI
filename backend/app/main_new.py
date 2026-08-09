@@ -49,6 +49,7 @@ from app.modules.storage.router import router as storage_router
 from app.modules.upload.router import router as upload_router
 from app.modules.coach.router import router as coach_router
 from app.modules.content.router import router as content_router
+from app.modules.schools.router import router as schools_router
 
 load_dotenv()
 
@@ -178,6 +179,8 @@ app.include_router(home_router, prefix="/api")
 app.include_router(storage_router, prefix="/api")
 app.include_router(upload_router, prefix="/api")
 app.include_router(coach_router, prefix="/api")
+app.include_router(content_router, prefix="/api")
+app.include_router(schools_router, prefix="/api")
 app.include_router(content_router, prefix="/api/admin")
 
 # ── Static Files — generated videos ──────────────────────────

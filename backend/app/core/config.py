@@ -89,5 +89,17 @@ class Settings:
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
 
+    # ── Email (SMTP) ──────────────────────────────────────────
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER: str = os.getenv("SMTP_USER", "")
+    SMTP_PASS: str = os.getenv("SMTP_PASS", "")
+    SMTP_FROM: str = os.getenv("SMTP_FROM", "noreply@eduvy.co.in")
+    SMTP_FROM_NAME: str = os.getenv("SMTP_FROM_NAME", "Eduvy-AI")
+
+    @property
+    def smtp_configured(self) -> bool:
+        return bool(self.SMTP_USER and self.SMTP_PASS)
+
 
 settings = Settings()

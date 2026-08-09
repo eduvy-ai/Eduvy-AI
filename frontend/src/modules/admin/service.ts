@@ -29,6 +29,8 @@ const normalizeRole = (role: string): AdminRole => {
     'content_manager': 'content_manager',
     'aimanager': 'ai_manager',
     'ai_manager': 'ai_manager',
+    'schooladmin': 'school_admin',
+    'school_admin': 'school_admin',
     'admin': 'admin',
     'teacher': 'teacher',
     'moderator': 'moderator',
@@ -196,6 +198,18 @@ export const adminService = {
    */
   logout: (): void => {
     clearAdminAuth()
+  },
+
+  /**
+   * Change password (required on first login for school admins)
+   */
+  changePassword: async (newPassword: string): Promise<{ success: boolean; message: string }> => {
+    const result = await adminApi.auth.changePassword(newPassword)
+    
+    // Refresh user to clear must_change_password flag
+    await adminService.getCurrentUser()
+    
+    return result
   },
 
   /**

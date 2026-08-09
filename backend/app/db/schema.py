@@ -2,13 +2,44 @@
 Database schema - all table creation SQL.
 Centralized here so init_db() can create everything.
 """
+import secrets
+import string
 from app.db.connection import get_db
+
+
+def _generate_school_code() -> str:
+    """Generate 8-char alphanumeric school join code."""
+    chars = string.ascii_uppercase + string.digits
+    return ''.join(secrets.choice(chars) for _ in range(8))
 
 
 def create_all_tables():
     """Create all tables if they don't exist (idempotent)."""
     conn = get_db()
     cur = conn.cursor()
+
+    # ── Schools (must be created before users for FK) ─────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS schools (
+            id              SERIAL PRIMARY KEY,
+            name            TEXT NOT NULL,
+            logo_url        TEXT DEFAULT '',
+            contact_email   TEXT DEFAULT '',
+            contact_phone   TEXT DEFAULT '',
+            address         TEXT DEFAULT '',
+            city            TEXT DEFAULT '',
+            state           TEXT DEFAULT '',
+            plan            TEXT DEFAULT 'pilot',
+            student_limit   INTEGER DEFAULT 100,
+            plan_expires_at TEXT DEFAULT '',
+            school_code     TEXT UNIQUE NOT NULL,
+            admin_user_id   TEXT DEFAULT '',
+            is_active       BOOLEAN DEFAULT TRUE,
+            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_schools_code ON schools(school_code)")
     
     # ── Users ─────────────────────────────────────────────────
     cur.execute("""
@@ -34,6 +65,7 @@ def create_all_tables():
             plan            TEXT DEFAULT 'free',
             plan_expires_at TEXT DEFAULT '',
             school          TEXT DEFAULT '',
+            school_id       INTEGER DEFAULT NULL,
             referral_code   TEXT DEFAULT '',
             referred_by     TEXT DEFAULT '',
             is_admin        BOOLEAN DEFAULT FALSE,
@@ -42,8 +74,25 @@ def create_all_tables():
             upload_blocked    BOOLEAN DEFAULT FALSE,
             upload_block_reason TEXT DEFAULT '',
             avatar_url      TEXT DEFAULT '',
+            must_change_password BOOLEAN DEFAULT FALSE,
+            temp_password   TEXT DEFAULT '',
             created_at      TEXT DEFAULT CURRENT_DATE
         )
+    """)
+    # Add school_id column if missing (migration for existing DBs)
+    cur.execute("""
+        DO $$ BEGIN
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS school_id INTEGER DEFAULT NULL;
+        EXCEPTION WHEN duplicate_column THEN NULL;
+        END $$
+    """)
+    # Add must_change_password column if missing (for OTP flow)
+    cur.execute("""
+        DO $$ BEGIN
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT FALSE;
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS temp_password TEXT DEFAULT '';
+        EXCEPTION WHEN duplicate_column THEN NULL;
+        END $$
     """)
     
     # ── Mastery ───────────────────────────────────────────────
@@ -213,6 +262,21 @@ def create_all_tables():
             completed_at    TIMESTAMP
         )
     """)
+
+    # ── Payment Logs (idempotent payment verification) ────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS payment_logs (
+            id                   SERIAL PRIMARY KEY,
+            user_id              TEXT NOT NULL,
+            razorpay_order_id    TEXT NOT NULL,
+            razorpay_payment_id  TEXT UNIQUE NOT NULL,
+            plan                 TEXT NOT NULL,
+            amount               INTEGER NOT NULL,
+            status               TEXT DEFAULT 'success',
+            created_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_payment_logs_user ON payment_logs(user_id)")
     
     # ── Squad Challenges ──────────────────────────────────────
     cur.execute("""
@@ -352,8 +416,19 @@ def create_all_tables():
             password_hash TEXT NOT NULL,
             name        TEXT NOT NULL DEFAULT 'Admin',
             role        TEXT NOT NULL DEFAULT 'superadmin',
+            school_id   INTEGER REFERENCES schools(id) ON DELETE SET NULL,
+            must_change_password BOOLEAN DEFAULT FALSE,
             created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
+    """)
+    
+    # Migration: add new columns if missing
+    cur.execute("""
+        DO $$ BEGIN
+            ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS school_id INTEGER REFERENCES schools(id) ON DELETE SET NULL;
+            ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT FALSE;
+        EXCEPTION WHEN others THEN NULL;
+        END $$;
     """)
     
     # ── Curriculum ────────────────────────────────────────────
@@ -731,6 +806,90 @@ def create_all_tables():
     cur.execute("""
         ALTER TABLE chapter_uploads ADD COLUMN IF NOT EXISTS extraction_error TEXT DEFAULT NULL
     """)
+
+    # ── School-scoped curriculum (B2B isolation) ──────────────
+    # Add school_id to curriculum tables (NULL = global template)
+    cur.execute("ALTER TABLE boards ADD COLUMN IF NOT EXISTS school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE")
+    cur.execute("ALTER TABLE standards ADD COLUMN IF NOT EXISTS school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE")
+    cur.execute("ALTER TABLE mediums ADD COLUMN IF NOT EXISTS school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE")
+    cur.execute("ALTER TABLE subjects ADD COLUMN IF NOT EXISTS school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE")
+    cur.execute("ALTER TABLE curriculum ADD COLUMN IF NOT EXISTS school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE")
+    cur.execute("ALTER TABLE chapters ADD COLUMN IF NOT EXISTS school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE")
+    
+    # Create indexes for school_id lookups
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_boards_school ON boards(school_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_standards_school ON standards(school_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_mediums_school ON mediums(school_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_subjects_school ON subjects(school_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_curriculum_school ON curriculum(school_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_chapters_school ON chapters(school_id)")
+
+    # ── School Teachers (B2B - school's own teachers) ──────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS school_teachers (
+            id           SERIAL PRIMARY KEY,
+            school_id    INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+            name         TEXT NOT NULL,
+            email        TEXT NOT NULL,
+            phone        TEXT DEFAULT '',
+            subjects     TEXT DEFAULT '[]',
+            standards    TEXT DEFAULT '[]',
+            is_active    BOOLEAN DEFAULT TRUE,
+            notes        TEXT DEFAULT '',
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (school_id, email)
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_school_teachers_school ON school_teachers(school_id)")
+
+    # ── Question Bank (school-scoped) ──────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS questions (
+            id           SERIAL PRIMARY KEY,
+            school_id    INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+            chapter_id   INTEGER REFERENCES chapters(id) ON DELETE CASCADE,
+            type         TEXT NOT NULL DEFAULT 'mcq',
+            difficulty   TEXT DEFAULT 'medium',
+            question     TEXT NOT NULL,
+            options      TEXT DEFAULT '[]',
+            correct_answer TEXT NOT NULL,
+            explanation  TEXT DEFAULT '',
+            tags         TEXT DEFAULT '[]',
+            created_by   TEXT DEFAULT '',
+            is_active    BOOLEAN DEFAULT TRUE,
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    # Add school_id to existing questions table if missing
+    cur.execute("ALTER TABLE questions ADD COLUMN IF NOT EXISTS school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_questions_school ON questions(school_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_questions_chapter ON questions(chapter_id)")
+
+    # ── Media Library (school-scoped) ──────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS media_files (
+            id           SERIAL PRIMARY KEY,
+            school_id    INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+            name         TEXT NOT NULL,
+            type         TEXT NOT NULL DEFAULT 'image',
+            url          TEXT NOT NULL,
+            thumbnail_url TEXT DEFAULT '',
+            size_bytes   INTEGER DEFAULT 0,
+            duration_sec INTEGER DEFAULT NULL,
+            dimensions   TEXT DEFAULT '',
+            subject_id   TEXT DEFAULT '',
+            chapter_id   INTEGER DEFAULT NULL,
+            created_by   TEXT DEFAULT '',
+            is_active    BOOLEAN DEFAULT TRUE,
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    # Add school_id to existing media_files table if missing
+    cur.execute("ALTER TABLE media_files ADD COLUMN IF NOT EXISTS school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_media_school ON media_files(school_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_media_chapter ON media_files(chapter_id)")
 
     conn.commit()
     cur.close()

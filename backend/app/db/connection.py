@@ -149,6 +149,14 @@ def row_to_dict(row) -> dict | None:
         return None
     d = dict(row)
     
+    # Convert datetime objects to ISO strings
+    from datetime import datetime, date
+    for key, value in d.items():
+        if isinstance(value, datetime):
+            d[key] = value.isoformat()
+        elif isinstance(value, date):
+            d[key] = value.isoformat()
+    
     # Parse JSON fields
     for field in ["subjects", "ai_keys", "questions_json"]:
         if field in d and isinstance(d[field], str):

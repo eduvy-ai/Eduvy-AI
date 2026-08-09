@@ -376,6 +376,10 @@ const adminSlice = createSlice({
       }
     },
     
+    addStudentLocal: (state, action: PayloadAction<StudentUser>) => {
+      state.students.unshift(action.payload)
+    },
+    
     removeStudents: (state, action: PayloadAction<string[]>) => {
       const idsToRemove = new Set(action.payload)
       state.students = state.students.filter(s => !idsToRemove.has(s.id))
@@ -554,6 +558,7 @@ export const {
   updateChapter,
   removeChapter,
   updateStudentLocal,
+  addStudentLocal,
   removeStudents,
   addHelper,
   updateHelper,

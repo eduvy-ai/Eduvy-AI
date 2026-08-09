@@ -40,3 +40,8 @@ class ProfileResponse(BaseModel):
     streak: int = 0
     plan: str = "free"
     school: Optional[str] = ""
+
+
+class ChangePasswordRequest(BaseModel):
+    """Request to change password (used for first-login flow)."""
+    new_password: str = Field(min_length=6, max_length=128)

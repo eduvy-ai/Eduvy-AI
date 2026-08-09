@@ -1,7 +1,7 @@
 // ─── Admin Layout ──────────────────────────────────────────────
 // Main layout shell for admin platform with sidebar navigation
 
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useMemo } from 'react'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { useAdminAuth, useAdminUI } from '../modules/admin/hooks'
 import { ADMIN_NAV_ITEMS, type NavItem } from '../modules/admin/constants'
@@ -26,6 +26,7 @@ import {
   List,
   X,
   MagnifyingGlass,
+  Buildings,
 } from '@phosphor-icons/react'
 import type { IconWeight } from '@phosphor-icons/react'
 import Loader from '../shared/components/Loader'
@@ -44,6 +45,7 @@ const NAV_ICONS: Record<string, React.ComponentType<any>> = {
   ChartBar,
   Gear,
   Wrench,
+  Buildings,
 }
 
 const AdminLayout: React.FC = () => {
@@ -53,6 +55,39 @@ const AdminLayout: React.FC = () => {
   const { sidebarCollapsed } = useAdminUI()
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  // Filter nav items for school admins
+  const isSchoolAdmin = user?.school_id != null
+  const filteredNavItems = useMemo(() => {
+    if (!isSchoolAdmin) return ADMIN_NAV_ITEMS
+    
+    // Items to completely hide for school admins
+    // - schools: superadmin only (B2B management)
+    // - community: superadmin only (squads, moderation)
+    // - parents: uses drishti-helpers which is superadmin only
+    // - assessments: no backend endpoints yet
+    // - operations/settings: superadmin only
+    const hiddenItems = new Set([
+      'schools', 'community', 'parents',
+      'assessments', 'operations', 'settings'
+    ])
+    // Children to hide for school admins
+    const hiddenChildren: Record<string, Set<string>> = {
+      ai_studio: new Set(['providers', 'prompts', 'costs']),
+      analytics: new Set(['revenue']),
+    }
+    
+    return ADMIN_NAV_ITEMS
+      .filter(item => !hiddenItems.has(item.key))
+      .map(item => {
+        const hidden = hiddenChildren[item.key]
+        if (!hidden || !item.children) return item
+        return {
+          ...item,
+          children: item.children.filter(child => !hidden.has(child.key))
+        }
+      })
+  }, [isSchoolAdmin])
   
   // Ref to track initialization
   const initializedRef = useRef(false)
@@ -67,12 +102,14 @@ const AdminLayout: React.FC = () => {
     }
   }, [])
 
-  // Redirect to login if not authenticated
+  // Redirect to login if not authenticated, or to change-password if required
   useEffect(() => {
     if (isInitialized && !isAuthenticated) {
-      navigate('/auth')
+      navigate('/admin/login')
+    } else if (isInitialized && isAuthenticated && user?.must_change_password) {
+      navigate('/admin/change-password')
     }
-  }, [isInitialized, isAuthenticated, navigate])
+  }, [isInitialized, isAuthenticated, user?.must_change_password, navigate])
 
   // Get current path section
   const currentPath = location.pathname
@@ -83,6 +120,7 @@ const AdminLayout: React.FC = () => {
     if (pathParts.includes('students')) return 'students'
     if (pathParts.includes('teachers')) return 'teachers'
     if (pathParts.includes('parents')) return 'parents'
+    if (pathParts.includes('schools')) return 'schools'
     if (pathParts.includes('community')) return 'community'
     if (pathParts.includes('assessments')) return 'assessments'
     if (pathParts.includes('ai')) return 'ai_studio'
@@ -252,7 +290,7 @@ const AdminLayout: React.FC = () => {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
-          {ADMIN_NAV_ITEMS.map(item => renderNavItem(item))}
+          {filteredNavItems.map(item => renderNavItem(item))}
         </nav>
 
         {/* Footer */}
@@ -332,7 +370,7 @@ const AdminLayout: React.FC = () => {
 
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
-              {ADMIN_NAV_ITEMS.map((item: NavItem) => renderNavItem(item))}
+              {filteredNavItems.map((item: NavItem) => renderNavItem(item))}
             </nav>
 
             {/* Footer */}

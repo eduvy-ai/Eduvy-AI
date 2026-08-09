@@ -13,6 +13,7 @@ export const ADMIN_ENDPOINTS = {
   setup: '/api/admin/setup',
   login: '/api/admin/login',
   me: '/api/admin/me',
+  changePassword: '/api/admin/change-password',
   
   // Academics
   boards: '/api/admin/boards',
@@ -20,12 +21,19 @@ export const ADMIN_ENDPOINTS = {
   mediums: '/api/admin/mediums',
   subjects: '/api/admin/subjects',
   curriculum: '/api/admin/curriculum',
-  chapters: '/api/chapters',
+  chapters: '/api/admin/chapters',
   
   // Users
   users: '/api/admin/users',
   helpers: '/api/admin/drishti-helpers',
   drishtiStudents: '/api/admin/drishti-students',
+  
+  // School Teachers (B2B)
+  schoolTeachers: '/api/admin/teachers',
+  
+  // Questions & Media (B2B)
+  questions: '/api/admin/questions',
+  media: '/api/admin/media',
   
   // Community
   communityStats: '/api/admin/community/stats',
@@ -108,6 +116,11 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     icon: 'UsersThree',
   },
   {
+    key: 'schools',
+    label: 'Schools',
+    icon: 'Buildings',
+  },
+  {
     key: 'community',
     label: 'Community',
     icon: 'ChatCircleDots',
@@ -173,6 +186,7 @@ export const ROLE_LABELS: Record<AdminRole, string> = {
   content_manager: 'Content Manager',
   ai_manager: 'AI Manager',
   teacher: 'Teacher',
+  school_admin: 'School Admin',
   moderator: 'Moderator',
   support: 'Support',
   finance: 'Finance',
@@ -187,6 +201,7 @@ export const SECTION_LABELS: Record<AdminSection, string> = {
   students: 'Students',
   teachers: 'Teachers',
   parents: 'Parents',
+  schools: 'Schools',
   community: 'Community',
   assessments: 'Assessments',
   ai_studio: 'AI Studio',

@@ -4,7 +4,7 @@
 import { useCallback } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState, AppDispatch } from '../../redux/store'
-import { login, register, logout, initializeAuth, refreshUser, clearError, addXpLocal, updateStreakLocal } from './slice'
+import { login, register, logout, initializeAuth, refreshUser, clearError, addXpLocal, updateStreakLocal, changePassword } from './slice'
 import type { LoginRequest, RegisterRequest, UserProfile } from './types'
 
 /**
@@ -48,6 +48,14 @@ export const useAuth = () => {
     dispatch(clearError())
   }, [dispatch])
 
+  const handleChangePassword = useCallback(
+    async (newPassword: string) => {
+      const result = await dispatch(changePassword(newPassword))
+      return result
+    },
+    [dispatch]
+  )
+
   return {
     // State
     user: auth.user,
@@ -56,6 +64,7 @@ export const useAuth = () => {
     isLoading: auth.isLoading,
     isInitialized: auth.isInitialized,
     error: auth.error,
+    mustChangePassword: auth.mustChangePassword,
     
     // Actions
     login: handleLogin,
@@ -64,6 +73,7 @@ export const useAuth = () => {
     initialize: handleInitialize,
     refresh: handleRefresh,
     clearError: handleClearError,
+    changePassword: handleChangePassword,
   }
 }
 

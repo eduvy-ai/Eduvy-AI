@@ -50,6 +50,13 @@ export const authService = {
   },
 
   /**
+   * Change password (first-login flow)
+   */
+  changePassword: async (newPassword: string): Promise<{ ok: boolean; message: string }> => {
+    return await authApi.changePassword(newPassword)
+  },
+
+  /**
    * Get cached user profile (synchronous)
    */
   getCachedUser: (): UserProfile | null => {
