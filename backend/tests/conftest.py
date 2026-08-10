@@ -62,6 +62,7 @@ _GET_DB_PATCHES = [
     "app.modules.payments.service.get_db",
     "app.modules.quiz_stats.service.get_db",
     "app.modules.referrals.service.get_db",
+    "app.modules.schools.service.get_db",
     "app.modules.sessions.service.get_db",
     "app.modules.squads.service.get_db",
 ]
@@ -256,6 +257,24 @@ class _FakeConn:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 _SCHEMA = """
+CREATE TABLE IF NOT EXISTS schools (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    name             TEXT NOT NULL DEFAULT '',
+    logo_url         TEXT DEFAULT '',
+    contact_email    TEXT DEFAULT '',
+    contact_phone    TEXT DEFAULT '',
+    address          TEXT DEFAULT '',
+    city             TEXT DEFAULT '',
+    state            TEXT DEFAULT '',
+    plan             TEXT DEFAULT 'pilot',
+    student_limit    INTEGER DEFAULT 100,
+    plan_expires_at  TEXT DEFAULT '',
+    school_code      TEXT UNIQUE DEFAULT '',
+    admin_user_id    TEXT DEFAULT '',
+    is_active        INTEGER DEFAULT 1,
+    created_at       TEXT DEFAULT (datetime('now')),
+    updated_at       TEXT DEFAULT (datetime('now'))
+);
 CREATE TABLE IF NOT EXISTS users (
     id               TEXT PRIMARY KEY,
     email            TEXT UNIQUE DEFAULT '',
@@ -278,6 +297,9 @@ CREATE TABLE IF NOT EXISTS users (
     plan             TEXT DEFAULT 'free',
     plan_expires_at  TEXT DEFAULT '',
     school           TEXT DEFAULT '',
+    school_id        INTEGER DEFAULT NULL,
+    must_change_password INTEGER DEFAULT 0,
+    temp_password    TEXT DEFAULT '',
     referral_code    TEXT DEFAULT '',
     referred_by      TEXT DEFAULT '',
     is_admin         INTEGER DEFAULT 0,
@@ -475,12 +497,14 @@ CREATE TABLE IF NOT EXISTS squad_streaks (
     PRIMARY KEY (squad_id, user_id)
 );
 CREATE TABLE IF NOT EXISTS admin_users (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    email         TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    name          TEXT NOT NULL DEFAULT 'Admin',
-    role          TEXT NOT NULL DEFAULT 'superadmin',
-    created_at    TEXT DEFAULT (datetime('now'))
+    id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+    email                TEXT UNIQUE NOT NULL,
+    password_hash        TEXT NOT NULL,
+    name                 TEXT NOT NULL DEFAULT 'Admin',
+    role                 TEXT NOT NULL DEFAULT 'superadmin',
+    school_id            INTEGER DEFAULT NULL,
+    must_change_password INTEGER DEFAULT 0,
+    created_at           TEXT DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS boards (
     id         TEXT PRIMARY KEY,
