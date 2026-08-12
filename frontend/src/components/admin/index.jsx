@@ -40,7 +40,7 @@ export default function AdminPanel() {
     localStorage.removeItem('eduvyai_admin_token')
     setAuthed(false)
     setInfo(null)
-    navigate('/admin/login', { replace: true })
+    navigate('/auth', { replace: true })
   }
 
   if (!authed) {

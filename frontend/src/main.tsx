@@ -26,8 +26,13 @@ if (Capacitor.isNativePlatform()) {
   // Back button: prevent accidental app exit
   import('@capacitor/app').then(({ App: CapApp }) => {
     let lastBack = 0
+    const EXIT_PAGES = ['/auth', '/auth/register', '/', '/admin/login']
+    
     CapApp.addListener('backButton', ({ canGoBack }) => {
-      if (canGoBack) {
+      const path = window.location.pathname
+      const isExitPage = EXIT_PAGES.includes(path) || path === '/app/home'
+      
+      if (!isExitPage && canGoBack) {
         window.history.back()
       } else {
         const now = Date.now()
@@ -35,7 +40,6 @@ if (Capacitor.isNativePlatform()) {
           CapApp.exitApp()
         } else {
           lastBack = now
-          // Simple toast-like feedback
           const t = document.createElement('div')
           t.textContent = 'Press back again to exit'
           Object.assign(t.style, {

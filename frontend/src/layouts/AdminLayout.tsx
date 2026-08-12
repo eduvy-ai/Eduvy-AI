@@ -105,7 +105,7 @@ const AdminLayout: React.FC = () => {
   // Redirect to login if not authenticated, or to change-password if required
   useEffect(() => {
     if (isInitialized && !isAuthenticated) {
-      navigate('/admin/login')
+      navigate('/auth')
     } else if (isInitialized && isAuthenticated && user?.must_change_password) {
       navigate('/admin/change-password')
     }
