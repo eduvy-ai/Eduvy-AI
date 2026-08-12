@@ -117,7 +117,7 @@ class StudentCreate(BaseModel):
     """Create a student (for school admins)"""
     name: str
     email: str
-    password: str
+    password: str = ""
     standard: str = "Class 10"
     board: str = "CBSE"
     language: str = "English"

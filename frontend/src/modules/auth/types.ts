@@ -19,6 +19,7 @@ export interface UserProfile {
   streak: number
   is_drishti: boolean
   school?: string
+  school_id?: number | null
   mobile?: string
   parent_mobile?: string
   created_at?: string

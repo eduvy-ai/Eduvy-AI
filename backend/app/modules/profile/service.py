@@ -66,6 +66,11 @@ class ProfileService:
         if not existing:
             raise HTTPException(status_code=404, detail="Profile not found")
         
+        # School students can only change displayLanguage
+        if existing.get("school_id"):
+            allowed = {"displayLanguage", "display_language"}
+            data = {k: v for k, v in data.items() if k in allowed}
+        
         # Filter None values
         updates = {k: v for k, v in data.items() if v is not None}
         if not updates:

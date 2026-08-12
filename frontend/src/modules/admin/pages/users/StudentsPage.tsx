@@ -2,7 +2,7 @@
 // View and manage student users
 
 import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react'
-import { useStudents, useCanEdit } from '../../hooks'
+import { useStudents, useCanEdit, useAdminAuth } from '../../hooks'
 import { adminApi, boardsApi, standardsApi } from '../../api'
 import { adminService } from '../../service'
 import type { StudentUser, Board, Standard } from '../../types'
@@ -44,6 +44,8 @@ const defaultCreateForm = {
 const StudentsPage: React.FC = () => {
   const { students, fetchStudents, updateStudentLocal, removeStudents, addStudentLocal } = useStudents()
   const canEdit = useCanEdit('students')
+  const { user: adminUser } = useAdminAuth()
+  const isSchoolAdmin = !!adminUser?.school_id
   
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -228,7 +230,8 @@ const StudentsPage: React.FC = () => {
       setFormError('Email is required')
       return
     }
-    if (!createForm.password.trim() || createForm.password.length < 6) {
+    // School admins don't need to set password — backend generates a temp one
+    if (!isSchoolAdmin && (!createForm.password.trim() || createForm.password.length < 6)) {
       setFormError('Password must be at least 6 characters')
       return
     }
@@ -238,16 +241,25 @@ const StudentsPage: React.FC = () => {
       const newStudent = await adminApi.users.create({
         name: createForm.name.trim(),
         email: createForm.email.trim().toLowerCase(),
-        password: createForm.password,
+        password: createForm.password || '',
         standard: createForm.standard,
         board: createForm.board,
         language: createForm.language,
         plan: createForm.plan,
       })
       
-      // Add to local state
+      // Add to local state with safe defaults for fields not returned by create API
       if (addStudentLocal) {
-        addStudentLocal(newStudent as StudentUser)
+        addStudentLocal({
+          xp: 0,
+          streak: 0,
+          is_drishti: false,
+          school: '',
+          created_at: new Date().toISOString(),
+          last_active: '',
+          plan_expires_at: null,
+          ...newStudent,
+        } as StudentUser)
       }
       
       setShowCreateModal(false)
@@ -877,16 +889,22 @@ Rahul Kumar, rahul@example.com, Class 11, CBSE, Hindi, pro`
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-app-muted mb-1.5">Password *</label>
-            <input
-              type="password"
-              value={createForm.password}
-              onChange={(e) => setCreateForm(prev => ({ ...prev, password: e.target.value }))}
-              className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
-              placeholder="Minimum 6 characters"
-            />
-          </div>
+          {isSchoolAdmin ? (
+            <div className="p-3 rounded-xl bg-app-blue/10 border border-app-blue/30 text-sm text-app-muted">
+              A temporary password will be auto-generated. Student must change it on first login.
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-app-muted mb-1.5">Password *</label>
+              <input
+                type="password"
+                value={createForm.password}
+                onChange={(e) => setCreateForm(prev => ({ ...prev, password: e.target.value }))}
+                className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+                placeholder="Minimum 6 characters"
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -941,7 +959,7 @@ Rahul Kumar, rahul@example.com, Class 11, CBSE, Hindi, pro`
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className={`grid ${isSchoolAdmin ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
             <div>
               <label className="block text-sm font-medium text-app-muted mb-1.5">Language</label>
               <select
@@ -955,19 +973,21 @@ Rahul Kumar, rahul@example.com, Class 11, CBSE, Hindi, pro`
                 <option value="Gujarati">Gujarati</option>
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-app-muted mb-1.5">Plan</label>
-              <select
-                value={createForm.plan}
-                onChange={(e) => setCreateForm(prev => ({ ...prev, plan: e.target.value }))}
-                className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
-              >
-                <option value="free">Free</option>
-                <option value="basic">Basic</option>
-                <option value="pro">Pro</option>
-                <option value="premium">Premium</option>
-              </select>
-            </div>
+            {!isSchoolAdmin && (
+              <div>
+                <label className="block text-sm font-medium text-app-muted mb-1.5">Plan</label>
+                <select
+                  value={createForm.plan}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, plan: e.target.value }))}
+                  className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+                >
+                  <option value="free">Free</option>
+                  <option value="basic">Basic</option>
+                  <option value="pro">Pro</option>
+                  <option value="premium">Premium</option>
+                </select>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-2">

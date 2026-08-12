@@ -17,6 +17,26 @@ class ChapterService:
     """Chapter business logic."""
     
     @staticmethod
+    def _resolve_board_id(cur, board_id: str) -> str:
+        """Resolve board name to ID if needed (e.g. 'CBSE' → 'cbse')."""
+        cur.execute("SELECT id FROM boards WHERE id = %s", (board_id,))
+        if cur.fetchone():
+            return board_id
+        cur.execute("SELECT id FROM boards WHERE LOWER(name) = LOWER(%s)", (board_id,))
+        row = cur.fetchone()
+        return row["id"] if row else board_id
+    
+    @staticmethod
+    def _resolve_standard_id(cur, standard_id: str) -> str:
+        """Resolve standard name to ID if needed (e.g. 'Class 10' → 'class-10')."""
+        cur.execute("SELECT id FROM standards WHERE id = %s", (standard_id,))
+        if cur.fetchone():
+            return standard_id
+        cur.execute("SELECT id FROM standards WHERE LOWER(name) = LOWER(%s)", (standard_id,))
+        row = cur.fetchone()
+        return row["id"] if row else standard_id
+    
+    @staticmethod
     def list_chapters(
         board_id: Optional[str] = None,
         standard_id: Optional[str] = None,
@@ -30,6 +50,12 @@ class ChapterService:
         conn = get_db()
         try:
             cur = conn.cursor()
+            
+            # Resolve names to IDs
+            if board_id:
+                board_id = ChapterService._resolve_board_id(cur, board_id)
+            if standard_id:
+                standard_id = ChapterService._resolve_standard_id(cur, standard_id)
             
             query = """
                 SELECT c.id, c.board_id, c.standard_id, c.subject_id, c.chapter_number, c.chapter_name,
@@ -240,11 +266,15 @@ class ChapterService:
     def get_subjects_with_chapters(board_id: str, standard_id: str) -> List[Dict]:
         """
         Get list of subjects with chapter counts for a board+standard.
-        Useful for the Learn tab subject browser.
+        Accepts either IDs (e.g. "cbse") or names (e.g. "CBSE").
         """
         conn = get_db()
         try:
             cur = conn.cursor()
+            
+            board_id = ChapterService._resolve_board_id(cur, board_id)
+            standard_id = ChapterService._resolve_standard_id(cur, standard_id)
+            
             cur.execute(
                 """SELECT c.subject_id, s.name as subject_name, COUNT(*) as chapter_count
                    FROM chapters c

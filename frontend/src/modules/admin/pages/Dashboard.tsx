@@ -3,7 +3,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAdminUser, useAIConfig, useStudents } from '../../../modules/admin/hooks'
+import { useAdminUser, useAdminAuth, useAIConfig, useStudents } from '../../../modules/admin/hooks'
 import { adminService } from '../../../modules/admin/service'
 import { curriculumApi } from '../../../modules/admin/api'
 import {
@@ -131,6 +131,7 @@ const QuickAction: React.FC<QuickActionProps> = ({ icon, label, description, onC
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate()
   const user = useAdminUser()
+  const { initialize } = useAdminAuth()
   const { aiUsage, fetchAIUsage } = useAIConfig()
   const { students, fetchStudents } = useStudents()
   
@@ -148,6 +149,7 @@ const AdminDashboard: React.FC = () => {
   
   // Check if school admin
   const isSchoolAdmin = user?.school_id != null
+  const curriculumImported = user?.curriculum_imported === true
   
   // Handle import global curriculum
   const handleImportGlobal = async () => {
@@ -166,6 +168,7 @@ const AdminDashboard: React.FC = () => {
         success: true,
         message: `Successfully imported ${total} items (${imported.boards} boards, ${imported.standards} standards, ${imported.mediums} mediums, ${imported.subjects} subjects, ${imported.chapters} chapters)`
       })
+      initialize()
     } catch (error: any) {
       setImportResult({
         success: false,
@@ -264,7 +267,7 @@ const AdminDashboard: React.FC = () => {
           <h2 className="text-lg font-bold text-app-text mb-4">Quick Actions</h2>
           
           {/* School Admin Import Banner */}
-          {isSchoolAdmin && (
+          {isSchoolAdmin && !curriculumImported && (
             <div className="mb-4 p-4 bg-app-blue/10 border border-app-blue/25 rounded-xl">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-xl bg-app-blue/20 border border-app-blue/30 flex items-center justify-center text-app-blue shrink-0">

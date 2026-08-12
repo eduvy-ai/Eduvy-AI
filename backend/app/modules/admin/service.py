@@ -134,7 +134,7 @@ class AdminService:
             row = cur.fetchone()
             if not row:
                 raise HTTPException(status_code=404, detail="Admin not found")
-            return {
+            result = {
                 "id": row["id"],
                 "email": row["email"],
                 "name": row["name"],
@@ -143,6 +143,14 @@ class AdminService:
                 "must_change_password": row.get("must_change_password", False),
                 "created_at": str(row["created_at"]) if row["created_at"] else None,
             }
+            
+            # Include curriculum_imported flag for school admins
+            if row.get("school_id"):
+                cur.execute("SELECT curriculum_imported FROM schools WHERE id = %s", (row["school_id"],))
+                school_row = cur.fetchone()
+                result["curriculum_imported"] = bool(school_row and school_row["curriculum_imported"]) if school_row else False
+            
+            return result
         finally:
             conn.close()
 
@@ -842,6 +850,9 @@ class AdminService:
                 )
                 counts["chapters"] += 1
             
+            # Mark school as curriculum imported
+            cur.execute("UPDATE schools SET curriculum_imported = TRUE WHERE id = %s", (school_id,))
+            
             conn.commit()
             return {"success": True, "imported": counts}
         finally:
@@ -1249,6 +1260,7 @@ class AdminService:
         import uuid
         import bcrypt as _bcrypt
         import secrets
+        from app.modules.schools.service import SCHOOL_TO_USER_PLAN
         conn = get_db()
         try:
             cur = conn.cursor()
@@ -1256,6 +1268,13 @@ class AdminService:
             cur.execute("SELECT id FROM users WHERE email=%s", (email,))
             if cur.fetchone():
                 raise HTTPException(status_code=409, detail="Email already registered")
+            
+            # School students inherit the school's plan
+            if school_id:
+                cur.execute("SELECT plan FROM schools WHERE id = %s", (school_id,))
+                school_row = cur.fetchone()
+                if school_row:
+                    plan = SCHOOL_TO_USER_PLAN.get(school_row["plan"], "basic")
             
             # Generate temp password if not provided or if sending welcome email
             must_change = False
@@ -1299,6 +1318,7 @@ class AdminService:
         import uuid
         import bcrypt as _bcrypt
         import secrets
+        from app.modules.schools.service import SCHOOL_TO_USER_PLAN
         
         results = {
             "success": 0,
@@ -1311,13 +1331,15 @@ class AdminService:
         try:
             cur = conn.cursor()
             
-            # Get school name for email
+            # Get school name and inherited plan
             school_name = None
+            inherited_plan = None
             if school_id:
-                cur.execute("SELECT name FROM schools WHERE id = %s", (school_id,))
+                cur.execute("SELECT name, plan FROM schools WHERE id = %s", (school_id,))
                 row = cur.fetchone()
                 if row:
                     school_name = row["name"]
+                    inherited_plan = SCHOOL_TO_USER_PLAN.get(row["plan"], "basic")
             
             for idx, student_data in enumerate(students):
                 try:
@@ -1360,7 +1382,7 @@ class AdminService:
                             student_data.get("standard", "Class 10"),
                             student_data.get("board", "CBSE"),
                             student_data.get("language", "English"),
-                            student_data.get("plan", "free"),
+                            inherited_plan or student_data.get("plan", "free"),
                             school_id,
                             temp_password
                         )

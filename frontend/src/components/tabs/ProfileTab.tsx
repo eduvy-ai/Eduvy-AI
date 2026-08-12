@@ -141,6 +141,11 @@ const ProfileTab: React.FC = () => {
             <p className="text-[13px] text-app-muted">
               {(user as any)?.standard} · {(user as any)?.board} · {(user as any)?.language}
             </p>
+            {(user as any)?.school && (
+              <p className="text-[12px] text-app-blue mt-0.5">
+                🏫 {(user as any).school}
+              </p>
+            )}
             <div
               className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full"
               style={{ background: `${planInfo.color}15`, border: `1px solid ${planInfo.color}40` }}

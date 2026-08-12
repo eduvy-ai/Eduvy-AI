@@ -40,6 +40,7 @@ class ProfileResponse(BaseModel):
     streak: int = 0
     plan: str = "free"
     school: Optional[str] = ""
+    school_id: Optional[int] = None
 
 
 class ChangePasswordRequest(BaseModel):

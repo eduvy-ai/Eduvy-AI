@@ -35,11 +35,18 @@ def create_all_tables():
             school_code     TEXT UNIQUE NOT NULL,
             admin_user_id   TEXT DEFAULT '',
             is_active       BOOLEAN DEFAULT TRUE,
+            curriculum_imported BOOLEAN DEFAULT FALSE,
             created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_schools_code ON schools(school_code)")
+    cur.execute("""
+        DO $$ BEGIN
+            ALTER TABLE schools ADD COLUMN IF NOT EXISTS curriculum_imported BOOLEAN DEFAULT FALSE;
+        EXCEPTION WHEN duplicate_column THEN NULL;
+        END $$
+    """)
     
     # ── Users ─────────────────────────────────────────────────
     cur.execute("""

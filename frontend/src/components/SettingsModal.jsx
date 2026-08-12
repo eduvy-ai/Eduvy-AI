@@ -22,6 +22,9 @@ const PLAN_MODEL_LABEL = {
 export default function SettingsModal({ onClose, onLogout, profile, onProfileSave }) {
   const [activeTab, setActiveTab] = useState('profile')
   const [showUpgrade, setShowUpgrade] = useState(false)
+  
+  // School students cannot edit their profile (only school admin can)
+  const isSchoolStudent = !!profile?.school_id
 
   // i18n — use display language preference
   const ui = li(getDisplayLang(profile))
@@ -62,11 +65,14 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
   }, [pBoard, pStd])
 
   const saveProfile = async () => {
-    if (!pName.trim()) return
+    if (!isSchoolStudent && !pName.trim()) return
     setProfileError('')
     setProfileSaving(true)
     try {
-      await onProfileSave?.({ name: pName.trim(), standard: pStd, board: pBoard, language: pLang, displayLanguage: pDisplayLang, school: pSchool.trim() })
+      const updates = isSchoolStudent
+        ? { displayLanguage: pDisplayLang }
+        : { name: pName.trim(), standard: pStd, board: pBoard, language: pLang, displayLanguage: pDisplayLang, school: pSchool.trim() }
+      await onProfileSave?.(updates)
       setProfileSaved(true)
       setTimeout(() => setProfileSaved(false), 2000)
     } catch (e) {
@@ -138,25 +144,30 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
           {/* ── Profile Edit tab ── */}
           {activeTab === "profile" && (
             <div className="flex flex-col gap-3.5">
+              {isSchoolStudent && (
+                <div className="bg-app-blue/10 border border-app-blue/30 rounded-xl p-3 text-[12px] text-app-muted">
+                  🏫 Your profile is managed by <span className="font-bold text-app-text">{profile.school || 'your school'}</span>. Contact your school admin to update details.
+                </div>
+              )}
               <div>
                 <label className={labelClass}>{ui.yourName}</label>
-                <input className={inputClass} type="text" value={pName} onChange={e => setPName(e.target.value)} placeholder={ui.namePlaceholder} />
+                <input className={inputClass} type="text" value={pName} onChange={e => setPName(e.target.value)} placeholder={ui.namePlaceholder} disabled={isSchoolStudent} style={isSchoolStudent ? { opacity: 0.6 } : {}} />
               </div>
               <div>
                 <label className={labelClass}>{ui.classLabel}</label>
-                <select className={inputClass} value={pStd} onChange={e => setPStd(e.target.value)}>
+                <select className={inputClass} value={pStd} onChange={e => setPStd(e.target.value)} disabled={isSchoolStudent} style={isSchoolStudent ? { opacity: 0.6 } : {}}>
                   {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
                 <label className={labelClass}>{ui.boardLabel}</label>
-                <select className={inputClass} value={pBoard} onChange={e => setPBoard(e.target.value)}>
+                <select className={inputClass} value={pBoard} onChange={e => setPBoard(e.target.value)} disabled={isSchoolStudent} style={isSchoolStudent ? { opacity: 0.6 } : {}}>
                   {BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
               <div>
                 <label className={labelClass}>{ui.languageLabel}</label>
-                <select className={inputClass} value={pLang} onChange={e => setPLang(e.target.value)}>
+                <select className={inputClass} value={pLang} onChange={e => setPLang(e.target.value)} disabled={isSchoolStudent} style={isSchoolStudent ? { opacity: 0.6 } : {}}>
                   {mediumList.map(l => <option key={l} value={l}>{l}</option>)}
                 </select>
               </div>
@@ -167,11 +178,13 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
                   <option value="medium">{ui.displayLangMedium} ({pLang})</option>
                 </select>
               </div>
-              <div>
-                <label className={labelClass}>{ui.schoolName}</label>
-                <input className={inputClass} type="text" value={pSchool} onChange={e => setPSchool(e.target.value)} placeholder={ui.schoolPlaceholder} maxLength={100} />
-              </div>
-              <button onClick={saveProfile} disabled={profileSaving} className="w-full bg-gradient-to-br from-app-green to-emerald-500 text-app-bg border-none rounded-xl py-3 px-4 text-sm font-extrabold cursor-pointer font-[Sora,sans-serif] disabled:opacity-60">
+              {!isSchoolStudent && (
+                <div>
+                  <label className={labelClass}>{ui.schoolName}</label>
+                  <input className={inputClass} type="text" value={pSchool} onChange={e => setPSchool(e.target.value)} placeholder={ui.schoolPlaceholder} maxLength={100} />
+                </div>
+              )}
+              <button onClick={saveProfile} disabled={profileSaving || (isSchoolStudent && pDisplayLang === (profile?.displayLanguage || 'medium'))} className="w-full bg-gradient-to-br from-app-green to-emerald-500 text-app-bg border-none rounded-xl py-3 px-4 text-sm font-extrabold cursor-pointer font-[Sora,sans-serif] disabled:opacity-60">
                 {profileSaving ? 'Saving...' : profileSaved ? <><CheckCircle size={14} weight="fill" className="inline" /> {ui.saved}</> : profileError ? <><XCircle size={14} weight="fill" className="inline" /> {ui.saveFailed}</> : ui.saveProfile}
               </button>
               {profileError && <p className="text-app-red text-[11px] mt-1 mb-0">{profileError}</p>}

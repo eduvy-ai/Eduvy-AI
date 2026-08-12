@@ -40,6 +40,7 @@ export interface AdminUser {
   role: AdminRole
   school_id?: number | null  // null for superadmin, number for school admin
   must_change_password?: boolean  // true on first login for school admins
+  curriculum_imported?: boolean
   permissions: Record<AdminSection, PermissionLevel>
   created_at: string
   last_login?: string
