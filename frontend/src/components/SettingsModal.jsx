@@ -128,7 +128,7 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
 
           {/* Tab switcher */}
           <div className="flex bg-app-card rounded-xl p-1 mb-[18px] border border-app-border gap-1">
-            {[["profile", ui.profileTab || 'Profile'], ["ai", ui.aiUsageTab || 'AI Usage'], ["plan", ui.planTab || 'Plan']].map(([key, label]) => (
+            {[["profile", ui.profileTab || 'Profile'], ["ai", ui.aiUsageTab || 'AI Usage'], ...(!isSchoolStudent ? [["plan", ui.planTab || 'Plan']] : [])].map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}

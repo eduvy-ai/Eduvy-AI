@@ -24,6 +24,16 @@ def get_current_user(creds: HTTPAuthorizationCredentials = Depends(_bearer)) -> 
         raise HTTPException(status_code=401, detail="Token expired or invalid")
 
 
+def get_optional_user(creds: HTTPAuthorizationCredentials = Depends(_bearer)) -> str | None:
+    """Returns user_id if authenticated, None otherwise."""
+    if not creds:
+        return None
+    try:
+        return decode_token(creds.credentials)
+    except (JWTError, Exception):
+        return None
+
+
 def require_admin(current_user: str = Depends(get_current_user)) -> str:
     """
     Dependency to require admin role.

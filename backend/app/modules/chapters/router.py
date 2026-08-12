@@ -6,7 +6,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query, HTTPException
 
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_optional_user
 from app.modules.chapters.schema import (
     ChapterCreate,
     ChapterUpdate,
@@ -45,6 +45,7 @@ async def list_chapters(
 async def get_subjects_with_chapters(
     board_id: str = Query(..., description="Board ID (FK to boards.id)"),
     standard_id: str = Query(..., description="Standard ID (FK to standards.id)"),
+    user_id: str | None = Depends(get_optional_user),
 ):
     """
     Get list of subjects with chapter counts for the Learn tab.
@@ -54,6 +55,7 @@ async def get_subjects_with_chapters(
         ChapterService.get_subjects_with_chapters,
         board_id=board_id,
         standard_id=standard_id,
+        user_id=user_id,
     )
 
 

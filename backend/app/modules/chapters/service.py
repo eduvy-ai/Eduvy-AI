@@ -17,31 +17,56 @@ class ChapterService:
     """Chapter business logic."""
     
     @staticmethod
-    def _resolve_board_id(cur, board_id: str) -> str:
-        """Resolve board name to ID if needed (e.g. 'CBSE' → 'cbse')."""
+    def _resolve_board_id(cur, board_id: str, school_id: int = None) -> str:
+        """Resolve board name to ID, trying school-scoped first if school_id set."""
+        if school_id:
+            scoped = f"s{school_id}_{board_id.lower().replace(' ', '-')}"
+            cur.execute("SELECT id FROM boards WHERE id = %s", (scoped,))
+            if cur.fetchone():
+                return scoped
         cur.execute("SELECT id FROM boards WHERE id = %s", (board_id,))
         if cur.fetchone():
             return board_id
         cur.execute("SELECT id FROM boards WHERE LOWER(name) = LOWER(%s)", (board_id,))
         row = cur.fetchone()
-        return row["id"] if row else board_id
+        found_id = row["id"] if row else board_id
+        # Try school-scoped version of the resolved ID
+        if school_id:
+            scoped = f"s{school_id}_{found_id}"
+            cur.execute("SELECT id FROM boards WHERE id = %s", (scoped,))
+            if cur.fetchone():
+                return scoped
+        return found_id
     
     @staticmethod
-    def _resolve_standard_id(cur, standard_id: str) -> str:
-        """Resolve standard name to ID if needed (e.g. 'Class 10' → 'class-10')."""
+    def _resolve_standard_id(cur, standard_id: str, school_id: int = None) -> str:
+        """Resolve standard name to ID, trying school-scoped first if school_id set."""
+        if school_id:
+            scoped = f"s{school_id}_{standard_id.lower().replace(' ', '-')}"
+            cur.execute("SELECT id FROM standards WHERE id = %s", (scoped,))
+            if cur.fetchone():
+                return scoped
         cur.execute("SELECT id FROM standards WHERE id = %s", (standard_id,))
         if cur.fetchone():
             return standard_id
         cur.execute("SELECT id FROM standards WHERE LOWER(name) = LOWER(%s)", (standard_id,))
         row = cur.fetchone()
-        return row["id"] if row else standard_id
+        found_id = row["id"] if row else standard_id
+        # Try school-scoped version of the resolved ID
+        if school_id:
+            scoped = f"s{school_id}_{found_id}"
+            cur.execute("SELECT id FROM standards WHERE id = %s", (scoped,))
+            if cur.fetchone():
+                return scoped
+        return found_id
     
     @staticmethod
     def list_chapters(
         board_id: Optional[str] = None,
         standard_id: Optional[str] = None,
         subject_id: Optional[str] = None,
-        is_active: bool = True
+        is_active: bool = True,
+        school_id: Optional[int] = None
     ) -> List[Dict]:
         """
         List chapters with optional filters.
@@ -51,11 +76,11 @@ class ChapterService:
         try:
             cur = conn.cursor()
             
-            # Resolve names to IDs
+            # Resolve names to IDs (with school scoping if applicable)
             if board_id:
-                board_id = ChapterService._resolve_board_id(cur, board_id)
+                board_id = ChapterService._resolve_board_id(cur, board_id, school_id)
             if standard_id:
-                standard_id = ChapterService._resolve_standard_id(cur, standard_id)
+                standard_id = ChapterService._resolve_standard_id(cur, standard_id, school_id)
             
             query = """
                 SELECT c.id, c.board_id, c.standard_id, c.subject_id, c.chapter_number, c.chapter_name,
@@ -263,17 +288,26 @@ class ChapterService:
             conn.close()
     
     @staticmethod
-    def get_subjects_with_chapters(board_id: str, standard_id: str) -> List[Dict]:
+    def get_subjects_with_chapters(board_id: str, standard_id: str, user_id: str = None) -> List[Dict]:
         """
         Get list of subjects with chapter counts for a board+standard.
         Accepts either IDs (e.g. "cbse") or names (e.g. "CBSE").
+        For school students, resolves to school-scoped curriculum.
         """
         conn = get_db()
         try:
             cur = conn.cursor()
             
-            board_id = ChapterService._resolve_board_id(cur, board_id)
-            standard_id = ChapterService._resolve_standard_id(cur, standard_id)
+            # Look up user's school_id
+            school_id = None
+            if user_id:
+                cur.execute("SELECT school_id FROM users WHERE id = %s", (user_id,))
+                row = cur.fetchone()
+                if row:
+                    school_id = row.get("school_id")
+            
+            board_id = ChapterService._resolve_board_id(cur, board_id, school_id)
+            standard_id = ChapterService._resolve_standard_id(cur, standard_id, school_id)
             
             cur.execute(
                 """SELECT c.subject_id, s.name as subject_name, COUNT(*) as chapter_count
@@ -308,9 +342,18 @@ class ChapterService:
         try:
             cur = conn.cursor()
             
+            # Resolve school_id for the user
+            school_id = None
+            if user_id:
+                cur.execute("SELECT school_id FROM users WHERE id = %s", (user_id,))
+                urow = cur.fetchone()
+                if urow:
+                    school_id = urow.get("school_id")
+            
             # Get base chapters
             chapters = ChapterService.list_chapters(
-                board_id=board_id, standard_id=standard_id, subject_id=subject_id, is_active=True
+                board_id=board_id, standard_id=standard_id, subject_id=subject_id,
+                is_active=True, school_id=school_id
             )
             
             if not chapters:

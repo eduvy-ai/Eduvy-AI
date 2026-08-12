@@ -146,15 +146,17 @@ const ProfileTab: React.FC = () => {
                 🏫 {(user as any).school}
               </p>
             )}
-            <div
-              className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full"
-              style={{ background: `${planInfo.color}15`, border: `1px solid ${planInfo.color}40` }}
-            >
-              <span className="text-sm">{planInfo.icon}</span>
-              <span className="text-[11px] font-bold" style={{ color: planInfo.color }}>
-                {planInfo.label} Plan
-              </span>
-            </div>
+            {!(user as any)?.school_id && (
+              <div
+                className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full"
+                style={{ background: `${planInfo.color}15`, border: `1px solid ${planInfo.color}40` }}
+              >
+                <span className="text-sm">{planInfo.icon}</span>
+                <span className="text-[11px] font-bold" style={{ color: planInfo.color }}>
+                  {planInfo.label} Plan
+                </span>
+              </div>
+            )}
           </div>
         </div>
         

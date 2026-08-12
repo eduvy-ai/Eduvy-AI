@@ -117,6 +117,13 @@ class AdminService:
                 "must_change_password": admin.get("must_change_password", False),
                 "created_at": str(admin["created_at"]) if admin["created_at"] else None,
             }
+            
+            # Include curriculum_imported for school admins
+            if admin.get("school_id"):
+                cur.execute("SELECT curriculum_imported FROM schools WHERE id = %s", (admin["school_id"],))
+                school_row = cur.fetchone()
+                user["curriculum_imported"] = bool(school_row and school_row["curriculum_imported"]) if school_row else False
+            
             return {"token": token, "user": user}
         finally:
             conn.close()
@@ -1122,10 +1129,13 @@ class AdminService:
             conditions = []
             params = []
             
-            # School admin can only see their school's students
             if school_id is not None:
+                # School admin: only their school's students
                 conditions.append("school_id = %s")
                 params.append(school_id)
+            else:
+                # Superadmin: only non-school students (school students belong to their school)
+                conditions.append("school_id IS NULL")
             
             if search:
                 conditions.append("(LOWER(name) LIKE %s OR LOWER(email) LIKE %s)")
@@ -1271,10 +1281,15 @@ class AdminService:
             
             # School students inherit the school's plan
             if school_id:
-                cur.execute("SELECT plan FROM schools WHERE id = %s", (school_id,))
+                cur.execute("SELECT plan, student_limit FROM schools WHERE id = %s", (school_id,))
                 school_row = cur.fetchone()
                 if school_row:
                     plan = SCHOOL_TO_USER_PLAN.get(school_row["plan"], "basic")
+                    # Enforce student limit
+                    cur.execute("SELECT COUNT(*) AS cnt FROM users WHERE school_id = %s", (school_id,))
+                    current_count = cur.fetchone()["cnt"]
+                    if current_count >= school_row["student_limit"]:
+                        raise HTTPException(status_code=400, detail=f"Student limit reached ({school_row['student_limit']}). Upgrade your school plan to add more students.")
             
             # Generate temp password if not provided or if sending welcome email
             must_change = False
@@ -1334,12 +1349,24 @@ class AdminService:
             # Get school name and inherited plan
             school_name = None
             inherited_plan = None
+            student_limit = None
             if school_id:
-                cur.execute("SELECT name, plan FROM schools WHERE id = %s", (school_id,))
+                cur.execute("SELECT name, plan, student_limit FROM schools WHERE id = %s", (school_id,))
                 row = cur.fetchone()
                 if row:
                     school_name = row["name"]
                     inherited_plan = SCHOOL_TO_USER_PLAN.get(row["plan"], "basic")
+                    student_limit = row["student_limit"]
+            
+            # Enforce student limit for school bulk imports
+            if school_id and student_limit is not None:
+                cur.execute("SELECT COUNT(*) AS cnt FROM users WHERE school_id = %s", (school_id,))
+                current_count = cur.fetchone()["cnt"]
+                if current_count + len(students) > student_limit:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Would exceed student limit ({student_limit}). Current: {current_count}, Importing: {len(students)}. Upgrade your school plan."
+                    )
             
             for idx, student_data in enumerate(students):
                 try:

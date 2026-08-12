@@ -3,10 +3,12 @@
 
 import React, { useEffect, useState, useRef, useMemo } from 'react'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
 import { useAdminAuth, useAdminUI } from '../modules/admin/hooks'
 import { ADMIN_NAV_ITEMS, type NavItem } from '../modules/admin/constants'
 import type { AdminSection } from '../modules/admin/types'
 import { canAccess } from '../modules/admin/service'
+import { logout as studentLogout } from '../modules/auth/slice'
 import {
   ChartLineUp,
   GraduationCap,
@@ -51,6 +53,7 @@ const NAV_ICONS: Record<string, React.ComponentType<any>> = {
 const AdminLayout: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
+  const dispatch = useDispatch()
   const { user, isAuthenticated, isInitialized, initialize, logout } = useAdminAuth()
   const { sidebarCollapsed } = useAdminUI()
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
@@ -171,6 +174,7 @@ const AdminLayout: React.FC = () => {
   // Handle logout
   const handleLogout = () => {
     logout()
+    dispatch(studentLogout())
     navigate('/auth')
   }
 

@@ -151,11 +151,14 @@ const authSlice = createSlice({
       })
       .addCase(login.fulfilled, (state, action) => {
         state.isLoading = false
-        state.isAuthenticated = true
-        state.user = action.payload.profile
-        state.token = action.payload.token
+        // Admin logins are handled by the admin slice — don't pollute student auth
+        if (!action.payload.is_admin) {
+          state.isAuthenticated = true
+          state.user = action.payload.profile
+          state.token = action.payload.token
+          state.mustChangePassword = action.payload.must_change_password || false
+        }
         state.error = null
-        state.mustChangePassword = action.payload.must_change_password || false
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false

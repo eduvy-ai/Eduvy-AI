@@ -59,6 +59,9 @@ export const clearAdminAuth = (): void => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(ADMIN_TOKEN_KEY)
     localStorage.removeItem(ADMIN_USER_KEY)
+    // Also clear student auth so app doesn't fall into student dashboard
+    localStorage.removeItem('eduvyai_token')
+    localStorage.removeItem('eduvyai_profile')
   }
 }
 
