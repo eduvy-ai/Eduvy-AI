@@ -86,7 +86,7 @@ class DrishtiService:
                 raise HTTPException(status_code=403, detail="Not assigned to this student")
             
             cur.execute(
-                """INSERT INTO drishti_notes (helper_id, student_id, message)
+                """INSERT INTO helper_notes (helper_id, student_id, message)
                    VALUES (%s, %s, %s) RETURNING id, created_at""",
                 (helper["id"], student_id, message.strip())
             )
@@ -105,7 +105,7 @@ class DrishtiService:
             cur = conn.cursor()
             cur.execute("""
                 SELECT id, message, created_at, is_read
-                FROM drishti_notes
+                FROM helper_notes
                 WHERE helper_id = %s AND student_id = %s
                 ORDER BY created_at DESC
             """, (helper["id"], student_id))
@@ -121,7 +121,7 @@ class DrishtiService:
             cur = conn.cursor()
             cur.execute("""
                 SELECT n.id, n.message, n.created_at, h.helper_name
-                FROM drishti_notes n
+                FROM helper_notes n
                 JOIN drishti_helpers h ON h.id = n.helper_id
                 WHERE n.student_id = %s AND n.is_read = FALSE
                 ORDER BY n.created_at DESC
@@ -137,7 +137,7 @@ class DrishtiService:
         try:
             cur = conn.cursor()
             cur.execute(
-                "UPDATE drishti_notes SET is_read = TRUE WHERE student_id = %s AND is_read = FALSE",
+                "UPDATE helper_notes SET is_read = TRUE WHERE student_id = %s AND is_read = FALSE",
                 (student_id,)
             )
             conn.commit()

@@ -26,8 +26,7 @@ class CoachSessionResponse(BaseModel):
     is_bookmarked: bool
     created_at: str
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class CoachSessionListItem(BaseModel):
@@ -40,8 +39,7 @@ class CoachSessionListItem(BaseModel):
     is_bookmarked: bool
     created_at: str
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class CoachSessionListResponse(BaseModel):

@@ -17,6 +17,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { render, screen, act, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -30,6 +31,16 @@ vi.mock('../api.js', () => ({
   apiCreateChallenge:   vi.fn(),
   apiSubmitChallenge:   vi.fn(),
   apiLeaveSquad:        vi.fn(),
+  apiGetSquadDoubts:    vi.fn(),
+  apiPostDoubt:         vi.fn(),
+  apiGetDoubtAnswers:   vi.fn(),
+  apiPostAnswer:        vi.fn(),
+  apiUpvoteAnswer:      vi.fn(),
+  apiGetDoubtQuota:     vi.fn(),
+  apiGetSquadStreak:    vi.fn(),
+  apiGetDailyConcept:   vi.fn(),
+  apiSubmitDailyExplain: vi.fn(),
+  apiPatchVerdict:      vi.fn(),
 }))
 
 vi.mock('../shared.js', () => ({
@@ -44,16 +55,28 @@ vi.mock('../shared.js', () => ({
     Gujarati: 'ફક્ત ગુજરાતીમાં લખો.',
   },
   callAI: vi.fn(),
+  getDisplayLang: vi.fn(() => 'English'),
 }))
+
+vi.mock('../i18n/index.js', async () => {
+  const actual = await vi.importActual('../i18n/index.js')
+  return { ...actual }
+})
 
 import {
   apiGetMySquad, apiMatchSquad,
   apiGetSquadMessages, apiSendSquadMessage,
   apiGetSquadMembers, apiGetSquadChallenge,
   apiCreateChallenge, apiSubmitChallenge, apiLeaveSquad,
+  apiGetSquadDoubts, apiPostDoubt, apiGetDoubtAnswers,
+  apiPostAnswer, apiUpvoteAnswer, apiGetDoubtQuota,
+  apiGetSquadStreak, apiGetDailyConcept, apiSubmitDailyExplain,
+  apiPatchVerdict,
 } from '../api.js'
 import { callAI } from '../shared.js'
 import SathiTab from '../components/tabs/SathiTab.jsx'
+
+const Wrapper = ({ children }) => <MemoryRouter>{children}</MemoryRouter>
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -86,6 +109,16 @@ function defaultApiSetup() {
   apiLeaveSquad.mockResolvedValue({ left: true })
   apiCreateChallenge.mockResolvedValue({ challenge_id: 1, subject: 'Mathematics', concept: 'Quadratic Equations' })
   apiSubmitChallenge.mockResolvedValue({ completed: true, xp_awarded: 50 })
+  apiGetSquadDoubts.mockResolvedValue({ doubts: [] })
+  apiGetDoubtQuota.mockResolvedValue({ remaining: 5, limit: 5 })
+  apiGetSquadStreak.mockResolvedValue({ current_streak: 0, last_active: '' })
+  apiGetDailyConcept.mockResolvedValue({ concept: null })
+  apiSubmitDailyExplain.mockResolvedValue({ xp_awarded: 30 })
+  apiPostDoubt.mockResolvedValue({ id: 1 })
+  apiGetDoubtAnswers.mockResolvedValue({ answers: [] })
+  apiPostAnswer.mockResolvedValue({ id: 1 })
+  apiUpvoteAnswer.mockResolvedValue({ upvotes: 1 })
+  apiPatchVerdict.mockResolvedValue({ ok: true })
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -94,18 +127,22 @@ describe('SathiTab — No-Squad Landing Screen', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     apiGetMySquad.mockResolvedValue({ squad: null })
+    apiGetSquadStreak.mockResolvedValue({ current_streak: 0 })
+    apiGetDailyConcept.mockResolvedValue({ concept: null })
+    apiGetSquadDoubts.mockResolvedValue({ doubts: [] })
+    apiGetDoubtQuota.mockResolvedValue({ remaining: 5, limit: 5 })
   })
 
   it('renders landing screen when user has no squad', async () => {
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => {
-      expect(screen.getByText(/Sathi/i)).toBeInTheDocument()
+      expect(screen.getAllByText(/Study Squads/i).length).toBeGreaterThan(0)
       expect(screen.getByText(/Find My Study Squad/i)).toBeInTheDocument()
     })
   })
 
   it('shows how-it-works steps', async () => {
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => {
       expect(screen.getByText(/AI reads your mastery/i)).toBeInTheDocument()
       expect(screen.getByText(/Finds your complement/i)).toBeInTheDocument()
@@ -121,7 +158,7 @@ describe('SathiTab — No-Squad Landing Screen', () => {
     apiGetSquadMessages.mockResolvedValue({ messages: [] })
     apiGetSquadChallenge.mockResolvedValue({ challenge: null })
 
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => screen.getByText(/Find My Study Squad/i))
 
     await userEvent.click(screen.getByText(/Find My Study Squad/i))
@@ -135,7 +172,7 @@ describe('SathiTab — No-Squad Landing Screen', () => {
     apiMatchSquad.mockRejectedValue(new Error('Network error'))
     const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
 
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => screen.getByText(/Find My Study Squad/i))
 
     await userEvent.click(screen.getByText(/Find My Study Squad/i))
@@ -151,7 +188,7 @@ describe('SathiTab — Chat View', () => {
   })
 
   it('renders squad name and focus subject in header', async () => {
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => {
       expect(screen.getByText(/Riya's Squad/i)).toBeInTheDocument()
       expect(screen.getByText(/Mathematics/i)).toBeInTheDocument()
@@ -159,7 +196,7 @@ describe('SathiTab — Chat View', () => {
   })
 
   it('renders member avatars in the members strip', async () => {
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => {
       expect(screen.getByText('You')).toBeInTheDocument()
       expect(screen.getByText('Arjun')).toBeInTheDocument()
@@ -167,7 +204,7 @@ describe('SathiTab — Chat View', () => {
   })
 
   it('shows empty-chat prompt when no messages', async () => {
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => expect(screen.getByText(/Say hi to your squad/i)).toBeInTheDocument())
   })
 
@@ -178,7 +215,7 @@ describe('SathiTab — Chat View', () => {
         makeMsg(2, 'user-123', 'Hey Arjun!', 'chat', 'Riya'),
       ],
     })
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => {
       expect(screen.getByText('Hello from Arjun!')).toBeInTheDocument()
       expect(screen.getByText('Hey Arjun!')).toBeInTheDocument()
@@ -189,7 +226,7 @@ describe('SathiTab — Chat View', () => {
     apiGetSquadMessages.mockResolvedValue({
       messages: [makeMsg(1, 'user-123', '🎉 Arjun joined the squad!', 'system', 'System')],
     })
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => expect(screen.getByText(/Arjun joined the squad/i)).toBeInTheDocument())
   })
 })
@@ -201,7 +238,7 @@ describe('SathiTab — Send Message (no duplicates)', () => {
   })
 
   it('adds optimistic message immediately on send', async () => {
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => screen.getByPlaceholderText(/Message your squad/i))
 
     const input = screen.getByPlaceholderText(/Message your squad/i)
@@ -218,7 +255,7 @@ describe('SathiTab — Send Message (no duplicates)', () => {
       .mockResolvedValueOnce({ messages: [] })  // initial load
       .mockResolvedValueOnce({ messages: [realMsg] }) // poll after send
 
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => screen.getByPlaceholderText(/Message your squad/i))
 
     const input = screen.getByPlaceholderText(/Message your squad/i)
@@ -238,7 +275,7 @@ describe('SathiTab — Send Message (no duplicates)', () => {
   })
 
   it('clears the input after sending', async () => {
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => screen.getByPlaceholderText(/Message your squad/i))
 
     const input = screen.getByPlaceholderText(/Message your squad/i)
@@ -249,7 +286,7 @@ describe('SathiTab — Send Message (no duplicates)', () => {
   })
 
   it('calls apiSendSquadMessage with correct args', async () => {
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => screen.getByPlaceholderText(/Message your squad/i))
 
     await userEvent.type(screen.getByPlaceholderText(/Message your squad/i), 'Hi squad')
@@ -268,14 +305,14 @@ describe('SathiTab — AI Peer (Gyaani)', () => {
   })
 
   it('AI Peer message renders on LEFT (not as mine)', async () => {
-    const aiMsg = makeMsg(5, 'user-123', 'What is quadratic?', 'ai_peer', 'Gyaani')
+    const aiMsg = makeMsg(5, 'user-123', 'What is quadratic?', 'ai_peer', 'Owl')
     apiGetSquadMessages.mockResolvedValue({ messages: [aiMsg] })
 
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => expect(screen.getByText('What is quadratic?')).toBeInTheDocument())
 
-    // The sender label "🦉 Gyaani (AI Peer)" should be visible (only shown for non-mine messages)
-    expect(screen.getByText(/Gyaani \(AI Peer\)/i)).toBeInTheDocument()
+    // The sender label should be visible (only shown for non-mine messages)
+    expect(screen.getByText(/Owl \(AI Peer\)/i)).toBeInTheDocument()
   })
 
   it('invokes callAI with LANG_RULES in system prompt', async () => {
@@ -287,14 +324,14 @@ describe('SathiTab — AI Peer (Gyaani)', () => {
 
     // Override silence check by using fake timers briefly
     vi.useFakeTimers()
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await act(async () => { vi.advanceTimersByTime(130000) }) // past SILENCE_MS
     vi.useRealTimers()
 
     // Button may or may not be visible depending on render, so test callAI directly
     // Trigger the AI peer manually via button if visible, else check system prompt on callAI
     await waitFor(() => {
-      const btn = screen.queryByText(/Ask Gyaani/i)
+      const btn = screen.queryByText(/Ask Owl/i)
       if (btn) fireEvent.click(btn)
     })
 
@@ -312,18 +349,18 @@ describe('SathiTab — AI Peer (Gyaani)', () => {
     })
 
     vi.useFakeTimers()
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await act(async () => { vi.advanceTimersByTime(130000) })
     vi.useRealTimers()
 
-    const btn = screen.queryByText(/Ask Gyaani/i)
+    const btn = screen.queryByText(/Ask Owl/i)
     if (btn) {
       await userEvent.click(btn)
       await waitFor(() =>
         expect(apiSendSquadMessage).toHaveBeenCalledWith(
           expect.any(Number),
           expect.any(String),
-          'Gyaani',
+          'Owl',
           'ai_peer',
         )
       )
@@ -345,9 +382,9 @@ describe('SathiTab — Silence Timer', () => {
     apiGetSquadMessages.mockResolvedValue({
       messages: [makeMsg(1, 'user-456', 'Hi', 'chat', 'Arjun')],
     })
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => screen.getByText('Hi'))
-    expect(screen.queryByText(/Ask Gyaani/i)).toBeNull()
+    expect(screen.queryByText(/Ask Owl/i)).toBeNull()
   })
 
   it('AI Peer button appears after SILENCE_MS elapses', async () => {
@@ -356,11 +393,11 @@ describe('SathiTab — Silence Timer', () => {
     })
 
     vi.useFakeTimers()
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     // Advance past SILENCE_MS (120000) + silence tick interval (15000)
     await act(async () => { vi.advanceTimersByTime(135001) })
 
-    expect(screen.getByText(/Ask Gyaani/i)).toBeInTheDocument()
+    expect(screen.getByText(/Ask Owl/i)).toBeInTheDocument()
   })
 })
 
@@ -374,20 +411,20 @@ describe('SathiTab — Challenge Banner', () => {
   })
 
   it('renders challenge banner with concept name', async () => {
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => expect(screen.getByText(/Quadratic Equations/i)).toBeInTheDocument())
     expect(screen.getByText(/50 Teaching XP/i)).toBeInTheDocument()
   })
 
   it('submit button disabled when explanation is empty', async () => {
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => screen.getByText(/Submit Explanation/i))
     const submitBtn = screen.getByText(/Submit Explanation/i)
     expect(submitBtn).toBeDisabled()
   })
 
   it('submit button enabled after typing explanation', async () => {
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => screen.getByPlaceholderText(/Explain this concept/i))
 
     await userEvent.type(
@@ -398,7 +435,7 @@ describe('SathiTab — Challenge Banner', () => {
   })
 
   it('calls apiSubmitChallenge and shows completion message', async () => {
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => screen.getByPlaceholderText(/Explain this concept/i))
 
     await userEvent.type(
@@ -414,11 +451,13 @@ describe('SathiTab — Challenge Banner', () => {
   })
 
   it('dismiss button hides the challenge banner', async () => {
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => screen.getByText(/Quadratic Equations/i))
 
-    // Click the × dismiss button
-    const dismissBtn = screen.getByRole('button', { name: '×' })
+    // The dismiss button is a sibling of the challenge text container
+    const buttons = screen.getAllByRole('button')
+    const dismissBtn = buttons.find(b => b.className.includes('text-app-muted') && b.className.includes('text-[18px]'))
+    expect(dismissBtn).toBeTruthy()
     await userEvent.click(dismissBtn)
 
     expect(screen.queryByText(/Quadratic Equations/i)).toBeNull()
@@ -435,7 +474,7 @@ describe('SathiTab — Duplicate Challenge Guard', () => {
   })
 
   it('does NOT call apiCreateChallenge again when one is already visible', async () => {
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => screen.getByText(/Polynomials/i))
 
     // Click the challenge (📚) button in the header
@@ -454,7 +493,7 @@ describe('SathiTab — Leave Squad', () => {
 
   it('calls apiLeaveSquad and returns to landing screen', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => screen.getByText(/Leave/i))
 
     await userEvent.click(screen.getByText('Leave'))
@@ -466,7 +505,7 @@ describe('SathiTab — Leave Squad', () => {
 
   it('does NOT leave if user cancels confirm dialog', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await waitFor(() => screen.getByText('Leave'))
 
     await userEvent.click(screen.getByText('Leave'))
@@ -489,7 +528,7 @@ describe('SathiTab — Message Deduplication (polling)', () => {
       .mockResolvedValueOnce({ messages: [msg] }) // poll returns same message again
 
     vi.useFakeTimers()
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
     await act(async () => { vi.advanceTimersByTime(4100) }) // trigger one poll
     vi.useRealTimers()
 
@@ -506,7 +545,7 @@ describe('SathiTab — Message Deduplication (polling)', () => {
     const msg2 = makeMsg(2, 'user-456', 'Second message', 'chat', 'Arjun')
     apiGetSquadMessages.mockResolvedValue({ messages: [msg1, msg2] })
 
-    render(<SathiTab profile={PROFILE} userId={USER_ID} />)
+    render(<SathiTab profile={PROFILE} userId={USER_ID} />, { wrapper: Wrapper })
 
     await waitFor(() => {
       expect(screen.getByText('First message')).toBeInTheDocument()

@@ -55,8 +55,7 @@ class QuestionResponse(QuestionBase):
     chapter_name: Optional[str] = None
     subject_name: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class QuestionBulkImport(BaseModel):
@@ -125,8 +124,7 @@ class MediaResponse(MediaBase):
     chapter_name: Optional[str] = None
     subject_name: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class MediaBulkDelete(BaseModel):
@@ -201,8 +199,7 @@ class AssessmentResponse(AssessmentBase):
     subject_name: Optional[str] = None
     chapter_name: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class AssessmentListParams(BaseModel):

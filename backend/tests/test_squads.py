@@ -119,6 +119,8 @@ CREATE TABLE IF NOT EXISTS squads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     focus_subject TEXT NOT NULL DEFAULT 'General',
+    standard TEXT NOT NULL DEFAULT 'Class 10',
+    medium TEXT NOT NULL DEFAULT 'English',
     created_at TEXT DEFAULT (datetime('now')),
     is_active INTEGER DEFAULT 1
 );
@@ -142,19 +144,34 @@ CREATE TABLE IF NOT EXISTS squad_messages (
 CREATE TABLE IF NOT EXISTS squad_challenges (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     squad_id INTEGER NOT NULL,
-    teacher_user_id TEXT NOT NULL,
-    subject TEXT NOT NULL,
-    concept TEXT NOT NULL,
-    status TEXT DEFAULT 'pending',
-    explanation TEXT DEFAULT '',
-    xp_awarded INTEGER DEFAULT 0,
+    subject TEXT NOT NULL DEFAULT 'General',
+    concept TEXT NOT NULL DEFAULT 'Key Concept',
+    status TEXT DEFAULT 'open',
     created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS squad_challenge_submissions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    challenge_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
+    explanation TEXT NOT NULL,
+    xp_awarded INTEGER DEFAULT 0,
+    ai_verdict TEXT DEFAULT '',
+    ai_note TEXT DEFAULT '',
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE (challenge_id, user_id)
 );
 """
 
 # ── Test fixtures ─────────────────────────────────────────────────────────────
 
-JWT_SECRET = "test-secret"
+# Load .env so JWT_SECRET matches what the app uses
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
+except Exception:
+    pass
+
+JWT_SECRET = os.getenv("JWT_SECRET", "eduvyai-change-me")
 JWT_ALGO   = "HS256"
 
 USER_A = "user-aaa-111"
@@ -189,11 +206,8 @@ def client(db):
     """TestClient with get_db monkey-patched to use in-memory SQLite."""
     fake_conn = _FakeConn(db)
 
-    with patch("routers.squads.get_db", return_value=fake_conn), \
-         patch("routers.auth._JWT_SECRET", JWT_SECRET), \
-         patch("routers.auth._JWT_ALGORITHM", JWT_ALGO):
-        # Import app after patching so router sees patched get_db
-        from main import app
+    with patch("app.modules.squads.service.get_db", return_value=fake_conn):
+        from app.main_new import app
         with TestClient(app, raise_server_exceptions=True) as c:
             yield c
 

@@ -358,6 +358,7 @@ CREATE TABLE IF NOT EXISTS bhool_cards (
     why_wrong      TEXT DEFAULT '',
     is_published   INTEGER DEFAULT 0,
     bhool_coins    INTEGER DEFAULT 0,
+    image_url      TEXT DEFAULT '',
     created_at     TEXT DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS bhool_collections (
@@ -376,14 +377,26 @@ CREATE TABLE IF NOT EXISTS bhool_reactions (
 CREATE TABLE IF NOT EXISTS muqabla_battles (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     challenger_id    TEXT NOT NULL,
+    challenger_name  TEXT DEFAULT '',
+    challenger_school TEXT DEFAULT '',
     opponent_id      TEXT DEFAULT '',
+    opponent_name    TEXT DEFAULT '',
+    opponent_school  TEXT DEFAULT '',
     subject          TEXT NOT NULL,
     standard         TEXT NOT NULL DEFAULT 'Class 10',
-    status           TEXT DEFAULT 'open',
-    challenger_score INTEGER DEFAULT 0,
-    opponent_score   INTEGER DEFAULT 0,
+    difficulty       TEXT DEFAULT 'medium',
     questions_json   TEXT DEFAULT '[]',
+    challenger_score INTEGER DEFAULT 0,
+    challenger_answers TEXT DEFAULT '[]',
+    challenger_time  INTEGER DEFAULT 0,
+    opponent_score   INTEGER DEFAULT 0,
+    opponent_answers TEXT DEFAULT '[]',
+    opponent_time    INTEGER DEFAULT 0,
+    winner_id        TEXT DEFAULT '',
+    xp_awarded       INTEGER DEFAULT 0,
+    status           TEXT DEFAULT 'open',
     created_at       TEXT DEFAULT (datetime('now')),
+    expires_at       TEXT DEFAULT '',
     completed_at     TEXT DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS parent_pins (
@@ -391,6 +404,7 @@ CREATE TABLE IF NOT EXISTS parent_pins (
     user_id    TEXT NOT NULL UNIQUE,
     pin        TEXT NOT NULL UNIQUE,
     is_active  INTEGER DEFAULT 1,
+    expires_at TEXT DEFAULT '',
     created_at TEXT DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS squads (
@@ -510,20 +524,23 @@ CREATE TABLE IF NOT EXISTS boards (
     id         TEXT PRIMARY KEY,
     name       TEXT NOT NULL,
     sort_order INTEGER DEFAULT 0,
-    is_active  INTEGER DEFAULT 1
+    is_active  INTEGER DEFAULT 1,
+    school_id  INTEGER DEFAULT NULL
 );
 CREATE TABLE IF NOT EXISTS standards (
     id         TEXT PRIMARY KEY,
     name       TEXT NOT NULL,
     grade_num  INTEGER NOT NULL DEFAULT 10,
     sort_order INTEGER DEFAULT 0,
-    is_active  INTEGER DEFAULT 1
+    is_active  INTEGER DEFAULT 1,
+    school_id  INTEGER DEFAULT NULL
 );
 CREATE TABLE IF NOT EXISTS mediums (
     id         TEXT PRIMARY KEY,
     name       TEXT NOT NULL,
     sort_order INTEGER DEFAULT 0,
-    is_active  INTEGER DEFAULT 1
+    is_active  INTEGER DEFAULT 1,
+    school_id  INTEGER DEFAULT NULL
 );
 CREATE TABLE IF NOT EXISTS curriculum (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -532,6 +549,7 @@ CREATE TABLE IF NOT EXISTS curriculum (
     medium_id   TEXT NOT NULL,
     subjects    TEXT DEFAULT '[]',
     is_active   INTEGER DEFAULT 1,
+    school_id   INTEGER DEFAULT NULL,
     UNIQUE (board_id, standard_id, medium_id)
 );
 CREATE TABLE IF NOT EXISTS ai_usage (

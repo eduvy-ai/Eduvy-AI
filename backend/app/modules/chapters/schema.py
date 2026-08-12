@@ -41,8 +41,7 @@ class ChapterResponse(ChapterBase):
     subject_name: Optional[str] = None
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class ChapterListParams(BaseModel):

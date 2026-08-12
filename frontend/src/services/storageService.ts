@@ -3,16 +3,16 @@
 
 // ─── Storage Keys ────────────────────────────────────────────
 export const STORAGE_KEYS = {
-  AUTH_TOKEN: 'eduvy_token',
-  REFRESH_TOKEN: 'eduvy_refresh_token',
-  USER_ID: 'eduvy_user_id',
-  DEVICE_ID: 'eduvy_device_id',
-  LAST_ACTIVE: 'eduvy_last_active',
-  STREAK: 'eduvy_streak',
-  BHOOL_CARDS: 'eduvy_bhool_cards',
-  SETTINGS: 'eduvy_settings',
-  ONBOARDING_COMPLETE: 'eduvy_onboarding_complete',
-  PREFERRED_LANGUAGE: 'eduvy_language',
+  AUTH_TOKEN: 'eduvyai_token',
+  REFRESH_TOKEN: 'eduvyai_refresh_token',
+  USER_ID: 'eduvyai_user_id',
+  DEVICE_ID: 'eduvyai_device_id',
+  LAST_ACTIVE: 'eduvyai_last_active',
+  STREAK: 'eduvyai_streak',
+  BHOOL_CARDS: 'eduvyai_bhool_cards',
+  SETTINGS: 'eduvyai_settings',
+  ONBOARDING_COMPLETE: 'eduvyai_onboarding_complete',
+  PREFERRED_LANGUAGE: 'eduvyai_language',
 } as const
 
 export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS]

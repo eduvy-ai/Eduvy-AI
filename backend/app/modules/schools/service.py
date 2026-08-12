@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 from fastapi import HTTPException
-from passlib.hash import bcrypt
+import bcrypt as _bcrypt
 
 from app.db.connection import get_db, row_to_dict
 from app.utils.email import school_admin_welcome_html, school_admin_welcome_plain
@@ -123,7 +123,7 @@ class SchoolsService:
                     logger.info(f"Admin already exists for email {contact_email}, skipping creation")
                 else:
                     temp_password = _generate_password()
-                    password_hash = bcrypt.hash(temp_password)
+                    password_hash = _bcrypt.hashpw(temp_password.encode(), _bcrypt.gensalt()).decode()
                     
                     cur.execute("""
                         INSERT INTO admin_users (email, password_hash, name, role, school_id, must_change_password)
@@ -430,7 +430,7 @@ class SchoolsService:
                     # Generate credentials
                     user_id = str(uuid.uuid4())
                     password = _generate_password()
-                    password_hash = bcrypt.hash(password)
+                    password_hash = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
 
                     cur.execute("""
                         INSERT INTO users (id, name, email, mobile, password_hash, standard, board, language,

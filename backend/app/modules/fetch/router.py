@@ -1,8 +1,7 @@
-"""
-Fetch Router - API endpoints for web fetching and YouTube.
-"""
-from fastapi import APIRouter, Query
+"""Fetch Router - API endpoints for web fetching and YouTube."""
+from fastapi import APIRouter, Depends, Query
 
+from app.core.dependencies import get_current_user
 from app.modules.fetch.schemas import FetchRequest
 from app.modules.fetch.service import FetchService
 
@@ -10,7 +9,7 @@ router = APIRouter(tags=["Fetch"])
 
 
 @router.post("/fetch")
-async def fetch_url(data: FetchRequest):
+async def fetch_url(data: FetchRequest, user_id: str = Depends(get_current_user)):
     """Fetch content from URL."""
     return await FetchService.fetch_url(data.url)
 
@@ -18,7 +17,8 @@ async def fetch_url(data: FetchRequest):
 @router.get("/youtube/search")
 async def youtube_search(
     q: str = Query(..., min_length=1),
-    limit: int = Query(10, ge=1, le=20)
+    limit: int = Query(10, ge=1, le=20),
+    user_id: str = Depends(get_current_user),
 ):
     """Search YouTube videos."""
     results = await FetchService.youtube_search(q, limit)
@@ -29,7 +29,8 @@ async def youtube_search(
 async def youtube_smart_search(
     q: str = Query(..., min_length=1),
     limit: int = Query(12, ge=1, le=20),
-    max_duration: int = Query(180, ge=30, le=600)
+    max_duration: int = Query(180, ge=30, le=600),
+    user_id: str = Depends(get_current_user),
 ):
     """Smart topic-aware YouTube search."""
     results = await FetchService.youtube_smart_search(q, limit, max_duration)
@@ -39,7 +40,8 @@ async def youtube_smart_search(
 @router.get("/youtube/edu-reels")
 async def youtube_edu_reels(
     q: str = Query(..., min_length=1),
-    limit: int = Query(16, ge=1, le=30)
+    limit: int = Query(16, ge=1, le=30),
+    user_id: str = Depends(get_current_user),
 ):
     """Fetch educational YouTube Shorts (<=90s) for a query."""
     items = await FetchService.youtube_edu_reels(q, limit)
@@ -47,12 +49,12 @@ async def youtube_edu_reels(
 
 
 @router.get("/youtube/video/{video_id}")
-async def youtube_video_info(video_id: str):
+async def youtube_video_info(video_id: str, user_id: str = Depends(get_current_user)):
     """Get info for a specific YouTube video by ID."""
     return await FetchService.youtube_video_info(video_id)
 
 
 @router.post("/fetch-url")
-async def fetch_url_alias(data: FetchRequest):
+async def fetch_url_alias(data: FetchRequest, user_id: str = Depends(get_current_user)):
     """Alias for /fetch — fetch content from a URL."""
     return await FetchService.fetch_url(data.url)
