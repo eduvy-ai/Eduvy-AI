@@ -223,7 +223,6 @@ const AdminDashboard: React.FC = () => {
           icon={<Users size={20} />}
           label="Total Students"
           value={totalStudents}
-          change={{ value: 12, positive: true }}
           color="green"
           onClick={() => navigate('/admin/students')}
         />
@@ -237,7 +236,6 @@ const AdminDashboard: React.FC = () => {
           icon={<Robot size={20} />}
           label="AI Calls (7d)"
           value={totalAICalls}
-          change={{ value: 8, positive: true }}
           color="yellow"
           onClick={() => navigate('/admin/ai/usage')}
         />

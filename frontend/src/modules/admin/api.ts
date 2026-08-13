@@ -129,8 +129,8 @@ export const boardsApi = {
     await axiosInstance.delete(`${ADMIN_ENDPOINTS.boards}/${id}`, adminConfig())
   },
 
-  bulkImport: async (boards: Board[]): Promise<{ imported: number }> => {
-    const response = await axiosInstance.post<{ imported: number }>(
+  bulkImport: async (boards: Board[]): Promise<{ inserted: number; updated: number }> => {
+    const response = await axiosInstance.post<{ inserted: number; updated: number }>(
       `${ADMIN_ENDPOINTS.boards}/import`,
       boards,
       adminConfig()
@@ -169,8 +169,8 @@ export const standardsApi = {
     await axiosInstance.delete(`${ADMIN_ENDPOINTS.standards}/${id}`, adminConfig())
   },
 
-  bulkImport: async (standards: Standard[]): Promise<{ imported: number }> => {
-    const response = await axiosInstance.post<{ imported: number }>(
+  bulkImport: async (standards: Standard[]): Promise<{ inserted: number; updated: number }> => {
+    const response = await axiosInstance.post<{ inserted: number; updated: number }>(
       `${ADMIN_ENDPOINTS.standards}/import`,
       standards,
       adminConfig()
@@ -209,8 +209,8 @@ export const mediumsApi = {
     await axiosInstance.delete(`${ADMIN_ENDPOINTS.mediums}/${id}`, adminConfig())
   },
 
-  bulkImport: async (mediums: Medium[]): Promise<{ imported: number }> => {
-    const response = await axiosInstance.post<{ imported: number }>(
+  bulkImport: async (mediums: Medium[]): Promise<{ inserted: number; updated: number }> => {
+    const response = await axiosInstance.post<{ inserted: number; updated: number }>(
       `${ADMIN_ENDPOINTS.mediums}/import`,
       mediums,
       adminConfig()
@@ -254,8 +254,8 @@ export const subjectsApi = {
     await axiosInstance.delete(`${ADMIN_ENDPOINTS.subjects}/${id}`, adminConfig())
   },
 
-  bulkImport: async (subjects: Subject[]): Promise<{ imported: number }> => {
-    const response = await axiosInstance.post<{ imported: number }>(
+  bulkImport: async (subjects: Subject[]): Promise<{ inserted: number; updated: number }> => {
+    const response = await axiosInstance.post<{ inserted: number; updated: number }>(
       `${ADMIN_ENDPOINTS.subjects}/import`,
       subjects,
       adminConfig()
@@ -300,10 +300,10 @@ export const curriculumApi = {
     await axiosInstance.delete(`${ADMIN_ENDPOINTS.curriculum}/${id}`, adminConfig())
   },
 
-  bulkImport: async (entries: Omit<CurriculumEntry, 'id'>[]): Promise<{ imported: number }> => {
-    const response = await axiosInstance.post<{ imported: number }>(
+  bulkImport: async (entries: Omit<CurriculumEntry, 'id'>[]): Promise<{ created: number; errors: string[] }> => {
+    const response = await axiosInstance.post<{ created: number; errors: string[] }>(
       `${ADMIN_ENDPOINTS.curriculum}/import`,
-      entries,
+      { rows: entries },
       adminConfig()
     )
     return response.data
@@ -402,8 +402,8 @@ export const usersApi = {
 
   updateDrishti: async (userId: string, isDrishti: boolean): Promise<void> => {
     await axiosInstance.put(
-      `${ADMIN_ENDPOINTS.users}/${userId}/drishti`,
-      { is_drishti: isDrishti },
+      `${ADMIN_ENDPOINTS.users}/${userId}/drishti?is_drishti=${isDrishti}`,
+      null,
       adminConfig()
     )
   },
@@ -416,7 +416,7 @@ export const usersApi = {
     )
   },
 
-  createDrishtiStudent: async (data: { email: string; password: string; name: string }): Promise<StudentUser> => {
+  createDrishtiStudent: async (data: { email: string; password: string; name: string; standard: string; board: string; language?: string }): Promise<StudentUser> => {
     const response = await axiosInstance.post<StudentUser>(
       `${ADMIN_ENDPOINTS.users}/drishti`,
       data,

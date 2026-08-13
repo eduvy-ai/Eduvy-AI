@@ -37,6 +37,22 @@ def get_admin_user(creds: HTTPAuthorizationCredentials = Depends(_bearer)) -> in
         raise HTTPException(status_code=401, detail="Token expired or invalid")
 
 
+def get_admin_with_school(creds: HTTPAuthorizationCredentials = Depends(_bearer)) -> tuple:
+    """Verify admin JWT and return (admin_id, school_id)."""
+    if not creds:
+        raise HTTPException(status_code=401, detail="Admin auth required")
+    try:
+        payload = jwt.decode(creds.credentials, _JWT_SECRET, algorithms=[_JWT_ALGORITHM])
+        if payload.get("role") != "admin":
+            raise HTTPException(status_code=403, detail="Admin access only")
+        uid = payload.get("sub")
+        if not uid:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return (int(uid), payload.get("school_id"))
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token expired or invalid")
+
+
 @router.get("/plans")
 async def get_plan_prices():
     """Get plan prices (public)."""
@@ -78,18 +94,24 @@ async def get_school_plan_prices():
 @router.post("/school/create-order")
 async def create_school_order(
     data: CreateSchoolOrderRequest,
-    admin_id: int = Depends(get_admin_user),
+    admin_scope: tuple = Depends(get_admin_with_school),
 ):
-    """Create Razorpay order for school upgrade (admin only)."""
+    """Create Razorpay order for school upgrade (admin only, own school)."""
+    admin_id, admin_school_id = admin_scope
+    if admin_school_id is not None and admin_school_id != data.school_id:
+        raise HTTPException(status_code=403, detail="Cannot create orders for other schools")
     return await PaymentsService.create_school_order(data.school_id, data.plan)
 
 
 @router.post("/school/verify")
 async def verify_school_payment(
     data: VerifySchoolPaymentRequest,
-    admin_id: int = Depends(get_admin_user),
+    admin_scope: tuple = Depends(get_admin_with_school),
 ):
-    """Verify school payment and upgrade plan (admin only)."""
+    """Verify school payment and upgrade plan (admin only, own school)."""
+    admin_id, admin_school_id = admin_scope
+    if admin_school_id is not None and admin_school_id != data.school_id:
+        raise HTTPException(status_code=403, detail="Cannot verify payments for other schools")
     return await asyncio.to_thread(
         PaymentsService.verify_school_payment,
         data.school_id,

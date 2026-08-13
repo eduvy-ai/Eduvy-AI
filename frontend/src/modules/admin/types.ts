@@ -41,7 +41,7 @@ export interface AdminUser {
   school_id?: number | null  // null for superadmin, number for school admin
   must_change_password?: boolean  // true on first login for school admins
   curriculum_imported?: boolean
-  permissions: Record<AdminSection, PermissionLevel>
+  permissions?: Record<AdminSection, PermissionLevel>
   created_at: string
   last_login?: string
 }
@@ -138,9 +138,9 @@ export interface StudentUser {
   xp: number
   streak: number
   is_drishti: boolean
-  school: string
+  school_id: number | null
+  last_active: string | null
   created_at: string
-  last_active: string
 }
 
 export interface DrishtiHelper {

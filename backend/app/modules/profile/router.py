@@ -14,8 +14,8 @@ router = APIRouter(prefix="/profile", tags=["Profile"])
 
 
 @router.post("", status_code=201)
-async def create_profile(data: ProfileCreate):
-    """Create a new user profile."""
+async def create_profile(data: ProfileCreate, current_user: str = Depends(get_current_user)):
+    """Create a new user profile (authenticated only)."""
     return await asyncio.to_thread(
         ProfileService.create_profile,
         id=data.id,

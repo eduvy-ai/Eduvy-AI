@@ -34,10 +34,25 @@ def get_optional_user(creds: HTTPAuthorizationCredentials = Depends(_bearer)) ->
         return None
 
 
-def require_admin(current_user: str = Depends(get_current_user)) -> str:
+def require_admin(creds: HTTPAuthorizationCredentials = Depends(_bearer)) -> str:
     """
-    Dependency to require admin role.
-    For now just returns user, add admin check logic when needed.
+    Dependency to require admin role from JWT token.
+    Validates the token contains role=admin claim.
     """
-    # TODO: Check if user is admin in database
-    return current_user
+    if not creds:
+        raise HTTPException(status_code=401, detail="Admin auth required")
+    try:
+        from app.core.security import decode_token
+        import os
+        from jose import jwt as jose_jwt
+        secret = os.getenv("JWT_SECRET", "eduvyai-change-me")
+        algo = os.getenv("JWT_ALGORITHM", "HS256")
+        payload = jose_jwt.decode(creds.credentials, secret, algorithms=[algo])
+        if payload.get("role") != "admin":
+            raise HTTPException(status_code=403, detail="Admin access only")
+        uid = payload.get("sub")
+        if not uid:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return uid
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token expired or invalid")

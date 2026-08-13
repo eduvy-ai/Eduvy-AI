@@ -1130,12 +1130,8 @@ class AdminService:
             params = []
             
             if school_id is not None:
-                # School admin: only their school's students
                 conditions.append("school_id = %s")
                 params.append(school_id)
-            else:
-                # Superadmin: only non-school students (school students belong to their school)
-                conditions.append("school_id IS NULL")
             
             if search:
                 conditions.append("(LOWER(name) LIKE %s OR LOWER(email) LIKE %s)")
@@ -1150,7 +1146,8 @@ class AdminService:
             cur.execute(
                 f"""SELECT id, name, email, standard, board, language, plan,
                            plan_expires_at, xp, streak, is_drishti,
-                           ai_provider, ai_model, ai_admin_override, school_id, created_at
+                           ai_provider, ai_model, ai_admin_override, school_id,
+                           last_active, created_at
                     FROM users {where}
                     ORDER BY created_at DESC LIMIT 500""",
                 params
@@ -2939,7 +2936,7 @@ class AdminService:
                     item["tags"] = _json.loads(item["tags"])
                 items.append(item)
             
-            return {"items": items, "total": total}
+            return {"data": items, "total": total}
         finally:
             conn.close()
 
@@ -3122,13 +3119,13 @@ class AdminService:
             cur.execute(
                 f"""SELECT * FROM media_files
                     WHERE {where}
-                    ORDER BY created_at DESC
+                    ORDER BY uploaded_at DESC
                     LIMIT %s OFFSET %s""",
                 params + [limit, offset]
             )
             
             items = [dict(row) for row in cur.fetchall()]
-            return {"items": items, "total": total}
+            return {"data": items, "total": total}
         finally:
             conn.close()
 

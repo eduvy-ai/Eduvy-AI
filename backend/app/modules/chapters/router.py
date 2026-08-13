@@ -26,8 +26,8 @@ _JWT_SECRET = os.getenv("JWT_SECRET", "eduvyai-change-me")
 _JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
 
-def _require_admin(creds: HTTPAuthorizationCredentials = Depends(_bearer)) -> int:
-    """Verify admin JWT token and return admin_id."""
+def _require_admin(creds: HTTPAuthorizationCredentials = Depends(_bearer)) -> tuple:
+    """Verify admin JWT token and return (admin_id, school_id)."""
     if not creds:
         raise HTTPException(status_code=401, detail="Admin auth required")
     try:
@@ -37,7 +37,7 @@ def _require_admin(creds: HTTPAuthorizationCredentials = Depends(_bearer)) -> in
         uid = payload.get("sub")
         if not uid:
             raise HTTPException(status_code=401, detail="Invalid token")
-        return int(uid)
+        return (int(uid), payload.get("school_id"))
     except JWTError:
         raise HTTPException(status_code=401, detail="Token expired or invalid")
 
@@ -114,45 +114,50 @@ async def get_chapter(chapter_id: int):
 # ── Admin Endpoints ───────────────────────────────────────────
 
 @router.post("", response_model=ChapterResponse, status_code=201)
-async def create_chapter(data: ChapterCreate, admin_id: int = Depends(_require_admin)):
+async def create_chapter(data: ChapterCreate, admin_scope: tuple = Depends(_require_admin)):
     """
     Create a new chapter.
     Returns 409 if chapter already exists for same board/standard/subject/number.
     """
-    return await asyncio.to_thread(ChapterService.create_chapter, data)
+    admin_id, school_id = admin_scope
+    return await asyncio.to_thread(ChapterService.create_chapter, data, school_id)
 
 
 @router.put("/{chapter_id}", response_model=ChapterResponse)
-async def update_chapter(chapter_id: int, data: ChapterUpdate, admin_id: int = Depends(_require_admin)):
+async def update_chapter(chapter_id: int, data: ChapterUpdate, admin_scope: tuple = Depends(_require_admin)):
     """Update an existing chapter."""
-    return await asyncio.to_thread(ChapterService.update_chapter, chapter_id, data)
+    admin_id, school_id = admin_scope
+    return await asyncio.to_thread(ChapterService.update_chapter, chapter_id, data, school_id)
 
 
 @router.delete("/{chapter_id}")
-async def delete_chapter(chapter_id: int, admin_id: int = Depends(_require_admin)):
+async def delete_chapter(chapter_id: int, admin_scope: tuple = Depends(_require_admin)):
     """Delete a chapter."""
-    deleted = await asyncio.to_thread(ChapterService.delete_chapter, chapter_id)
+    admin_id, school_id = admin_scope
+    deleted = await asyncio.to_thread(ChapterService.delete_chapter, chapter_id, school_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Chapter not found")
     return {"deleted": True}
 
 
 @router.post("/bulk", status_code=201)
-async def bulk_create_chapters(chapters: List[ChapterCreate], admin_id: int = Depends(_require_admin)):
+async def bulk_create_chapters(chapters: List[ChapterCreate], admin_scope: tuple = Depends(_require_admin)):
     """
     Bulk create chapters (for seeding).
     Skips duplicates silently.
     Returns count of created chapters.
     """
-    count = await asyncio.to_thread(ChapterService.bulk_create_chapters, chapters)
+    admin_id, school_id = admin_scope
+    count = await asyncio.to_thread(ChapterService.bulk_create_chapters, chapters, school_id)
     return {"created": count}
 
 
 @router.post("/bulk-delete")
-async def bulk_delete_chapters(data: ChapterBulkDelete, admin_id: int = Depends(_require_admin)):
+async def bulk_delete_chapters(data: ChapterBulkDelete, admin_scope: tuple = Depends(_require_admin)):
     """
     Bulk delete chapters by IDs.
     Returns count of deleted chapters.
     """
-    count = await asyncio.to_thread(ChapterService.bulk_delete_chapters, data.ids)
+    admin_id, school_id = admin_scope
+    count = await asyncio.to_thread(ChapterService.bulk_delete_chapters, data.ids, school_id)
     return {"deleted": count}

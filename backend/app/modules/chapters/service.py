@@ -166,8 +166,8 @@ class ChapterService:
             conn.close()
     
     @staticmethod
-    def create_chapter(data: ChapterCreate) -> Dict:
-        """Create a new chapter."""
+    def create_chapter(data: ChapterCreate, school_id: int = None) -> Dict:
+        """Create a new chapter. School admins can only create for their school."""
         conn = get_db()
         try:
             cur = conn.cursor()
@@ -188,11 +188,11 @@ class ChapterService:
             
             cur.execute(
                 """INSERT INTO chapters (board_id, standard_id, subject_id, chapter_number, chapter_name,
-                                         chapter_name_local, description, topics, is_active)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                         chapter_name_local, description, topics, is_active, school_id)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                    RETURNING id, created_at""",
                 (data.board_id, data.standard_id, data.subject_id, data.chapter_number, data.chapter_name,
-                 data.chapter_name_local, data.description, topics_json, data.is_active)
+                 data.chapter_name_local, data.description, topics_json, data.is_active, school_id)
             )
             row = cur.fetchone()
             conn.commit()
@@ -220,14 +220,17 @@ class ChapterService:
             conn.close()
     
     @staticmethod
-    def update_chapter(chapter_id: int, data: ChapterUpdate) -> Dict:
-        """Update an existing chapter."""
+    def update_chapter(chapter_id: int, data: ChapterUpdate, school_id: int = None) -> Dict:
+        """Update an existing chapter. School admins can only update their own chapters."""
         conn = get_db()
         try:
             cur = conn.cursor()
             
-            # Check chapter exists
-            cur.execute("SELECT id FROM chapters WHERE id = %s", (chapter_id,))
+            # Check chapter exists and belongs to the admin's school
+            if school_id is not None:
+                cur.execute("SELECT id FROM chapters WHERE id = %s AND school_id = %s", (chapter_id, school_id))
+            else:
+                cur.execute("SELECT id FROM chapters WHERE id = %s", (chapter_id,))
             if not cur.fetchone():
                 raise HTTPException(status_code=404, detail="Chapter not found")
             
@@ -271,12 +274,15 @@ class ChapterService:
             conn.close()
     
     @staticmethod
-    def delete_chapter(chapter_id: int) -> bool:
-        """Delete a chapter."""
+    def delete_chapter(chapter_id: int, school_id: int = None) -> bool:
+        """Delete a chapter. School admins can only delete their own chapters."""
         conn = get_db()
         try:
             cur = conn.cursor()
-            cur.execute("DELETE FROM chapters WHERE id = %s RETURNING id", (chapter_id,))
+            if school_id is not None:
+                cur.execute("DELETE FROM chapters WHERE id = %s AND school_id = %s RETURNING id", (chapter_id, school_id))
+            else:
+                cur.execute("DELETE FROM chapters WHERE id = %s RETURNING id", (chapter_id,))
             row = cur.fetchone()
             conn.commit()
             return row is not None
@@ -314,7 +320,7 @@ class ChapterService:
                    FROM chapters c
                    LEFT JOIN subjects s ON c.subject_id = s.id
                    WHERE c.board_id = %s AND c.standard_id = %s AND c.is_active = TRUE
-                   GROUP BY c.subject_id, s.name
+                   GROUP BY c.subject_id, s.name, s.sort_order
                    ORDER BY s.sort_order, s.name""",
                 (board_id, standard_id)
             )
@@ -463,7 +469,7 @@ class ChapterService:
             conn.close()
     
     @staticmethod
-    def bulk_create_chapters(chapters: List[ChapterCreate]) -> int:
+    def bulk_create_chapters(chapters: List[ChapterCreate], school_id: int = None) -> int:
         """
         Bulk create chapters (for seeding).
         Returns count of created chapters.
@@ -507,7 +513,7 @@ class ChapterService:
             conn.close()
 
     @staticmethod
-    def bulk_delete_chapters(ids: List[int]) -> int:
+    def bulk_delete_chapters(ids: List[int], school_id: int = None) -> int:
         """
         Bulk delete chapters by IDs.
         Returns count of deleted chapters.
@@ -518,11 +524,16 @@ class ChapterService:
         conn = get_db()
         try:
             cur = conn.cursor()
-            # Use ANY to delete all matching IDs in one query
-            cur.execute(
-                "DELETE FROM chapters WHERE id = ANY(%s) RETURNING id",
-                (ids,)
-            )
+            if school_id is not None:
+                cur.execute(
+                    "DELETE FROM chapters WHERE id = ANY(%s) AND school_id = %s RETURNING id",
+                    (ids, school_id)
+                )
+            else:
+                cur.execute(
+                    "DELETE FROM chapters WHERE id = ANY(%s) RETURNING id",
+                    (ids,)
+                )
             deleted = cur.rowcount
             conn.commit()
             return deleted

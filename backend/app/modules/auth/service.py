@@ -152,8 +152,8 @@ class AuthService:
         Change user password. Optionally clears must_change_password flag.
         Used for first-login password change flow.
         """
-        if len(new_password) < 6:
-            raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+        if len(new_password) < 8:
+            raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
         
         user = db.users.get_by_id(user_id)
         if not user:

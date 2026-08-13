@@ -64,13 +64,19 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("multipart").setLevel(logging.WARNING)
 
-# ── Warn if JWT secret is insecure ────────────────────────────
+# ── Reject insecure default JWT secret in production ──────────
 if settings.JWT_SECRET == "eduvyai-change-me":
-    warnings.warn(
-        "JWT_SECRET is using the insecure default value. "
-        "Set a strong random secret in your .env file before deploying to production.",
-        stacklevel=2,
-    )
+    if settings.is_production:
+        raise RuntimeError(
+            "FATAL: JWT_SECRET is using the insecure default. "
+            "Set a strong random secret in .env before deploying."
+        )
+    else:
+        warnings.warn(
+            "JWT_SECRET is using the insecure default value. "
+            "Set a strong random secret in your .env file before deploying to production.",
+            stacklevel=2,
+        )
 
 # ── Create FastAPI App ────────────────────────────────────────
 app = FastAPI(
@@ -138,8 +144,8 @@ async def rate_limit_auth(request: Request, call_next):
     path = request.url.path
     if path in _RATE_RULES and request.method == "POST":
         limit, window = _RATE_RULES[path]
-        ip = (request.headers.get("X-Forwarded-For") or
-              (request.client.host if request.client else "unknown")).split(",")[0].strip()
+        # Use client IP directly; only trust X-Forwarded-For behind a known reverse proxy
+        ip = (request.client.host if request.client else "unknown")
         key = f"{path}:{ip}"
         now = time.monotonic()
         _rate_buckets[key] = [t for t in _rate_buckets[key] if now - t < window]
