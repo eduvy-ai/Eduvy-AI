@@ -203,6 +203,11 @@ class AIService:
         user = AIService.get_user_info(user_id)
         plan = user["plan"]
 
+        # For regional languages (Hindi, Marathi, etc.), upgrade to a better model
+        # Small models (8B) struggle with non-English languages
+        # This must happen REGARDLESS of mode - all regional language users need Gemini
+        upgrade_for_regional = plan == "free" and user["language"] not in ["English", ""]
+
         # When a valid tutor mode is supplied, build the full system prompt
         # server-side from the user's stored profile — the frontend's system_prompt
         # is intentionally ignored so prompt instructions cannot be tampered with.
@@ -217,12 +222,6 @@ class AIService:
             # Fetch student progress for personalized teaching
             progress = AIService.get_student_progress(user_id)
             system_prompt = build_system_prompt(profile, mode, progress)
-            
-            # For regional languages, upgrade to a better model if on free plan
-            # Small models (8B) struggle with non-English languages
-            upgrade_for_regional = plan == "free" and user["language"] not in ["English", ""]
-        else:
-            upgrade_for_regional = False
 
         # Check quota
         current, limit = AIService.check_quota(user_id, plan)
