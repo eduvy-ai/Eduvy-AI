@@ -100,8 +100,9 @@ const ChapterDetailPage: React.FC = () => {
   // ── Loading State ──
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-app-bg flex items-center justify-center">
+      <div className="min-h-screen bg-app-bg flex flex-col items-center justify-center">
         <Loader size="lg" />
+        <p className="text-app-muted mt-3 text-sm">Loading...</p>
       </div>
     )
   }
@@ -315,7 +316,7 @@ Return ONLY valid JSON. No markdown, no extra text.`
 
         {loading || generating ? (
           <div className="flex items-center gap-2 py-4">
-            <div className="w-4 h-4 border-2 border-app-green/40 border-t-app-green rounded-full animate-spin" />
+            <Loader size="sm" />
             <span className="text-[12px] text-app-muted">
               {generating ? (ui.generatingSummary || 'Generating chapter summary...') : (ui.loading || 'Loading...')}
             </span>
@@ -1031,7 +1032,7 @@ Return ONLY a valid JSON object with "summary" (string) and "keyPoints" (array o
         >
           <div className="w-9 h-9 rounded-lg bg-app-blue/10 flex items-center justify-center">
             {isUploading ? (
-              <div className="w-4 h-4 border-2 border-app-blue/30 border-t-app-blue rounded-full animate-spin" />
+              <Loader size="sm" className="border-app-blue/30 border-t-app-blue" />
             ) : (
               <UploadSimple size={18} weight="bold" className="text-app-blue" />
             )}

@@ -108,6 +108,13 @@ def create_all_tables():
         EXCEPTION WHEN duplicate_column THEN NULL;
         END $$
     """)
+    # Add is_suspended column if missing (for admin suspension)
+    cur.execute("""
+        DO $$ BEGIN
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT FALSE;
+        EXCEPTION WHEN duplicate_column THEN NULL;
+        END $$
+    """)
     
     # ── Mastery ───────────────────────────────────────────────
     cur.execute("""
@@ -531,6 +538,7 @@ def create_all_tables():
             chapter_name_local TEXT DEFAULT '',
             description     TEXT DEFAULT '',
             topics          TEXT DEFAULT '[]',
+            content_status  TEXT DEFAULT 'draft' CHECK (content_status IN ('draft', 'review', 'published')),
             is_active       BOOLEAN DEFAULT TRUE,
             created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE (board_id, standard_id, subject_id, chapter_number)
@@ -545,6 +553,10 @@ def create_all_tables():
     END $$""")
     cur.execute("""DO $$ BEGIN
         ALTER TABLE chapters ADD COLUMN stream_id TEXT DEFAULT NULL REFERENCES streams(id) ON DELETE SET NULL;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$""")
+    cur.execute("""DO $$ BEGIN
+        ALTER TABLE chapters ADD COLUMN content_status TEXT DEFAULT 'draft' CHECK (content_status IN ('draft', 'review', 'published'));
     EXCEPTION WHEN duplicate_column THEN NULL;
     END $$""")
 

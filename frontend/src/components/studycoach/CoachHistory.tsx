@@ -16,6 +16,7 @@ import {
   ArrowsClockwise
 } from '@phosphor-icons/react'
 import { studyCoachApi, type CoachSession } from '../../modules/studycoach/api'
+import { Loader } from '@/shared/components/Loader'
 
 interface Props {
   onClose: () => void
@@ -246,8 +247,9 @@ export default function CoachHistory({ onClose, onSelectSession, ui }: Props) {
         {/* Sessions List */}
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-8 h-8 border-2 border-app-green/30 border-t-app-green rounded-full animate-spin" />
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader size="md" />
+              <p className="text-app-muted mt-3 text-sm">Loading...</p>
             </div>
           ) : sessions.length === 0 ? (
             <div className="text-center py-12">

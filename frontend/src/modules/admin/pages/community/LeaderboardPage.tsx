@@ -240,9 +240,10 @@ const LeaderboardPage: React.FC = () => {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={6} className="p-8 text-center">
-                  <div className="flex justify-center">
+                <td colSpan={6} className="p-8">
+                  <div className="flex flex-col items-center justify-center">
                     <Loader size="md" />
+                    <p className="text-app-muted mt-3 text-sm">Loading...</p>
                   </div>
                 </td>
               </tr>

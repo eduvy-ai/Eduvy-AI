@@ -220,8 +220,9 @@ const LogsPage: React.FC = () => {
         </div>
         <div className="divide-y divide-app-border/50 max-h-[600px] overflow-y-auto font-mono text-sm">
           {isLoading ? (
-            <div className="p-8 flex justify-center">
+            <div className="p-8 flex flex-col items-center justify-center">
               <Loader size="md" />
+              <p className="text-app-muted mt-3 text-sm">Loading...</p>
             </div>
           ) : logs.length === 0 ? (
             <div className="p-8 text-center text-app-muted">

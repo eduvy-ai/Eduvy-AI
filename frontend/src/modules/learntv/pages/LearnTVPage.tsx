@@ -5,6 +5,7 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../../../redux/store'
+import { Loader } from '@/shared/components/Loader'
 
 // Import existing tab component
 // @ts-ignore - JSX component
@@ -18,8 +19,9 @@ const LearnTVPage: React.FC = () => {
 
   if (!user) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#888' }}>
-        Loading...
+      <div className="flex flex-col items-center justify-center h-full">
+        <Loader size="lg" />
+        <p className="text-app-muted mt-3 text-sm">Loading...</p>
       </div>
     )
   }

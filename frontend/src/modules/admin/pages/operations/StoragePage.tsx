@@ -2,7 +2,7 @@
 // Monitor R2 cloud storage usage
 
 import React, { useEffect, useState, useCallback } from 'react'
-import { adminApi, type StorageStats } from '../../api'
+import { adminApi, type StorageStats, type SyncResult } from '../../api'
 import Loader from '../../../../shared/components/Loader'
 import {
   HardDrive,
@@ -14,12 +14,15 @@ import {
   Folder,
   User,
   File,
+  ArrowsClockwise,
 } from '@phosphor-icons/react'
 
 const StoragePage: React.FC = () => {
   const [stats, setStats] = useState<StorageStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null)
 
   const loadStorage = useCallback(async () => {
     setIsLoading(true)
@@ -46,10 +49,34 @@ const StoragePage: React.FC = () => {
     loadStorage()
   }, [loadStorage])
 
+  const handleSync = async () => {
+    setIsSyncing(true)
+    setSyncResult(null)
+    try {
+      const result = await adminApi.storage.sync()
+      setSyncResult(result)
+      // Reload stats after sync
+      await loadStorage()
+    } catch (err: any) {
+      setSyncResult({
+        synced: false,
+        added: 0,
+        removed: 0,
+        total_files_r2: 0,
+        total_bytes_r2: 0,
+        total_mb_r2: 0,
+        error: err.response?.data?.detail || 'Sync failed',
+      })
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="flex flex-col items-center justify-center py-20">
         <Loader size="lg" />
+        <p className="text-app-muted mt-3 text-sm">Loading...</p>
       </div>
     )
   }
@@ -120,14 +147,60 @@ const StoragePage: React.FC = () => {
             Cloudflare R2 cloud storage
           </p>
         </div>
-        <button
-          onClick={loadStorage}
-          className="px-3 py-1.5 text-sm text-app-muted hover:text-app-text bg-app-card border border-app-border rounded-lg transition-colors flex items-center gap-1"
-        >
-          <ArrowClockwise size={14} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSync}
+            disabled={isSyncing}
+            className="px-3 py-1.5 text-sm text-app-purple hover:text-app-text bg-app-purple/10 border border-app-purple/30 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50"
+          >
+            <ArrowsClockwise size={14} className={isSyncing ? 'animate-spin' : ''} />
+            {isSyncing ? 'Syncing...' : 'Sync with R2'}
+          </button>
+          <button
+            onClick={loadStorage}
+            className="px-3 py-1.5 text-sm text-app-muted hover:text-app-text bg-app-card border border-app-border rounded-lg transition-colors flex items-center gap-1"
+          >
+            <ArrowClockwise size={14} />
+            Refresh
+          </button>
+        </div>
       </div>
+
+      {/* Sync Result */}
+      {syncResult && (
+        <div className={`p-4 rounded-xl border flex items-start gap-3 ${
+          syncResult.synced 
+            ? 'bg-app-green/10 border-app-green/25' 
+            : 'bg-app-red/10 border-app-red/25'
+        }`}>
+          {syncResult.synced ? (
+            <CheckCircle size={20} className="text-app-green flex-shrink-0 mt-0.5" />
+          ) : (
+            <XCircle size={20} className="text-app-red flex-shrink-0 mt-0.5" />
+          )}
+          <div className="flex-1">
+            <p className={`font-medium ${syncResult.synced ? 'text-app-green' : 'text-app-red'}`}>
+              {syncResult.synced ? 'Storage Synced Successfully' : 'Sync Failed'}
+            </p>
+            {syncResult.synced ? (
+              <p className="text-sm text-app-muted mt-1">
+                R2 has {syncResult.total_files_r2} files ({syncResult.total_mb_r2} MB).
+                {syncResult.added > 0 && ` Added ${syncResult.added} missing records.`}
+                {syncResult.removed > 0 && ` Removed ${syncResult.removed} orphaned records.`}
+                {syncResult.added === 0 && syncResult.removed === 0 && ' Database was already in sync.'}
+              </p>
+            ) : (
+              <p className="text-sm text-app-red mt-1">{syncResult.error}</p>
+            )}
+          </div>
+          <button 
+            onClick={() => setSyncResult(null)}
+            className="text-app-muted hover:text-app-text"
+          >
+            <XCircle size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Storage Overview Card */}
       <div className="bg-app-card rounded-xl border border-app-border p-6">

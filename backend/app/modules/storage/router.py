@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.dependencies import get_current_user
 from app.db.connection import get_db
-from app.services.r2_storage import get_r2_storage_stats, is_r2_configured, r2_storage
+from app.services.r2_storage import get_r2_storage_stats, is_r2_configured, r2_storage, sync_storage_with_r2
 
 router = APIRouter(prefix="/storage", tags=["Storage"])
 
@@ -158,6 +158,30 @@ async def clear_teacher_audio_cache(user_id: str, current_user: str = Depends(ge
         "deleted_count": deleted_count,
         "message": f"Cleared {deleted_count} cached teacher audio files for user {user_id}",
     }
+
+
+@router.post("/sync")
+async def sync_storage(current_user: str = Depends(get_current_user)):
+    """
+    Sync storage tracking database with actual R2 bucket contents.
+    
+    - Removes DB records for files that don't exist in R2 (orphaned)
+    - Adds DB records for files in R2 that aren't tracked (missing)
+    
+    Admin only.
+    """
+    if not _is_admin(current_user):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    if not is_r2_configured():
+        raise HTTPException(status_code=400, detail="R2 storage not configured")
+    
+    result = sync_storage_with_r2()
+    
+    if not result.get("synced"):
+        raise HTTPException(status_code=500, detail=result.get("error", "Sync failed"))
+    
+    return result
 
 
 @router.delete("/teacher-audio-legacy")

@@ -7,6 +7,7 @@ import { ADMIN_TOKEN_KEY } from '../../constants'
 import { useAdminAuth } from '../../hooks'
 import Modal from '../../../../shared/components/Modal'
 import Button from '../../../../shared/components/Button'
+import Loader from '../../../../shared/components/Loader'
 import {
   MagnifyingGlass,
   Plus,
@@ -19,6 +20,8 @@ import {
   Upload,
   Trash,
   CreditCard,
+  Pencil,
+  X,
 } from '@phosphor-icons/react'
 
 // ── Types ──
@@ -94,6 +97,7 @@ const SchoolsPage: React.FC = () => {
   
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [showStudentsModal, setShowStudentsModal] = useState(false)
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -117,7 +121,18 @@ const SchoolsPage: React.FC = () => {
     plan: 'pilot',
     student_limit: 100,
   })
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    contact_email: '',
+    contact_phone: '',
+    city: '',
+    state: '',
+    plan: 'pilot',
+    student_limit: 100,
+    is_active: true,
+  })
   const [formError, setFormError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [copiedCode, setCopiedCode] = useState<number | null>(null)
   
   // Import state
@@ -190,6 +205,43 @@ const SchoolsPage: React.FC = () => {
       loadSchools()
     } catch (err: any) {
       setFormError(err.response?.data?.detail || 'Failed to delete school')
+    }
+  }
+
+  // Open edit modal
+  const handleEdit = (school: School) => {
+    setSelectedSchool(school)
+    setEditFormData({
+      name: school.name,
+      contact_email: school.contact_email,
+      contact_phone: school.contact_phone,
+      city: school.city,
+      state: school.state,
+      plan: school.plan,
+      student_limit: school.student_limit,
+      is_active: school.is_active,
+    })
+    setFormError('')
+    setShowEditModal(true)
+  }
+
+  // Update school
+  const handleUpdateSchool = async () => {
+    if (!selectedSchool) return
+    if (!editFormData.name.trim()) {
+      setFormError('School name is required')
+      return
+    }
+    
+    setIsSubmitting(true)
+    try {
+      await axiosInstance.put(`/api/schools/${selectedSchool.id}`, editFormData, adminConfig())
+      setShowEditModal(false)
+      loadSchools()
+    } catch (err: any) {
+      setFormError(err.response?.data?.detail || 'Failed to update school')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -364,16 +416,28 @@ const SchoolsPage: React.FC = () => {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={6} className="py-8 text-center text-app-muted">Loading...</td></tr>
+              <tr>
+                <td colSpan={6} className="py-8">
+                  <div className="flex flex-col items-center justify-center">
+                    <Loader size="md" />
+                    <p className="text-app-muted mt-3 text-sm">Loading...</p>
+                  </div>
+                </td>
+              </tr>
             ) : paginatedSchools.length === 0 ? (
               <tr><td colSpan={6} className="py-8 text-center text-app-muted">No schools found</td></tr>
             ) : paginatedSchools.map(school => (
-              <tr key={school.id} className="border-t border-app-border hover:bg-app-card/50">
+              <tr key={school.id} className={`border-t border-app-border hover:bg-app-card/50 ${!school.is_active ? 'opacity-60' : ''}`}>
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-2">
-                    <Buildings size={18} className="text-app-blue" />
+                    <Buildings size={18} className={school.is_active ? 'text-app-blue' : 'text-app-red'} />
                     <div>
-                      <div className="font-semibold text-app-text">{school.name}</div>
+                      <div className="font-semibold text-app-text flex items-center gap-2">
+                        {school.name}
+                        {!school.is_active && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-bold bg-app-red/20 text-app-red rounded">SUSPENDED</span>
+                        )}
+                      </div>
                       <div className="text-xs text-app-muted">{school.city}{school.state ? `, ${school.state}` : ''}</div>
                     </div>
                   </div>
@@ -412,6 +476,9 @@ const SchoolsPage: React.FC = () => {
                     </button>
                     <button onClick={() => handleViewAnalytics(school)} className="p-1.5 hover:bg-app-card2 rounded transition-colors" title="Analytics">
                       <ChartLine size={16} />
+                    </button>
+                    <button onClick={() => handleEdit(school)} className="p-1.5 hover:bg-app-blue/20 rounded transition-colors text-app-blue" title="Edit">
+                      <Pencil size={16} />
                     </button>
                     <button onClick={() => { setSelectedSchool(school); setShowImportModal(true); setImportData(''); setImportResult(null) }} className="p-1.5 hover:bg-app-card2 rounded transition-colors" title="Import Students">
                       <Upload size={16} />
@@ -703,6 +770,129 @@ const SchoolsPage: React.FC = () => {
           <div className="flex justify-end gap-2 mt-2">
             <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
             <Button variant="danger" onClick={handleDelete}>Delete School</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit School Modal */}
+      <Modal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        title={`Edit School${selectedSchool && !selectedSchool.is_active ? ' (Suspended)' : ''}`}
+      >
+        <div className="flex flex-col gap-4">
+          {selectedSchool && !selectedSchool.is_active && (
+            <div className="bg-app-red/10 border border-app-red/30 rounded-lg p-3 flex items-center gap-2">
+              <X size={18} className="text-app-red flex-shrink-0" />
+              <span className="text-sm text-app-red">This school is suspended. All students will be blocked from login.</span>
+            </div>
+          )}
+          
+          <div>
+            <label className="text-xs text-app-muted font-semibold mb-1.5 block">School Name *</label>
+            <input
+              type="text"
+              value={editFormData.name}
+              onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+              className="w-full bg-app-card2 border border-app-border rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-app-green/50"
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-app-muted font-semibold mb-1.5 block">City</label>
+              <input
+                type="text"
+                value={editFormData.city}
+                onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
+                className="w-full bg-app-card2 border border-app-border rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-app-green/50"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-app-muted font-semibold mb-1.5 block">State</label>
+              <input
+                type="text"
+                value={editFormData.state}
+                onChange={(e) => setEditFormData({ ...editFormData, state: e.target.value })}
+                className="w-full bg-app-card2 border border-app-border rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-app-green/50"
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-app-muted font-semibold mb-1.5 block">Contact Email</label>
+              <input
+                type="email"
+                value={editFormData.contact_email}
+                onChange={(e) => setEditFormData({ ...editFormData, contact_email: e.target.value })}
+                className="w-full bg-app-card2 border border-app-border rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-app-green/50"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-app-muted font-semibold mb-1.5 block">Contact Phone</label>
+              <input
+                type="tel"
+                value={editFormData.contact_phone}
+                onChange={(e) => setEditFormData({ ...editFormData, contact_phone: e.target.value })}
+                className="w-full bg-app-card2 border border-app-border rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-app-green/50"
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-app-muted font-semibold mb-1.5 block">Plan</label>
+              <select
+                value={editFormData.plan}
+                onChange={(e) => setEditFormData({ ...editFormData, plan: e.target.value })}
+                className="w-full bg-app-card2 border border-app-border rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-app-green/50"
+              >
+                <option value="pilot">Pilot (30-day trial)</option>
+                <option value="school_basic">School Basic (₹25K/year)</option>
+                <option value="school_pro">School Pro (₹50K/year)</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-app-muted font-semibold mb-1.5 block">Student Limit</label>
+              <input
+                type="number"
+                value={editFormData.student_limit}
+                onChange={(e) => setEditFormData({ ...editFormData, student_limit: parseInt(e.target.value) || 100 })}
+                className="w-full bg-app-card2 border border-app-border rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-app-green/50"
+                min={10}
+                max={5000}
+              />
+            </div>
+          </div>
+          
+          {/* Suspend School */}
+          <div className={`mt-2 p-3 rounded-lg border ${!editFormData.is_active ? 'bg-app-red/10 border-app-red/30' : 'border-app-border'}`}>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!editFormData.is_active}
+                onChange={(e) => setEditFormData({ ...editFormData, is_active: !e.target.checked })}
+                className="w-4 h-4 rounded border-app-border text-app-red focus:ring-app-red"
+              />
+              <div>
+                <div className={`font-medium ${!editFormData.is_active ? 'text-app-red' : 'text-app-text'}`}>Suspend School</div>
+                <div className="text-xs text-app-muted">All students will be blocked from login until reactivated</div>
+              </div>
+            </label>
+          </div>
+          
+          {formError && (
+            <div className="text-sm text-app-red flex items-center gap-1.5">
+              <Warning size={14} /> {formError}
+            </div>
+          )}
+          
+          <div className="flex justify-end gap-2 mt-2">
+            <Button variant="ghost" onClick={() => setShowEditModal(false)}>Cancel</Button>
+            <Button onClick={handleUpdateSchool} disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : 'Save Changes'}
+            </Button>
           </div>
         </div>
       </Modal>

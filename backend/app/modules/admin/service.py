@@ -107,6 +107,13 @@ class AdminService:
             if not pw_row or not _verify(password, pw_row["password_hash"]):
                 raise HTTPException(status_code=401, detail="Invalid email or password")
             
+            # Check if school is suspended (for school admins)
+            if admin.get("school_id"):
+                cur.execute("SELECT is_active FROM schools WHERE id = %s", (admin["school_id"],))
+                school_row = cur.fetchone()
+                if school_row and not school_row["is_active"]:
+                    raise HTTPException(status_code=403, detail="Your school has been suspended. Please contact support.")
+            
             token = _make_admin_token(admin["id"], admin.get("school_id"))
             user = {
                 "id": admin["id"],
@@ -888,7 +895,7 @@ class AdminService:
             
             query = f"""
                 SELECT c.id, c.board_id, c.standard_id, c.subject_id, c.chapter_number, c.chapter_name,
-                       c.chapter_name_local, c.description, c.topics, c.is_active, c.created_at,
+                       c.chapter_name_local, c.description, c.topics, c.content_status, c.is_active, c.created_at,
                        b.name as board_name, st.name as standard_name, s.name as subject_name
                 FROM chapters c
                 LEFT JOIN boards b ON c.board_id = b.id
@@ -940,7 +947,7 @@ class AdminService:
             
             cur.execute(
                 f"""SELECT c.id, c.board_id, c.standard_id, c.subject_id, c.chapter_number, c.chapter_name,
-                          c.chapter_name_local, c.description, c.topics, c.is_active, c.created_at,
+                          c.chapter_name_local, c.description, c.topics, c.content_status, c.is_active, c.created_at,
                           b.name as board_name, st.name as standard_name, s.name as subject_name
                    FROM chapters c
                    LEFT JOIN boards b ON c.board_id = b.id
@@ -970,7 +977,7 @@ class AdminService:
     def create_chapter_admin(
         board_id: str, standard_id: str, subject_id: str, chapter_number: int,
         chapter_name: str, chapter_name_local: str = "", description: str = "",
-        topics: List = None, is_active: bool = True, school_id: int = None
+        topics: List = None, content_status: str = "draft", is_active: bool = True, school_id: int = None
     ) -> Dict:
         """Create a chapter with school_id."""
         import json as _json
@@ -992,11 +999,11 @@ class AdminService:
             topics_json = _json.dumps(topics or [])
             cur.execute(
                 """INSERT INTO chapters (board_id, standard_id, subject_id, chapter_number, chapter_name,
-                                         chapter_name_local, description, topics, is_active, school_id)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                         chapter_name_local, description, topics, content_status, is_active, school_id)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                    RETURNING id, created_at""",
                 (board_id, standard_id, subject_id, chapter_number, chapter_name,
-                 chapter_name_local, description, topics_json, is_active, school_id)
+                 chapter_name_local, description, topics_json, content_status, is_active, school_id)
             )
             row = cur.fetchone()
             conn.commit()
@@ -1011,6 +1018,7 @@ class AdminService:
                 "chapter_name_local": chapter_name_local,
                 "description": description,
                 "topics": topics or [],
+                "content_status": content_status,
                 "is_active": is_active,
                 "created_at": str(row["created_at"]),
             }
@@ -1020,7 +1028,8 @@ class AdminService:
     @staticmethod
     def update_chapter_admin(
         chapter_id: int, chapter_name: str = None, chapter_name_local: str = None,
-        description: str = None, topics: List = None, is_active: bool = None, school_id: int = None
+        description: str = None, topics: List = None, content_status: str = None, 
+        is_active: bool = None, school_id: int = None
     ) -> Dict:
         """Update a chapter with school_id verification."""
         import json as _json
@@ -1048,6 +1057,9 @@ class AdminService:
             if topics is not None:
                 updates.append("topics = %s")
                 update_params.append(_json.dumps(topics))
+            if content_status is not None:
+                updates.append("content_status = %s")
+                update_params.append(content_status)
             if is_active is not None:
                 updates.append("is_active = %s")
                 update_params.append(is_active)
@@ -1148,8 +1160,8 @@ class AdminService:
                 conditions.append("is_drishti = TRUE")
             where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
             cur.execute(
-                f"""SELECT id, name, email, standard, board, language, plan,
-                           plan_expires_at, xp, streak, is_drishti,
+                f"""SELECT id, name, email, standard, board, stream, language, plan,
+                           plan_expires_at, xp, streak, is_drishti, is_suspended, school,
                            ai_provider, ai_model, ai_admin_override, school_id,
                            last_active, created_at
                     FROM users {where}
@@ -1516,7 +1528,10 @@ class AdminService:
             conn.close()
 
     @staticmethod
-    def update_student(user_id: str, name: str = None, standard: str = None, board: str = None, language: str = None, plan: str = None, plan_expires_at: str = None, school_id: int = None) -> Dict:
+    def update_student(user_id: str, name: str = None, email: str = None, standard: str = None, 
+                       board: str = None, stream: str = None, language: str = None, 
+                       plan: str = None, plan_expires_at: str = None, 
+                       is_drishti: bool = None, is_suspended: bool = None, school_id: int = None) -> Dict:
         """Update student details."""
         conn = get_db()
         try:
@@ -1528,12 +1543,22 @@ class AdminService:
             if name is not None:
                 updates.append("name = %s")
                 params.append(name)
+            if email is not None:
+                # Check email uniqueness
+                cur.execute("SELECT id FROM users WHERE email = %s AND id != %s", (email.lower(), user_id))
+                if cur.fetchone():
+                    raise HTTPException(status_code=409, detail="Email already in use")
+                updates.append("email = %s")
+                params.append(email.lower())
             if standard is not None:
                 updates.append("standard = %s")
                 params.append(standard)
             if board is not None:
                 updates.append("board = %s")
                 params.append(board)
+            if stream is not None:
+                updates.append("stream = %s")
+                params.append(stream)
             if language is not None:
                 updates.append("language = %s")
                 params.append(language)
@@ -1543,6 +1568,12 @@ class AdminService:
             if plan_expires_at is not None:
                 updates.append("plan_expires_at = %s")
                 params.append(plan_expires_at)
+            if is_drishti is not None:
+                updates.append("is_drishti = %s")
+                params.append(is_drishti)
+            if is_suspended is not None:
+                updates.append("is_suspended = %s")
+                params.append(is_suspended)
             
             if not updates:
                 return {"ok": True}

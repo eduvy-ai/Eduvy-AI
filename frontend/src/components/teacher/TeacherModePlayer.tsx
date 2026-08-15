@@ -9,6 +9,7 @@ import { studyCoachApi } from '../../modules/studycoach/api'
 import { fetchAudioBlobUrl } from '../../shared/utils/helpers'
 import type { TeacherAudioResponse, TeacherBeat, StudyCoachResponse } from '../../modules/studycoach/types'
 import { BookOpen, Lightbulb, GlobeHemisphereWest, ClipboardText, Books, type Icon } from '@phosphor-icons/react'
+import { Loader } from '@/shared/components/Loader'
 
 interface Props {
   /** Study Coach response to explain */
@@ -263,7 +264,7 @@ export const TeacherModePlayer: FC<Props> = ({
           {/* Loading State */}
           {isGenerating && (
             <div className="flex flex-col items-center justify-center py-20 space-y-4">
-              <div className="w-16 h-16 border-4 border-app-green/30 border-t-app-green rounded-full animate-spin" />
+              <Loader size="lg" />
               <p className="text-app-muted">{ui.preparingLesson}</p>
               <p className="text-xs text-app-muted/60">{ui.generatingNarration}</p>
             </div>

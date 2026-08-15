@@ -58,6 +58,7 @@ export const ADMIN_ENDPOINTS = {
   // Storage
   storageStats: '/api/storage/stats',
   storageHealth: '/api/storage/health',
+  storageSync: '/api/storage/sync',
 } as const
 
 // ── Navigation Structure ──

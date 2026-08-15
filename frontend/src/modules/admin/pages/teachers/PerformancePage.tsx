@@ -320,8 +320,11 @@ const PerformancePage: React.FC = () => {
             <tbody className="divide-y divide-app-border">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center">
-                    <Loader size="lg" className="mx-auto" />
+                  <td colSpan={6} className="px-4 py-12">
+                    <div className="flex flex-col items-center justify-center">
+                      <Loader size="lg" />
+                      <p className="text-app-muted mt-3 text-sm">Loading...</p>
+                    </div>
                   </td>
                 </tr>
               ) : filteredMetrics.length === 0 ? (

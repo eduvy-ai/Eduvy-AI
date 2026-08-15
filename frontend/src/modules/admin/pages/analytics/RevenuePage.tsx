@@ -39,8 +39,9 @@ const RevenuePage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="flex flex-col items-center justify-center py-20">
         <Loader size="lg" />
+        <p className="text-app-muted mt-3 text-sm">Loading...</p>
       </div>
     )
   }

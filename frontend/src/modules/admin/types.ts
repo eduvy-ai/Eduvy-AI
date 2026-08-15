@@ -150,6 +150,8 @@ export interface StudentUser {
   xp: number
   streak: number
   is_drishti: boolean
+  is_suspended: boolean  // Account suspension status
+  school?: string  // School name
   school_id: number | null
   last_active: string | null
   created_at: string

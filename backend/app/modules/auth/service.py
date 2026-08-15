@@ -104,6 +104,22 @@ class AuthService:
             if not user.get("password_hash") or not verify_password(password, user["password_hash"]):
                 raise HTTPException(status_code=401, detail=INVALID)
             
+            # Check if user is suspended
+            if user.get("is_suspended"):
+                raise HTTPException(status_code=403, detail="Your account has been suspended. Please contact your school administrator.")
+            
+            # Check if school is suspended (for school students)
+            if user.get("school_id"):
+                conn = db.get_connection()
+                try:
+                    cur = conn.cursor()
+                    cur.execute("SELECT is_active FROM schools WHERE id = %s", (user["school_id"],))
+                    school_row = cur.fetchone()
+                    if school_row and not school_row["is_active"]:
+                        raise HTTPException(status_code=403, detail="Your school has been suspended. Please contact your school administrator.")
+                finally:
+                    conn.close()
+            
             # Update last_active on login
             db.users.update(user["id"], {"last_active": date.today().isoformat()})
             

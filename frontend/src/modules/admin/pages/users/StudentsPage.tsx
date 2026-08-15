@@ -79,9 +79,16 @@ const StudentsPage: React.FC = () => {
   
   // Edit form state
   const [editForm, setEditForm] = useState({
+    name: '',
+    email: '',
+    standard: '',
+    board: '',
+    stream: '',
+    language: '',
     plan: 'free',
     plan_expires_at: '',
     is_drishti: false,
+    is_suspended: false,
   })
   
   // Create form state
@@ -186,9 +193,16 @@ const StudentsPage: React.FC = () => {
   const handleEdit = (student: StudentUser) => {
     setSelectedStudent(student)
     setEditForm({
+      name: student.name,
+      email: student.email,
+      standard: student.standard,
+      board: student.board,
+      stream: student.stream || '',
+      language: student.language,
       plan: student.plan,
       plan_expires_at: student.plan_expires_at || '',
       is_drishti: student.is_drishti,
+      is_suspended: student.is_suspended || false,
     })
     setFormError('')
     setShowEditModal(true)
@@ -198,29 +212,61 @@ const StudentsPage: React.FC = () => {
   const handleSaveEdit = async () => {
     if (!selectedStudent) return
     setFormError('')
+    setIsSubmitting(true)
 
     try {
-      // Update plan
-      if (editForm.plan !== selectedStudent.plan || editForm.plan_expires_at !== (selectedStudent.plan_expires_at || '')) {
-        await adminApi.users.updatePlan(selectedStudent.id, editForm.plan, editForm.plan_expires_at || undefined)
+      // Validation
+      if (!editForm.name.trim()) {
+        setFormError('Name is required')
+        setIsSubmitting(false)
+        return
+      }
+      if (!editForm.email.trim()) {
+        setFormError('Email is required')
+        setIsSubmitting(false)
+        return
+      }
+      // Stream required for Class 11-12
+      if (needsStream(editForm.standard) && !editForm.stream) {
+        setFormError('Stream is required for Class 11 and 12')
+        setIsSubmitting(false)
+        return
       }
 
-      // Update drishti
-      if (editForm.is_drishti !== selectedStudent.is_drishti) {
-        await adminApi.users.updateDrishti(selectedStudent.id, editForm.is_drishti)
-      }
+      // Use unified update API
+      await adminApi.users.update(selectedStudent.id, {
+        name: editForm.name.trim(),
+        email: editForm.email.trim().toLowerCase(),
+        standard: editForm.standard,
+        board: editForm.board,
+        stream: needsStream(editForm.standard) ? editForm.stream : '',
+        language: editForm.language,
+        plan: editForm.plan,
+        plan_expires_at: editForm.plan_expires_at || undefined,
+        is_drishti: editForm.is_drishti,
+        is_suspended: editForm.is_suspended,
+      })
 
       // Update local state
       updateStudentLocal({
         ...selectedStudent,
+        name: editForm.name.trim(),
+        email: editForm.email.trim().toLowerCase(),
+        standard: editForm.standard,
+        board: editForm.board,
+        stream: needsStream(editForm.standard) ? editForm.stream : '',
+        language: editForm.language,
         plan: editForm.plan as any,
         plan_expires_at: editForm.plan_expires_at || null,
         is_drishti: editForm.is_drishti,
+        is_suspended: editForm.is_suspended,
       })
 
       setShowEditModal(false)
     } catch (error: any) {
       setFormError(error.response?.data?.detail || 'Failed to update student')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -498,11 +544,18 @@ Priya Sharma, priya@example.com, Class 12, CBSE, Commerce, English, pro`
       header: 'Student',
       render: (student) => (
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-app-green/10 border border-app-green/25 flex items-center justify-center text-sm font-bold text-app-green shrink-0">
+          <div className={`w-8 h-8 rounded-full ${student.is_suspended ? 'bg-app-red/10 border-app-red/25' : 'bg-app-green/10 border-app-green/25'} border flex items-center justify-center text-sm font-bold ${student.is_suspended ? 'text-app-red' : 'text-app-green'} shrink-0`}>
             {student.name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <div className="font-medium text-app-text">{student.name}</div>
+            <div className="font-medium text-app-text flex items-center gap-2">
+              {student.name}
+              {student.is_suspended && (
+                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-app-red/20 text-app-red rounded">
+                  SUSPENDED
+                </span>
+              )}
+            </div>
             <div className="text-xs text-app-muted">{student.email}</div>
           </div>
         </div>
@@ -726,13 +779,28 @@ Priya Sharma, priya@example.com, Class 12, CBSE, Commerce, English, pro`
       >
         {selectedStudent && (
           <div className="space-y-6">
+            {/* Suspension Warning */}
+            {selectedStudent.is_suspended && (
+              <div className="p-3 rounded-xl bg-app-red/10 border border-app-red/30 text-sm text-app-red flex items-center gap-2">
+                <X size={16} weight="bold" />
+                This student account is suspended and cannot access the app
+              </div>
+            )}
+
             {/* Profile header */}
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-app-green/10 border-2 border-app-green/25 flex items-center justify-center text-2xl font-bold text-app-green">
+              <div className={`w-16 h-16 rounded-full ${selectedStudent.is_suspended ? 'bg-app-red/10 border-app-red/25' : 'bg-app-green/10 border-app-green/25'} border-2 flex items-center justify-center text-2xl font-bold ${selectedStudent.is_suspended ? 'text-app-red' : 'text-app-green'}`}>
                 {selectedStudent.name.charAt(0).toUpperCase()}
               </div>
               <div>
-                <h3 className="text-xl font-bold text-app-text">{selectedStudent.name}</h3>
+                <h3 className="text-xl font-bold text-app-text flex items-center gap-2">
+                  {selectedStudent.name}
+                  {selectedStudent.is_suspended && (
+                    <span className="px-2 py-0.5 text-xs font-bold bg-app-red/20 text-app-red rounded">
+                      SUSPENDED
+                    </span>
+                  )}
+                </h3>
                 <p className="text-sm text-app-muted">{selectedStudent.email}</p>
                 <div className="mt-1">{getPlanBadge(selectedStudent.plan)}</div>
               </div>
@@ -820,7 +888,7 @@ Priya Sharma, priya@example.com, Class 12, CBSE, Commerce, English, pro`
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
         title="Edit Student"
-        size="md"
+        size="lg"
       >
         {selectedStudent && (
           <div className="space-y-4">
@@ -830,60 +898,159 @@ Priya Sharma, priya@example.com, Class 12, CBSE, Commerce, English, pro`
               </div>
             )}
 
-            <div className="flex items-center gap-3 p-3 bg-app-card2 rounded-xl">
-              <div className="w-10 h-10 rounded-full bg-app-green/10 border border-app-green/25 flex items-center justify-center text-sm font-bold text-app-green">
-                {selectedStudent.name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <div className="font-medium text-app-text">{selectedStudent.name}</div>
-                <div className="text-xs text-app-muted">{selectedStudent.email}</div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-app-muted mb-1.5">Plan</label>
-              <select
-                value={editForm.plan}
-                onChange={(e) => setEditForm(prev => ({ ...prev, plan: e.target.value }))}
-                className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
-              >
-                <option value="free">Free</option>
-                <option value="basic">Basic</option>
-                <option value="pro">Pro</option>
-                <option value="premium">Premium</option>
-              </select>
-            </div>
-
-            {editForm.plan !== 'free' && (
-              <div>
-                <label className="block text-sm font-medium text-app-muted mb-1.5">Plan Expires At</label>
-                <input
-                  type="date"
-                  value={editForm.plan_expires_at?.split('T')[0] || ''}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, plan_expires_at: e.target.value }))}
-                  className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
-                />
+            {/* Suspension Warning */}
+            {editForm.is_suspended && (
+              <div className="p-3 rounded-xl bg-app-red/10 border border-app-red/30 text-sm text-app-red flex items-center gap-2">
+                <X size={16} weight="bold" />
+                This student is suspended and cannot access the app
               </div>
             )}
 
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="is_drishti"
-                checked={editForm.is_drishti}
-                onChange={(e) => setEditForm(prev => ({ ...prev, is_drishti: e.target.checked }))}
-                className="w-4 h-4 rounded border-white/20 bg-app-card2 text-app-green focus:ring-app-green/50"
-              />
-              <label htmlFor="is_drishti" className="text-sm text-app-text">
-                Drishti Student (enables helper access)
-              </label>
+            {/* Basic Info */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-app-muted mb-1.5">Name *</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+                  placeholder="Student name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-app-muted mb-1.5">Email *</label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+                  placeholder="student@email.com"
+                />
+              </div>
+            </div>
+
+            {/* Academic Info */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-app-muted mb-1.5">Standard</label>
+                <select
+                  value={editForm.standard}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, standard: e.target.value, stream: '' }))}
+                  className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+                >
+                  {availableStandards.map(s => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-app-muted mb-1.5">Board</label>
+                <select
+                  value={editForm.board}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, board: e.target.value }))}
+                  className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+                >
+                  {availableBoards.map(b => (
+                    <option key={b.id} value={b.name}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Stream (for Class 11-12) */}
+            {needsStream(editForm.standard) && (
+              <div>
+                <label className="block text-sm font-medium text-app-muted mb-1.5">Stream *</label>
+                <select
+                  value={editForm.stream}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, stream: e.target.value }))}
+                  className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+                >
+                  <option value="">Select Stream</option>
+                  {availableStreams.map(s => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Language */}
+            <div>
+              <label className="block text-sm font-medium text-app-muted mb-1.5">Language</label>
+              <select
+                value={editForm.language}
+                onChange={(e) => setEditForm(prev => ({ ...prev, language: e.target.value }))}
+                className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+              >
+                {availableMediums.map(m => (
+                  <option key={m.id} value={m.name}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Plan */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-app-muted mb-1.5">Plan</label>
+                <select
+                  value={editForm.plan}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, plan: e.target.value }))}
+                  className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+                >
+                  <option value="free">Free</option>
+                  <option value="basic">Basic</option>
+                  <option value="pro">Pro</option>
+                  <option value="premium">Premium</option>
+                </select>
+              </div>
+              {editForm.plan !== 'free' && (
+                <div>
+                  <label className="block text-sm font-medium text-app-muted mb-1.5">Plan Expires At</label>
+                  <input
+                    type="date"
+                    value={editForm.plan_expires_at?.split('T')[0] || ''}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, plan_expires_at: e.target.value }))}
+                    className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Toggles */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="edit_is_drishti"
+                  checked={editForm.is_drishti}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, is_drishti: e.target.checked }))}
+                  className="w-4 h-4 rounded border-white/20 bg-app-card2 text-app-green focus:ring-app-green/50"
+                />
+                <label htmlFor="edit_is_drishti" className="text-sm text-app-text">
+                  Drishti Student (enables helper access)
+                </label>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="edit_is_suspended"
+                  checked={editForm.is_suspended}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, is_suspended: e.target.checked }))}
+                  className="w-4 h-4 rounded border-white/20 bg-app-card2 text-app-red focus:ring-app-red/50"
+                />
+                <label htmlFor="edit_is_suspended" className="text-sm text-app-red">
+                  Suspend Account (student cannot login)
+                </label>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
               <Button variant="ghost" onClick={() => setShowEditModal(false)}>
                 Cancel
               </Button>
-              <Button variant="primary" onClick={handleSaveEdit}>
+              <Button variant="primary" onClick={handleSaveEdit} isLoading={isSubmitting}>
                 Save Changes
               </Button>
             </div>

@@ -78,6 +78,7 @@ class ChapterCreate(BaseModel):
     chapter_name_local: str = ""
     description: str = ""
     topics: List[str] = []
+    content_status: str = "draft"  # draft, review, published
     is_active: bool = True
 
 
@@ -86,6 +87,7 @@ class ChapterUpdate(BaseModel):
     chapter_name_local: Optional[str] = None
     description: Optional[str] = None
     topics: Optional[List[str]] = None
+    content_status: Optional[str] = None  # draft, review, published
     is_active: Optional[bool] = None
 
 
@@ -130,12 +132,15 @@ class StudentCreate(BaseModel):
 class StudentUpdate(BaseModel):
     """Update a student"""
     name: Optional[str] = None
+    email: Optional[str] = None
     standard: Optional[str] = None
     board: Optional[str] = None
     stream: Optional[str] = None  # For Class 11-12
     language: Optional[str] = None
     plan: Optional[str] = None
     plan_expires_at: Optional[str] = None
+    is_drishti: Optional[bool] = None
+    is_suspended: Optional[bool] = None  # Suspend student access
 
 
 class BulkImportStudent(BaseModel):

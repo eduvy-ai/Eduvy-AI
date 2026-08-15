@@ -2,6 +2,7 @@
 // Reusable data table
 
 import React from 'react'
+import Loader from './Loader'
 
 export interface TableColumn<T> {
   key: keyof T | string
@@ -44,9 +45,9 @@ function Table<T extends object>({
 
   if (isLoading) {
     return (
-      <div className="bg-app-card2 rounded-xl border border-app-border p-8 text-center">
-        <span className="animate-spin text-2xl">⏳</span>
-        <p className="text-app-muted mt-2">Loading...</p>
+      <div className="bg-app-card2 rounded-xl border border-app-border p-8 flex flex-col items-center justify-center">
+        <Loader size="md" />
+        <p className="text-app-muted mt-3 text-sm">Loading...</p>
       </div>
     )
   }

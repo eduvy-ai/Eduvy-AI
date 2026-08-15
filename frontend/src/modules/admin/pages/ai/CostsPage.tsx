@@ -217,8 +217,9 @@ const CostsPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex flex-col items-center justify-center h-64">
         <Loader size="lg" />
+        <p className="text-app-muted mt-3 text-sm">Loading...</p>
       </div>
     )
   }

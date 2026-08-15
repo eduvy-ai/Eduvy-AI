@@ -225,8 +225,9 @@ const ProfileTab: React.FC = () => {
       {/* Settings Modal */}
       {showSettings && (
         <Suspense fallback={
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/50 flex flex-col items-center justify-center z-50">
             <Loader size="lg" />
+            <p className="text-app-muted mt-3 text-sm">Loading...</p>
           </div>
         }>
           <SettingsModal

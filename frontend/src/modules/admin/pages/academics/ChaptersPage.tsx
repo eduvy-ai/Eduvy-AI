@@ -351,9 +351,24 @@ const ChaptersPage: React.FC = () => {
         </div>
       ),
     },
-    { key: 'subject', header: 'Subject', width: '120px' },
-    { key: 'board', header: 'Board', width: '100px' },
-    { key: 'standard', header: 'Class', width: '100px' },
+    { 
+      key: 'subject_name', 
+      header: 'Subject', 
+      width: '120px',
+      render: (chapter) => chapter.subject_name || chapter.subject_id || '-',
+    },
+    { 
+      key: 'board_name', 
+      header: 'Board', 
+      width: '100px',
+      render: (chapter) => chapter.board_name || chapter.board_id || '-',
+    },
+    { 
+      key: 'standard_name', 
+      header: 'Class', 
+      width: '100px',
+      render: (chapter) => chapter.standard_name || chapter.standard_id || '-',
+    },
     {
       key: 'content_status',
       header: 'Status',

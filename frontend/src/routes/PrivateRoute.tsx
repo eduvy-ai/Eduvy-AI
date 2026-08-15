@@ -17,8 +17,9 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   // Show loader while checking auth status
   if (!isInitialized || isLoading) {
     return (
-      <div className="min-h-screen bg-app-bg flex items-center justify-center">
+      <div className="min-h-screen bg-app-bg flex flex-col items-center justify-center">
         <Loader size="lg" />
+        <p className="text-app-muted mt-3 text-sm">Loading...</p>
       </div>
     )
   }

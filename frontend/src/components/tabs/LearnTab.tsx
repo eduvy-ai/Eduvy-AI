@@ -240,8 +240,9 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
   // ── Loading State ──
   if (subjectsLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="flex flex-col items-center justify-center py-20">
         <Loader size="lg" />
+        <p className="text-app-muted mt-3 text-sm">Loading...</p>
       </div>
     )
   }
@@ -298,8 +299,9 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
 
         {/* Chapter List */}
         {chaptersLoading ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex flex-col items-center justify-center py-12">
             <Loader size="md" />
+            <p className="text-app-muted mt-3 text-sm">Loading...</p>
           </div>
         ) : chapters.length > 0 ? (
           <div className="space-y-3 mt-4">

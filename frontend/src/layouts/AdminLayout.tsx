@@ -181,8 +181,9 @@ const AdminLayout: React.FC = () => {
   // Only show loading during initial auth check, not during content fetches
   if (!isInitialized) {
     return (
-      <div className="min-h-screen bg-app-bg flex items-center justify-center">
+      <div className="min-h-screen bg-app-bg flex flex-col items-center justify-center">
         <Loader size="lg" />
+        <p className="text-app-muted mt-3 text-sm">Loading...</p>
       </div>
     )
   }

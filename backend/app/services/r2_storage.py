@@ -603,3 +603,109 @@ def get_r2_storage_stats() -> Dict:
 def is_r2_configured() -> bool:
     """Check if R2 is configured."""
     return r2_storage.configured
+
+
+def sync_storage_with_r2() -> Dict:
+    """
+    Sync r2_storage_usage table with actual R2 bucket contents.
+    
+    - Removes DB records for files that don't exist in R2
+    - Adds DB records for files in R2 that aren't tracked
+    
+    Returns:
+        Dict with sync results (added, removed, total_r2, total_db)
+    """
+    if not r2_storage.configured:
+        return {"error": "R2 not configured", "synced": False}
+    
+    _ensure_storage_table()
+    conn = get_db()
+    
+    try:
+        cur = conn.cursor()
+        
+        # Get all files currently tracked in DB
+        cur.execute(f"SELECT file_key, file_size FROM {STORAGE_TABLE}")
+        db_files = {row["file_key"]: row["file_size"] for row in cur.fetchall()}
+        
+        # Get all files actually in R2
+        r2_files = {}
+        client = _get_r2_client()
+        paginator = client.get_paginator("list_objects_v2")
+        
+        for page in paginator.paginate(Bucket=settings.R2_BUCKET_NAME):
+            if "Contents" not in page:
+                continue
+            for obj in page["Contents"]:
+                r2_files[obj["Key"]] = obj["Size"]
+        
+        # Files in DB but not in R2 (orphaned records) - remove from DB
+        orphaned = set(db_files.keys()) - set(r2_files.keys())
+        removed_count = 0
+        for key in orphaned:
+            cur.execute(f"DELETE FROM {STORAGE_TABLE} WHERE file_key = %s", (key,))
+            removed_count += 1
+        
+        # Files in R2 but not in DB (missing records) - add to DB
+        missing = set(r2_files.keys()) - set(db_files.keys())
+        added_count = 0
+        for key in missing:
+            file_size = r2_files[key]
+            # Infer category from path
+            category = "general"
+            if key.startswith("audio/"):
+                category = "teacher_audio"
+            elif key.startswith("notebook/"):
+                category = "notebook"
+            elif key.startswith("video/"):
+                category = "video"
+            elif key.startswith("bhool/"):
+                category = "bhool"
+            
+            # Extract user_id from path if possible (e.g., audio/user123/file.mp3)
+            parts = key.split("/")
+            user_id = parts[1] if len(parts) > 1 else "unknown"
+            
+            # Infer content type from extension
+            ext = key.rsplit(".", 1)[-1].lower() if "." in key else ""
+            content_type = {
+                "mp3": "audio/mpeg",
+                "wav": "audio/wav",
+                "webm": "audio/webm",
+                "pdf": "application/pdf",
+                "jpg": "image/jpeg",
+                "jpeg": "image/jpeg",
+                "png": "image/png",
+                "mp4": "video/mp4",
+            }.get(ext, "application/octet-stream")
+            
+            cur.execute(
+                f"""INSERT INTO {STORAGE_TABLE} (file_key, user_id, file_size, content_type, category)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (file_key) DO NOTHING""",
+                (key, user_id, file_size, content_type, category)
+            )
+            added_count += 1
+        
+        conn.commit()
+        
+        # Calculate new totals
+        total_r2_bytes = sum(r2_files.values())
+        
+        return {
+            "synced": True,
+            "added": added_count,
+            "removed": removed_count,
+            "total_files_r2": len(r2_files),
+            "total_bytes_r2": total_r2_bytes,
+            "total_mb_r2": round(total_r2_bytes / (1024 * 1024), 2),
+            "orphaned_keys": list(orphaned)[:10],  # Show first 10 for debugging
+            "missing_keys": list(missing)[:10],
+        }
+        
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Storage sync failed: {e}")
+        return {"error": str(e), "synced": False}
+    finally:
+        conn.close()

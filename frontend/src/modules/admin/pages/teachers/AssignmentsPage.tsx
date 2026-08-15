@@ -217,8 +217,9 @@ const AssignmentsPage: React.FC = () => {
           </div>
           
           {isLoading ? (
-            <div className="flex justify-center py-12">
+            <div className="flex flex-col items-center justify-center py-12">
               <Loader size="lg" />
+              <p className="text-app-muted mt-3 text-sm">Loading...</p>
             </div>
           ) : teachers.length === 0 ? (
             <div className="text-center py-12 text-app-muted">
@@ -290,8 +291,9 @@ const AssignmentsPage: React.FC = () => {
               Select a teacher from the left panel
             </div>
           ) : loadingAssignments ? (
-            <div className="flex justify-center py-12">
+            <div className="flex flex-col items-center justify-center py-12">
               <Loader size="lg" />
+              <p className="text-app-muted mt-3 text-sm">Loading...</p>
             </div>
           ) : assignedStudents.length === 0 ? (
             <div className="text-center py-12 text-app-muted">

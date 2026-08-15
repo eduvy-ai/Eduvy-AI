@@ -347,8 +347,9 @@ const MediaPage: React.FC = () => {
 
       {/* Media Grid/List */}
       {isLoading ? (
-        <div className="flex justify-center py-12">
+        <div className="flex flex-col items-center justify-center py-12">
           <Loader size="lg" />
+          <p className="text-app-muted mt-3 text-sm">Loading...</p>
         </div>
       ) : media.length === 0 ? (
         <div className="text-center py-12 text-app-muted">

@@ -284,8 +284,9 @@ Provide a clear, step-by-step explanation...`,
       {/* Prompts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {isLoading ? (
-          <div className="col-span-2 flex justify-center py-12">
+          <div className="col-span-2 flex flex-col items-center justify-center py-12">
             <Loader size="lg" />
+            <p className="text-app-muted mt-3 text-sm">Loading...</p>
           </div>
         ) : filteredPrompts.length === 0 ? (
           <div className="col-span-2 text-center py-12 text-app-muted">

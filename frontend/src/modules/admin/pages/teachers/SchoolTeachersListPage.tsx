@@ -367,8 +367,9 @@ const SchoolTeachersListPage: React.FC = () => {
 
       {/* Table */}
       {isLoading ? (
-        <div className="flex justify-center py-12">
-          <Loader />
+        <div className="flex flex-col items-center justify-center py-12">
+          <Loader size="lg" />
+          <p className="text-app-muted mt-3 text-sm">Loading...</p>
         </div>
       ) : paginatedTeachers.length === 0 ? (
         <div className="bg-gray-800 rounded-lg p-12 text-center">

@@ -377,7 +377,7 @@ async def create_chapter(data: ChapterCreate, admin_scope: tuple = Depends(get_a
         AdminService.create_chapter_admin,
         data.board_id, data.standard_id, data.subject_id, data.chapter_number,
         data.chapter_name, data.chapter_name_local, data.description,
-        data.topics, data.is_active, school_id
+        data.topics, data.content_status, data.is_active, school_id
     )
 
 
@@ -387,7 +387,7 @@ async def update_chapter(chapter_id: int, data: ChapterUpdate, admin_scope: tupl
     return await asyncio.to_thread(
         AdminService.update_chapter_admin,
         chapter_id, data.chapter_name, data.chapter_name_local,
-        data.description, data.topics, data.is_active, school_id
+        data.description, data.topics, data.content_status, data.is_active, school_id
     )
 
 
@@ -475,7 +475,8 @@ async def update_student(user_id: str, data: StudentUpdate, admin_scope: tuple =
     admin_id, school_id = admin_scope
     return await asyncio.to_thread(
         AdminService.update_student,
-        user_id, data.name, data.standard, data.board, data.language, data.plan, data.plan_expires_at, school_id
+        user_id, data.name, data.email, data.standard, data.board, data.stream, data.language, 
+        data.plan, data.plan_expires_at, data.is_drishti, data.is_suspended, school_id
     )
 
 

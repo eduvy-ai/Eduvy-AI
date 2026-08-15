@@ -25,6 +25,7 @@ import {
   XCircle,
   Clock,
 } from '@phosphor-icons/react'
+import { Loader } from '@/shared/components/Loader'
 
 interface QuickActionProps {
   icon: React.ComponentType<any>
@@ -197,9 +198,9 @@ const PracticeTab: React.FC = () => {
         </h3>
 
         {activityLoading ? (
-          <div className="flex items-center gap-2 py-4 justify-center">
-            <div className="w-4 h-4 border-2 border-app-green/40 border-t-app-green rounded-full animate-spin" />
-            <span className="text-[12px] text-app-muted">{ui.loading || 'Loading...'}</span>
+          <div className="flex flex-col items-center justify-center py-4">
+            <Loader size="sm" />
+            <p className="text-app-muted mt-2 text-xs">{ui.loading || 'Loading...'}</p>
           </div>
         ) : recentActivity.length === 0 ? (
           <div className="text-center py-6">

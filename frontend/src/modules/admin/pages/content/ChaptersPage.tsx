@@ -461,8 +461,9 @@ const ChaptersPage: React.FC = () => {
       {/* Chapters List */}
       <div className="space-y-3">
         {isLoading ? (
-          <div className="flex justify-center py-12">
+          <div className="flex flex-col items-center justify-center py-12">
             <Loader size="lg" />
+            <p className="text-app-muted mt-3 text-sm">Loading...</p>
           </div>
         ) : paginatedChapters.length === 0 ? (
           <div className="text-center py-12 text-app-muted">

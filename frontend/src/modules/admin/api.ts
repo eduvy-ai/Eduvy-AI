@@ -457,11 +457,15 @@ export const usersApi = {
 
   update: async (userId: string, data: {
     name?: string
+    email?: string
     standard?: string
     board?: string
+    stream?: string  // For Class 11-12
     language?: string
     plan?: string
     plan_expires_at?: string
+    is_drishti?: boolean
+    is_suspended?: boolean  // Suspend student access
   }): Promise<void> => {
     await axiosInstance.put(
       `${ADMIN_ENDPOINTS.users}/${userId}`,
@@ -742,6 +746,18 @@ export interface StorageStats {
   is_warning?: boolean
 }
 
+export interface SyncResult {
+  synced: boolean
+  added: number
+  removed: number
+  total_files_r2: number
+  total_bytes_r2: number
+  total_mb_r2: number
+  orphaned_keys?: string[]
+  missing_keys?: string[]
+  error?: string
+}
+
 export const storageApi = {
   getStats: async (): Promise<StorageStats> => {
     const response = await axiosInstance.get<StorageStats>(
@@ -754,6 +770,15 @@ export const storageApi = {
   getHealth: async (): Promise<{ status: string; can_upload: boolean; usage_percent?: number; remaining_gb?: number; message?: string }> => {
     const response = await axiosInstance.get<{ status: string; can_upload: boolean; usage_percent?: number; remaining_gb?: number; message?: string }>(
       ADMIN_ENDPOINTS.storageHealth
+    )
+    return response.data
+  },
+
+  sync: async (): Promise<SyncResult> => {
+    const response = await axiosInstance.post<SyncResult>(
+      ADMIN_ENDPOINTS.storageSync,
+      {},
+      adminConfig()
     )
     return response.data
   },
