@@ -11,6 +11,7 @@ import type { RootState } from '@/redux/store'
 import { useChapterById } from '@/modules/chapters/hooks'
 import { getDisplayLang, callAI, parseAIObject, parseAIArray, buildSystemPrompt, LANG_RULES } from '@/shared.js'
 import { API_BASE_URL } from '@/config'
+import DiagramViewer from '@/components/studycoach/DiagramViewer'
 import {
   getAuthToken,
   apiGetChapterNotes, apiCreateChapterNote, apiUpdateChapterNote, apiDeleteChapterNote,
@@ -3342,10 +3343,22 @@ interface ChatSession {
   created_at: string
 }
 
-// Simple markdown renderer for chat messages
+// Simple markdown renderer for chat messages with Mermaid diagram support
 const renderMarkdown = (text: string): React.ReactNode => {
+  // First, extract Mermaid code blocks and replace with placeholders
+  const mermaidBlocks: string[] = []
+  const mermaidRegex = /```mermaid\s*([\s\S]*?)```/gi
+  let match
+  let processedText = text
+  
+  while ((match = mermaidRegex.exec(text)) !== null) {
+    const placeholder = `__MERMAID_BLOCK_${mermaidBlocks.length}__`
+    mermaidBlocks.push(match[1].trim())
+    processedText = processedText.replace(match[0], placeholder)
+  }
+
   // Split into lines
-  const lines = text.split('\n')
+  const lines = processedText.split('\n')
   const elements: React.ReactNode[] = []
   let listItems: string[] = []
   let listType: 'ul' | 'ol' | null = null
@@ -3457,6 +3470,36 @@ const renderMarkdown = (text: string): React.ReactNode => {
         listType = 'ul'
       }
       listItems.push(bulletMatch[1])
+      continue
+    }
+
+    // Check for Mermaid placeholder
+    const mermaidMatch = line.match(/__MERMAID_BLOCK_(\d+)__/)
+    if (mermaidMatch) {
+      flushList()
+      const blockIndex = parseInt(mermaidMatch[1], 10)
+      const mermaidContent = mermaidBlocks[blockIndex]
+      if (mermaidContent) {
+        // Detect diagram type from content
+        let diagramType: 'flowchart' | 'mindmap' | 'sequence' | 'classDiagram' = 'flowchart'
+        if (mermaidContent.toLowerCase().startsWith('mindmap')) {
+          diagramType = 'mindmap'
+        } else if (mermaidContent.toLowerCase().startsWith('sequencediagram')) {
+          diagramType = 'sequence'
+        } else if (mermaidContent.toLowerCase().startsWith('classdiagram')) {
+          diagramType = 'classDiagram'
+        }
+        
+        elements.push(
+          <div key={`mermaid-${keyIndex++}`} className="my-3 overflow-hidden">
+            <DiagramViewer 
+              diagram={{ type: diagramType, content: mermaidContent }}
+              showHeader={false}
+              compact={true}
+            />
+          </div>
+        )
+      }
       continue
     }
 
@@ -3596,13 +3639,38 @@ Answer the student's question clearly and concisely. Use simple language appropr
 
       const systemPrompt = buildSystemPrompt(user || { language: 'English', standard: chapter.standard, board: chapter.board, name: 'Student' }, modeInstructions)
 
-      const response = await callAI(
+      // Build chapter context for backend - this is critical for AI to know the actual chapter content
+      const chapterContext = {
+        id: chapter.id,
+        name: chapter.chapter_name,
+        number: chapter.chapter_number,
+        subject: chapter.subject || chapter.subject_name || chapter.subject_id,
+        board: chapter.board || chapter.board_id,
+        standard: chapter.standard || chapter.standard_id,
+        medium: user?.language || 'English',
+        topics: chapter.topics || [],
+        description: chapter.description || '',
+      }
+
+      // callAI has a new chapterContext parameter added in shared.js
+      const callAIFn = callAI as (
+        prompt: string,
+        systemPrompt: string,
+        history: Array<{role: string; content: string}>,
+        retries: number,
+        maxTokens: number,
+        mode: string,
+        chapterContext: typeof chapterContext
+      ) => Promise<string>
+      
+      const response = await callAIFn(
         text,
         systemPrompt,
         messages.map((m) => ({ role: m.role, content: m.content })),
         3,
         1000,
-        'chapter_tutor'
+        'chapter_tutor',
+        chapterContext
       )
 
       const assistantMsg: ChatMessage = { role: 'assistant', content: response || (ui.noResponse || "I couldn't generate a response. Please try again.") }

@@ -491,7 +491,8 @@ function _sanitiseResponse(text, language) {
 // All calls go through the backend proxy — API keys are NEVER sent
 // to or from the browser.  The backend enforces plan-based rate limits
 // and routes to the cheapest model for free/basic plans automatically.
-export async function callAI(prompt, systemPrompt, history = [], retries = 3, maxTokens = 1200, mode = "") {
+// chapterContext: optional object with {id, name, number, subject, board, standard, medium, topics, description}
+export async function callAI(prompt, systemPrompt, history = [], retries = 3, maxTokens = 1200, mode = "", chapterContext = null) {
   const { provider, model } = _aiConfig
   const token = _getAuthToken()
 
@@ -504,20 +505,36 @@ export async function callAI(prompt, systemPrompt, history = [], retries = 3, ma
 
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
+      // Build request body
+      const body = {
+        provider, model,
+        prompt:        activePrompt,
+        system_prompt: String(systemPrompt),
+        mode,
+        history:       messages,
+        max_tokens:    maxTokens,
+      }
+      
+      // Add chapter context fields if provided (for chapter_tutor mode)
+      if (chapterContext) {
+        body.chapter_id = chapterContext.id || null
+        body.chapter_name = chapterContext.name || ""
+        body.chapter_number = chapterContext.number || null
+        body.chapter_subject = chapterContext.subject || ""
+        body.chapter_board = chapterContext.board || ""
+        body.chapter_standard = chapterContext.standard || ""
+        body.chapter_medium = chapterContext.medium || ""
+        body.chapter_topics = chapterContext.topics || []
+        body.chapter_description = chapterContext.description || ""
+      }
+      
       const res = await fetch(`${API_BASE_URL}/api/ai/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({
-          provider, model,
-          prompt:        activePrompt,
-          system_prompt: String(systemPrompt),
-          mode,
-          history:       messages,
-          max_tokens:    maxTokens,
-        }),
+        body: JSON.stringify(body),
         signal: AbortSignal.timeout(90000),
       })
 

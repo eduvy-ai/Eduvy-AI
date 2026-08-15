@@ -198,7 +198,7 @@ class AIService:
             conn.close()
     
     @staticmethod
-    async def chat(user_id: str, prompt: str, system_prompt: str, history: list, max_tokens: int, mode: str = "") -> Dict:
+    async def chat(user_id: str, prompt: str, system_prompt: str, history: list, max_tokens: int, mode: str = "", chapter_context: dict = None) -> Dict:
         """Process AI chat request."""
         user = AIService.get_user_info(user_id)
         plan = user["plan"]
@@ -221,7 +221,7 @@ class AIService:
             }
             # Fetch student progress for personalized teaching
             progress = AIService.get_student_progress(user_id)
-            system_prompt = build_system_prompt(profile, mode, progress)
+            system_prompt = build_system_prompt(profile, mode, progress, chapter_context)
 
         # Check quota
         current, limit = AIService.check_quota(user_id, plan)

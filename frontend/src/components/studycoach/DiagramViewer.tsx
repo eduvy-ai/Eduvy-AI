@@ -7,6 +7,8 @@ import Loader from '@/shared/components/Loader'
 interface DiagramViewerProps {
   diagram: DiagramData
   ui?: Record<string, string>
+  showHeader?: boolean  // Whether to show "📊 Visual Diagram" header
+  compact?: boolean     // Smaller padding for inline use
 }
 
 /**
@@ -81,7 +83,7 @@ function createTextDiagram(content: string): string {
   return nodes.map((node, i) => `${i + 1}. ${node}`).join('\n↓\n')
 }
 
-export default function DiagramViewer({ diagram, ui }: DiagramViewerProps) {
+export default function DiagramViewer({ diagram, ui, showHeader = true, compact = false }: DiagramViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [error, setError] = useState<string | null>(null)
   const [svgContent, setSvgContent] = useState<string | null>(null)
@@ -151,16 +153,18 @@ export default function DiagramViewer({ diagram, ui }: DiagramViewerProps) {
   }, [diagram.content])
 
   return (
-    <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50">
-      <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-        <span className="text-2xl">📊</span>
-        {ui?.visualDiagram ?? 'Visual Diagram'}
-        <span className="text-xs text-slate-400 font-normal ml-2">({diagram.type})</span>
-      </h3>
+    <div className={compact ? "rounded-xl overflow-hidden" : "bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50"}>
+      {showHeader && (
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <span className="text-2xl">📊</span>
+          {ui?.visualDiagram ?? 'Visual Diagram'}
+          <span className="text-xs text-slate-400 font-normal ml-2">({diagram.type})</span>
+        </h3>
+      )}
       
       <div
         ref={containerRef}
-        className="bg-slate-900/50 rounded-xl p-4 overflow-x-auto"
+        className={compact ? "bg-slate-900/30 rounded-lg p-3 overflow-x-auto" : "bg-slate-900/50 rounded-xl p-4 overflow-x-auto"}
       >
         {svgContent ? (
           <div

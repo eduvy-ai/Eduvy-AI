@@ -16,6 +16,16 @@ class ChatRequest(BaseModel):
     mode: str = ""
     history: List[ChatMessage] = []
     max_tokens: int = 1024
+    # Chapter context for chapter_tutor mode
+    chapter_id: Optional[int] = None
+    chapter_name: Optional[str] = None
+    chapter_number: Optional[int] = None
+    chapter_subject: Optional[str] = None
+    chapter_board: Optional[str] = None
+    chapter_standard: Optional[str] = None
+    chapter_medium: Optional[str] = None
+    chapter_topics: Optional[List[str]] = None
+    chapter_description: Optional[str] = None
 
 
 class VisionRequest(BaseModel):

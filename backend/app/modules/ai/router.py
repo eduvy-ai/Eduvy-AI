@@ -24,6 +24,22 @@ router = APIRouter(prefix="/ai", tags=["AI"])
 async def chat(data: ChatRequest, current_user: str = Depends(get_current_user)):
     """Process AI chat request with quota enforcement."""
     history = [{"role": m.role, "content": m.content} for m in data.history]
+    
+    # Build chapter context if provided (for chapter_tutor mode)
+    chapter_context = None
+    if data.chapter_name:
+        chapter_context = {
+            "id": data.chapter_id,
+            "name": data.chapter_name,
+            "number": data.chapter_number,
+            "subject": data.chapter_subject,
+            "board": data.chapter_board,
+            "standard": data.chapter_standard,
+            "medium": data.chapter_medium,
+            "topics": data.chapter_topics or [],
+            "description": data.chapter_description or "",
+        }
+    
     return await AIService.chat(
         current_user,
         data.prompt,
@@ -31,6 +47,7 @@ async def chat(data: ChatRequest, current_user: str = Depends(get_current_user))
         history,
         data.max_tokens,
         data.mode,
+        chapter_context,
     )
 
 
