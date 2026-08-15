@@ -6,7 +6,7 @@ import re
 from typing import Dict
 from fastapi import HTTPException
 
-from app.db import db
+from app.db import db, get_db
 from app.core.security import hash_password, verify_password, create_token
 
 
@@ -110,7 +110,7 @@ class AuthService:
             
             # Check if school is suspended (for school students)
             if user.get("school_id"):
-                conn = db.get_connection()
+                conn = get_db()
                 try:
                     cur = conn.cursor()
                     cur.execute("SELECT is_active FROM schools WHERE id = %s", (user["school_id"],))
