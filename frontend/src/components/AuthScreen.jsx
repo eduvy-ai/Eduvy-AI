@@ -4,7 +4,8 @@ import { apiLogin, apiRegister, setAuthToken } from '../api.js'
 import { li } from '../i18n/index.js'
 import { GraduationCap, Eye, EyeSlash } from '@phosphor-icons/react'
 
-const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
+// Static fallback for standards
+const CLASSES_FALLBACK = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
 
 // ── Curriculum API helpers ────────────────────────────────────
 async function fetchBoards() {
@@ -16,6 +17,21 @@ async function fetchBoards() {
     }
   } catch {}
   return BOARDS
+}
+
+async function fetchStandards(board) {
+  const boardSlug = board.toLowerCase().replace(/\s+/g, '-')
+  try {
+    const res = await fetch(
+      `/api/curriculum/standards?board=${encodeURIComponent(boardSlug)}`,
+      { signal: AbortSignal.timeout(5000) }
+    )
+    if (res.ok) {
+      const data = await res.json()
+      if (Array.isArray(data) && data.length > 0) return data.map(s => s.name)
+    }
+  } catch {}
+  return CLASSES_FALLBACK
 }
 
 async function fetchMediums(board, standard) {
@@ -52,8 +68,9 @@ export default function AuthScreen({ onAuth }) {
   const [error, setError]       = useState('')
 
   // Dynamic lists from API (with static fallbacks)
-  const [boardList, setBoardList]   = useState(BOARDS)
-  const [mediumList, setMediumList] = useState(LANGS)
+  const [boardList,    setBoardList]    = useState(BOARDS)
+  const [standardList, setStandardList] = useState(CLASSES_FALLBACK)
+  const [mediumList,   setMediumList]   = useState(LANGS)
 
   // i18n — use selected language during registration, default to English for login
   const ui = li(mode === 'register' ? language : 'English')
@@ -62,6 +79,14 @@ export default function AuthScreen({ onAuth }) {
   useEffect(() => {
     fetchBoards().then(setBoardList)
   }, [])
+
+  // When board changes → refresh standards
+  useEffect(() => {
+    fetchStandards(board).then(stds => {
+      setStandardList(stds)
+      if (!stds.includes(standard)) setStd(stds[0] || 'Class 10')
+    })
+  }, [board])
 
   // When board or standard changes → refresh mediums
   useEffect(() => {
@@ -315,7 +340,7 @@ export default function AuthScreen({ onAuth }) {
                     value={standard}
                     onChange={e => setStd(e.target.value)}
                   >
-                    {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {standardList.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="flex-1">

@@ -65,6 +65,7 @@ class ChapterService:
         board_id: Optional[str] = None,
         standard_id: Optional[str] = None,
         subject_id: Optional[str] = None,
+        stream_id: Optional[str] = None,
         is_active: bool = True,
         school_id: Optional[int] = None
     ) -> List[Dict]:
@@ -83,13 +84,15 @@ class ChapterService:
                 standard_id = ChapterService._resolve_standard_id(cur, standard_id, school_id)
             
             query = """
-                SELECT c.id, c.board_id, c.standard_id, c.subject_id, c.chapter_number, c.chapter_name,
+                SELECT c.id, c.board_id, c.standard_id, c.subject_id, c.stream_id, c.chapter_number, c.chapter_name,
                        c.chapter_name_local, c.description, c.topics, c.is_active, c.created_at,
-                       b.name as board_name, st.name as standard_name, s.name as subject_name
+                       b.name as board_name, st.name as standard_name, s.name as subject_name,
+                       str.name as stream_name
                 FROM chapters c
                 LEFT JOIN boards b ON c.board_id = b.id
                 LEFT JOIN standards st ON c.standard_id = st.id
                 LEFT JOIN subjects s ON c.subject_id = s.id
+                LEFT JOIN streams str ON c.stream_id = str.id
                 WHERE 1=1
             """
             params = []
@@ -103,6 +106,9 @@ class ChapterService:
             if subject_id:
                 query += " AND c.subject_id = %s"
                 params.append(subject_id)
+            if stream_id:
+                query += " AND c.stream_id = %s"
+                params.append(stream_id)
             if is_active is not None:
                 query += " AND c.is_active = %s"
                 params.append(is_active)

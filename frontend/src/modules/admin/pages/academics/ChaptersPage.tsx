@@ -4,7 +4,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useChapters, useBoards, useStandards, useSubjects, useCanEdit } from '../../hooks'
 import { adminApi } from '../../api'
-import type { Chapter } from '../../types'
+import type { Chapter, Stream } from '../../types'
 import Modal from '../../../../shared/components/Modal'
 import Button from '../../../../shared/components/Button'
 import Table, { type TableColumn } from '../../../../shared/components/Table'
@@ -28,6 +28,9 @@ const ChaptersPage: React.FC = () => {
   const { subjects, fetchSubjects } = useSubjects()
   const canEdit = useCanEdit('academics')
   
+  // Local streams state (not in Redux)
+  const [streams, setStreams] = useState<Stream[]>([])
+  
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [showModal, setShowModal] = useState(false)
@@ -44,6 +47,7 @@ const ChaptersPage: React.FC = () => {
   // Filters
   const [filterBoard, setFilterBoard] = useState('')
   const [filterStandard, setFilterStandard] = useState('')
+  const [filterStream, setFilterStream] = useState('')
   const [filterSubject, setFilterSubject] = useState('')
   
   // Form state
@@ -65,32 +69,40 @@ const ChaptersPage: React.FC = () => {
     const load = async () => {
       setIsLoading(true)
       try {
-        await Promise.all([
+        const [, , , streamsData] = await Promise.all([
           fetchBoards(),
           fetchStandards(),
+          fetchSubjects({}), // Load ALL subjects initially
+          adminApi.streams.getAll(), // Load streams
         ])
+        setStreams(streamsData)
       } finally {
         setIsLoading(false)
       }
     }
     load()
-  }, [fetchBoards, fetchStandards])
+  }, [fetchBoards, fetchStandards, fetchSubjects])
 
-  // Load subjects when board+standard changes
+  // Reload subjects when board+standard+stream changes (to filter subject list)
   useEffect(() => {
-    if (filterBoard && filterStandard) {
-      fetchSubjects({ board_id: filterBoard, standard_id: filterStandard })
+    if (filterBoard || filterStandard || filterStream) {
+      const filters: { board_id?: string; standard_id?: string; stream_id?: string } = {}
+      if (filterBoard) filters.board_id = filterBoard
+      if (filterStandard) filters.standard_id = filterStandard
+      if (filterStream) filters.stream_id = filterStream
+      fetchSubjects(filters)
     }
-  }, [filterBoard, filterStandard, fetchSubjects])
+  }, [filterBoard, filterStandard, filterStream, fetchSubjects])
 
   // Load chapters when filters change
   useEffect(() => {
     const loadChapters = async () => {
       setIsLoading(true)
       try {
-        const filters: { board_id?: string; standard_id?: string; subject_id?: string } = {}
+        const filters: { board_id?: string; standard_id?: string; subject_id?: string; stream_id?: string } = {}
         if (filterBoard) filters.board_id = filterBoard
         if (filterStandard) filters.standard_id = filterStandard
+        if (filterStream) filters.stream_id = filterStream
         if (filterSubject) filters.subject_id = filterSubject
         await fetchChapters(filters)
       } finally {
@@ -98,7 +110,7 @@ const ChaptersPage: React.FC = () => {
       }
     }
     loadChapters()
-  }, [filterBoard, filterStandard, filterSubject, fetchChapters])
+  }, [filterBoard, filterStandard, filterStream, filterSubject, fetchChapters])
 
   // Filter chapters by search
   const filteredChapters = chapters.filter(chapter =>
@@ -298,10 +310,11 @@ const ChaptersPage: React.FC = () => {
   const clearFilters = () => {
     setFilterBoard('')
     setFilterStandard('')
+    setFilterStream('')
     setFilterSubject('')
   }
 
-  const hasFilters = filterBoard || filterStandard || filterSubject
+  const hasFilters = filterBoard || filterStandard || filterStream || filterSubject
 
   // Table columns
   const columns: TableColumn<Chapter>[] = [
@@ -441,11 +454,12 @@ const ChaptersPage: React.FC = () => {
             </button>
           )}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <select
             value={filterBoard}
             onChange={(e) => {
               setFilterBoard(e.target.value)
+              setFilterStream('')
               setFilterSubject('') // Reset subject when board changes
             }}
             className="h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text text-sm focus:outline-none focus:ring-2 focus:ring-app-green/50"
@@ -459,6 +473,7 @@ const ChaptersPage: React.FC = () => {
             value={filterStandard}
             onChange={(e) => {
               setFilterStandard(e.target.value)
+              setFilterStream('')
               setFilterSubject('') // Reset subject when standard changes
             }}
             className="h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text text-sm focus:outline-none focus:ring-2 focus:ring-app-green/50"
@@ -466,6 +481,19 @@ const ChaptersPage: React.FC = () => {
             <option value="">All Standards</option>
             {standards.map(std => (
               <option key={std.id} value={std.id}>{std.name}</option>
+            ))}
+          </select>
+          <select
+            value={filterStream}
+            onChange={(e) => {
+              setFilterStream(e.target.value)
+              setFilterSubject('') // Reset subject when stream changes
+            }}
+            className="h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text text-sm focus:outline-none focus:ring-2 focus:ring-app-green/50"
+          >
+            <option value="">All Streams</option>
+            {streams.map(stream => (
+              <option key={stream.id} value={stream.id}>{stream.name}</option>
             ))}
           </select>
           <select

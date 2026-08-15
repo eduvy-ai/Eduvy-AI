@@ -5,7 +5,8 @@ import { li } from '../i18n/index.js'
 import UpgradePlanModal from './UpgradePlanModal.jsx'
 import { GearSix, X, CheckCircle, XCircle, Clock, ArrowUp, Lock, Warning, Robot } from '@phosphor-icons/react'
 
-const CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
+// Static fallback for standards
+const CLASSES_FALLBACK = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
 
 // Reusable Tailwind classes
 const inputClass = "w-full bg-app-card2 border border-white/10 rounded-xl py-2.5 px-3.5 text-app-text text-sm cursor-pointer font-[Sora,sans-serif]"
@@ -44,9 +45,41 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
   const [profileError, setProfileError]   = useState('')
   const [profileSaving, setProfileSaving] = useState(false)
 
-  // Dynamic medium list based on board+standard
-  const [mediumList, setMediumList] = useState(LANGS)
+  // Dynamic lists based on board+standard
+  const [boardList,    setBoardList]    = useState(BOARDS)
+  const [standardList, setStandardList] = useState(CLASSES_FALLBACK)
+  const [mediumList,   setMediumList]   = useState(LANGS)
 
+  // Load boards once on mount
+  useEffect(() => {
+    fetch('/api/curriculum/boards', { signal: AbortSignal.timeout(5000) })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setBoardList(data.map(b => b.name))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  // When board changes → refresh standards
+  useEffect(() => {
+    const boardSlug = pBoard.toLowerCase().replace(/\s+/g, '-')
+    fetch(`/api/curriculum/standards?board=${encodeURIComponent(boardSlug)}`, { signal: AbortSignal.timeout(5000) })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          const stds = data.map(s => s.name)
+          setStandardList(stds)
+          if (!stds.includes(pStd)) setPStd(stds[0] || 'Class 10')
+        } else {
+          setStandardList(CLASSES_FALLBACK)
+        }
+      })
+      .catch(() => setStandardList(CLASSES_FALLBACK))
+  }, [pBoard])
+
+  // When board or standard changes → refresh mediums
   useEffect(() => {
     const boardSlug = pBoard.toLowerCase().replace(/\s+/g, '-')
     const stdSlug   = pStd.toLowerCase().replace(/\s+/g, '-')
@@ -156,13 +189,13 @@ export default function SettingsModal({ onClose, onLogout, profile, onProfileSav
               <div>
                 <label className={labelClass}>{ui.classLabel}</label>
                 <select className={inputClass} value={pStd} onChange={e => setPStd(e.target.value)} disabled={isSchoolStudent} style={isSchoolStudent ? { opacity: 0.6 } : {}}>
-                  {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                  {standardList.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
                 <label className={labelClass}>{ui.boardLabel}</label>
                 <select className={inputClass} value={pBoard} onChange={e => setPBoard(e.target.value)} disabled={isSchoolStudent} style={isSchoolStudent ? { opacity: 0.6 } : {}}>
-                  {BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
+                  {boardList.map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
               <div>

@@ -49,6 +49,7 @@ async def list_chapters(
     board_id: Optional[str] = Query(None, description="Filter by board ID (FK to boards.id)"),
     standard_id: Optional[str] = Query(None, description="Filter by standard ID (FK to standards.id)"),
     subject_id: Optional[str] = Query(None, description="Filter by subject ID (FK to subjects.id)"),
+    stream_id: Optional[str] = Query(None, description="Filter by stream ID (FK to streams.id)"),
     is_active: bool = Query(True, description="Filter by active status"),
 ):
     """
@@ -60,6 +61,7 @@ async def list_chapters(
         board_id=board_id,
         standard_id=standard_id,
         subject_id=subject_id,
+        stream_id=stream_id,
         is_active=is_active,
     )
 

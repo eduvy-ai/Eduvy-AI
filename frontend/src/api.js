@@ -74,7 +74,10 @@ export async function apiGetMe() {
     headers: _authHeaders(),
     signal: AbortSignal.timeout(30000),
   })
-  if (res.status === 401 || res.status === 404) return null
+  if (res.status === 401 || res.status === 404) {
+    clearAuth() // Clear stale token to prevent repeated 401/404
+    return null
+  }
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return safeJson(res)
 }

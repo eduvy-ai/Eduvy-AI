@@ -117,7 +117,7 @@ export const fetchMediums = createAsyncThunk(
 
 export const fetchSubjects = createAsyncThunk(
   'admin/fetchSubjects',
-  async (filters: { board_id?: string; standard_id?: string } | undefined, { rejectWithValue }) => {
+  async (filters: { board_id?: string; standard_id?: string; stream_id?: string } | undefined, { rejectWithValue }) => {
     try {
       const subjects = await adminApi.subjects.getAll(filters)
       return subjects
@@ -143,7 +143,7 @@ export const fetchCurriculum = createAsyncThunk(
 
 export const fetchChapters = createAsyncThunk(
   'admin/fetchChapters',
-  async (filters: { board_id?: string; standard_id?: string; subject_id?: string } | undefined, { rejectWithValue }) => {
+  async (filters: { board_id?: string; standard_id?: string; subject_id?: string; stream_id?: string } | undefined, { rejectWithValue }) => {
     try {
       const chapters = await adminApi.chapters.getAll(filters)
       return adminService.sortChapters(chapters)

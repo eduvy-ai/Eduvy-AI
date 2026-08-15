@@ -11,6 +11,7 @@ import type {
   Board,
   Standard,
   Medium,
+  Stream,
   Subject,
   CurriculumEntry,
   Chapter,
@@ -228,12 +229,21 @@ export const mediumsApi = {
   },
 }
 
+// ── Streams APIs (read-only) ──
+export const streamsApi = {
+  getAll: async (): Promise<Stream[]> => {
+    const response = await axiosInstance.get<Stream[]>(ADMIN_ENDPOINTS.streams, adminConfig())
+    return response.data
+  },
+}
+
 // ── Subject APIs ──
 export const subjectsApi = {
-  getAll: async (filters?: { board_id?: string; standard_id?: string }): Promise<Subject[]> => {
+  getAll: async (filters?: { board_id?: string; standard_id?: string; stream_id?: string }): Promise<Subject[]> => {
     const params = new URLSearchParams()
     if (filters?.board_id) params.append('board_id', filters.board_id)
     if (filters?.standard_id) params.append('standard_id', filters.standard_id)
+    if (filters?.stream_id) params.append('stream_id', filters.stream_id)
     
     const url = params.toString() ? `${ADMIN_ENDPOINTS.subjects}?${params}` : ADMIN_ENDPOINTS.subjects
     const response = await axiosInstance.get<Subject[]>(url, adminConfig())
@@ -330,11 +340,12 @@ export const curriculumApi = {
 
 // ── Chapter APIs ──
 export const chaptersApi = {
-  getAll: async (filters?: { board_id?: string; standard_id?: string; subject_id?: string }): Promise<Chapter[]> => {
+  getAll: async (filters?: { board_id?: string; standard_id?: string; subject_id?: string; stream_id?: string }): Promise<Chapter[]> => {
     const params = new URLSearchParams()
     if (filters?.board_id) params.append('board_id', filters.board_id)
     if (filters?.standard_id) params.append('standard_id', filters.standard_id)
     if (filters?.subject_id) params.append('subject_id', filters.subject_id)
+    if (filters?.stream_id) params.append('stream_id', filters.stream_id)
     
     const url = params.toString() ? `${ADMIN_ENDPOINTS.chapters}?${params}` : ADMIN_ENDPOINTS.chapters
     const response = await axiosInstance.get<Chapter[]>(url, adminConfig())
@@ -428,11 +439,13 @@ export const usersApi = {
   create: async (data: {
     name: string
     email: string
-    password: string
+    password?: string
     standard?: string
     board?: string
+    stream?: string  // For Class 11-12
     language?: string
     plan?: string
+    send_email?: boolean
   }): Promise<StudentUser> => {
     const response = await axiosInstance.post<StudentUser>(
       ADMIN_ENDPOINTS.users,
@@ -463,6 +476,7 @@ export const usersApi = {
       email: string
       standard?: string
       board?: string
+      stream?: string  // For Class 11-12
       language?: string
       plan?: string
     }>
@@ -471,7 +485,7 @@ export const usersApi = {
     success: number
     failed: number
     errors: Array<{ row: number; email: string; error: string }>
-    created_students: Array<{ id: string; name: string; email: string; temp_password: string }>
+    created_students: Array<{ id: string; name: string; email: string; temp_password: string; stream?: string }>
   }> => {
     const response = await axiosInstance.post(
       `${ADMIN_ENDPOINTS.users}/bulk-import`,
@@ -1040,6 +1054,7 @@ export const adminApi = {
   boards: boardsApi,
   standards: standardsApi,
   mediums: mediumsApi,
+  streams: streamsApi,
   subjects: subjectsApi,
   curriculum: curriculumApi,
   chapters: chaptersApi,

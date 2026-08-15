@@ -4,7 +4,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { useBoards, useStandards, useCanEdit } from '../../hooks'
 import { adminApi } from '../../api'
-import type { Subject } from '../../types'
+import type { Subject, Stream } from '../../types'
 import Modal from '../../../../shared/components/Modal'
 import Button from '../../../../shared/components/Button'
 import Table, { type TableColumn } from '../../../../shared/components/Table'
@@ -27,10 +27,12 @@ const SubjectsPage: React.FC = () => {
   const canEdit = useCanEdit('academics')
   
   const [subjects, setSubjects] = useState<Subject[]>([])
+  const [streams, setStreams] = useState<Stream[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [boardFilter, setBoardFilter] = useState<string>('')
   const [standardFilter, setStandardFilter] = useState<string>('')
+  const [streamFilter, setStreamFilter] = useState<string>('')
   const [showModal, setShowModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
@@ -50,6 +52,7 @@ const SubjectsPage: React.FC = () => {
     name: '',
     board_id: '',
     standard_id: '',
+    stream_id: '' as string | null,
     sort_order: 0,
     is_active: true,
   })
@@ -58,9 +61,10 @@ const SubjectsPage: React.FC = () => {
   const fetchSubjects = useCallback(async () => {
     setIsLoading(true)
     try {
-      const filters: { board_id?: string; standard_id?: string } = {}
+      const filters: { board_id?: string; standard_id?: string; stream_id?: string } = {}
       if (boardFilter) filters.board_id = boardFilter
       if (standardFilter) filters.standard_id = standardFilter
+      if (streamFilter) filters.stream_id = streamFilter
       const data = await adminApi.subjects.getAll(filters)
       setSubjects(data)
     } catch (error) {
@@ -68,21 +72,33 @@ const SubjectsPage: React.FC = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [boardFilter, standardFilter])
+  }, [boardFilter, standardFilter, streamFilter])
+
+  // Fetch streams
+  const fetchStreams = useCallback(async () => {
+    try {
+      const data = await adminApi.streams.getAll()
+      setStreams(data)
+    } catch (error) {
+      console.error('Failed to fetch streams:', error)
+    }
+  }, [])
 
   // Load data on mount
   useEffect(() => {
     fetchBoards()
     fetchStandards()
+    fetchStreams()
     fetchSubjects()
-  }, [fetchBoards, fetchStandards, fetchSubjects])
+  }, [fetchBoards, fetchStandards, fetchStreams, fetchSubjects])
 
   // Filter subjects by search
   const filteredSubjects = subjects.filter(subject =>
     subject.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     subject.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (subject.board_name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (subject.standard_name?.toLowerCase().includes(searchQuery.toLowerCase()))
+    (subject.standard_name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (subject.stream_name?.toLowerCase().includes(searchQuery.toLowerCase()))
   )
 
   // Paginated data
@@ -95,7 +111,7 @@ const SubjectsPage: React.FC = () => {
   // Reset page when search/filter changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, boardFilter, standardFilter])
+  }, [searchQuery, boardFilter, standardFilter, streamFilter])
 
   // Open create modal
   const handleCreate = () => {
@@ -105,6 +121,7 @@ const SubjectsPage: React.FC = () => {
       name: '', 
       board_id: boardFilter || (boards[0]?.id || ''),
       standard_id: standardFilter || (standards[0]?.id || ''),
+      stream_id: streamFilter || null,
       sort_order: subjects.length, 
       is_active: true 
     })
@@ -120,6 +137,7 @@ const SubjectsPage: React.FC = () => {
       name: subject.name,
       board_id: subject.board_id,
       standard_id: subject.standard_id,
+      stream_id: subject.stream_id || null,
       sort_order: subject.sort_order,
       is_active: subject.is_active,
     })
@@ -167,6 +185,7 @@ const SubjectsPage: React.FC = () => {
           name: formData.name,
           board_id: formData.board_id,
           standard_id: formData.standard_id,
+          stream_id: formData.stream_id,
           sort_order: formData.sort_order,
           is_active: formData.is_active,
         })
@@ -176,6 +195,7 @@ const SubjectsPage: React.FC = () => {
           name: formData.name,
           board_id: formData.board_id,
           standard_id: formData.standard_id,
+          stream_id: formData.stream_id,
           sort_order: formData.sort_order,
           is_active: formData.is_active,
         })
@@ -302,6 +322,16 @@ const SubjectsPage: React.FC = () => {
         <span className="text-app-purple font-medium">{subject.standard_name || subject.standard_id}</span>
       ),
     },
+    { 
+      key: 'stream_id', 
+      header: 'Stream', 
+      width: '100px',
+      render: (subject) => (
+        subject.stream_name 
+          ? <span className="text-app-orange font-medium">{subject.stream_name}</span>
+          : <span className="text-app-muted">—</span>
+      ),
+    },
     { key: 'sort_order', header: 'Order', width: '80px' },
     {
       key: 'is_active',
@@ -418,6 +448,19 @@ const SubjectsPage: React.FC = () => {
             ))}
           </select>
         </div>
+        <div className="relative min-w-[150px]">
+          <Funnel size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-app-muted" />
+          <select
+            value={streamFilter}
+            onChange={(e) => setStreamFilter(e.target.value)}
+            className="w-full h-10 pl-9 pr-4 bg-app-card2 border border-white/10 rounded-xl text-app-text appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-app-green/50"
+          >
+            <option value="">All Streams</option>
+            {streams.map(str => (
+              <option key={str.id} value={str.id}>{str.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Table */}
@@ -483,6 +526,20 @@ const SubjectsPage: React.FC = () => {
                 ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-app-muted mb-1.5">Stream (for Class 11-12)</label>
+            <select
+              value={formData.stream_id || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, stream_id: e.target.value || null }))}
+              className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+            >
+              <option value="">No Stream (Class 9-10)</option>
+              {streams.map(str => (
+                <option key={str.id} value={str.id}>{str.name}</option>
+              ))}
+            </select>
           </div>
 
           <div>

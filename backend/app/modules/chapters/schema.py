@@ -11,6 +11,7 @@ class ChapterBase(BaseModel):
     board_id: str = Field(..., description="Education board ID (FK to boards.id)")
     standard_id: str = Field(..., description="Standard ID (FK to standards.id)")
     subject_id: str = Field(..., description="Subject ID (FK to subjects.id)")
+    stream_id: Optional[str] = Field(None, description="Stream ID (FK to streams.id)")
     chapter_number: int = Field(..., ge=1, le=30, description="Chapter number in textbook")
     chapter_name: str = Field(..., min_length=2, max_length=200, description="Chapter title")
     chapter_name_local: str = Field("", max_length=300, description="Chapter name in regional language")
@@ -39,6 +40,7 @@ class ChapterResponse(ChapterBase):
     board_name: Optional[str] = None
     standard_name: Optional[str] = None
     subject_name: Optional[str] = None
+    stream_name: Optional[str] = None
     created_at: datetime
     
     model_config = {"from_attributes": True}

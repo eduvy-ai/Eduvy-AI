@@ -273,7 +273,7 @@ export const useSubjects = () => {
   const subjects = useSelector((state: RootState) => state.admin.subjects)
 
   const fetch = useCallback(
-    (filters?: { board_id?: string; standard_id?: string }) =>
+    (filters?: { board_id?: string; standard_id?: string; stream_id?: string }) =>
       dispatch(fetchSubjects(filters)),
     [dispatch]
   )
@@ -320,7 +320,7 @@ export const useChapters = () => {
   const chapters = useSelector((state: RootState) => state.admin.chapters)
 
   const fetch = useCallback(
-    (filters?: { board_id?: string; standard_id?: string; subject_id?: string }) =>
+    (filters?: { board_id?: string; standard_id?: string; subject_id?: string; stream_id?: string }) =>
       dispatch(fetchChapters(filters)),
     [dispatch]
   )

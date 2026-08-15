@@ -239,23 +239,33 @@ async def bulk_delete_mediums(data: BulkDeleteStr, admin_scope: tuple = Depends(
     return await asyncio.to_thread(AdminService.bulk_delete_mediums, data.ids, school_id)
 
 
+# ── Streams (read-only, global) ────────────────────────────────
+
+@router.get("/streams")
+async def list_streams():
+    """Get all active streams (Science, Commerce, Arts for Class 11-12)."""
+    from app.modules.curriculum.service import CurriculumService
+    return await asyncio.to_thread(CurriculumService.list_streams)
+
+
 # ── Subjects ──────────────────────────────────────────────────
 
 @router.get("/subjects")
 async def list_subjects(
     board_id: str = Query(None),
     standard_id: str = Query(None),
+    stream_id: str = Query(None),
     admin_scope: tuple = Depends(get_admin_with_school),
 ):
     admin_id, school_id = admin_scope
-    return await asyncio.to_thread(AdminService.list_subjects, board_id, standard_id, school_id)
+    return await asyncio.to_thread(AdminService.list_subjects, board_id, standard_id, stream_id, school_id)
 
 
 @router.post("/subjects", status_code=201)
 async def create_subject(data: SubjectUpsert, admin_scope: tuple = Depends(get_admin_with_school)):
     admin_id, school_id = admin_scope
     return await asyncio.to_thread(
-        AdminService.upsert_subject, data.id, data.name, data.board_id, data.standard_id, data.sort_order, data.is_active, school_id
+        AdminService.upsert_subject, data.id, data.name, data.board_id, data.standard_id, data.stream_id, data.sort_order, data.is_active, school_id
     )
 
 
@@ -263,7 +273,7 @@ async def create_subject(data: SubjectUpsert, admin_scope: tuple = Depends(get_a
 async def update_subject(subj_id: str, data: SubjectUpsert, admin_scope: tuple = Depends(get_admin_with_school)):
     admin_id, school_id = admin_scope
     return await asyncio.to_thread(
-        AdminService.upsert_subject, subj_id, data.name, data.board_id, data.standard_id, data.sort_order, data.is_active, school_id
+        AdminService.upsert_subject, subj_id, data.name, data.board_id, data.standard_id, data.stream_id, data.sort_order, data.is_active, school_id
     )
 
 
@@ -455,7 +465,7 @@ async def create_student(data: StudentCreate, admin_scope: tuple = Depends(get_a
     admin_id, school_id = admin_scope
     return await asyncio.to_thread(
         AdminService.create_student,
-        data.name, data.email, data.password, data.standard, data.board, data.language, data.plan, school_id
+        data.name, data.email, data.password, data.standard, data.board, data.stream, data.language, data.plan, school_id, data.send_email
     )
 
 

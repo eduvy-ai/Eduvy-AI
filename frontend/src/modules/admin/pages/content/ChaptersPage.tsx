@@ -7,7 +7,7 @@ import Modal from '../../../../shared/components/Modal'
 import Button from '../../../../shared/components/Button'
 import Loader from '../../../../shared/components/Loader'
 import { chaptersApi, adminApi } from '../../api'
-import type { Chapter } from '../../types'
+import type { Chapter, Subject } from '../../types'
 import {
   Book,
   Plus,
@@ -41,13 +41,16 @@ const ChaptersPage: React.FC = () => {
   const [chapters, setChapters] = useState<Chapter[]>([])
   const [boards, setBoards] = useState<{ id: string; name: string }[]>([])
   const [standards, setStandards] = useState<{ id: string; name: string }[]>([])
-  const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([])
+  const [streams, setStreams] = useState<{ id: string; name: string }[]>([])
+  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [allSubjects, setAllSubjects] = useState<Subject[]>([])
   
   // UI state
   const [isLoading, setIsLoading] = useState(true)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [boardFilter, setBoardFilter] = useState<string>('all')
   const [standardFilter, setStandardFilter] = useState<string>('all')
+  const [streamFilter, setStreamFilter] = useState<string>('all')
   const [subjectFilter, setSubjectFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -73,13 +76,16 @@ const ChaptersPage: React.FC = () => {
     if (curriculumLoadedRef.current) return
     curriculumLoadedRef.current = true
     try {
-      const [boardsData, standardsData, subjectsData] = await Promise.all([
+      const [boardsData, standardsData, streamsData, subjectsData] = await Promise.all([
         adminApi.boards.getAll(),
         adminApi.standards.getAll(),
+        adminApi.streams.getAll(),
         adminApi.subjects.getAll(),
       ])
       setBoards(boardsData)
       setStandards(standardsData)
+      setStreams(streamsData)
+      setAllSubjects(subjectsData)
       setSubjects(subjectsData)
     } catch (error) {
       console.error('Failed to load curriculum options:', error)
@@ -89,15 +95,16 @@ const ChaptersPage: React.FC = () => {
   // Load chapters
   const loadChapters = useCallback(async () => {
     // Dedupe by comparing filter state
-    const filterKey = JSON.stringify({ boardFilter, standardFilter, subjectFilter, statusFilter, searchQuery })
+    const filterKey = JSON.stringify({ boardFilter, standardFilter, streamFilter, subjectFilter, statusFilter, searchQuery })
     if (filterKey === lastChapterFilterRef.current) return
     lastChapterFilterRef.current = filterKey
     
     setIsLoading(true)
     try {
-      const filters: { board_id?: string; standard_id?: string; subject_id?: string } = {}
+      const filters: { board_id?: string; standard_id?: string; subject_id?: string; stream_id?: string } = {}
       if (boardFilter !== 'all') filters.board_id = boardFilter
       if (standardFilter !== 'all') filters.standard_id = standardFilter
+      if (streamFilter !== 'all') filters.stream_id = streamFilter
       if (subjectFilter !== 'all') filters.subject_id = subjectFilter
       
       const data = await chaptersApi.getAll(filters)
@@ -123,7 +130,29 @@ const ChaptersPage: React.FC = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [boardFilter, standardFilter, subjectFilter, statusFilter, searchQuery])
+  }, [boardFilter, standardFilter, streamFilter, subjectFilter, statusFilter, searchQuery])
+
+  // Filter subjects when board/standard/stream changes
+  useEffect(() => {
+    if (allSubjects.length === 0) return
+    
+    let filtered = allSubjects
+    if (boardFilter !== 'all') {
+      filtered = filtered.filter(s => s.board_id === boardFilter)
+    }
+    if (standardFilter !== 'all') {
+      filtered = filtered.filter(s => s.standard_id === standardFilter)
+    }
+    if (streamFilter !== 'all') {
+      filtered = filtered.filter(s => s.stream_id === streamFilter)
+    }
+    
+    setSubjects(filtered)
+    // Reset subject filter if current selection is no longer valid
+    if (subjectFilter !== 'all' && !filtered.some(s => s.id === subjectFilter)) {
+      setSubjectFilter('all')
+    }
+  }, [allSubjects, boardFilter, standardFilter, streamFilter])
 
   // Initial load
   useEffect(() => {
@@ -385,6 +414,16 @@ const ChaptersPage: React.FC = () => {
         >
           <option value="all">All Standards</option>
           {standards.map(s => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
+        <select
+          value={streamFilter}
+          onChange={e => { setStreamFilter(e.target.value); setPage(1) }}
+          className="px-3 py-2 bg-app-card border border-app-border rounded-lg text-sm text-app-text appearance-none cursor-pointer focus:outline-none focus:border-app-green"
+        >
+          <option value="all">All Streams</option>
+          {streams.map(s => (
             <option key={s.id} value={s.id}>{s.name}</option>
           ))}
         </select>

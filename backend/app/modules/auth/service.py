@@ -139,7 +139,9 @@ class AuthService:
         """Get user profile by ID."""
         user = db.users.get_by_id(user_id)
         if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+            # Return 401 not 404 - if token is valid but user deleted, 
+            # treat as "not authenticated" to force re-login
+            raise HTTPException(status_code=401, detail="User not found")
         
         # Remove sensitive data
         user.pop("password_hash", None)
@@ -157,7 +159,7 @@ class AuthService:
         
         user = db.users.get_by_id(user_id)
         if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise HTTPException(status_code=401, detail="User not found")
         
         # Hash new password
         new_hash = hash_password(new_password)

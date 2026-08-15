@@ -47,6 +47,7 @@ class SubjectUpsert(BaseModel):
     name: str
     board_id: str
     standard_id: str
+    stream_id: Optional[str] = None
     sort_order: int = 0
     is_active: bool = True
 
@@ -120,8 +121,10 @@ class StudentCreate(BaseModel):
     password: str = ""
     standard: str = "Class 10"
     board: str = "CBSE"
+    stream: str = ""  # Required for Class 11-12 (Science, Commerce, Arts)
     language: str = "English"
     plan: str = "free"
+    send_email: bool = True  # Send welcome email with temp password
 
 
 class StudentUpdate(BaseModel):
@@ -129,6 +132,7 @@ class StudentUpdate(BaseModel):
     name: Optional[str] = None
     standard: Optional[str] = None
     board: Optional[str] = None
+    stream: Optional[str] = None  # For Class 11-12
     language: Optional[str] = None
     plan: Optional[str] = None
     plan_expires_at: Optional[str] = None
@@ -140,6 +144,7 @@ class BulkImportStudent(BaseModel):
     email: str
     standard: str = "Class 10"
     board: str = "CBSE"
+    stream: str = ""  # For Class 11-12 (Science, Commerce, Arts)
     language: str = "English"
     plan: str = "free"
 

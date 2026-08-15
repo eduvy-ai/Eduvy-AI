@@ -452,16 +452,17 @@ class AdminService:
     # ── Subjects ──────────────────────────────────────────────
 
     @staticmethod
-    def list_subjects(board_id: str = None, standard_id: str = None, school_id: int = None) -> List[Dict]:
+    def list_subjects(board_id: str = None, standard_id: str = None, stream_id: str = None, school_id: int = None) -> List[Dict]:
         conn = get_db()
         try:
             cur = conn.cursor()
             filter_sql, params = AdminService._school_id_filter(school_id)
             query = f"""
-                SELECT s.*, b.name as board_name, st.name as standard_name
+                SELECT s.*, b.name as board_name, st.name as standard_name, str.name as stream_name
                 FROM subjects s
                 LEFT JOIN boards b ON s.board_id = b.id
                 LEFT JOIN standards st ON s.standard_id = st.id
+                LEFT JOIN streams str ON s.stream_id = str.id
                 WHERE s.{filter_sql}
             """
             if board_id:
@@ -470,6 +471,9 @@ class AdminService:
             if standard_id:
                 query += " AND s.standard_id = %s"
                 params.append(standard_id)
+            if stream_id:
+                query += " AND s.stream_id = %s"
+                params.append(stream_id)
             query += " ORDER BY b.sort_order, st.sort_order, s.sort_order"
             cur.execute(query, params)
             return [dict(row) for row in cur.fetchall()]
@@ -477,7 +481,7 @@ class AdminService:
             conn.close()
 
     @staticmethod
-    def upsert_subject(subj_id: str, name: str, board_id: str, standard_id: str, sort_order: int = 0, is_active: bool = True, school_id: int = None) -> Dict:
+    def upsert_subject(subj_id: str, name: str, board_id: str, standard_id: str, stream_id: str = None, sort_order: int = 0, is_active: bool = True, school_id: int = None) -> Dict:
         conn = get_db()
         try:
             cur = conn.cursor()
@@ -485,13 +489,13 @@ class AdminService:
             scoped_board_id = AdminService._make_scoped_id(board_id, school_id) if board_id else board_id
             scoped_standard_id = AdminService._make_scoped_id(standard_id, school_id) if standard_id else standard_id
             cur.execute(
-                """INSERT INTO subjects (id, name, board_id, standard_id, sort_order, is_active, school_id)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """INSERT INTO subjects (id, name, board_id, standard_id, stream_id, sort_order, is_active, school_id)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                    ON CONFLICT (id) DO UPDATE SET
                    name=EXCLUDED.name, board_id=EXCLUDED.board_id, standard_id=EXCLUDED.standard_id,
-                   sort_order=EXCLUDED.sort_order, is_active=EXCLUDED.is_active
+                   stream_id=EXCLUDED.stream_id, sort_order=EXCLUDED.sort_order, is_active=EXCLUDED.is_active
                    RETURNING *""",
-                (scoped_id, name.strip(), scoped_board_id, scoped_standard_id, sort_order, is_active, school_id)
+                (scoped_id, name.strip(), scoped_board_id, scoped_standard_id, stream_id, sort_order, is_active, school_id)
             )
             row = cur.fetchone()
             conn.commit()
@@ -1259,10 +1263,11 @@ class AdminService:
             conn.close()
 
     @staticmethod
-    def create_student(name: str, email: str, password: str, standard: str, board: str, language: str, plan: str = "free", school_id: int = None, send_welcome_email: bool = False) -> Dict:
+    def create_student(name: str, email: str, password: str, standard: str, board: str, stream: str, language: str, plan: str = "free", school_id: int = None, send_welcome_email: bool = False) -> Dict:
         """Create a student. School admins automatically assign their school_id.
         
         If password is empty and send_welcome_email=True, generates a temp password and sends email.
+        Stream is required for Class 11-12 (Science, Commerce, Arts).
         """
         import uuid
         import bcrypt as _bcrypt
@@ -1277,10 +1282,12 @@ class AdminService:
                 raise HTTPException(status_code=409, detail="Email already registered")
             
             # School students inherit the school's plan
+            school_name = None
             if school_id:
-                cur.execute("SELECT plan, student_limit FROM schools WHERE id = %s", (school_id,))
+                cur.execute("SELECT name, plan, student_limit FROM schools WHERE id = %s", (school_id,))
                 school_row = cur.fetchone()
                 if school_row:
+                    school_name = school_row["name"]
                     plan = SCHOOL_TO_USER_PLAN.get(school_row["plan"], "basic")
                     # Enforce student limit
                     cur.execute("SELECT COUNT(*) AS cnt FROM users WHERE school_id = %s", (school_id,))
@@ -1301,18 +1308,56 @@ class AdminService:
             pw_hash = _bcrypt.hashpw(actual_password.encode(), _bcrypt.gensalt()).decode()
             user_id = str(uuid.uuid4())
             cur.execute(
-                """INSERT INTO users (id, name, email, password_hash, standard, board, language, plan, school_id, must_change_password, temp_password)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-                (user_id, name.strip(), email, pw_hash, standard, board, language, plan, school_id, must_change, temp_password)
+                """INSERT INTO users (id, name, email, password_hash, standard, board, stream, language, plan, school_id, must_change_password, temp_password)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                (user_id, name.strip(), email, pw_hash, standard, board, stream or '', language, plan, school_id, must_change, temp_password)
             )
             conn.commit()
+            
+            # Send welcome email if requested and temp password was generated
+            if send_welcome_email and temp_password:
+                try:
+                    from app.utils.email import send_email as send_email_func, student_welcome_html, student_welcome_plain
+                    import asyncio
+                    
+                    html = student_welcome_html(
+                        student_name=name.strip(),
+                        student_email=email,
+                        temp_password=temp_password,
+                        school_name=school_name
+                    )
+                    plain = student_welcome_plain(
+                        student_name=name.strip(),
+                        student_email=email,
+                        temp_password=temp_password,
+                        school_name=school_name
+                    )
+                    # Run async email in sync context
+                    try:
+                        loop = asyncio.get_event_loop()
+                    except RuntimeError:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                    loop.run_until_complete(
+                        send_email_func(
+                            to_email=email,
+                            subject="Welcome to Eduvy-AI! 🎓",
+                            html_body=html,
+                            plain_body=plain
+                        )
+                    )
+                except Exception as e:
+                    # Don't fail student creation if email fails
+                    import logging
+                    logging.getLogger(__name__).warning(f"Failed to send welcome email to {email}: {e}")
             
             result = {
                 "id": user_id, 
                 "name": name, 
                 "email": email, 
                 "standard": standard, 
-                "board": board, 
+                "board": board,
+                "stream": stream or '',
                 "language": language, 
                 "plan": plan, 
                 "school_id": school_id,
@@ -1396,8 +1441,8 @@ class AdminService:
                     user_id = str(uuid.uuid4())
                     
                     cur.execute(
-                        """INSERT INTO users (id, name, email, password_hash, standard, board, language, plan, school_id, must_change_password, temp_password)
-                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,TRUE,%s)""",
+                        """INSERT INTO users (id, name, email, password_hash, standard, board, stream, language, plan, school_id, must_change_password, temp_password)
+                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,TRUE,%s)""",
                         (
                             user_id,
                             name,
@@ -1405,6 +1450,7 @@ class AdminService:
                             pw_hash,
                             student_data.get("standard", "Class 10"),
                             student_data.get("board", "CBSE"),
+                            student_data.get("stream", ""),
                             student_data.get("language", "English"),
                             inherited_plan or student_data.get("plan", "free"),
                             school_id,
@@ -1420,6 +1466,7 @@ class AdminService:
                         "temp_password": temp_password,
                         "standard": student_data.get("standard", "Class 10"),
                         "board": student_data.get("board", "CBSE"),
+                        "stream": student_data.get("stream", ""),
                     })
                     
                 except Exception as e:

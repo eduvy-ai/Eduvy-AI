@@ -4,7 +4,8 @@ import { getDeviceId, apiCreateProfile, apiApplyReferralCode, apiJoinSchool, api
 import { li } from '../i18n/index.js'
 import { HandWaving, CheckCircle, Books, Confetti, GraduationCap, ClipboardText, Globe, House, BookOpen, Robot, PlayCircle, Microphone, Target, PencilLine, Flower, Check, Building } from '@phosphor-icons/react'
 
-const CLASSES = Array.from({ length: 4 }, (_, i) => `Class ${i + 9}`)
+// Static fallback for standards
+const CLASSES_FALLBACK = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
 
 // ── Curriculum API helpers ────────────────────────────────────
 async function fetchBoards() {
@@ -16,6 +17,21 @@ async function fetchBoards() {
     }
   } catch {}
   return BOARDS // fallback
+}
+
+async function fetchStandards(board) {
+  const boardSlug = board.toLowerCase().replace(/\s+/g, '-')
+  try {
+    const res = await fetch(
+      `/api/curriculum/standards?board=${encodeURIComponent(boardSlug)}`,
+      { signal: AbortSignal.timeout(5000) }
+    )
+    if (res.ok) {
+      const data = await res.json()
+      if (Array.isArray(data) && data.length > 0) return data.map(s => s.name)
+    }
+  } catch {}
+  return CLASSES_FALLBACK // fallback
 }
 
 async function fetchMediums(board, standard) {
@@ -73,15 +89,25 @@ export default function Onboard({ onComplete }) {
   const [schoolError, setSchoolError] = useState('')
 
   // Dynamic lists from API (with static fallbacks)
-  const [boardList,   setBoardList]   = useState(BOARDS)
-  const [mediumList,  setMediumList]  = useState(LANGS)
-  const [subjectList, setSubjectList] = useState([])
-  const [loadingSubs, setLoadingSubs] = useState(false)
+  const [boardList,    setBoardList]    = useState(BOARDS)
+  const [standardList, setStandardList] = useState(CLASSES_FALLBACK)
+  const [mediumList,   setMediumList]   = useState(LANGS)
+  const [subjectList,  setSubjectList]  = useState([])
+  const [loadingSubs,  setLoadingSubs]  = useState(false)
 
   // Load boards once on mount
   useEffect(() => {
     fetchBoards().then(setBoardList)
   }, [])
+
+  // When board changes → refresh standards
+  useEffect(() => {
+    fetchStandards(board).then(stds => {
+      setStandardList(stds)
+      // If current standard is not in new list, pick first available
+      if (!stds.includes(standard)) setStd(stds[0] || "Class 10")
+    })
+  }, [board])
 
   // When board or standard changes → refresh mediums + subjects
   useEffect(() => {
@@ -287,7 +313,7 @@ export default function Onboard({ onComplete }) {
               <div>
                 <label className="text-xs text-app-muted font-semibold mb-1.5 block">{ui.classLabel}</label>
                 <select className={selectClass} value={standard} onChange={e => setStd(e.target.value)}>
-                  {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                  {standardList.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
 

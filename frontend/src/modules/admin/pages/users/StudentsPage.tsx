@@ -3,9 +3,9 @@
 
 import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { useStudents, useCanEdit, useAdminAuth } from '../../hooks'
-import { adminApi, boardsApi, standardsApi } from '../../api'
+import { adminApi, boardsApi, standardsApi, mediumsApi, streamsApi } from '../../api'
 import { adminService } from '../../service'
-import type { StudentUser, Board, Standard } from '../../types'
+import type { StudentUser, Board, Standard, Medium, Stream } from '../../types'
 import { PLAN_LABELS } from '../../constants'
 import Modal from '../../../../shared/components/Modal'
 import Button from '../../../../shared/components/Button'
@@ -37,8 +37,15 @@ const defaultCreateForm = {
   password: '',
   standard: 'Class 10',
   board: 'CBSE',
+  stream: '',  // For Class 11-12
   language: 'English',
   plan: 'free',
+  sendEmail: true,
+}
+
+// Helper to check if standard requires stream selection
+const needsStream = (standard: string) => {
+  return standard?.includes('11') || standard?.includes('12')
 }
 
 const StudentsPage: React.FC = () => {
@@ -63,6 +70,8 @@ const StudentsPage: React.FC = () => {
   // Dropdown options
   const [availableBoards, setAvailableBoards] = useState<Board[]>([])
   const [availableStandards, setAvailableStandards] = useState<Standard[]>([])
+  const [availableMediums, setAvailableMediums] = useState<Medium[]>([])
+  const [availableStreams, setAvailableStreams] = useState<Stream[]>([])
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -97,12 +106,16 @@ const StudentsPage: React.FC = () => {
   // Fetch dropdown options
   const fetchOptions = useCallback(async () => {
     try {
-      const [boards, standards] = await Promise.all([
+      const [boards, standards, mediums, streams] = await Promise.all([
         boardsApi.getAll(),
-        standardsApi.getAll()
+        standardsApi.getAll(),
+        mediumsApi.getAll(),
+        streamsApi.getAll()
       ])
       setAvailableBoards(boards.filter(b => b.is_active))
       setAvailableStandards(standards.filter(s => s.is_active))
+      setAvailableMediums(mediums.filter(m => m.is_active))
+      setAvailableStreams(streams.filter(s => s.is_active))
     } catch (error) {
       console.error('Failed to load options:', error)
     }
@@ -213,7 +226,20 @@ const StudentsPage: React.FC = () => {
 
   // Open create modal
   const handleCreate = () => {
-    setCreateForm(defaultCreateForm)
+    // Set defaults from database if available
+    // School admins always send email (no password field)
+    const defaultStandard = availableStandards.length > 0 ? availableStandards[0].name : 'Class 10'
+    setCreateForm({
+      name: '',
+      email: '',
+      password: '',
+      standard: defaultStandard,
+      board: availableBoards.length > 0 ? availableBoards[0].name : 'CBSE',
+      stream: '', // Will be set when Class 11/12 selected
+      language: availableMediums.length > 0 ? availableMediums[0].name : 'English',
+      plan: 'free',
+      sendEmail: isSchoolAdmin ? true : true, // Default to sending email
+    })
     setFormError('')
     setShowCreateModal(true)
   }
@@ -230,8 +256,13 @@ const StudentsPage: React.FC = () => {
       setFormError('Email is required')
       return
     }
-    // School admins don't need to set password — backend generates a temp one
-    if (!isSchoolAdmin && (!createForm.password.trim() || createForm.password.length < 6)) {
+    // Stream is required for Class 11-12
+    if (needsStream(createForm.standard) && !createForm.stream) {
+      setFormError('Stream is required for Class 11 and 12')
+      return
+    }
+    // If not sending email, password is required
+    if (!createForm.sendEmail && (!createForm.password.trim() || createForm.password.length < 6)) {
       setFormError('Password must be at least 6 characters')
       return
     }
@@ -241,11 +272,13 @@ const StudentsPage: React.FC = () => {
       const newStudent = await adminApi.users.create({
         name: createForm.name.trim(),
         email: createForm.email.trim().toLowerCase(),
-        password: createForm.password || '',
+        password: createForm.sendEmail ? '' : createForm.password,
         standard: createForm.standard,
         board: createForm.board,
+        stream: needsStream(createForm.standard) ? createForm.stream : '',
         language: createForm.language,
         plan: createForm.plan,
+        send_email: createForm.sendEmail,
       })
       
       // Add to local state with safe defaults for fields not returned by create API
@@ -289,6 +322,7 @@ const StudentsPage: React.FC = () => {
       email: string
       standard?: string
       board?: string
+      stream?: string  // For Class 11-12
       language?: string
       plan?: string
     }> = []
@@ -299,13 +333,15 @@ const StudentsPage: React.FC = () => {
       
       const parts = trimmed.split(',').map(p => p.trim())
       if (parts.length >= 2) {
+        const standard = parts[2] || 'Class 10'
         students.push({
           name: parts[0],
           email: parts[1],
-          standard: parts[2] || 'Class 10',
+          standard,
           board: parts[3] || 'CBSE',
-          language: parts[4] || 'English',
-          plan: parts[5] || 'free',
+          stream: needsStream(standard) ? (parts[4] || '') : '',
+          language: parts[5] || 'English',
+          plan: parts[6] || 'free',
         })
       }
     }
@@ -314,11 +350,13 @@ const StudentsPage: React.FC = () => {
 
   // Download sample CSV
   const downloadSampleCSV = () => {
-    const sample = `# Name, Email, Standard, Board, Language, Plan
+    const sample = `# Name, Email, Standard, Board, Stream, Language, Plan
 # Lines starting with # are ignored
-John Doe, john@example.com, Class 10, CBSE, English, free
-Jane Smith, jane@example.com, Class 9, Maharashtra Board, Marathi, basic
-Rahul Kumar, rahul@example.com, Class 11, CBSE, Hindi, pro`
+# Stream is required for Class 11 and 12 (Science, Commerce, Arts)
+John Doe, john@example.com, Class 10, CBSE, , English, free
+Jane Smith, jane@example.com, Class 9, Maharashtra Board, , Marathi, basic
+Rahul Kumar, rahul@example.com, Class 11, CBSE, Science, Hindi, pro
+Priya Sharma, priya@example.com, Class 12, CBSE, Commerce, English, pro`
     
     const blob = new Blob([sample], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
@@ -335,7 +373,7 @@ Rahul Kumar, rahul@example.com, Class 11, CBSE, Hindi, pro`
     const students = parseBulkImportData(bulkImportData)
     
     if (students.length === 0) {
-      setFormError('No valid students found. Check format: Name, Email, Standard, Board, Language, Plan')
+      setFormError('No valid students found. Check format: Name, Email, Standard, Board, Stream, Language, Plan')
       return
     }
 
@@ -889,20 +927,41 @@ Rahul Kumar, rahul@example.com, Class 11, CBSE, Hindi, pro`
             />
           </div>
 
+          {/* Send welcome email checkbox - school admins always send email */}
           {isSchoolAdmin ? (
             <div className="p-3 rounded-xl bg-app-blue/10 border border-app-blue/30 text-sm text-app-muted">
-              A temporary password will be auto-generated. Student must change it on first login.
+              A temporary password will be auto-generated and sent via email. Student must change it on first login.
             </div>
           ) : (
-            <div>
-              <label className="block text-sm font-medium text-app-muted mb-1.5">Password *</label>
-              <input
-                type="password"
-                value={createForm.password}
-                onChange={(e) => setCreateForm(prev => ({ ...prev, password: e.target.value }))}
-                className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
-                placeholder="Minimum 6 characters"
-              />
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={createForm.sendEmail}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, sendEmail: e.target.checked, password: '' }))}
+                  className="w-4 h-4 rounded border-white/20 bg-app-card2 text-app-green focus:ring-app-green/50"
+                />
+                <span className="text-sm text-app-text">
+                  Send welcome email with temporary password
+                </span>
+              </label>
+              
+              {createForm.sendEmail ? (
+                <div className="p-3 rounded-xl bg-app-green/10 border border-app-green/30 text-sm text-app-muted">
+                  A temporary password will be auto-generated and sent to the student's email. They must change it on first login.
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-app-muted mb-1.5">Password *</label>
+                  <input
+                    type="password"
+                    value={createForm.password}
+                    onChange={(e) => setCreateForm(prev => ({ ...prev, password: e.target.value }))}
+                    className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+                    placeholder="Minimum 6 characters"
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -911,7 +970,11 @@ Rahul Kumar, rahul@example.com, Class 11, CBSE, Hindi, pro`
               <label className="block text-sm font-medium text-app-muted mb-1.5">Standard</label>
               <select
                 value={createForm.standard}
-                onChange={(e) => setCreateForm(prev => ({ ...prev, standard: e.target.value }))}
+                onChange={(e) => setCreateForm(prev => ({ 
+                  ...prev, 
+                  standard: e.target.value,
+                  stream: '' // Reset stream when standard changes
+                }))}
                 className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
               >
                 {availableStandards.length > 0 ? (
@@ -959,6 +1022,31 @@ Rahul Kumar, rahul@example.com, Class 11, CBSE, Hindi, pro`
             </div>
           </div>
 
+          {/* Stream dropdown - only for Class 11 and 12 */}
+          {needsStream(createForm.standard) && (
+            <div>
+              <label className="block text-sm font-medium text-app-muted mb-1.5">Stream *</label>
+              <select
+                value={createForm.stream}
+                onChange={(e) => setCreateForm(prev => ({ ...prev, stream: e.target.value }))}
+                className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
+              >
+                <option value="">Select Stream</option>
+                {availableStreams.length > 0 ? (
+                  availableStreams.map(s => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="Science">Science</option>
+                    <option value="Commerce">Commerce</option>
+                    <option value="Arts">Arts</option>
+                  </>
+                )}
+              </select>
+            </div>
+          )}
+
           <div className={`grid ${isSchoolAdmin ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
             <div>
               <label className="block text-sm font-medium text-app-muted mb-1.5">Language</label>
@@ -967,10 +1055,18 @@ Rahul Kumar, rahul@example.com, Class 11, CBSE, Hindi, pro`
                 onChange={(e) => setCreateForm(prev => ({ ...prev, language: e.target.value }))}
                 className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
               >
-                <option value="English">English</option>
-                <option value="Hindi">Hindi</option>
-                <option value="Marathi">Marathi</option>
-                <option value="Gujarati">Gujarati</option>
+                {availableMediums.length > 0 ? (
+                  availableMediums.map(m => (
+                    <option key={m.id} value={m.name}>{m.name}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="English">English</option>
+                    <option value="Hindi">Hindi</option>
+                    <option value="Marathi">Marathi</option>
+                    <option value="Gujarati">Gujarati</option>
+                  </>
+                )}
               </select>
             </div>
             {!isSchoolAdmin && (
@@ -1033,12 +1129,12 @@ Rahul Kumar, rahul@example.com, Class 11, CBSE, Hindi, pro`
               <div className="bg-app-card2 rounded-xl border border-white/10 p-3">
                 <div className="flex items-center gap-2 mb-2 text-xs text-app-muted">
                   <FileText size={14} />
-                  <span>Format: Name, Email, Standard, Board, Language, Plan</span>
+                  <span>Format: Name, Email, Standard, Board, Stream, Language, Plan</span>
                 </div>
                 <textarea
                   value={bulkImportData}
                   onChange={(e) => setBulkImportData(e.target.value)}
-                  placeholder={`John Doe, john@example.com, Class 10, CBSE, English, free\nJane Smith, jane@example.com, Class 9, Maharashtra Board, Marathi, basic`}
+                  placeholder={`John Doe, john@example.com, Class 10, CBSE, , English, free\nRahul Kumar, rahul@example.com, Class 11, CBSE, Science, Hindi, pro`}
                   className="w-full h-48 bg-transparent text-app-text text-sm font-mono resize-none focus:outline-none"
                 />
               </div>

@@ -86,13 +86,22 @@ export interface Medium {
   is_active: boolean
 }
 
+export interface Stream {
+  id: string
+  name: string
+  sort_order: number
+  is_active?: boolean
+}
+
 export interface Subject {
   id: string
   name: string
   board_id: string
   standard_id: string
+  stream_id?: string | null
   board_name?: string
   standard_name?: string
+  stream_name?: string | null
   sort_order: number
   is_active: boolean
 }
@@ -111,6 +120,7 @@ export interface Chapter {
   board_id: string
   standard_id: string
   subject_id: string
+  stream_id?: string
   chapter_number: number
   chapter_name: string
   chapter_name_local?: string
@@ -123,6 +133,7 @@ export interface Chapter {
   board_name?: string
   standard_name?: string
   subject_name?: string
+  stream_name?: string
 }
 
 // ── User Management Types ──
@@ -132,6 +143,7 @@ export interface StudentUser {
   name: string
   standard: string
   board: string
+  stream?: string  // For Class 11-12 (Science, Commerce, Arts)
   language: string
   plan: 'free' | 'basic' | 'pro' | 'premium'
   plan_expires_at: string | null

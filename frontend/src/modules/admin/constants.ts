@@ -19,6 +19,7 @@ export const ADMIN_ENDPOINTS = {
   boards: '/api/admin/boards',
   standards: '/api/admin/standards',
   mediums: '/api/admin/mediums',
+  streams: '/api/admin/streams',
   subjects: '/api/admin/subjects',
   curriculum: '/api/admin/curriculum',
   chapters: '/api/admin/chapters',

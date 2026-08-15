@@ -93,6 +93,13 @@ def create_all_tables():
         EXCEPTION WHEN duplicate_column THEN NULL;
         END $$
     """)
+    # Add stream column if missing (for Class 11-12)
+    cur.execute("""
+        DO $$ BEGIN
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS stream TEXT DEFAULT '';
+        EXCEPTION WHEN duplicate_column THEN NULL;
+        END $$
+    """)
     # Add must_change_password column if missing (for OTP flow)
     cur.execute("""
         DO $$ BEGIN
@@ -467,19 +474,36 @@ def create_all_tables():
         )
     """)
 
-    # ── Subjects (per board+standard) ─────────────────────────
+    # ── Streams (Science, Commerce, Arts for Class 11-12) ─────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS streams (
+            id          TEXT PRIMARY KEY,
+            name        TEXT NOT NULL,
+            sort_order  INTEGER DEFAULT 0,
+            is_active   BOOLEAN DEFAULT TRUE
+        )
+    """)
+
+    # ── Subjects (per board+standard+stream) ──────────────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS subjects (
             id          TEXT PRIMARY KEY,
             name        TEXT NOT NULL,
             board_id    TEXT NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
             standard_id TEXT NOT NULL REFERENCES standards(id) ON DELETE CASCADE,
+            stream_id   TEXT DEFAULT NULL REFERENCES streams(id) ON DELETE SET NULL,
             sort_order  INTEGER DEFAULT 0,
             is_active   BOOLEAN DEFAULT TRUE,
-            UNIQUE (board_id, standard_id, name)
+            UNIQUE (board_id, standard_id, stream_id, name)
         )
     """)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_subjects_board_std ON subjects(board_id, standard_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_subjects_stream ON subjects(stream_id)")
+    # Migration: add stream_id if table already exists
+    cur.execute("""DO $$ BEGIN
+        ALTER TABLE subjects ADD COLUMN stream_id TEXT DEFAULT NULL REFERENCES streams(id) ON DELETE SET NULL;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$""")
 
     # ── Curriculum (deprecated - kept for migration) ──────────
     cur.execute("""
@@ -501,6 +525,7 @@ def create_all_tables():
             board_id        TEXT NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
             standard_id     TEXT NOT NULL REFERENCES standards(id) ON DELETE CASCADE,
             subject_id      TEXT NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+            stream_id       TEXT DEFAULT NULL REFERENCES streams(id) ON DELETE SET NULL,
             chapter_number  INTEGER NOT NULL,
             chapter_name    TEXT NOT NULL,
             chapter_name_local TEXT DEFAULT '',
@@ -512,9 +537,14 @@ def create_all_tables():
         )
     """)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_chapters_lookup ON chapters(board_id, standard_id, subject_id)")
-    # Migration: add chapter_name_local if table already exists without it
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_chapters_stream ON chapters(stream_id)")
+    # Migration: add columns if table already exists
     cur.execute("""DO $$ BEGIN
         ALTER TABLE chapters ADD COLUMN chapter_name_local TEXT DEFAULT '';
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$""")
+    cur.execute("""DO $$ BEGIN
+        ALTER TABLE chapters ADD COLUMN stream_id TEXT DEFAULT NULL REFERENCES streams(id) ON DELETE SET NULL;
     EXCEPTION WHEN duplicate_column THEN NULL;
     END $$""")
 
