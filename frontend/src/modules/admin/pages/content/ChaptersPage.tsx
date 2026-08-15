@@ -40,6 +40,7 @@ const defaultFormState = {
 const ChaptersPage: React.FC = () => {
   // Data state
   const [chapters, setChapters] = useState<Chapter[]>([])
+  const [totalCount, setTotalCount] = useState(0) // Server-side total for pagination
   const [boards, setBoards] = useState<{ id: string; name: string }[]>([])
   const [standards, setStandards] = useState<{ id: string; name: string }[]>([])
   const [streams, setStreams] = useState<{ id: string; name: string }[]>([])
@@ -82,17 +83,17 @@ const ChaptersPage: React.FC = () => {
     if (curriculumLoadedRef.current) return
     curriculumLoadedRef.current = true
     try {
-      const [boardsData, standardsData, streamsData, subjectsData] = await Promise.all([
+      const [boardsData, standardsData, streamsData, subjectsResponse] = await Promise.all([
         adminApi.boards.getAll(),
         adminApi.standards.getAll(),
         adminApi.streams.getAll(),
-        adminApi.subjects.getAll(),
+        adminApi.subjects.getAll({ page_size: 200 }),
       ])
       setBoards(boardsData)
       setStandards(standardsData)
       setStreams(streamsData)
-      setAllSubjects(subjectsData)
-      setSubjects(subjectsData)
+      setAllSubjects(subjectsResponse.items)
+      setSubjects(subjectsResponse.items)
     } catch (error) {
       console.error('Failed to load curriculum options:', error)
     }
@@ -100,23 +101,26 @@ const ChaptersPage: React.FC = () => {
 
   // Load chapters
   const loadChapters = useCallback(async () => {
-    // Dedupe by comparing filter state
-    const filterKey = JSON.stringify({ boardFilter, standardFilter, streamFilter, subjectFilter, statusFilter, searchQuery })
+    // Dedupe by comparing filter state (include page now)
+    const filterKey = JSON.stringify({ boardFilter, standardFilter, streamFilter, subjectFilter, statusFilter, searchQuery, page, pageSize })
     if (filterKey === lastChapterFilterRef.current) return
     lastChapterFilterRef.current = filterKey
     
     setIsLoading(true)
     try {
-      const filters: { board_id?: string; standard_id?: string; subject_id?: string; stream_id?: string } = {}
+      const filters: { board_id?: string; standard_id?: string; subject_id?: string; stream_id?: string; page?: number; page_size?: number } = {
+        page,
+        page_size: pageSize
+      }
       if (boardFilter !== 'all') filters.board_id = boardFilter
       if (standardFilter !== 'all') filters.standard_id = standardFilter
       if (streamFilter !== 'all') filters.stream_id = streamFilter
       if (subjectFilter !== 'all') filters.subject_id = subjectFilter
       
-      const data = await chaptersApi.getAll(filters)
+      const response = await chaptersApi.getAll(filters)
       
-      // Apply client-side filters
-      let filtered = data
+      // Apply client-side filters for status and search (these are fast since data is already paginated)
+      let filtered = response.items
       if (statusFilter !== 'all') {
         filtered = filtered.filter(c => c.content_status === statusFilter)
       }
@@ -130,13 +134,15 @@ const ChaptersPage: React.FC = () => {
       }
       
       setChapters(filtered)
+      setTotalCount(response.total)
     } catch (error) {
       console.error('Failed to load chapters:', error)
       setChapters([])
+      setTotalCount(0)
     } finally {
       setIsLoading(false)
     }
-  }, [boardFilter, standardFilter, streamFilter, subjectFilter, statusFilter, searchQuery])
+  }, [boardFilter, standardFilter, streamFilter, subjectFilter, statusFilter, searchQuery, page, pageSize])
 
   // Filter subjects when board/standard/stream changes
   useEffect(() => {
@@ -175,9 +181,14 @@ const ChaptersPage: React.FC = () => {
     loadChapters()
   }
 
-  // Paginated data
-  const paginatedChapters = chapters.slice((page - 1) * pageSize, page * pageSize)
-  const totalCount = chapters.length
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1)
+    lastChapterFilterRef.current = '' // Force reload
+  }, [boardFilter, standardFilter, streamFilter, subjectFilter, statusFilter, searchQuery])
+
+  // Server-side pagination - chapters array is already the current page
+  const paginatedChapters = chapters
 
   const toggleSelect = (id: number) => {
     setSelectedIds(prev => {

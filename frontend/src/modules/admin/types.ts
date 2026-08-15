@@ -473,12 +473,20 @@ export interface AssessmentUpdate {
   status?: AssessmentStatus
 }
 
-// Paginated list response
+// Paginated list response (legacy - limit/offset)
 export interface PaginatedResponse<T> {
   data: T[]
   total: number
   limit: number
   offset: number
+}
+
+// Paginated list response (new - page/page_size)
+export interface PagedResponse<T> {
+  items: T[]
+  total: number
+  page: number
+  page_size: number
 }
 
 // ── Admin State ──
@@ -499,8 +507,10 @@ export interface AdminState {
   curriculum: CurriculumEntry[]
   chapters: Chapter[]
   students: StudentUser[]
+  studentsTotal: number
   helpers: DrishtiHelper[]
   squads: Squad[]
+  squadsTotal: number
   doubts: SquadDoubt[]
   communityStats: CommunityStats | null
   
@@ -544,8 +554,10 @@ export const DEFAULT_ADMIN_STATE: AdminState = {
   curriculum: [],
   chapters: [],
   students: [],
+  studentsTotal: 0,
   helpers: [],
   squads: [],
+  squadsTotal: 0,
   doubts: [],
   communityStats: null,
   

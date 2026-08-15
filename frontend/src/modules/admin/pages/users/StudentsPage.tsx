@@ -1,7 +1,7 @@
 // ─── Students Management Page ──────────────────────────────────
 // View and manage student users
 
-import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { useStudents, useCanEdit, useAdminAuth } from '../../hooks'
 import { adminApi, boardsApi, standardsApi, mediumsApi, streamsApi } from '../../api'
 import { adminService } from '../../service'
@@ -49,7 +49,7 @@ const needsStream = (standard: string) => {
 }
 
 const StudentsPage: React.FC = () => {
-  const { students, fetchStudents, updateStudentLocal, removeStudents, addStudentLocal } = useStudents()
+  const { students, studentsTotal, fetchStudents, updateStudentLocal, removeStudents, addStudentLocal } = useStudents()
   const canEdit = useCanEdit('students')
   const { user: adminUser } = useAdminAuth()
   const isSchoolAdmin = !!adminUser?.school_id
@@ -133,12 +133,15 @@ const StudentsPage: React.FC = () => {
     fetchOptions()
   }, [fetchOptions])
 
-  // Load students
+  // Load students with server-side pagination
   useEffect(() => {
     const load = async () => {
       setIsLoading(true)
       try {
-        const filters: { search?: string; plan?: string; drishti?: boolean } = {}
+        const filters: { search?: string; plan?: string; drishti?: boolean; page?: number; page_size?: number } = {
+          page: currentPage,
+          page_size: pageSize,
+        }
         if (searchQuery) filters.search = searchQuery
         if (filterPlan) filters.plan = filterPlan
         if (filterDrishti !== 'all') filters.drishti = filterDrishti === 'yes'
@@ -151,34 +154,9 @@ const StudentsPage: React.FC = () => {
     // Debounce search
     const timeout = setTimeout(load, 300)
     return () => clearTimeout(timeout)
-  }, [searchQuery, filterPlan, filterDrishti])
+  }, [searchQuery, filterPlan, filterDrishti, currentPage, pageSize])
 
-  // Filter locally for instant feedback
-  const filteredStudents = useMemo(() => {
-    return students.filter(s => {
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase()
-        if (!s.name.toLowerCase().includes(q) && 
-            !s.email.toLowerCase().includes(q) &&
-            !(s.school || '').toLowerCase().includes(q)) {
-          return false
-        }
-      }
-      if (filterPlan && s.plan !== filterPlan) return false
-      if (filterDrishti === 'yes' && !s.is_drishti) return false
-      if (filterDrishti === 'no' && s.is_drishti) return false
-      return true
-    })
-  }, [students, searchQuery, filterPlan, filterDrishti])
-
-  // Paginated students
-  const totalPages = Math.ceil(filteredStudents.length / pageSize)
-  const paginatedStudents = useMemo(() => {
-    const start = (currentPage - 1) * pageSize
-    return filteredStudents.slice(start, start + pageSize)
-  }, [filteredStudents, currentPage, pageSize])
-
-  // Reset page when filters change
+  // Reset page when filters change (not page/pageSize)
   useEffect(() => {
     setCurrentPage(1)
   }, [searchQuery, filterPlan, filterDrishti])
@@ -484,7 +462,7 @@ Priya Sharma, priya@example.com, Class 12, CBSE, Commerce, English, pro`
 
   // Select all visible (on current page)
   const toggleSelectAll = () => {
-    const pageIds = paginatedStudents.map(s => s.id)
+    const pageIds = students.map(s => s.id)
     const allSelected = pageIds.every(id => selectedIds.has(id))
     if (allSelected) {
       setSelectedIds(prev => {
@@ -524,7 +502,7 @@ Priya Sharma, priya@example.com, Class 12, CBSE, Commerce, English, pro`
       header: (
         <input
           type="checkbox"
-          checked={paginatedStudents.length > 0 && paginatedStudents.every(s => selectedIds.has(s.id))}
+          checked={students.length > 0 && students.every(s => selectedIds.has(s.id))}
           onChange={toggleSelectAll}
           className="w-4 h-4 rounded border-white/20 bg-app-card2 text-app-green focus:ring-app-green/50"
         />
@@ -662,7 +640,7 @@ Priya Sharma, priya@example.com, Class 12, CBSE, Commerce, English, pro`
         <div>
           <h1 className="text-2xl font-black text-app-text">Students</h1>
           <p className="text-sm text-app-muted mt-1">
-            {filteredStudents.length} students {hasFilters && '(filtered)'}
+            {studentsTotal} students {hasFilters && '(filtered)'}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -751,7 +729,7 @@ Priya Sharma, priya@example.com, Class 12, CBSE, Commerce, English, pro`
       {/* Table */}
       <Table
         columns={columns}
-        data={paginatedStudents}
+        data={students}
         isLoading={isLoading}
         emptyMessage="No students found"
         keyExtractor={(student) => student.id}
@@ -760,8 +738,8 @@ Priya Sharma, priya@example.com, Class 12, CBSE, Commerce, English, pro`
       {/* Pagination */}
       <Pagination
         currentPage={currentPage}
-        totalPages={totalPages}
-        totalItems={filteredStudents.length}
+        totalPages={Math.ceil(studentsTotal / pageSize)}
+        totalItems={studentsTotal}
         pageSize={pageSize}
         onPageChange={setCurrentPage}
         onPageSizeChange={(size) => {

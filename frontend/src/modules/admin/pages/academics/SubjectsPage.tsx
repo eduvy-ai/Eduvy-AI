@@ -61,12 +61,12 @@ const SubjectsPage: React.FC = () => {
   const fetchSubjects = useCallback(async () => {
     setIsLoading(true)
     try {
-      const filters: { board_id?: string; standard_id?: string; stream_id?: string } = {}
+      const filters: { board_id?: string; standard_id?: string; stream_id?: string; page_size?: number } = { page_size: 200 }
       if (boardFilter) filters.board_id = boardFilter
       if (standardFilter) filters.standard_id = standardFilter
       if (streamFilter) filters.stream_id = streamFilter
-      const data = await adminApi.subjects.getAll(filters)
-      setSubjects(data)
+      const response = await adminApi.subjects.getAll(filters)
+      setSubjects(response.items)
     } catch (error) {
       console.error('Failed to fetch subjects:', error)
     } finally {

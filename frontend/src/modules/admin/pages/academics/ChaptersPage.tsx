@@ -32,6 +32,7 @@ const ChaptersPage: React.FC = () => {
   const [streams, setStreams] = useState<Stream[]>([])
   
   const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingChapters, setIsLoadingChapters] = useState(true) // Separate loading state for chapters
   const [searchQuery, setSearchQuery] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -97,7 +98,7 @@ const ChaptersPage: React.FC = () => {
   // Load chapters when filters change
   useEffect(() => {
     const loadChapters = async () => {
-      setIsLoading(true)
+      setIsLoadingChapters(true)
       try {
         const filters: { board_id?: string; standard_id?: string; subject_id?: string; stream_id?: string } = {}
         if (filterBoard) filters.board_id = filterBoard
@@ -106,7 +107,7 @@ const ChaptersPage: React.FC = () => {
         if (filterSubject) filters.subject_id = filterSubject
         await fetchChapters(filters)
       } finally {
-        setIsLoading(false)
+        setIsLoadingChapters(false)
       }
     }
     loadChapters()
@@ -540,7 +541,7 @@ const ChaptersPage: React.FC = () => {
       <Table
         columns={columns}
         data={paginatedChapters}
-        isLoading={isLoading}
+        isLoading={isLoading || isLoadingChapters}
         emptyMessage={hasFilters ? "No chapters match the filters" : "No chapters found. Add your first chapter!"}
         keyExtractor={(chapter) => chapter.id}
       />

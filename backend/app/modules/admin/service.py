@@ -459,31 +459,51 @@ class AdminService:
     # ── Subjects ──────────────────────────────────────────────
 
     @staticmethod
-    def list_subjects(board_id: str = None, standard_id: str = None, stream_id: str = None, school_id: int = None) -> List[Dict]:
+    def list_subjects(board_id: str = None, standard_id: str = None, stream_id: str = None, school_id: int = None,
+                      page: int = 1, page_size: int = 50, search: str = None) -> Dict:
         conn = get_db()
         try:
             cur = conn.cursor()
             filter_sql, params = AdminService._school_id_filter(school_id)
+            
+            # Base conditions
+            conditions = [f"s.{filter_sql}"]
+            if board_id:
+                conditions.append("s.board_id = %s")
+                params.append(board_id)
+            if standard_id:
+                conditions.append("s.standard_id = %s")
+                params.append(standard_id)
+            if stream_id:
+                conditions.append("s.stream_id = %s")
+                params.append(stream_id)
+            if search:
+                conditions.append("LOWER(s.name) LIKE %s")
+                params.append(f"%{search.lower()}%")
+            
+            where_clause = " AND ".join(conditions)
+            
+            # Get total count
+            cur.execute(f"""
+                SELECT COUNT(*) AS cnt FROM subjects s WHERE {where_clause}
+            """, params)
+            total = cur.fetchone()["cnt"]
+            
+            # Get paginated data
+            offset = (page - 1) * page_size
             query = f"""
                 SELECT s.*, b.name as board_name, st.name as standard_name, str.name as stream_name
                 FROM subjects s
                 LEFT JOIN boards b ON s.board_id = b.id
                 LEFT JOIN standards st ON s.standard_id = st.id
                 LEFT JOIN streams str ON s.stream_id = str.id
-                WHERE s.{filter_sql}
+                WHERE {where_clause}
+                ORDER BY b.sort_order, st.sort_order, s.sort_order
+                LIMIT %s OFFSET %s
             """
-            if board_id:
-                query += " AND s.board_id = %s"
-                params.append(board_id)
-            if standard_id:
-                query += " AND s.standard_id = %s"
-                params.append(standard_id)
-            if stream_id:
-                query += " AND s.stream_id = %s"
-                params.append(stream_id)
-            query += " ORDER BY b.sort_order, st.sort_order, s.sort_order"
-            cur.execute(query, params)
-            return [dict(row) for row in cur.fetchall()]
+            cur.execute(query, params + [page_size, offset])
+            items = [dict(row) for row in cur.fetchall()]
+            return {"items": items, "total": total, "page": page, "page_size": page_size}
         finally:
             conn.close()
 
@@ -950,15 +970,40 @@ class AdminService:
         standard_id: str = None,
         subject_id: str = None,
         is_active: bool = None,
-        school_id: int = None
-    ) -> List[Dict]:
-        """List chapters with school_id filtering for admin."""
+        school_id: int = None,
+        page: int = 1,
+        page_size: int = 50
+    ) -> Dict:
+        """List chapters with school_id filtering for admin. Returns paginated results."""
         import json as _json
         conn = get_db()
         try:
             cur = conn.cursor()
             filter_sql, params = AdminService._school_id_filter(school_id)
             
+            # Base WHERE clause
+            where_clause = f"c.{filter_sql}"
+            
+            if board_id:
+                where_clause += " AND c.board_id = %s"
+                params.append(board_id)
+            if standard_id:
+                where_clause += " AND c.standard_id = %s"
+                params.append(standard_id)
+            if subject_id:
+                where_clause += " AND c.subject_id = %s"
+                params.append(subject_id)
+            if is_active is not None:
+                where_clause += " AND c.is_active = %s"
+                params.append(is_active)
+            
+            # Get total count first (fast query without joins)
+            count_query = f"SELECT COUNT(*) AS cnt FROM chapters c WHERE {where_clause}"
+            cur.execute(count_query, params)
+            total = cur.fetchone()["cnt"]
+            
+            # Get paginated data with joins
+            offset = (page - 1) * page_size
             query = f"""
                 SELECT c.id, c.board_id, c.standard_id, c.subject_id, c.chapter_number, c.chapter_name,
                        c.chapter_name_local, c.description, c.topics, c.content_status, c.is_active, c.created_at,
@@ -967,23 +1012,11 @@ class AdminService:
                 LEFT JOIN boards b ON c.board_id = b.id
                 LEFT JOIN standards st ON c.standard_id = st.id
                 LEFT JOIN subjects s ON c.subject_id = s.id
-                WHERE c.{filter_sql}
+                WHERE {where_clause}
+                ORDER BY c.chapter_number ASC
+                LIMIT %s OFFSET %s
             """
-            
-            if board_id:
-                query += " AND c.board_id = %s"
-                params.append(board_id)
-            if standard_id:
-                query += " AND c.standard_id = %s"
-                params.append(standard_id)
-            if subject_id:
-                query += " AND c.subject_id = %s"
-                params.append(subject_id)
-            if is_active is not None:
-                query += " AND c.is_active = %s"
-                params.append(is_active)
-            
-            query += " ORDER BY c.chapter_number ASC"
+            params.extend([page_size, offset])
             cur.execute(query, params)
             
             result = []
@@ -998,7 +1031,8 @@ class AdminService:
                 else:
                     chapter["topics"] = []
                 result.append(chapter)
-            return result
+            
+            return {"items": result, "total": total, "page": page, "page_size": page_size}
         finally:
             conn.close()
 
@@ -1204,7 +1238,8 @@ class AdminService:
     # ── Users ─────────────────────────────────────────────────
 
     @staticmethod
-    def list_users(search: str = "", plan: str = "", drishti_only: bool = False, school_id: int = None) -> List[Dict]:
+    def list_users(search: str = "", plan: str = "", drishti_only: bool = False, school_id: int = None,
+                   page: int = 1, page_size: int = 50) -> Dict:
         conn = get_db()
         try:
             cur = conn.cursor()
@@ -1216,25 +1251,34 @@ class AdminService:
                 params.append(school_id)
             
             if search:
-                conditions.append("(LOWER(name) LIKE %s OR LOWER(email) LIKE %s)")
+                conditions.append("(LOWER(name) LIKE %s OR LOWER(email) LIKE %s OR LOWER(COALESCE(school, '')) LIKE %s)")
                 like = f"%{search.lower()}%"
-                params.extend([like, like])
+                params.extend([like, like, like])
             if plan:
                 conditions.append("plan = %s")
                 params.append(plan)
             if drishti_only:
                 conditions.append("is_drishti = TRUE")
             where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+            
+            # Get total count
+            cur.execute(f"SELECT COUNT(*) AS cnt FROM users {where}", params)
+            total = cur.fetchone()["cnt"]
+            
+            # Get paginated data
+            offset = (page - 1) * page_size
             cur.execute(
                 f"""SELECT id, name, email, standard, board, stream, language, plan,
                            plan_expires_at, xp, streak, is_drishti, is_suspended, school,
                            ai_provider, ai_model, ai_admin_override, school_id,
                            last_active, created_at
                     FROM users {where}
-                    ORDER BY created_at DESC LIMIT 500""",
-                params
+                    ORDER BY created_at DESC
+                    LIMIT %s OFFSET %s""",
+                params + [page_size, offset]
             )
-            return [dict(r) for r in cur.fetchall()]
+            items = [dict(r) for r in cur.fetchall()]
+            return {"items": items, "total": total, "page": page, "page_size": page_size}
         finally:
             conn.close()
 
@@ -2368,11 +2412,27 @@ class AdminService:
     # ── Community / Squads ────────────────────────────────────
 
     @staticmethod
-    def list_squads() -> List[Dict]:
+    def list_squads(page: int = 1, page_size: int = 50, search: str = None) -> Dict:
         conn = get_db()
         try:
             cur = conn.cursor()
-            cur.execute("""
+            
+            # Build WHERE clause
+            conditions = []
+            params = []
+            if search:
+                conditions.append("(LOWER(s.name) LIKE %s OR LOWER(s.focus_subject) LIKE %s)")
+                like = f"%{search.lower()}%"
+                params.extend([like, like])
+            where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+            
+            # Get total count
+            cur.execute(f"SELECT COUNT(*) AS cnt FROM squads s {where_clause}", params)
+            total = cur.fetchone()["cnt"]
+            
+            # Get paginated data with aggregates
+            offset = (page - 1) * page_size
+            cur.execute(f"""
                 SELECT s.id, s.name, s.focus_subject, s.standard, s.medium, s.is_active, s.created_at,
                        COUNT(DISTINCT sm.user_id) AS member_count,
                        COUNT(DISTINCT msg.id) AS message_count,
@@ -2381,10 +2441,13 @@ class AdminService:
                 LEFT JOIN squad_members sm ON sm.squad_id = s.id
                 LEFT JOIN squad_messages msg ON msg.squad_id = s.id
                 LEFT JOIN squad_doubts d ON d.squad_id = s.id
+                {where_clause}
                 GROUP BY s.id
                 ORDER BY s.created_at DESC
-            """)
-            return [dict(r) for r in cur.fetchall()]
+                LIMIT %s OFFSET %s
+            """, params + [page_size, offset])
+            items = [dict(r) for r in cur.fetchall()]
+            return {"items": items, "total": total, "page": page, "page_size": page_size}
         finally:
             conn.close()
 
@@ -2908,14 +2971,35 @@ class AdminService:
     # ── School Teachers (B2B) ─────────────────────────────────
 
     @staticmethod
-    def list_school_teachers(school_id: int = None) -> List[Dict]:
-        """List teachers for a school."""
+    def list_school_teachers(school_id: int = None, page: int = 1, page_size: int = 50, search: str = None) -> Dict:
+        """List teachers for a school with pagination."""
         conn = get_db()
         try:
             cur = conn.cursor()
             filter_sql, params = AdminService._school_id_filter(school_id)
-            cur.execute(f"SELECT * FROM school_teachers WHERE {filter_sql} ORDER BY name", params)
-            return [dict(r) for r in cur.fetchall()]
+            
+            # Add search condition
+            conditions = [filter_sql]
+            if search:
+                conditions.append("(LOWER(name) LIKE %s OR LOWER(email) LIKE %s)")
+                like = f"%{search.lower()}%"
+                params.extend([like, like])
+            where_clause = " AND ".join(conditions)
+            
+            # Get total count
+            cur.execute(f"SELECT COUNT(*) AS cnt FROM school_teachers WHERE {where_clause}", params)
+            total = cur.fetchone()["cnt"]
+            
+            # Get paginated data
+            offset = (page - 1) * page_size
+            cur.execute(f"""
+                SELECT * FROM school_teachers 
+                WHERE {where_clause} 
+                ORDER BY name
+                LIMIT %s OFFSET %s
+            """, params + [page_size, offset])
+            items = [dict(r) for r in cur.fetchall()]
+            return {"items": items, "total": total, "page": page, "page_size": page_size}
         finally:
             conn.close()
 
@@ -3080,7 +3164,7 @@ class AdminService:
                     item["tags"] = _json.loads(item["tags"])
                 items.append(item)
             
-            return {"data": items, "total": total}
+            return {"items": items, "total": total}
         finally:
             conn.close()
 
@@ -3269,7 +3353,7 @@ class AdminService:
             )
             
             items = [dict(row) for row in cur.fetchall()]
-            return {"data": items, "total": total}
+            return {"items": items, "total": total}
         finally:
             conn.close()
 

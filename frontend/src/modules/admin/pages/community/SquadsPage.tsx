@@ -60,11 +60,11 @@ const SquadsPage: React.FC = () => {
   const loadData = useCallback(async () => {
     setIsLoading(true)
     try {
-      const [squadsData, statsData] = await Promise.all([
-        adminApi.community.getSquads(),
+      const [squadsResponse, statsData] = await Promise.all([
+        adminApi.community.getSquads({ page_size: 200 }),
         adminApi.community.getStats(),
       ])
-      setSquads(squadsData)
+      setSquads(squadsResponse.items)
       setStats(statsData)
     } finally {
       setIsLoading(false)

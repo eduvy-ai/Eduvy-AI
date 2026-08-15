@@ -345,10 +345,11 @@ export const useChapters = () => {
  */
 export const useStudents = () => {
   const dispatch = useDispatch<AppDispatch>()
-  const students = useSelector((state: RootState) => state.admin.students)
+  const students = useSelector((state: RootState) => state.admin.students) || []
+  const studentsTotal = useSelector((state: RootState) => state.admin.studentsTotal)
 
   const fetch = useCallback(
-    (filters?: { search?: string; plan?: string; drishti?: boolean }) =>
+    (filters?: { search?: string; plan?: string; drishti?: boolean; page?: number; page_size?: number }) =>
       dispatch(fetchStudents(filters)),
     [dispatch]
   )
@@ -367,6 +368,7 @@ export const useStudents = () => {
 
   return {
     students,
+    studentsTotal,
     fetchStudents: fetch,
     updateStudentLocal: updateLocal,
     addStudentLocal: addLocal,
@@ -442,7 +444,7 @@ export const useDashboardStats = () => {
  */
 export const useQuestions = () => {
   const dispatch = useDispatch<AppDispatch>()
-  const questions = useSelector((state: RootState) => state.admin.questions)
+  const questions = useSelector((state: RootState) => state.admin.questions) || []
   const questionsTotal = useSelector((state: RootState) => state.admin.questionsTotal)
   const isLoading = useSelector((state: RootState) => state.admin.isLoading)
 
@@ -473,7 +475,7 @@ export const useQuestions = () => {
  */
 export const useMedia = () => {
   const dispatch = useDispatch<AppDispatch>()
-  const media = useSelector((state: RootState) => state.admin.media)
+  const media = useSelector((state: RootState) => state.admin.media) || []
   const mediaTotal = useSelector((state: RootState) => state.admin.mediaTotal)
   const isLoading = useSelector((state: RootState) => state.admin.isLoading)
 
@@ -502,7 +504,7 @@ export const useMedia = () => {
  */
 export const useAssessments = () => {
   const dispatch = useDispatch<AppDispatch>()
-  const assessments = useSelector((state: RootState) => state.admin.assessments)
+  const assessments = useSelector((state: RootState) => state.admin.assessments) || []
   const assessmentsTotal = useSelector((state: RootState) => state.admin.assessmentsTotal)
   const isLoading = useSelector((state: RootState) => state.admin.isLoading)
 

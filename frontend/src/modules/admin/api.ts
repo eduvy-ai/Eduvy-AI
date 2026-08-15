@@ -37,7 +37,7 @@ import type {
   Assessment,
   AssessmentCreate,
   AssessmentUpdate,
-  PaginatedResponse,
+  PagedResponse,
 } from './types'
 
 // ── Helper: Get admin token ──
@@ -239,14 +239,17 @@ export const streamsApi = {
 
 // ── Subject APIs ──
 export const subjectsApi = {
-  getAll: async (filters?: { board_id?: string; standard_id?: string; stream_id?: string }): Promise<Subject[]> => {
+  getAll: async (filters?: { board_id?: string; standard_id?: string; stream_id?: string; search?: string; page?: number; page_size?: number }): Promise<PagedResponse<Subject>> => {
     const params = new URLSearchParams()
     if (filters?.board_id) params.append('board_id', filters.board_id)
     if (filters?.standard_id) params.append('standard_id', filters.standard_id)
     if (filters?.stream_id) params.append('stream_id', filters.stream_id)
+    if (filters?.search) params.append('search', filters.search)
+    params.append('page', String(filters?.page || 1))
+    params.append('page_size', String(filters?.page_size || 50))
     
-    const url = params.toString() ? `${ADMIN_ENDPOINTS.subjects}?${params}` : ADMIN_ENDPOINTS.subjects
-    const response = await axiosInstance.get<Subject[]>(url, adminConfig())
+    const url = `${ADMIN_ENDPOINTS.subjects}?${params}`
+    const response = await axiosInstance.get<PagedResponse<Subject>>(url, adminConfig())
     return response.data
   },
 
@@ -340,15 +343,24 @@ export const curriculumApi = {
 
 // ── Chapter APIs ──
 export const chaptersApi = {
-  getAll: async (filters?: { board_id?: string; standard_id?: string; subject_id?: string; stream_id?: string }): Promise<Chapter[]> => {
+  getAll: async (filters?: { 
+    board_id?: string
+    standard_id?: string
+    subject_id?: string
+    stream_id?: string
+    page?: number
+    page_size?: number
+  }): Promise<PagedResponse<Chapter>> => {
     const params = new URLSearchParams()
     if (filters?.board_id) params.append('board_id', filters.board_id)
     if (filters?.standard_id) params.append('standard_id', filters.standard_id)
     if (filters?.subject_id) params.append('subject_id', filters.subject_id)
     if (filters?.stream_id) params.append('stream_id', filters.stream_id)
+    params.append('page', String(filters?.page || 1))
+    params.append('page_size', String(filters?.page_size || 50))
     
-    const url = params.toString() ? `${ADMIN_ENDPOINTS.chapters}?${params}` : ADMIN_ENDPOINTS.chapters
-    const response = await axiosInstance.get<Chapter[]>(url, adminConfig())
+    const url = `${ADMIN_ENDPOINTS.chapters}?${params}`
+    const response = await axiosInstance.get<PagedResponse<Chapter>>(url, adminConfig())
     return response.data
   },
 
@@ -392,14 +404,16 @@ export const chaptersApi = {
 
 // ── User Management APIs ──
 export const usersApi = {
-  getAll: async (filters?: { search?: string; plan?: string; drishti?: boolean }): Promise<StudentUser[]> => {
+  getAll: async (filters?: { search?: string; plan?: string; drishti?: boolean; page?: number; page_size?: number }): Promise<PagedResponse<StudentUser>> => {
     const params = new URLSearchParams()
     if (filters?.search) params.append('search', filters.search)
     if (filters?.plan) params.append('plan', filters.plan)
     if (filters?.drishti !== undefined) params.append('drishti', String(filters.drishti))
+    params.append('page', String(filters?.page || 1))
+    params.append('page_size', String(filters?.page_size || 50))
     
-    const url = params.toString() ? `${ADMIN_ENDPOINTS.users}?${params}` : ADMIN_ENDPOINTS.users
-    const response = await axiosInstance.get<StudentUser[]>(url, adminConfig())
+    const url = `${ADMIN_ENDPOINTS.users}?${params}`
+    const response = await axiosInstance.get<PagedResponse<StudentUser>>(url, adminConfig())
     return response.data
   },
 
@@ -590,8 +604,14 @@ export interface SchoolTeacherCreate {
 }
 
 export const schoolTeachersApi = {
-  getAll: async (): Promise<SchoolTeacher[]> => {
-    const response = await axiosInstance.get<SchoolTeacher[]>(ADMIN_ENDPOINTS.schoolTeachers, adminConfig())
+  getAll: async (filters?: { search?: string; page?: number; page_size?: number }): Promise<PagedResponse<SchoolTeacher>> => {
+    const params = new URLSearchParams()
+    if (filters?.search) params.append('search', filters.search)
+    params.append('page', String(filters?.page || 1))
+    params.append('page_size', String(filters?.page_size || 50))
+    
+    const url = `${ADMIN_ENDPOINTS.schoolTeachers}?${params}`
+    const response = await axiosInstance.get<PagedResponse<SchoolTeacher>>(url, adminConfig())
     return response.data
   },
 
@@ -795,8 +815,14 @@ export const communityApi = {
   },
 
   // Squads
-  getSquads: async (): Promise<Squad[]> => {
-    const response = await axiosInstance.get<Squad[]>(ADMIN_ENDPOINTS.squads, adminConfig())
+  getSquads: async (filters?: { search?: string; page?: number; page_size?: number }): Promise<PagedResponse<Squad>> => {
+    const params = new URLSearchParams()
+    if (filters?.search) params.append('search', filters.search)
+    params.append('page', String(filters?.page || 1))
+    params.append('page_size', String(filters?.page_size || 50))
+    
+    const url = `${ADMIN_ENDPOINTS.squads}?${params}`
+    const response = await axiosInstance.get<PagedResponse<Squad>>(url, adminConfig())
     return response.data
   },
 
@@ -918,8 +944,8 @@ export interface QuestionListParams {
 }
 
 export const questionsApi = {
-  getAll: async (params: QuestionListParams = {}): Promise<PaginatedResponse<Question>> => {
-    const response = await axiosInstance.get<PaginatedResponse<Question>>(
+  getAll: async (params: QuestionListParams = {}): Promise<PagedResponse<Question>> => {
+    const response = await axiosInstance.get<PagedResponse<Question>>(
       '/api/admin/questions',
       { ...adminConfig(), params }
     )
@@ -975,8 +1001,8 @@ export interface MediaListParams {
 }
 
 export const mediaApi = {
-  getAll: async (params: MediaListParams = {}): Promise<PaginatedResponse<MediaFile>> => {
-    const response = await axiosInstance.get<PaginatedResponse<MediaFile>>(
+  getAll: async (params: MediaListParams = {}): Promise<PagedResponse<MediaFile>> => {
+    const response = await axiosInstance.get<PagedResponse<MediaFile>>(
       '/api/admin/media',
       { ...adminConfig(), params }
     )
@@ -1026,8 +1052,8 @@ export interface AssessmentListParams {
 }
 
 export const assessmentsApi = {
-  getAll: async (params: AssessmentListParams = {}): Promise<PaginatedResponse<Assessment>> => {
-    const response = await axiosInstance.get<PaginatedResponse<Assessment>>(
+  getAll: async (params: AssessmentListParams = {}): Promise<PagedResponse<Assessment>> => {
+    const response = await axiosInstance.get<PagedResponse<Assessment>>(
       '/api/admin/assessments',
       { ...adminConfig(), params }
     )

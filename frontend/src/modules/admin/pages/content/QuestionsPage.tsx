@@ -331,10 +331,10 @@ const QuestionsPage: React.FC = () => {
 
   // Stats computed from current page data
   const stats = useMemo(() => ({
-    mcq: questions.filter(q => q.type === 'mcq').length,
-    easy: questions.filter(q => q.difficulty === 'easy').length,
-    medium: questions.filter(q => q.difficulty === 'medium').length,
-    hard: questions.filter(q => q.difficulty === 'hard').length,
+    mcq: (questions || []).filter(q => q.type === 'mcq').length,
+    easy: (questions || []).filter(q => q.difficulty === 'easy').length,
+    medium: (questions || []).filter(q => q.difficulty === 'medium').length,
+    hard: (questions || []).filter(q => q.difficulty === 'hard').length,
   }), [questions])
 
   return (

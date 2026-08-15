@@ -74,11 +74,11 @@ const SchoolTeachersListPage: React.FC = () => {
   // Fetch subjects and standards from DB
   const fetchOptions = useCallback(async () => {
     try {
-      const [subjects, standards] = await Promise.all([
-        subjectsApi.getAll(),
+      const [subjectsResponse, standards] = await Promise.all([
+        subjectsApi.getAll({ page_size: 200 }),
         standardsApi.getAll()
       ])
-      setAvailableSubjects(subjects.filter(s => s.is_active))
+      setAvailableSubjects(subjectsResponse.items.filter(s => s.is_active))
       setAvailableStandards(standards.filter(s => s.is_active))
     } catch (error) {
       console.error('Failed to load options:', error)
@@ -89,8 +89,8 @@ const SchoolTeachersListPage: React.FC = () => {
   const fetchTeachers = useCallback(async () => {
     setIsLoading(true)
     try {
-      const data = await schoolTeachersApi.getAll()
-      setTeachers(data)
+      const response = await schoolTeachersApi.getAll({ page_size: 200 })
+      setTeachers(response.items)
     } catch (error) {
       console.error('Failed to load teachers:', error)
       setTeachers([])

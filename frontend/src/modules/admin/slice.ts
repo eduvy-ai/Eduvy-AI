@@ -117,10 +117,11 @@ export const fetchMediums = createAsyncThunk(
 
 export const fetchSubjects = createAsyncThunk(
   'admin/fetchSubjects',
-  async (filters: { board_id?: string; standard_id?: string; stream_id?: string } | undefined, { rejectWithValue }) => {
+  async (filters: { board_id?: string; standard_id?: string; stream_id?: string; page?: number; page_size?: number } | undefined, { rejectWithValue }) => {
     try {
-      const subjects = await adminApi.subjects.getAll(filters)
-      return subjects
+      // Use large page_size for fetching all subjects (used in dropdowns)
+      const response = await adminApi.subjects.getAll({ ...filters, page_size: filters?.page_size || 200 })
+      return response.items  // Return just items for backward compatibility
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to fetch subjects'
       return rejectWithValue(message)
@@ -143,10 +144,17 @@ export const fetchCurriculum = createAsyncThunk(
 
 export const fetchChapters = createAsyncThunk(
   'admin/fetchChapters',
-  async (filters: { board_id?: string; standard_id?: string; subject_id?: string; stream_id?: string } | undefined, { rejectWithValue }) => {
+  async (filters: { board_id?: string; standard_id?: string; subject_id?: string; stream_id?: string; page?: number; page_size?: number } | undefined, { rejectWithValue }) => {
     try {
-      const chapters = await adminApi.chapters.getAll(filters)
-      return adminService.sortChapters(chapters)
+      const response = await adminApi.chapters.getAll(filters)
+      // Handle paginated response {items, total, page, page_size}
+      const chapters = response.items || []
+      return {
+        chapters: adminService.sortChapters(chapters),
+        total: response.total || 0,
+        page: response.page || 1,
+        pageSize: response.page_size || 50
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to fetch chapters'
       return rejectWithValue(message)
@@ -158,10 +166,10 @@ export const fetchChapters = createAsyncThunk(
 
 export const fetchStudents = createAsyncThunk(
   'admin/fetchStudents',
-  async (filters: { search?: string; plan?: string; drishti?: boolean } | undefined, { rejectWithValue }) => {
+  async (filters: { search?: string; plan?: string; drishti?: boolean; page?: number; page_size?: number } | undefined, { rejectWithValue }) => {
     try {
-      const students = await adminApi.users.getAll(filters)
-      return students
+      const response = await adminApi.users.getAll(filters)
+      return response  // Returns { items, total, page, page_size }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to fetch students'
       return rejectWithValue(message)
@@ -471,13 +479,14 @@ const adminSlice = createSlice({
         state.curriculum = action.payload
       })
       .addCase(fetchChapters.fulfilled, (state, action) => {
-        state.chapters = action.payload
+        state.chapters = action.payload.chapters
       })
     
     // ── Users ──
     builder
       .addCase(fetchStudents.fulfilled, (state, action) => {
-        state.students = action.payload
+        state.students = action.payload.items
+        state.studentsTotal = action.payload.total
       })
       .addCase(fetchHelpers.fulfilled, (state, action) => {
         state.helpers = action.payload
@@ -500,7 +509,7 @@ const adminSlice = createSlice({
       })
       .addCase(fetchQuestions.fulfilled, (state, action) => {
         state.isLoading = false
-        state.questions = action.payload.data
+        state.questions = action.payload.items
         state.questionsTotal = action.payload.total
       })
       .addCase(fetchQuestions.rejected, (state, action) => {
@@ -512,7 +521,7 @@ const adminSlice = createSlice({
       })
       .addCase(fetchMedia.fulfilled, (state, action) => {
         state.isLoading = false
-        state.media = action.payload.data
+        state.media = action.payload.items
         state.mediaTotal = action.payload.total
       })
       .addCase(fetchMedia.rejected, (state, action) => {
@@ -524,7 +533,7 @@ const adminSlice = createSlice({
       })
       .addCase(fetchAssessments.fulfilled, (state, action) => {
         state.isLoading = false
-        state.assessments = action.payload.data
+        state.assessments = action.payload.items
         state.assessmentsTotal = action.payload.total
       })
       .addCase(fetchAssessments.rejected, (state, action) => {

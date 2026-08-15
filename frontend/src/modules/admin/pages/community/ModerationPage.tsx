@@ -45,12 +45,12 @@ const ModerationPage: React.FC = () => {
   const loadData = useCallback(async () => {
     setIsLoading(true)
     try {
-      const [doubtsData, squadsData] = await Promise.all([
+      const [doubtsData, squadsResponse] = await Promise.all([
         adminApi.community.getDoubts(undefined, 500),
-        adminApi.community.getSquads(),
+        adminApi.community.getSquads({ page_size: 200 }),
       ])
       setDoubts(doubtsData)
-      setSquads(squadsData)
+      setSquads(squadsResponse.items)
     } finally {
       setIsLoading(false)
     }

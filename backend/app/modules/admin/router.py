@@ -255,10 +255,13 @@ async def list_subjects(
     board_id: str = Query(None),
     standard_id: str = Query(None),
     stream_id: str = Query(None),
+    search: str = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     admin_scope: tuple = Depends(get_admin_with_school),
 ):
     admin_id, school_id = admin_scope
-    return await asyncio.to_thread(AdminService.list_subjects, board_id, standard_id, stream_id, school_id)
+    return await asyncio.to_thread(AdminService.list_subjects, board_id, standard_id, stream_id, school_id, page, page_size, search)
 
 
 @router.post("/subjects", status_code=201)
@@ -356,11 +359,13 @@ async def list_chapters(
     standard_id: str = Query(None),
     subject_id: str = Query(None),
     is_active: bool = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     admin_scope: tuple = Depends(get_admin_with_school),
 ):
     admin_id, school_id = admin_scope
     return await asyncio.to_thread(
-        AdminService.list_chapters_admin, board_id, standard_id, subject_id, is_active, school_id
+        AdminService.list_chapters_admin, board_id, standard_id, subject_id, is_active, school_id, page, page_size
     )
 
 
@@ -417,11 +422,13 @@ async def list_users(
     search: str = Query(""),
     plan: str = Query(""),
     drishti: str = Query(""),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     admin_scope: tuple = Depends(get_admin_with_school),
 ):
     admin_id, school_id = admin_scope
     drishti_only = drishti.lower() in ("true", "1", "yes")
-    return await asyncio.to_thread(AdminService.list_users, search, plan, drishti_only, school_id)
+    return await asyncio.to_thread(AdminService.list_users, search, plan, drishti_only, school_id, page, page_size)
 
 
 @router.put("/users/{user_id}/plan")
@@ -672,10 +679,15 @@ async def get_community_stats(admin_scope: tuple = Depends(get_admin_with_school
 
 
 @router.get("/squads")
-async def list_squads(admin_scope: tuple = Depends(get_admin_with_school)):
+async def list_squads(
+    search: str = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    admin_scope: tuple = Depends(get_admin_with_school),
+):
     admin_id, school_id = admin_scope
     _require_superadmin(school_id)
-    return await asyncio.to_thread(AdminService.list_squads)
+    return await asyncio.to_thread(AdminService.list_squads, page, page_size, search)
 
 
 @router.get("/squads/{squad_id}")
@@ -787,9 +799,14 @@ async def get_analytics_revenue(admin_scope: tuple = Depends(get_admin_with_scho
 # School admins can manage their own teachers
 
 @router.get("/teachers")
-async def list_school_teachers(admin_scope: tuple = Depends(get_admin_with_school)):
+async def list_school_teachers(
+    search: str = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    admin_scope: tuple = Depends(get_admin_with_school),
+):
     admin_id, school_id = admin_scope
-    return await asyncio.to_thread(AdminService.list_school_teachers, school_id)
+    return await asyncio.to_thread(AdminService.list_school_teachers, school_id, page, page_size, search)
 
 
 @router.post("/teachers", status_code=201)
