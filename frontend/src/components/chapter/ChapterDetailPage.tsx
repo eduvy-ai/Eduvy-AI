@@ -234,7 +234,14 @@ const OverviewTab: React.FC<{
         }
       } catch {}
 
-      // Auto-generate if none exists
+      // If chapter already has a description, use it directly without AI
+      if (!cancelled && chapter.description) {
+        setSummary({ summary: chapter.description, key_points: chapter.topics || [] })
+        setLoading(false)
+        return
+      }
+
+      // Auto-generate only if no description exists
       if (!cancelled) {
         setLoading(false)
         autoGenerate()
@@ -290,7 +297,13 @@ Return ONLY valid JSON. No markdown, no extra text.`
               }).filter((p: string) => p && p.length > 5)
             : []
 
-          const saved = await apiSaveChapterSummary(chapter.id, parsed.summary, keyPoints)
+          // Save to DB so it doesn't regenerate next time
+          let saved = null
+          try {
+            saved = await apiSaveChapterSummary(chapter.id, parsed.summary, keyPoints)
+          } catch (saveErr) {
+            console.warn('Failed to save summary, will show but not persist:', saveErr)
+          }
           if (!cancelled) setSummary(saved || { summary: parsed.summary, key_points: keyPoints })
         }
       } catch (err) {

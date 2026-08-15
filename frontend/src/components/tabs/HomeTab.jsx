@@ -386,7 +386,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
                         saveDailyXp({ show: { ...dailyXpAwarded.show, [idx]: true } })
                       }
                     }} 
-                    className="primary-btn bg-app-yellow/20 border border-app-yellow/40 !text-app-yellow"
+                    className="primary-btn !bg-app-yellow !from-app-yellow !to-app-yellow text-app-bg"
                   >
                     {dailyXpAwarded.show?.[idx] ? (ui.showSolution || <><Lightbulb size={14} weight="fill" className="inline" /> Show Solution</>) : (ui.showSolutionXp?.replace('8', '4') || <><Lightbulb size={14} weight="fill" className="inline" /> Show Solution (+4 XP)</>)}
                   </button>

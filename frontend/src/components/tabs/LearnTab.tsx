@@ -94,30 +94,34 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
   const lang = getDisplayLang(user || profile)
   const ui = useMemo(() => li(lang), [lang])
   
-  // Selected subject state
-  const [selectedSubject, setSelectedSubject] = useState<string | null>(null)
+  // Selected subject state (stores subject_id)
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null)
   
   // Load subjects
   const { subjects, isLoading: subjectsLoading } = useSubjectsWithChapters(board, standard)
+  
+  // Get selected subject details
+  const selectedSubject = subjects.find(s => s.subject_id === selectedSubjectId)
   
   // Load chapters when subject is selected
   const { chapters, isLoading: chaptersLoading } = useChaptersWithProgress(
     board,
     standard,
-    selectedSubject || ''
+    selectedSubjectId || ''
   )
 
   // ── Subject Card ──
-  const SubjectCard: React.FC<{ subject: string; chapterCount: number }> = ({
-    subject,
+  const SubjectCard: React.FC<{ subjectId: string; subjectName: string; chapterCount: number }> = ({
+    subjectId,
+    subjectName,
     chapterCount,
   }) => {
-    const IconComponent = SUBJECT_ICONS[subject] || BookOpen
-    const color = SUBJECT_COLORS[subject] || '#7B9CFF'
+    const IconComponent = SUBJECT_ICONS[subjectName] || BookOpen
+    const color = SUBJECT_COLORS[subjectName] || '#7B9CFF'
 
     return (
       <button
-        onClick={() => setSelectedSubject(subject)}
+        onClick={() => setSelectedSubjectId(subjectId)}
         className="w-full bg-app-card hover:bg-app-card2 border border-white/[0.04] rounded-2xl p-4 
                    transition-all duration-200 hover:border-white/[0.08] hover:scale-[1.02]
                    flex items-center gap-4 text-left"
@@ -132,7 +136,7 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
         
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <h3 className="text-[15px] font-bold text-app-text truncate">{subject}</h3>
+          <h3 className="text-[15px] font-bold text-app-text truncate">{subjectName}</h3>
           <p className="text-[12px] text-app-muted mt-0.5">
             {chapterCount} {chapterCount === 1 ? (ui.chapter || 'chapter') : (ui.chapters || 'chapters')}
           </p>
@@ -248,7 +252,7 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
   }
 
   // ── Empty State ──
-  if (!subjects.length && !selectedSubject) {
+  if (!subjects.length && !selectedSubjectId) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
         <div className="w-16 h-16 rounded-2xl bg-app-blue/10 flex items-center justify-center mb-4">
@@ -265,16 +269,17 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
   }
 
   // ── Subject Selected: Show Chapters ──
-  if (selectedSubject) {
-    const subjectColor = SUBJECT_COLORS[selectedSubject] || '#7B9CFF'
-    const SubjectIcon = SUBJECT_ICONS[selectedSubject] || BookOpen
+  if (selectedSubjectId && selectedSubject) {
+    const subjectName = selectedSubject.subject_name
+    const subjectColor = SUBJECT_COLORS[subjectName] || '#7B9CFF'
+    const SubjectIcon = SUBJECT_ICONS[subjectName] || BookOpen
 
     return (
       <div className="pb-24">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-app-bg/95 backdrop-blur-md pb-3 pt-1 -mx-4 px-4">
           <button
-            onClick={() => setSelectedSubject(null)}
+            onClick={() => setSelectedSubjectId(null)}
             className="flex items-center gap-2 text-app-muted hover:text-app-text transition-colors mb-3"
           >
             <ArrowLeft size={18} weight="bold" />
@@ -289,7 +294,7 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
               <SubjectIcon size={22} weight="duotone" style={{ color: subjectColor }} />
             </div>
             <div>
-              <h2 className="text-[18px] font-black text-app-text">{selectedSubject}</h2>
+              <h2 className="text-[18px] font-black text-app-text">{subjectName}</h2>
               <p className="text-[12px] text-app-muted">
                 {chapters.length} {chapters.length === 1 ? (ui.chapter || 'chapter') : (ui.chapters || 'chapters')} • {standard}
               </p>
@@ -313,7 +318,7 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Circle size={48} weight="duotone" className="text-app-muted mb-3" />
             <p className="text-[14px] text-app-muted">
-              {ui.noChaptersFor || 'No chapters available for'} {selectedSubject} {ui.yet || 'yet.'}
+              {ui.noChaptersFor || 'No chapters available for'} {subjectName} {ui.yet || 'yet.'}
             </p>
           </div>
         )}
@@ -343,7 +348,7 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
       {/* Subject Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {subjects.map(({ subject_id, subject_name, chapter_count }) => (
-          <SubjectCard key={subject_id} subject={subject_name} chapterCount={chapter_count} />
+          <SubjectCard key={subject_id} subjectId={subject_id} subjectName={subject_name} chapterCount={chapter_count} />
         ))}
       </div>
 
