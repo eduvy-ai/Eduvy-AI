@@ -4,6 +4,7 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react'
 import Pagination from '../../../../shared/components/Pagination'
 import Loader from '../../../../shared/components/Loader'
+import ConfirmDialog from '../../../../shared/components/ConfirmDialog'
 import { useAssessments, useBoards } from '../../hooks'
 import { assessmentsApi } from '../../api'
 import type { AssessmentType, AssessmentStatus, AssessmentDifficulty } from '../../types'
@@ -34,6 +35,16 @@ const AssessmentsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
+  
+  // Delete confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'bulk'; id?: number } | null>(null)
+  const [deleteError, setDeleteError] = useState('')
+  
+  // Toast state
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
+  const [toastType, setToastType] = useState<'info' | 'error'>('info')
 
   // Refs to prevent duplicate fetches
   const boardsLoadedRef = useRef(false)
@@ -83,29 +94,44 @@ const AssessmentsPage: React.FC = () => {
     }
   }
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedIds.size === 0) return
-    if (!confirm(`Delete ${selectedIds.size} assessments?`)) return
-    
-    try {
-      await assessmentsApi.bulkDelete(Array.from(selectedIds))
-      setSelectedIds(new Set())
-      fetchAssessments({ limit: pageSize, offset: (page - 1) * pageSize })
-    } catch (error) {
-      console.error('Failed to delete assessments:', error)
-      alert('Failed to delete assessments')
-    }
+    setDeleteTarget({ type: 'bulk' })
+    setDeleteError('')
+    setShowDeleteConfirm(true)
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Delete this assessment?')) return
+  const handleDelete = (id: number) => {
+    setDeleteTarget({ type: 'single', id })
+    setDeleteError('')
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
+    
     try {
-      await assessmentsApi.delete(id)
+      if (deleteTarget.type === 'bulk') {
+        await assessmentsApi.bulkDelete(Array.from(selectedIds))
+        setSelectedIds(new Set())
+      } else if (deleteTarget.id) {
+        await assessmentsApi.delete(deleteTarget.id)
+      }
+      setShowDeleteConfirm(false)
+      setDeleteTarget(null)
       fetchAssessments({ limit: pageSize, offset: (page - 1) * pageSize })
     } catch (error) {
-      console.error('Failed to delete assessment:', error)
-      alert('Failed to delete assessment')
+      console.error('Failed to delete assessment(s):', error)
+      setDeleteError('Failed to delete. Please try again.')
     }
+  }
+  
+  // Show toast helper
+  const showToastMessage = (message: string, type: 'info' | 'error' = 'info') => {
+    setToastMessage(message)
+    setToastType(type)
+    setShowToast(true)
+    setTimeout(() => setShowToast(false), 2000)
   }
 
   const handlePublish = async (id: number) => {
@@ -114,7 +140,7 @@ const AssessmentsPage: React.FC = () => {
       fetchAssessments({ limit: pageSize, offset: (page - 1) * pageSize })
     } catch (error) {
       console.error('Failed to publish assessment:', error)
-      alert('Failed to publish assessment')
+      showToastMessage('Failed to publish assessment', 'error')
     }
   }
 
@@ -124,7 +150,7 @@ const AssessmentsPage: React.FC = () => {
       fetchAssessments({ limit: pageSize, offset: (page - 1) * pageSize })
     } catch (error) {
       console.error('Failed to archive assessment:', error)
-      alert('Failed to archive assessment')
+      showToastMessage('Failed to archive assessment', 'error')
     }
   }
 
@@ -199,7 +225,7 @@ const AssessmentsPage: React.FC = () => {
           </p>
         </div>
         <button
-          onClick={() => alert('Create assessment - TODO')}
+          onClick={() => showToastMessage('Create assessment - Coming soon')}
           className="px-4 py-2 text-sm text-white bg-app-green rounded-lg hover:bg-app-green/80 transition-colors flex items-center gap-2"
         >
           <Plus size={16} />
@@ -375,7 +401,7 @@ const AssessmentsPage: React.FC = () => {
                   <td className="p-3">
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => alert('Preview assessment - TODO')}
+                        onClick={() => showToastMessage('Preview assessment - Coming soon')}
                         className="p-1.5 text-app-blue hover:bg-app-blue/10 rounded-lg transition-colors"
                         title="Preview"
                       >
@@ -400,14 +426,14 @@ const AssessmentsPage: React.FC = () => {
                         </button>
                       )}
                       <button
-                        onClick={() => alert('Duplicate assessment - TODO')}
+                        onClick={() => showToastMessage('Duplicate assessment - Coming soon')}
                         className="p-1.5 text-app-muted hover:bg-app-card2 rounded-lg transition-colors"
                         title="Duplicate"
                       >
                         <Copy size={14} />
                       </button>
                       <button
-                        onClick={() => alert('Edit assessment - TODO')}
+                        onClick={() => showToastMessage('Edit assessment - Coming soon')}
                         className="p-1.5 text-app-green hover:bg-app-green/10 rounded-lg transition-colors"
                         title="Edit"
                       >
@@ -438,6 +464,40 @@ const AssessmentsPage: React.FC = () => {
         onPageChange={setPage}
         onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false)
+          setDeleteTarget(null)
+          setDeleteError('')
+        }}
+        onConfirm={confirmDelete}
+        title={deleteTarget?.type === 'bulk' ? `Delete ${selectedIds.size} Assessments?` : 'Delete Assessment?'}
+        message={
+          <>
+            {deleteTarget?.type === 'bulk' 
+              ? 'This will permanently delete all selected assessments.'
+              : 'This will permanently delete this assessment.'
+            }
+            {deleteError && (
+              <p className="mt-2 text-app-red text-sm">{deleteError}</p>
+            )}
+          </>
+        }
+        confirmText="Delete"
+        variant="danger"
+      />
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className={`fixed bottom-6 right-6 z-[250] px-4 py-2 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200 ${
+          toastType === 'error' ? 'bg-app-red text-white' : 'bg-app-blue text-white'
+        }`}>
+          {toastMessage}
+        </div>
+      )}
     </div>
   )
 }

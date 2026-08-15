@@ -4,6 +4,7 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react'
 import Pagination from '../../../../shared/components/Pagination'
 import Modal from '../../../../shared/components/Modal'
+import ConfirmDialog from '../../../../shared/components/ConfirmDialog'
 import Button from '../../../../shared/components/Button'
 import Loader from '../../../../shared/components/Loader'
 import { useMedia, useChapters } from '../../hooks'
@@ -63,6 +64,14 @@ const MediaPage: React.FC = () => {
   
   // Form state
   const [formData, setFormData] = useState<MediaCreate>(defaultFormState)
+  
+  // Delete confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'bulk'; id?: string } | null>(null)
+  const [deleteError, setDeleteError] = useState('')
+  
+  // Toast state for copy URL
+  const [showCopyToast, setShowCopyToast] = useState(false)
 
   // Refs to prevent duplicate fetches
   const chaptersLoadedRef = useRef(false)
@@ -123,28 +132,35 @@ const MediaPage: React.FC = () => {
     })
   }
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedIds.size === 0) return
-    if (!confirm(`Delete ${selectedIds.size} files?`)) return
-    
-    try {
-      await mediaApi.bulkDelete(Array.from(selectedIds))
-      setSelectedIds(new Set())
-      refetchMedia()
-    } catch (error) {
-      console.error('Failed to delete files:', error)
-      alert('Failed to delete files')
-    }
+    setDeleteTarget({ type: 'bulk' })
+    setDeleteError('')
+    setShowDeleteConfirm(true)
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this file?')) return
+  const handleDelete = (id: string) => {
+    setDeleteTarget({ type: 'single', id })
+    setDeleteError('')
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
+    
     try {
-      await mediaApi.delete(id)
+      if (deleteTarget.type === 'bulk') {
+        await mediaApi.bulkDelete(Array.from(selectedIds))
+        setSelectedIds(new Set())
+      } else if (deleteTarget.id) {
+        await mediaApi.delete(deleteTarget.id)
+      }
+      setShowDeleteConfirm(false)
+      setDeleteTarget(null)
       refetchMedia()
     } catch (error) {
-      console.error('Failed to delete file:', error)
-      alert('Failed to delete file')
+      console.error('Failed to delete file(s):', error)
+      setDeleteError('Failed to delete. Please try again.')
     }
   }
 
@@ -183,7 +199,8 @@ const MediaPage: React.FC = () => {
   // Copy URL
   const handleCopyUrl = (url: string) => {
     navigator.clipboard.writeText(url)
-    alert('URL copied to clipboard!')
+    setShowCopyToast(true)
+    setTimeout(() => setShowCopyToast(false), 2000)
   }
 
   // Submit form
@@ -653,6 +670,38 @@ const MediaPage: React.FC = () => {
           </div>
         )}
       </Modal>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false)
+          setDeleteTarget(null)
+          setDeleteError('')
+        }}
+        onConfirm={confirmDelete}
+        title={deleteTarget?.type === 'bulk' ? `Delete ${selectedIds.size} Files?` : 'Delete File?'}
+        message={
+          <>
+            {deleteTarget?.type === 'bulk' 
+              ? 'This will permanently delete all selected files.'
+              : 'This will permanently delete this file.'
+            }
+            {deleteError && (
+              <p className="mt-2 text-app-red text-sm">{deleteError}</p>
+            )}
+          </>
+        }
+        confirmText="Delete"
+        variant="danger"
+      />
+
+      {/* Copy URL Toast */}
+      {showCopyToast && (
+        <div className="fixed bottom-6 right-6 z-[250] bg-app-green text-white px-4 py-2 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200">
+          URL copied to clipboard!
+        </div>
+      )}
     </div>
   )
 }

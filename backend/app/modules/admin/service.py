@@ -781,98 +781,164 @@ class AdminService:
 
     @staticmethod
     def import_global_curriculum(school_id: int) -> Dict:
-        """Import all global curriculum (school_id=NULL) to a specific school."""
+        """Import all global curriculum (school_id=NULL) to a specific school.
+        
+        Uses batch processing with commits every 500 records to handle large datasets.
+        """
+        from psycopg2.extras import execute_values
+        
         conn = get_db()
+        BATCH_SIZE = 500
+        
         try:
             cur = conn.cursor()
             counts = {"boards": 0, "standards": 0, "mediums": 0, "subjects": 0, "curriculum": 0, "chapters": 0}
             
-            # Copy boards
-            cur.execute("SELECT * FROM boards WHERE school_id IS NULL")
-            for row in cur.fetchall():
-                new_id = f"s{school_id}_{row['id']}"
-                cur.execute(
+            # ─── 1. Copy boards (batch insert) ───
+            cur.execute("SELECT id, name, sort_order, is_active FROM boards WHERE school_id IS NULL")
+            rows = cur.fetchall()
+            if rows:
+                batch = []
+                for row in rows:
+                    new_id = f"s{school_id}_{row['id']}"
+                    batch.append((new_id, row['name'], row['sort_order'], row['is_active'], school_id))
+                execute_values(
+                    cur,
                     """INSERT INTO boards (id, name, sort_order, is_active, school_id)
-                       VALUES (%s, %s, %s, %s, %s)
-                       ON CONFLICT (id) DO NOTHING""",
-                    (new_id, row['name'], row['sort_order'], row['is_active'], school_id)
+                       VALUES %s ON CONFLICT DO NOTHING""",
+                    batch
                 )
-                counts["boards"] += 1
+                counts["boards"] = len(batch)
+                conn.commit()
             
-            # Copy standards
-            cur.execute("SELECT * FROM standards WHERE school_id IS NULL")
-            for row in cur.fetchall():
-                new_id = f"s{school_id}_{row['id']}"
-                cur.execute(
+            # ─── 2. Copy standards (batch insert) ───
+            cur.execute("SELECT id, name, grade_num, sort_order, is_active FROM standards WHERE school_id IS NULL")
+            rows = cur.fetchall()
+            if rows:
+                batch = []
+                for row in rows:
+                    new_id = f"s{school_id}_{row['id']}"
+                    batch.append((new_id, row['name'], row['grade_num'], row['sort_order'], row['is_active'], school_id))
+                execute_values(
+                    cur,
                     """INSERT INTO standards (id, name, grade_num, sort_order, is_active, school_id)
-                       VALUES (%s, %s, %s, %s, %s, %s)
-                       ON CONFLICT (id) DO NOTHING""",
-                    (new_id, row['name'], row['grade_num'], row['sort_order'], row['is_active'], school_id)
+                       VALUES %s ON CONFLICT DO NOTHING""",
+                    batch
                 )
-                counts["standards"] += 1
+                counts["standards"] = len(batch)
+                conn.commit()
             
-            # Copy mediums
-            cur.execute("SELECT * FROM mediums WHERE school_id IS NULL")
-            for row in cur.fetchall():
-                new_id = f"s{school_id}_{row['id']}"
-                cur.execute(
+            # ─── 3. Copy mediums (batch insert) ───
+            cur.execute("SELECT id, name, sort_order, is_active FROM mediums WHERE school_id IS NULL")
+            rows = cur.fetchall()
+            if rows:
+                batch = []
+                for row in rows:
+                    new_id = f"s{school_id}_{row['id']}"
+                    batch.append((new_id, row['name'], row['sort_order'], row['is_active'], school_id))
+                execute_values(
+                    cur,
                     """INSERT INTO mediums (id, name, sort_order, is_active, school_id)
-                       VALUES (%s, %s, %s, %s, %s)
-                       ON CONFLICT (id) DO NOTHING""",
-                    (new_id, row['name'], row['sort_order'], row['is_active'], school_id)
+                       VALUES %s ON CONFLICT DO NOTHING""",
+                    batch
                 )
-                counts["mediums"] += 1
+                counts["mediums"] = len(batch)
+                conn.commit()
             
-            # Copy subjects
-            cur.execute("SELECT * FROM subjects WHERE school_id IS NULL")
-            for row in cur.fetchall():
-                new_id = f"s{school_id}_{row['id']}"
-                new_board_id = f"s{school_id}_{row['board_id']}"
-                new_standard_id = f"s{school_id}_{row['standard_id']}"
-                cur.execute(
-                    """INSERT INTO subjects (id, name, board_id, standard_id, sort_order, is_active, school_id)
-                       VALUES (%s, %s, %s, %s, %s, %s, %s)
-                       ON CONFLICT (id) DO NOTHING""",
-                    (new_id, row['name'], new_board_id, new_standard_id, row['sort_order'], row['is_active'], school_id)
+            # ─── 4. Copy subjects (batch insert) ───
+            # Note: stream_id is NOT prefixed because streams table is global
+            cur.execute("SELECT id, name, board_id, standard_id, stream_id, sort_order, is_active FROM subjects WHERE school_id IS NULL")
+            rows = cur.fetchall()
+            if rows:
+                batch = []
+                for row in rows:
+                    new_id = f"s{school_id}_{row['id']}"
+                    new_board_id = f"s{school_id}_{row['board_id']}"
+                    new_standard_id = f"s{school_id}_{row['standard_id']}"
+                    stream_id = row.get('stream_id')  # stays as-is (global)
+                    batch.append((new_id, row['name'], new_board_id, new_standard_id, stream_id, row['sort_order'], row['is_active'], school_id))
+                execute_values(
+                    cur,
+                    """INSERT INTO subjects (id, name, board_id, standard_id, stream_id, sort_order, is_active, school_id)
+                       VALUES %s ON CONFLICT DO NOTHING""",
+                    batch
                 )
-                counts["subjects"] += 1
+                counts["subjects"] = len(batch)
+                conn.commit()
             
-            # Copy curriculum
-            cur.execute("SELECT * FROM curriculum WHERE school_id IS NULL")
-            for row in cur.fetchall():
-                new_board_id = f"s{school_id}_{row['board_id']}"
-                new_standard_id = f"s{school_id}_{row['standard_id']}"
-                new_medium_id = f"s{school_id}_{row['medium_id']}"
-                cur.execute(
+            # ─── 5. Copy curriculum (batch insert) ───
+            cur.execute("SELECT board_id, standard_id, medium_id, subjects, is_active FROM curriculum WHERE school_id IS NULL")
+            rows = cur.fetchall()
+            if rows:
+                batch = []
+                for row in rows:
+                    new_board_id = f"s{school_id}_{row['board_id']}"
+                    new_standard_id = f"s{school_id}_{row['standard_id']}"
+                    new_medium_id = f"s{school_id}_{row['medium_id']}"
+                    batch.append((new_board_id, new_standard_id, new_medium_id, row['subjects'], row['is_active'], school_id))
+                execute_values(
+                    cur,
                     """INSERT INTO curriculum (board_id, standard_id, medium_id, subjects, is_active, school_id)
-                       VALUES (%s, %s, %s, %s, %s, %s)
-                       ON CONFLICT (board_id, standard_id, medium_id) DO NOTHING""",
-                    (new_board_id, new_standard_id, new_medium_id, row['subjects'], row['is_active'], school_id)
+                       VALUES %s ON CONFLICT DO NOTHING""",
+                    batch
                 )
-                counts["curriculum"] += 1
+                counts["curriculum"] = len(batch)
+                conn.commit()
             
-            # Copy chapters
-            cur.execute("SELECT * FROM chapters WHERE school_id IS NULL")
-            for row in cur.fetchall():
-                new_board_id = f"s{school_id}_{row['board_id']}"
-                new_standard_id = f"s{school_id}_{row['standard_id']}"
-                new_subject_id = f"s{school_id}_{row['subject_id']}"
-                cur.execute(
-                    """INSERT INTO chapters (board_id, standard_id, subject_id, chapter_number, chapter_name, 
-                                             chapter_name_local, description, topics, is_active, school_id)
-                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                       ON CONFLICT (board_id, standard_id, subject_id, chapter_number) DO NOTHING""",
-                    (new_board_id, new_standard_id, new_subject_id, row['chapter_number'], row['chapter_name'],
-                     row.get('chapter_name_local', ''), row.get('description', ''), row.get('topics', '[]'),
-                     row['is_active'], school_id)
-                )
-                counts["chapters"] += 1
+            # ─── 6. Copy chapters (batch insert with chunking for large data) ───
+            cur.execute("""SELECT board_id, standard_id, subject_id, chapter_number, chapter_name, 
+                                  chapter_name_local, description, topics, is_active 
+                           FROM chapters WHERE school_id IS NULL""")
+            rows = cur.fetchall()
+            if rows:
+                total_chapters = 0
+                batch = []
+                for row in rows:
+                    new_board_id = f"s{school_id}_{row['board_id']}"
+                    new_standard_id = f"s{school_id}_{row['standard_id']}"
+                    new_subject_id = f"s{school_id}_{row['subject_id']}"
+                    batch.append((
+                        new_board_id, new_standard_id, new_subject_id, 
+                        row['chapter_number'], row['chapter_name'],
+                        row.get('chapter_name_local', ''), row.get('description', ''), 
+                        row.get('topics', '[]'), row['is_active'], school_id
+                    ))
+                    
+                    # Commit in batches of BATCH_SIZE
+                    if len(batch) >= BATCH_SIZE:
+                        execute_values(
+                            cur,
+                            """INSERT INTO chapters (board_id, standard_id, subject_id, chapter_number, chapter_name, 
+                                                     chapter_name_local, description, topics, is_active, school_id)
+                               VALUES %s ON CONFLICT DO NOTHING""",
+                            batch
+                        )
+                        total_chapters += len(batch)
+                        batch = []
+                        conn.commit()
+                
+                # Insert remaining rows
+                if batch:
+                    execute_values(
+                        cur,
+                        """INSERT INTO chapters (board_id, standard_id, subject_id, chapter_number, chapter_name, 
+                                                 chapter_name_local, description, topics, is_active, school_id)
+                           VALUES %s ON CONFLICT DO NOTHING""",
+                        batch
+                    )
+                    total_chapters += len(batch)
+                    conn.commit()
+                
+                counts["chapters"] = total_chapters
             
-            # Mark school as curriculum imported
+            # ─── 7. Mark school as curriculum imported ───
             cur.execute("UPDATE schools SET curriculum_imported = TRUE WHERE id = %s", (school_id,))
-            
             conn.commit()
+            
             return {"success": True, "imported": counts}
+        except Exception as e:
+            conn.rollback()
+            raise e
         finally:
             conn.close()
 

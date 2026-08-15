@@ -7,6 +7,7 @@ import { adminApi } from '../../api'
 import type { AIRouting, AIKeySlot } from '../../types'
 import { PLAN_LABELS } from '../../constants'
 import Modal from '../../../../shared/components/Modal'
+import ConfirmDialog from '../../../../shared/components/ConfirmDialog'
 import Button from '../../../../shared/components/Button'
 import Loader from '../../../../shared/components/Loader'
 import {
@@ -54,6 +55,11 @@ const ProvidersPage: React.FC = () => {
 
   // Routing form state
   const [routingForm, setRoutingForm] = useState<AIRouting[]>([])
+  
+  // Delete confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<{ provider: string; slot: number } | null>(null)
+  const [deleteError, setDeleteError] = useState('')
 
   // Ref to prevent duplicate fetches
   const loadedRef = useRef(false)
@@ -99,13 +105,21 @@ const ProvidersPage: React.FC = () => {
   }
 
   // Remove API key
-  const handleRemoveKey = async (provider: string, slot: number) => {
-    if (!confirm('Remove this API key?')) return
+  const handleRemoveKey = (provider: string, slot: number) => {
+    setDeleteTarget({ provider, slot })
+    setDeleteError('')
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmRemoveKey = async () => {
+    if (!deleteTarget) return
     try {
-      await adminApi.aiConfig.removeKey(provider, slot)
+      await adminApi.aiConfig.removeKey(deleteTarget.provider, deleteTarget.slot)
       await fetchAIConfig()
+      setShowDeleteConfirm(false)
+      setDeleteTarget(null)
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Failed to remove key')
+      setDeleteError(error.response?.data?.detail || 'Failed to remove key')
     }
   }
 
@@ -501,6 +515,28 @@ const ProvidersPage: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false)
+          setDeleteTarget(null)
+          setDeleteError('')
+        }}
+        onConfirm={confirmRemoveKey}
+        title="Remove API Key?"
+        message={
+          <>
+            This will remove the API key for {deleteTarget?.provider} (Slot {deleteTarget?.slot}).
+            {deleteError && (
+              <p className="mt-2 text-app-red text-sm">{deleteError}</p>
+            )}
+          </>
+        }
+        confirmText="Remove"
+        variant="danger"
+      />
     </div>
   )
 }

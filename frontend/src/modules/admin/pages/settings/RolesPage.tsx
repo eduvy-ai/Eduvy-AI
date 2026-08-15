@@ -58,6 +58,17 @@ const RolesPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false)
   const [editingRole, setEditingRole] = useState<Role | null>(null)
   const [formData, setFormData] = useState({ name: '', description: '', permissions: [] as string[] })
+  
+  // Toast state
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
+  
+  // Show toast helper
+  const showFeatureToast = (message: string) => {
+    setToastMessage(message)
+    setShowToast(true)
+    setTimeout(() => setShowToast(false), 2000)
+  }
 
   const loadRoles = useCallback(async () => {
     setIsLoading(true)
@@ -136,7 +147,7 @@ const RolesPage: React.FC = () => {
 
   const handleSave = () => {
     // TODO: Save to backend
-    alert(editingRole ? 'Role updated' : 'Role created')
+    showFeatureToast(editingRole ? 'Role updated - Coming soon!' : 'Role created - Coming soon!')
     setShowModal(false)
     loadRoles()
   }
@@ -192,7 +203,7 @@ const RolesPage: React.FC = () => {
         </div>
         {selectedIds.size > 0 && (
           <button
-            onClick={() => alert('Delete selected roles')}
+            onClick={() => showFeatureToast('Delete selected roles - Coming soon!')}
             className="px-3 py-2 text-sm text-app-red bg-app-red/10 border border-app-red/25 rounded-lg hover:bg-app-red/20 transition-colors flex items-center gap-1"
           >
             <Trash size={14} />
@@ -256,7 +267,7 @@ const RolesPage: React.FC = () => {
                       <Pencil size={14} />
                     </button>
                     <button
-                      onClick={() => alert('Delete role')}
+                      onClick={() => showFeatureToast('Delete role - Coming soon!')}
                       className="p-1.5 text-app-red hover:bg-app-red/10 rounded-lg transition-colors"
                     >
                       <Trash size={14} />
@@ -393,6 +404,13 @@ const RolesPage: React.FC = () => {
         <p className="font-medium text-app-blue mb-1">Note</p>
         <p>Roles management endpoint not yet implemented. Showing mock data for UI preview.</p>
       </div>
+
+      {/* Toast */}
+      {showToast && (
+        <div className="fixed bottom-6 right-6 z-[250] bg-app-blue text-white px-4 py-2 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200">
+          {toastMessage}
+        </div>
+      )}
     </div>
   )
 }

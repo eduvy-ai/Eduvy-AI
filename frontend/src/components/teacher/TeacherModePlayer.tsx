@@ -9,7 +9,7 @@ import { studyCoachApi } from '../../modules/studycoach/api'
 import { fetchAudioBlobUrl } from '../../shared/utils/helpers'
 import type { TeacherAudioResponse, TeacherBeat, StudyCoachResponse } from '../../modules/studycoach/types'
 import { BookOpen, Lightbulb, GlobeHemisphereWest, ClipboardText, Books, type Icon } from '@phosphor-icons/react'
-import { Loader } from '@/shared/components/Loader'
+import Loader from '@/shared/components/Loader'
 
 interface Props {
   /** Study Coach response to explain */

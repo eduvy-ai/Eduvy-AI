@@ -6,6 +6,7 @@ import { helpersApi } from '../../api'
 import { useCanEdit } from '../../hooks'
 import type { DrishtiHelper, StudentUser } from '../../types'
 import Modal from '../../../../shared/components/Modal'
+import ConfirmDialog from '../../../../shared/components/ConfirmDialog'
 import Button from '../../../../shared/components/Button'
 import Loader from '../../../../shared/components/Loader'
 import {
@@ -38,6 +39,11 @@ const AssignmentsPage: React.FC = () => {
   const [studentSearchQuery, setStudentSearchQuery] = useState('')
   const [isAssigning, setIsAssigning] = useState(false)
   const [error, setError] = useState('')
+  
+  // Unassign confirmation state
+  const [showUnassignConfirm, setShowUnassignConfirm] = useState(false)
+  const [unassignTarget, setUnassignTarget] = useState<StudentUser | null>(null)
+  const [unassignError, setUnassignError] = useState('')
 
   // Ref to prevent duplicate fetches
   const loadedRef = useRef(false)
@@ -132,13 +138,18 @@ const AssignmentsPage: React.FC = () => {
   }
 
   // Unassign student from teacher
-  const handleUnassign = async (student: StudentUser) => {
+  const handleUnassign = (student: StudentUser) => {
     if (!selectedTeacher) return
-    if (!confirm(`Remove ${student.name} from ${selectedTeacher.helper_name}?`)) return
+    setUnassignTarget(student)
+    setUnassignError('')
+    setShowUnassignConfirm(true)
+  }
+
+  const confirmUnassign = async () => {
+    if (!selectedTeacher || !unassignTarget) return
     
-    setError('')
     try {
-      await helpersApi.unassignStudent(selectedTeacher.id, student.id)
+      await helpersApi.unassignStudent(selectedTeacher.id, unassignTarget.id)
       await loadAssignedStudents(selectedTeacher)
       // Update teacher's count locally
       setTeachers(prev => prev.map(t => 
@@ -146,8 +157,10 @@ const AssignmentsPage: React.FC = () => {
           ? { ...t, assigned_count: Math.max(0, (t.assigned_count || 0) - 1) }
           : t
       ))
+      setShowUnassignConfirm(false)
+      setUnassignTarget(null)
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Failed to unassign student')
+      setUnassignError(error.response?.data?.detail || 'Failed to unassign student')
     }
   }
 
@@ -400,6 +413,28 @@ const AssignmentsPage: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Unassign Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showUnassignConfirm}
+        onClose={() => {
+          setShowUnassignConfirm(false)
+          setUnassignTarget(null)
+          setUnassignError('')
+        }}
+        onConfirm={confirmUnassign}
+        title="Remove Student Assignment?"
+        message={
+          <>
+            Remove <strong>{unassignTarget?.name}</strong> from <strong>{selectedTeacher?.helper_name}</strong>?
+            {unassignError && (
+              <p className="mt-2 text-app-red text-sm">{unassignError}</p>
+            )}
+          </>
+        }
+        confirmText="Remove"
+        variant="warning"
+      />
     </div>
   )
 }

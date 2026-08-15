@@ -106,6 +106,10 @@ const SchoolsPage: React.FC = () => {
   const [upgradePlan, setUpgradePlan] = useState<'school_basic' | 'school_pro'>('school_basic')
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
   
+  // Toast state
+  const [showSuccessToast, setShowSuccessToast] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
+  
   // Selected school data
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null)
   const [schoolStudents, setSchoolStudents] = useState<SchoolStudent[]>([])
@@ -346,7 +350,9 @@ const SchoolsPage: React.FC = () => {
             )
             setShowUpgradeModal(false)
             loadSchools()
-            alert('Payment successful! School plan upgraded.')
+            setSuccessMessage('Payment successful! School plan upgraded.')
+            setShowSuccessToast(true)
+            setTimeout(() => setShowSuccessToast(false), 3000)
           } catch (err: any) {
             setFormError(err.response?.data?.detail || 'Verification failed')
           }
@@ -951,6 +957,13 @@ const SchoolsPage: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <div className="fixed bottom-6 right-6 z-[250] bg-app-green text-white px-4 py-2 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200">
+          {successMessage}
+        </div>
+      )}
     </div>
   )
 }

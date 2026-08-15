@@ -49,6 +49,17 @@ const JobsPage: React.FC = () => {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
   const [totalCount, setTotalCount] = useState(0)
+  
+  // Coming soon toast
+  const [showComingSoon, setShowComingSoon] = useState(false)
+  const [comingSoonFeature, setComingSoonFeature] = useState('')
+  
+  // Show coming soon helper
+  const showFeatureComingSoon = (feature: string) => {
+    setComingSoonFeature(feature)
+    setShowComingSoon(true)
+    setTimeout(() => setShowComingSoon(false), 2000)
+  }
 
   // Mock data since we don't have a real jobs endpoint yet
   const loadJobs = useCallback(async () => {
@@ -208,7 +219,7 @@ const JobsPage: React.FC = () => {
         </div>
         {selectedIds.size > 0 && (
           <button
-            onClick={() => alert('Cancel selected jobs')}
+            onClick={() => showFeatureComingSoon('Cancel selected jobs')}
             className="px-3 py-2 text-sm text-app-red bg-app-red/10 border border-app-red/25 rounded-lg hover:bg-app-red/20 transition-colors flex items-center gap-1"
           >
             <Trash size={14} />
@@ -302,7 +313,7 @@ const JobsPage: React.FC = () => {
                     <div className="flex items-center gap-1">
                       {job.status === 'pending' && (
                         <button
-                          onClick={() => alert('Start job')}
+                          onClick={() => showFeatureComingSoon('Start job')}
                           className="p-1.5 text-app-green hover:bg-app-green/10 rounded-lg transition-colors"
                           title="Start"
                         >
@@ -311,7 +322,7 @@ const JobsPage: React.FC = () => {
                       )}
                       {job.status === 'running' && (
                         <button
-                          onClick={() => alert('Pause job')}
+                          onClick={() => showFeatureComingSoon('Pause job')}
                           className="p-1.5 text-app-yellow hover:bg-app-yellow/10 rounded-lg transition-colors"
                           title="Pause"
                         >
@@ -320,7 +331,7 @@ const JobsPage: React.FC = () => {
                       )}
                       {job.status === 'failed' && (
                         <button
-                          onClick={() => alert('Retry job')}
+                          onClick={() => showFeatureComingSoon('Retry job')}
                           className="p-1.5 text-app-blue hover:bg-app-blue/10 rounded-lg transition-colors"
                           title="Retry"
                         >
@@ -328,7 +339,7 @@ const JobsPage: React.FC = () => {
                         </button>
                       )}
                       <button
-                        onClick={() => alert('Delete job')}
+                        onClick={() => showFeatureComingSoon('Delete job')}
                         className="p-1.5 text-app-red hover:bg-app-red/10 rounded-lg transition-colors"
                         title="Delete"
                       >
@@ -358,6 +369,13 @@ const JobsPage: React.FC = () => {
         <p className="font-medium text-app-blue mb-1">Note</p>
         <p>Background jobs endpoint not yet implemented. Showing mock data for UI preview.</p>
       </div>
+
+      {/* Coming Soon Toast */}
+      {showComingSoon && (
+        <div className="fixed bottom-6 right-6 z-[250] bg-app-blue text-white px-4 py-2 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200">
+          {comingSoonFeature} - Coming soon!
+        </div>
+      )}
     </div>
   )
 }

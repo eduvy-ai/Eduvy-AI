@@ -61,6 +61,10 @@ const TeachersListPage: React.FC = () => {
   
   // Form state
   const [formData, setFormData] = useState(defaultFormState)
+  
+  // Coming soon toast
+  const [showComingSoon, setShowComingSoon] = useState(false)
+  const [comingSoonFeature, setComingSoonFeature] = useState('')
 
   // Ref to prevent duplicate initial fetches
   const loadedRef = useRef(false)
@@ -259,14 +263,22 @@ const TeachersListPage: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => alert('Import teachers - Coming soon')}
+            onClick={() => {
+              setComingSoonFeature('Import teachers')
+              setShowComingSoon(true)
+              setTimeout(() => setShowComingSoon(false), 2000)
+            }}
             className="px-3 py-2 text-sm text-app-muted hover:text-app-text bg-app-card border border-app-border rounded-lg transition-colors flex items-center gap-1"
           >
             <Upload size={14} />
             Import
           </button>
           <button
-            onClick={() => alert('Export teachers - Coming soon')}
+            onClick={() => {
+              setComingSoonFeature('Export teachers')
+              setShowComingSoon(true)
+              setTimeout(() => setShowComingSoon(false), 2000)
+            }}
             className="px-3 py-2 text-sm text-app-muted hover:text-app-text bg-app-card border border-app-border rounded-lg transition-colors flex items-center gap-1"
           >
             <Download size={14} />
@@ -626,6 +638,13 @@ const TeachersListPage: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Coming Soon Toast */}
+      {showComingSoon && (
+        <div className="fixed bottom-6 right-6 z-[250] bg-app-blue text-white px-4 py-2 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200">
+          {comingSoonFeature} - Coming soon!
+        </div>
+      )}
     </div>
   )
 }

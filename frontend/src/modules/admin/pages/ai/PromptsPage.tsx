@@ -44,6 +44,17 @@ const PromptsPage: React.FC = () => {
   const [showPreview, setShowPreview] = useState(false)
   const [previewPrompt, setPreviewPrompt] = useState<AIPrompt | null>(null)
   
+  // Coming soon toast
+  const [showComingSoon, setShowComingSoon] = useState(false)
+  const [comingSoonFeature, setComingSoonFeature] = useState('')
+  
+  // Show coming soon helper
+  const showFeatureComingSoon = (feature: string) => {
+    setComingSoonFeature(feature)
+    setShowComingSoon(true)
+    setTimeout(() => setShowComingSoon(false), 2000)
+  }
+  
   // Ref to prevent duplicate loads
   const loadedRef = useRef(false)
 
@@ -220,7 +231,7 @@ Provide a clear, step-by-step explanation...`,
           </p>
         </div>
         <button
-          onClick={() => alert('Create new prompt')}
+          onClick={() => showFeatureComingSoon('Create new prompt')}
           className="px-4 py-2 text-sm text-white bg-app-green rounded-lg hover:bg-app-green/80 transition-colors flex items-center gap-2"
         >
           <Plus size={16} />
@@ -325,28 +336,28 @@ Provide a clear, step-by-step explanation...`,
                     <Eye size={14} />
                   </button>
                   <button
-                    onClick={() => alert('Test prompt')}
+                    onClick={() => showFeatureComingSoon('Test prompt')}
                     className="p-1.5 text-app-purple hover:bg-app-purple/10 rounded-lg transition-colors"
                     title="Test"
                   >
                     <TestTube size={14} />
                   </button>
                   <button
-                    onClick={() => alert('Edit prompt')}
+                    onClick={() => showFeatureComingSoon('Edit prompt')}
                     className="p-1.5 text-app-green hover:bg-app-green/10 rounded-lg transition-colors"
                     title="Edit"
                   >
                     <Pencil size={14} />
                   </button>
                   <button
-                    onClick={() => alert('Duplicate prompt')}
+                    onClick={() => showFeatureComingSoon('Duplicate prompt')}
                     className="p-1.5 text-app-muted hover:bg-app-card2 rounded-lg transition-colors"
                     title="Duplicate"
                   >
                     <Copy size={14} />
                   </button>
                   <button
-                    onClick={() => alert('Delete prompt')}
+                    onClick={() => showFeatureComingSoon('Delete prompt')}
                     className="p-1.5 text-app-red hover:bg-app-red/10 rounded-lg transition-colors"
                     title="Delete"
                   >
@@ -450,6 +461,13 @@ Provide a clear, step-by-step explanation...`,
         <p className="font-medium text-app-blue mb-1">Note</p>
         <p>AI prompts management endpoint not yet implemented. Showing mock data for UI preview.</p>
       </div>
+
+      {/* Coming Soon Toast */}
+      {showComingSoon && (
+        <div className="fixed bottom-6 right-6 z-[250] bg-app-blue text-white px-4 py-2 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200">
+          {comingSoonFeature} - Coming soon!
+        </div>
+      )}
     </div>
   )
 }

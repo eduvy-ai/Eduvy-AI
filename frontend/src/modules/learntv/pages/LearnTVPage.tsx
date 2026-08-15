@@ -5,7 +5,7 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../../../redux/store'
-import { Loader } from '@/shared/components/Loader'
+import Loader from '@/shared/components/Loader'
 
 // Import existing tab component
 // @ts-ignore - JSX component

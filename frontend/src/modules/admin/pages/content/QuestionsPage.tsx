@@ -4,6 +4,7 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react'
 import Pagination from '../../../../shared/components/Pagination'
 import Modal from '../../../../shared/components/Modal'
+import ConfirmDialog from '../../../../shared/components/ConfirmDialog'
 import Button from '../../../../shared/components/Button'
 import Loader from '../../../../shared/components/Loader'
 import { useQuestions, useChapters } from '../../hooks'
@@ -60,6 +61,15 @@ const QuestionsPage: React.FC = () => {
   
   // Form state
   const [formData, setFormData] = useState(defaultFormState)
+  
+  // Delete confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'bulk'; id?: string } | null>(null)
+  const [deleteError, setDeleteError] = useState('')
+  
+  // Coming soon toast
+  const [showComingSoon, setShowComingSoon] = useState(false)
+  const [comingSoonFeature, setComingSoonFeature] = useState('')
 
   // Refs to prevent duplicate fetches
   const chaptersLoadedRef = useRef(false)
@@ -108,29 +118,43 @@ const QuestionsPage: React.FC = () => {
     })
   }
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedIds.size === 0) return
-    if (!confirm(`Delete ${selectedIds.size} questions?`)) return
+    setDeleteTarget({ type: 'bulk' })
+    setDeleteError('')
+    setShowDeleteConfirm(true)
+  }
+
+  const handleDelete = (id: string) => {
+    setDeleteTarget({ type: 'single', id })
+    setDeleteError('')
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
     
     try {
-      await questionsApi.bulkDelete(Array.from(selectedIds))
-      setSelectedIds(new Set())
+      if (deleteTarget.type === 'bulk') {
+        await questionsApi.bulkDelete(Array.from(selectedIds))
+        setSelectedIds(new Set())
+      } else if (deleteTarget.id) {
+        await questionsApi.delete(deleteTarget.id)
+      }
+      setShowDeleteConfirm(false)
+      setDeleteTarget(null)
       refetchQuestions()
     } catch (error) {
-      console.error('Failed to delete questions:', error)
-      alert('Failed to delete questions')
+      console.error('Failed to delete question(s):', error)
+      setDeleteError('Failed to delete. Please try again.')
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this question?')) return
-    try {
-      await questionsApi.delete(id)
-      refetchQuestions()
-    } catch (error) {
-      console.error('Failed to delete question:', error)
-      alert('Failed to delete question')
-    }
+  // Show coming soon toast
+  const showFeatureComingSoon = (feature: string) => {
+    setComingSoonFeature(feature)
+    setShowComingSoon(true)
+    setTimeout(() => setShowComingSoon(false), 2000)
   }
 
   // Open create modal
@@ -328,14 +352,14 @@ const QuestionsPage: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => alert('Import questions - Coming soon')}
+            onClick={() => showFeatureComingSoon('Import questions')}
             className="px-3 py-2 text-sm text-app-muted hover:text-app-text bg-app-card border border-app-border rounded-lg transition-colors flex items-center gap-1"
           >
             <Upload size={14} />
             Import
           </button>
           <button
-            onClick={() => alert('Export questions - Coming soon')}
+            onClick={() => showFeatureComingSoon('Export questions')}
             className="px-3 py-2 text-sm text-app-muted hover:text-app-text bg-app-card border border-app-border rounded-lg transition-colors flex items-center gap-1"
           >
             <Download size={14} />
@@ -805,6 +829,38 @@ const QuestionsPage: React.FC = () => {
           </div>
         )}
       </Modal>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false)
+          setDeleteTarget(null)
+          setDeleteError('')
+        }}
+        onConfirm={confirmDelete}
+        title={deleteTarget?.type === 'bulk' ? `Delete ${selectedIds.size} Questions?` : 'Delete Question?'}
+        message={
+          <>
+            {deleteTarget?.type === 'bulk' 
+              ? 'This will permanently delete all selected questions.'
+              : 'This will permanently delete this question.'
+            }
+            {deleteError && (
+              <p className="mt-2 text-app-red text-sm">{deleteError}</p>
+            )}
+          </>
+        }
+        confirmText="Delete"
+        variant="danger"
+      />
+
+      {/* Coming Soon Toast */}
+      {showComingSoon && (
+        <div className="fixed bottom-6 right-6 z-[250] bg-app-blue text-white px-4 py-2 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200">
+          {comingSoonFeature} - Coming soon!
+        </div>
+      )}
     </div>
   )
 }

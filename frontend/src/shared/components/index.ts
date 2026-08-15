@@ -13,6 +13,8 @@ export type { LoaderSize } from './Loader'
 
 export { default as Modal } from './Modal'
 
+export { default as ConfirmDialog } from './ConfirmDialog'
+
 export { default as Table } from './Table'
 export type { TableColumn } from './Table'
 

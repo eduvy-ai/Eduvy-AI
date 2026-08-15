@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { DiagramData } from '../../modules/studycoach'
-import { Loader } from '@/shared/components/Loader'
+import Loader from '@/shared/components/Loader'
 
 interface DiagramViewerProps {
   diagram: DiagramData

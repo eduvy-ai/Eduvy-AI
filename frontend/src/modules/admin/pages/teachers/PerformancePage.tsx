@@ -70,6 +70,7 @@ const PerformancePage: React.FC = () => {
           const sevenDaysAgo = new Date()
           sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
           const activeStudents = students.filter(s => {
+            if (!s.last_active) return false
             const lastActive = new Date(s.last_active)
             return lastActive >= sevenDaysAgo
           }).length

@@ -15,12 +15,15 @@ import {
   Lightning,
   CurrencyInr,
   ArrowRight,
+  Check,
   CheckCircle,
   XCircle,
   Minus,
   Download,
   Spinner,
+  Warning,
 } from '@phosphor-icons/react'
+import Modal from '../../../shared/components/Modal'
 
 // Stat card component
 interface StatCardProps {
@@ -138,6 +141,7 @@ const AdminDashboard: React.FC = () => {
   // Import state (for school admins)
   const [isImporting, setIsImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [showImportConfirm, setShowImportConfirm] = useState(false)
   
   // Refs to prevent duplicate fetches
   const dataLoadedRef = useRef(false)
@@ -153,9 +157,7 @@ const AdminDashboard: React.FC = () => {
   
   // Handle import global curriculum
   const handleImportGlobal = async () => {
-    if (!confirm('Import standard curriculum from Eduvy? This will copy all boards, standards, mediums, subjects, and chapters to your school.')) {
-      return
-    }
+    setShowImportConfirm(false)
     
     setIsImporting(true)
     setImportResult(null)
@@ -264,7 +266,7 @@ const AdminDashboard: React.FC = () => {
         <div className="lg:col-span-2 bg-app-card rounded-2xl border border-app-border p-5">
           <h2 className="text-lg font-bold text-app-text mb-4">Quick Actions</h2>
           
-          {/* School Admin Import Banner */}
+          {/* School Admin Import Banner - Show when NOT imported */}
           {isSchoolAdmin && !curriculumImported && (
             <div className="mb-4 p-4 bg-app-blue/10 border border-app-blue/25 rounded-xl">
               <div className="flex items-start gap-3">
@@ -282,7 +284,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
                   )}
                   <button
-                    onClick={handleImportGlobal}
+                    onClick={() => setShowImportConfirm(true)}
                     disabled={isImporting}
                     className="px-4 py-2 bg-app-blue text-white text-sm font-semibold rounded-lg hover:bg-app-blue/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
@@ -298,6 +300,21 @@ const AdminDashboard: React.FC = () => {
                       </>
                     )}
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* School Admin Success Indicator - Show when imported */}
+          {isSchoolAdmin && curriculumImported && (
+            <div className="mb-4 p-3 bg-app-green/10 border border-app-green/25 rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-app-green/20 border border-app-green/30 flex items-center justify-center text-app-green shrink-0">
+                  <Check size={16} weight="bold" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-app-green">Standard Curriculum Imported</h3>
+                  <p className="text-xs text-app-muted">Boards, standards, subjects, and chapters are ready</p>
                 </div>
               </div>
             </div>
@@ -345,6 +362,66 @@ const AdminDashboard: React.FC = () => {
           <p className="text-sm">Activity log coming soon</p>
         </div>
       </div>
+
+      {/* Import Curriculum Confirmation Modal */}
+      <Modal
+        isOpen={showImportConfirm}
+        onClose={() => setShowImportConfirm(false)}
+        title="Import Standard Curriculum"
+        size="sm"
+      >
+        <div className="p-4">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-app-blue/20 border border-app-blue/30 flex items-center justify-center text-app-blue shrink-0">
+              <Download size={20} />
+            </div>
+            <div>
+              <p className="text-sm text-app-text mb-2">
+                This will import Eduvy's standard curriculum to your school:
+              </p>
+              <ul className="text-xs text-app-muted space-y-1 list-disc list-inside">
+                <li>Education Boards (CBSE, ICSE, State Boards, etc.)</li>
+                <li>Standards (Class 1-12)</li>
+                <li>Mediums (English, Hindi, Marathi, etc.)</li>
+                <li>Subjects & Chapters</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 p-3 bg-app-yellow/10 border border-app-yellow/25 rounded-lg mb-4">
+            <Warning size={18} className="text-app-yellow shrink-0" />
+            <p className="text-xs text-app-muted">
+              This action will copy curriculum data to your school. Existing data will not be affected.
+            </p>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowImportConfirm(false)}
+              className="flex-1 px-4 py-2.5 bg-app-bg border border-app-border text-app-text text-sm font-semibold rounded-lg hover:bg-app-bg/80 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleImportGlobal}
+              disabled={isImporting}
+              className="flex-1 px-4 py-2.5 bg-app-blue text-white text-sm font-semibold rounded-lg hover:bg-app-blue/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isImporting ? (
+                <>
+                  <Spinner size={16} className="animate-spin" />
+                  Importing...
+                </>
+              ) : (
+                <>
+                  <Download size={16} />
+                  Import Now
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

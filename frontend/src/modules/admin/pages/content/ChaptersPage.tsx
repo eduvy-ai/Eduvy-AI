@@ -4,6 +4,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react'
 import Pagination from '../../../../shared/components/Pagination'
 import Modal from '../../../../shared/components/Modal'
+import ConfirmDialog from '../../../../shared/components/ConfirmDialog'
 import Button from '../../../../shared/components/Button'
 import Loader from '../../../../shared/components/Loader'
 import { chaptersApi, adminApi } from '../../api'
@@ -63,6 +64,11 @@ const ChaptersPage: React.FC = () => {
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [topicInput, setTopicInput] = useState('')
+  
+  // Delete confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'bulk'; id?: number } | null>(null)
+  const [deleteError, setDeleteError] = useState('')
   
   // Form state
   const [formData, setFormData] = useState(defaultFormState)
@@ -182,28 +188,35 @@ const ChaptersPage: React.FC = () => {
     })
   }
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedIds.size === 0) return
-    if (!confirm(`Delete ${selectedIds.size} chapters?`)) return
-    
-    try {
-      await chaptersApi.bulkDelete(Array.from(selectedIds))
-      setSelectedIds(new Set())
-      refetchChapters()
-    } catch (error) {
-      console.error('Failed to delete chapters:', error)
-      alert('Failed to delete chapters')
-    }
+    setDeleteTarget({ type: 'bulk' })
+    setDeleteError('')
+    setShowDeleteConfirm(true)
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Delete this chapter?')) return
+  const handleDelete = (id: number) => {
+    setDeleteTarget({ type: 'single', id })
+    setDeleteError('')
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
+    
     try {
-      await chaptersApi.delete(id)
+      if (deleteTarget.type === 'bulk') {
+        await chaptersApi.bulkDelete(Array.from(selectedIds))
+        setSelectedIds(new Set())
+      } else if (deleteTarget.id) {
+        await chaptersApi.delete(deleteTarget.id)
+      }
+      setShowDeleteConfirm(false)
+      setDeleteTarget(null)
       refetchChapters()
     } catch (error) {
-      console.error('Failed to delete chapter:', error)
-      alert('Failed to delete chapter')
+      console.error('Failed to delete chapter(s):', error)
+      setDeleteError('Failed to delete. Please try again.')
     }
   }
 
@@ -742,6 +755,31 @@ const ChaptersPage: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false)
+          setDeleteTarget(null)
+          setDeleteError('')
+        }}
+        onConfirm={confirmDelete}
+        title={deleteTarget?.type === 'bulk' ? `Delete ${selectedIds.size} Chapters?` : 'Delete Chapter?'}
+        message={
+          <>
+            {deleteTarget?.type === 'bulk' 
+              ? 'This will permanently delete all selected chapters and their content.'
+              : 'This will permanently delete this chapter and its content.'
+            }
+            {deleteError && (
+              <p className="mt-2 text-app-red text-sm">{deleteError}</p>
+            )}
+          </>
+        }
+        confirmText="Delete"
+        variant="danger"
+      />
     </div>
   )
 }

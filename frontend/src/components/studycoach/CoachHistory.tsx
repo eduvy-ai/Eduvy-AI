@@ -16,7 +16,8 @@ import {
   ArrowsClockwise
 } from '@phosphor-icons/react'
 import { studyCoachApi, type CoachSession } from '../../modules/studycoach/api'
-import { Loader } from '@/shared/components/Loader'
+import Loader from '@/shared/components/Loader'
+import ConfirmDialog from '@/shared/components/ConfirmDialog'
 
 interface Props {
   onClose: () => void
@@ -73,6 +74,10 @@ export default function CoachHistory({ onClose, onSelectSession, ui }: Props) {
   const [bookmarkedOnly, setBookmarkedOnly] = useState(false)
   const [subjects, setSubjects] = useState<string[]>([])
   const [showFilters, setShowFilters] = useState(false)
+  
+  // Delete confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<CoachSession | null>(null)
 
   // Load sessions
   const loadSessions = useCallback(async () => {
@@ -126,13 +131,20 @@ export default function CoachHistory({ onClose, onSelectSession, ui }: Props) {
   }
 
   // Delete session
-  const handleDelete = async (session: CoachSession, e: React.MouseEvent) => {
+  const handleDelete = (session: CoachSession, e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
-    if (!confirm(ui.confirmDeleteSession || 'Delete this session?')) return
+    setDeleteTarget(session)
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
     try {
-      await studyCoachApi.deleteSession(session.id)
-      setSessions(prev => prev.filter(s => s.id !== session.id))
+      await studyCoachApi.deleteSession(deleteTarget.id)
+      setSessions(prev => prev.filter(s => s.id !== deleteTarget.id))
+      setShowDeleteConfirm(false)
+      setDeleteTarget(null)
     } catch (err) {
       console.error('Failed to delete session:', err)
     }
@@ -351,6 +363,20 @@ export default function CoachHistory({ onClose, onSelectSession, ui }: Props) {
           </p>
         </footer>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false)
+          setDeleteTarget(null)
+        }}
+        onConfirm={confirmDelete}
+        title={ui.confirmDeleteSession || 'Delete this session?'}
+        message="This will permanently delete this learning session and its conversation history."
+        confirmText="Delete"
+        variant="danger"
+      />
     </div>
   )
 }

@@ -36,6 +36,9 @@ const LogsPage: React.FC = () => {
   const [pageSize, setPageSize] = useState(50)
   const [totalCount, setTotalCount] = useState(0)
   const [autoRefresh, setAutoRefresh] = useState(false)
+  
+  // Coming soon toast
+  const [showComingSoon, setShowComingSoon] = useState(false)
 
   // Mock data since we don't have a real logs endpoint yet
   const loadLogs = useCallback(async () => {
@@ -139,7 +142,10 @@ const LogsPage: React.FC = () => {
             {autoRefresh ? 'Auto-refresh ON' : 'Auto-refresh'}
           </button>
           <button
-            onClick={() => alert('Download logs')}
+            onClick={() => {
+              setShowComingSoon(true)
+              setTimeout(() => setShowComingSoon(false), 2000)
+            }}
             className="px-3 py-1.5 text-sm text-app-muted hover:text-app-text bg-app-card border border-app-border rounded-lg transition-colors flex items-center gap-1"
           >
             <Download size={14} />
@@ -267,6 +273,13 @@ const LogsPage: React.FC = () => {
         <p className="font-medium text-app-blue mb-1">Note</p>
         <p>System logs endpoint not yet implemented. Showing mock data for UI preview.</p>
       </div>
+
+      {/* Coming Soon Toast */}
+      {showComingSoon && (
+        <div className="fixed bottom-6 right-6 z-[250] bg-app-blue text-white px-4 py-2 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200">
+          Download logs - Coming soon!
+        </div>
+      )}
     </div>
   )
 }

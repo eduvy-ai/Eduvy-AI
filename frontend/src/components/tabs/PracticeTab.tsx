@@ -25,7 +25,7 @@ import {
   XCircle,
   Clock,
 } from '@phosphor-icons/react'
-import { Loader } from '@/shared/components/Loader'
+import Loader from '@/shared/components/Loader'
 
 interface QuickActionProps {
   icon: React.ComponentType<any>
