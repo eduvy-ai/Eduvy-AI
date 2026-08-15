@@ -1243,12 +1243,11 @@ class AdminService:
         conn = get_db()
         try:
             cur = conn.cursor()
-            conditions = []
-            params = []
             
-            if school_id is not None:
-                conditions.append("school_id = %s")
-                params.append(school_id)
+            # Use standard school_id filtering: superadmin sees only school_id IS NULL,
+            # school admin sees only their school's students
+            filter_sql, params = AdminService._school_id_filter(school_id)
+            conditions = [filter_sql]
             
             if search:
                 conditions.append("(LOWER(name) LIKE %s OR LOWER(email) LIKE %s OR LOWER(COALESCE(school, '')) LIKE %s)")
@@ -1259,7 +1258,7 @@ class AdminService:
                 params.append(plan)
             if drishti_only:
                 conditions.append("is_drishti = TRUE")
-            where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+            where = "WHERE " + " AND ".join(conditions)
             
             # Get total count
             cur.execute(f"SELECT COUNT(*) AS cnt FROM users {where}", params)
