@@ -3640,7 +3640,7 @@ Answer the student's question clearly and concisely. Use simple language appropr
       const systemPrompt = buildSystemPrompt(user || { language: 'English', standard: chapter.standard, board: chapter.board, name: 'Student' }, modeInstructions)
 
       // Build chapter context for backend - this is critical for AI to know the actual chapter content
-      const chapterContext = {
+      const chapterCtx = {
         id: chapter.id,
         name: chapter.chapter_name,
         number: chapter.chapter_number,
@@ -3652,25 +3652,14 @@ Answer the student's question clearly and concisely. Use simple language appropr
         description: chapter.description || '',
       }
 
-      // callAI has a new chapterContext parameter added in shared.js
-      const callAIFn = callAI as (
-        prompt: string,
-        systemPrompt: string,
-        history: Array<{role: string; content: string}>,
-        retries: number,
-        maxTokens: number,
-        mode: string,
-        chapterContext: typeof chapterContext
-      ) => Promise<string>
-      
-      const response = await callAIFn(
+      const response = await (callAI as Function)(
         text,
         systemPrompt,
         messages.map((m) => ({ role: m.role, content: m.content })),
         3,
         1000,
         'chapter_tutor',
-        chapterContext
+        chapterCtx
       )
 
       const assistantMsg: ChatMessage = { role: 'assistant', content: response || (ui.noResponse || "I couldn't generate a response. Please try again.") }
