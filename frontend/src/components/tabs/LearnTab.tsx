@@ -4,8 +4,8 @@
  * Shows subjects → chapters with progress.
  */
 
-import React, { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useMemo } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import type { RootState } from '@/redux/store'
 import { useSubjectsWithChapters, useChaptersWithProgress } from '@/modules/chapters/hooks'
@@ -84,6 +84,7 @@ interface LearnTabProps {
 
 const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const user = useSelector((state: RootState) => state.auth.user)
   
   // Get user's board and standard
@@ -94,8 +95,17 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
   const lang = getDisplayLang(user || profile)
   const ui = useMemo(() => li(lang), [lang])
   
-  // Selected subject state (stores subject_id)
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null)
+  // Selected subject from URL params (persists across navigation)
+  const selectedSubjectId = searchParams.get('subject')
+  
+  // Update subject selection in URL
+  const setSelectedSubjectId = (subjectId: string | null) => {
+    if (subjectId) {
+      setSearchParams({ subject: subjectId })
+    } else {
+      setSearchParams({})
+    }
+  }
   
   // Load subjects
   const { subjects, isLoading: subjectsLoading } = useSubjectsWithChapters(board, standard)

@@ -26,16 +26,25 @@ axiosInstance.interceptors.response.use(
     return response
   },
   (error) => {
+    const url = error.config?.url || ''
+    
+    // Handle 401 errors (unauthorized)
     if (error.response?.status === 401) {
-      const url = error.config?.url || ''
-      if (url.includes('/api/admin/')) {
-        // Admin token expired — clear admin auth and redirect
-        localStorage.removeItem('eduvyai_admin_token')
-        localStorage.removeItem('eduvyai_admin_user')
-        window.dispatchEvent(new CustomEvent('auth:admin-logout'))
-      } else {
-        clearAuth()
-        window.dispatchEvent(new CustomEvent('auth:logout'))
+      // Skip logout logic for auth endpoints - a 401 on login/register
+      // just means wrong credentials, not an expired session
+      const isAuthEndpoint = url.includes('/api/auth/login') || 
+                             url.includes('/api/auth/register')
+      
+      if (!isAuthEndpoint) {
+        if (url.includes('/api/admin/')) {
+          // Admin token expired — clear admin auth and redirect
+          localStorage.removeItem('eduvyai_admin_token')
+          localStorage.removeItem('eduvyai_admin_user')
+          window.dispatchEvent(new CustomEvent('auth:admin-logout'))
+        } else {
+          clearAuth()
+          window.dispatchEvent(new CustomEvent('auth:logout'))
+        }
       }
     }
 

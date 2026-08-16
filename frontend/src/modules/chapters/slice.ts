@@ -154,6 +154,7 @@ const chaptersSlice = createSlice({
       .addCase(fetchChaptersWithProgress.pending, (state) => {
         state.isLoading = true
         state.error = null
+        state.chaptersWithProgress = [] // Clear stale data immediately
       })
       .addCase(fetchChaptersWithProgress.fulfilled, (state, action: PayloadAction<ChapterWithProgress[]>) => {
         state.isLoading = false
