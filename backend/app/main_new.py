@@ -183,7 +183,6 @@ app.include_router(upload_router, prefix="/api")
 app.include_router(coach_router, prefix="/api")
 app.include_router(content_router, prefix="/api")
 app.include_router(schools_router, prefix="/api")
-app.include_router(content_router, prefix="/api/admin")
 
 # ── Health Check ──────────────────────────────────────────────
 @app.get("/api/health")

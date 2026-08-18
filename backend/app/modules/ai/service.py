@@ -200,7 +200,7 @@ class AIService:
     @staticmethod
     async def chat(user_id: str, prompt: str, system_prompt: str, history: list, max_tokens: int, mode: str = "", chapter_context: dict = None) -> Dict:
         """Process AI chat request."""
-        user = AIService.get_user_info(user_id)
+        user = await asyncio.to_thread(AIService.get_user_info, user_id)
         plan = user["plan"]
 
         # For regional languages (Hindi, Marathi, etc.), upgrade to a better model
@@ -220,11 +220,11 @@ class AIService:
                 "subjects": user["subjects"],
             }
             # Fetch student progress for personalized teaching
-            progress = AIService.get_student_progress(user_id)
+            progress = await asyncio.to_thread(AIService.get_student_progress, user_id)
             system_prompt = build_system_prompt(profile, mode, progress, chapter_context)
 
         # Check quota
-        current, limit = AIService.check_quota(user_id, plan)
+        current, limit = await asyncio.to_thread(AIService.check_quota, user_id, plan)
         if current >= limit:
             raise HTTPException(
                 status_code=429,
@@ -257,7 +257,7 @@ class AIService:
             raise HTTPException(status_code=502, detail=f"AI service error: {str(e)}")
         
         # Track usage
-        new_count = AIService.check_and_increment_usage(user_id, plan, prompt_tokens, completion_tokens)
+        new_count = await asyncio.to_thread(AIService.check_and_increment_usage, user_id, plan, prompt_tokens, completion_tokens)
         
         return {
             "response": response,
@@ -280,11 +280,11 @@ class AIService:
         """Extract text/content from an image using AI Vision."""
         from services.ai_service import call_vision
         
-        user = AIService.get_user_info(user_id)
+        user = await asyncio.to_thread(AIService.get_user_info, user_id)
         plan = user["plan"]
         
         # Check quota
-        current, limit = AIService.check_quota(user_id, plan)
+        current, limit = await asyncio.to_thread(AIService.check_quota, user_id, plan)
         if current >= limit:
             raise HTTPException(
                 status_code=429,
@@ -324,7 +324,7 @@ IMPORTANT: If this is NOT educational content (social media, memes, random photo
             raise HTTPException(status_code=502, detail=f"Vision service error: {str(e)}")
         
         # Track usage
-        AIService.check_and_increment_usage(user_id, plan, prompt_tokens, completion_tokens)
+        await asyncio.to_thread(AIService.check_and_increment_usage, user_id, plan, prompt_tokens, completion_tokens)
         
         # Check if educational
         is_educational = not response.startswith("[NOT_EDUCATIONAL]")
@@ -416,11 +416,11 @@ IMPORTANT: If this is NOT educational content (social media, memes, random photo
             mode = "study_coach"
         
         # Get user info and profile
-        user = AIService.get_user_info(user_id)
+        user = await asyncio.to_thread(AIService.get_user_info, user_id)
         plan = user["plan"]
         
         # Check quota
-        current, limit = AIService.check_quota(user_id, plan)
+        current, limit = await asyncio.to_thread(AIService.check_quota, user_id, plan)
         if current >= limit:
             raise HTTPException(
                 status_code=429,
@@ -443,7 +443,7 @@ IMPORTANT: If this is NOT educational content (social media, memes, random photo
             profile["current_chapter"] = chapter_override
         
         # Fetch student progress for personalization
-        progress = AIService.get_student_progress(user_id)
+        progress = await asyncio.to_thread(AIService.get_student_progress, user_id)
         progress_for_prompt = {
             "weak_areas": progress.get("weak_topics", []),
             "strong_areas": progress.get("strong_topics", []),
@@ -487,7 +487,7 @@ IMPORTANT: If this is NOT educational content (social media, memes, random photo
             raise HTTPException(status_code=502, detail=f"AI service error: {str(e)}")
         
         # Track usage
-        new_count = AIService.check_and_increment_usage(user_id, plan, prompt_tokens, completion_tokens)
+        new_count = await asyncio.to_thread(AIService.check_and_increment_usage, user_id, plan, prompt_tokens, completion_tokens)
         
         # Parse JSON response
         parsed = AIService._parse_study_coach_response(response, mode)
@@ -812,7 +812,7 @@ IMPORTANT: If this is NOT educational content (social media, memes, random photo
         from app.services.r2_storage import r2_storage, StorageLimitExceeded, is_r2_configured
         
         # Get user profile for language preference
-        user = AIService.get_user_info(user_id)
+        user = await asyncio.to_thread(AIService.get_user_info, user_id)
         lang = language or user.get("language", "English")
         
         # Create temp directory for local audio generation

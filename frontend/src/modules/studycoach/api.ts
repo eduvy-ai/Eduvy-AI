@@ -55,8 +55,8 @@ export const studyCoachApi = {
    * Get the audio URL for a specific beat.
    * @deprecated Audio URLs are now returned directly in TeacherAudioResponse.beats[].audio_url
    */
-  getTeacherAudioUrl: (userId: string, beatId: string): string => {
-    return `/api/ai/teacher-audio/${userId}/${beatId}`
+  getTeacherAudioUrl: (_userId: string, beatId: string): string => {
+    return `/api/ai/teacher-audio/${beatId}`
   },
 
   // ─── Coach History APIs ───────────────────────────────────────

@@ -121,7 +121,7 @@ const ProfileTab: React.FC = () => {
 
   // Navigate to secondary features (not in bottom nav)
   const goToNotebook = () => navigate('/app/notebook')
-  const goToVideos = () => navigate('/app/videos')
+  const goToVideos = () => navigate('/app/learntv')
   const goToLearnTV = () => navigate('/app/learntv')
 
   return (

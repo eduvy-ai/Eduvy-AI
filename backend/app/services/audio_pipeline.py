@@ -1,5 +1,5 @@
 """
-Audio Pipeline — TTS generation and audio mixing for video narration.
+Audio Pipeline — TTS generation for Teacher Mode narration.
 
 Primary TTS: edge-tts (Microsoft Neural Voices — natural, warm quality)
 Fallback TTS: gTTS (Google TTS — always available)

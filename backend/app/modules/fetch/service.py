@@ -1,15 +1,37 @@
 """
 Fetch Service - Business logic for web fetching and YouTube.
 """
+import ipaddress
 import re
 import asyncio
 import concurrent.futures
 from typing import Dict, List
+from urllib.parse import urlparse
 import httpx
 
 _YOUTUBE_RE = re.compile(r"youtube\.com|youtu\.be", re.IGNORECASE)
 _YT_VIDEO_ID_RE = re.compile(r"(?:v=|youtu\.be/)([a-zA-Z0-9_-]{11})")
 _MAX_CHARS = 10_000
+
+
+def _is_private_url(url: str) -> bool:
+    """Block SSRF by rejecting private/reserved IPs and non-http schemes."""
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        return True
+    hostname = parsed.hostname or ""
+    if not hostname:
+        return True
+    if hostname in ("localhost", "0.0.0.0"):
+        return True
+    try:
+        ip = ipaddress.ip_address(hostname)
+        return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
+    except ValueError:
+        # Not an IP — check for internal-looking hostnames
+        if hostname.endswith(".local") or hostname.endswith(".internal"):
+            return True
+    return False
 
 # Educational YouTube channels
 _YT_EDU_CHANNELS = {
@@ -93,6 +115,9 @@ class FetchService:
     @staticmethod
     async def fetch_url(url: str) -> Dict:
         """Fetch content from URL."""
+        if _is_private_url(url):
+            return {"content": "Error: URL not allowed", "isYouTube": False}
+        
         is_youtube = bool(_YOUTUBE_RE.search(url))
         
         # For YouTube URLs, extract video info using yt-dlp
