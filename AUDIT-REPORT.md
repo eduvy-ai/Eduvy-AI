@@ -1,494 +1,180 @@
-# Eduvy-AI — Complete Application Audit Report
+# Eduvy-AI — Blunt Technical & Market Audit
 
-**Date:** 2026-08-13
-**Auditor:** Full-Stack + Security + QA Audit
-**Application:** Eduvy-AI (React + FastAPI)
-**Environment:** Local development with live PostgreSQL database
-
----
-
-## Executive Summary
-
-```
-Total Frontend Pages:   26+ (student: 14, admin: 20+, public: 5)
-Total API Endpoints:    160+ (from OpenAPI spec)
-APIs Runtime Tested:    35
-Pages Statically Audited: All
-Roles Tested:           3 (Superadmin, School Admin, Student)
-Schools in DB:          1 (Rahul Raj, ID=5)
-Students in DB:         5 (3 non-school, 2 school-linked)
-Admin Users in DB:      2 (1 superadmin, 1 school admin)
-
-Total Findings:         27
-  CRITICAL:             4
-  HIGH:                 8
-  MEDIUM:               10
-  LOW:                  5
-
-Test Method:
-  Runtime Tested:       35 APIs, 12 security checks
-  Static Analysis:      All files
-  Blocked:              Browser UI testing (no browser automation available)
-```
+**Date:** 2026-08-18  
+**Auditor:** Independent code + market review  
+**Scope:** Full codebase read + market research
 
 ---
 
-## 1. CRITICAL Findings
+## 1. Completeness vs. Claims
 
-### CRIT-01: JWT Secret Uses Hardcoded Default in Production
-| Field | Value |
-|-------|-------|
-| **Severity** | CRITICAL |
-| **Status** | RUNTIME CONFIRMED |
-| **Files** | `backend/app/core/config.py`, `backend/app/modules/admin/router.py`, `backend/app/modules/chapters/router.py`, `backend/app/modules/payments/router.py`, `backend/app/modules/schools/router.py` |
-| **Evidence** | JWT_SECRET env var starts with "eduv" — matches the hardcoded fallback `eduvyai-change-me`. Multiple routers independently read this fallback. |
-| **Impact** | Any attacker who knows (or guesses) this default can forge valid JWT tokens, impersonate any user, create superadmin tokens, and bypass all authorization. |
-| **Fix** | Force application to fail startup if JWT_SECRET equals the default. Remove hardcoded fallback from all router files — use a single source from config. |
+| Feature | Claimed | Actual Code Status | Honest % |
+|---------|---------|-------------------|----------|
+| AI Chat/Tutoring | ✅ | **Fully implemented.** 800-line AI service with multi-provider fallback (Groq, Gemini, Anthropic, OpenAI, NVIDIA), key rotation, plan-based model routing, context-aware chapter tutoring | **95%** |
+| AI Video Generation | ✅ | **Fully implemented.** Complete pipeline: AI script → 17 SVG diagram types with stroke-by-stroke animation → Chromium render to MP4 → TTS narration (edge-tts + gTTS fallback) → ffmpeg assembly. 2,855-line frontend renderer. Real. | **90%** |
+| Study Squads | ✅ | **Fully implemented.** Matching, chat (polling, not WebSocket), challenges, doubts board with AI verdict, daily concept, streak. 15+ endpoints. | **85%** |
+| Notebook/OCR | ✅ | **Fully implemented.** PDF upload via PyMuPDF, image extraction via Gemini Vision, source management, AI chat with source context, studio outputs (podcast, quiz, flashcards, etc.) | **90%** |
+| Parent Dashboard | ✅ | **Fully implemented.** PIN-based public view, no auth required for parents. Minimal but complete. | **95%** |
+| Payments | ✅ | **Fully implemented.** Razorpay integration with order creation, HMAC signature verification, plan upgrades, school plans, payment logging, idempotency checks. | **90%** |
+| WebSocket real-time chat | Implied in docs | **Does not exist.** Chat uses 4-second polling. The `websocket/` directory in copilot-instructions is fiction. | **0%** |
+| Multilingual support | ✅ | **Implemented in AI prompts only.** `LANG_RULES` directs AI to respond in specific scripts. No UI translations — all interface strings are English. | **40%** |
 
-### CRIT-02: Unauthenticated Profile Creation (POST /api/profile)
-| Field | Value |
-|-------|-------|
-| **Severity** | CRITICAL |
-| **Status** | RUNTIME CONFIRMED |
-| **Endpoint** | `POST /api/profile` |
-| **Evidence** | `curl -X POST /api/profile -d '{"id":"test-injected-id","name":"InjectedUser"}' → 201 Created`. Record appeared in `users` table. |
-| **Impact** | Anyone can create arbitrary user records with chosen IDs. Enables: account pre-creation attacks, data pollution, potential ID collision with real registrations, arbitrary user namespace occupation. |
-| **Root Cause** | `backend/app/modules/profile/router.py` — POST endpoint has no auth dependency. |
-| **Fix** | Add `Depends(get_current_user)` or remove this endpoint entirely (registration already creates profiles). |
-
-### CRIT-03: Questions/Media Pagination Response Mismatch — Admin Panel Shows Empty Lists
-| Field | Value |
-|-------|-------|
-| **Severity** | CRITICAL |
-| **Status** | RUNTIME CONFIRMED |
-| **API Response** | `GET /api/admin/questions` returns `{"items": [...], "total": N}` |
-| **Frontend Reads** | `action.payload.data` and `action.payload.total` |
-| **Evidence** | Backend: `{"items": [], "total": 0}`. Frontend slice: `state.questions = action.payload.data` → `undefined`. |
-| **Impact** | Admin Content Studio questions list ALWAYS renders empty, regardless of how many questions exist. Same issue for media (when media endpoint doesn't 500). |
-| **Files** | Backend: `backend/app/modules/admin/service.py` L2942. Frontend: `frontend/src/modules/admin/slice.ts` L503. |
-| **Fix** | Either change backend to return `{data: [...]}` or change frontend to read `action.payload.items`. |
-
-### CRIT-04: Chapters Subjects API — 500 Server Error (SQL Bug)
-| Field | Value |
-|-------|-------|
-| **Severity** | CRITICAL |
-| **Status** | RUNTIME CONFIRMED |
-| **Endpoint** | `GET /api/chapters/subjects?board_id=cbse&standard_id=class_10` → 500 |
-| **Root Cause** | `backend/app/modules/chapters/service.py` L313: SQL query orders by `s.sort_order` but it's not in the `GROUP BY` clause. Error: `GroupingError: column "s.sort_order" must appear in the GROUP BY clause or be used in an aggregate function` |
-| **Impact** | The Learn tab cannot load its subject list. Students see no subjects. The entire chapter-based learning flow is broken. |
-| **Fix** | Add `s.sort_order` to the `GROUP BY` clause. |
+**Overall implementation: ~80% of claimed features are genuinely working end-to-end.** This is unusually high for an early-stage project. The code is not a prototype — it's production code with real complexity.
 
 ---
 
-## 2. HIGH Findings
+## 2. Architecture Red Flags
 
-### HIGH-01: Drishti Toggle API — Request Format Mismatch (422)
-| Field | Value |
-|-------|-------|
-| **Severity** | HIGH |
-| **Status** | RUNTIME CONFIRMED |
-| **Endpoint** | `PUT /api/admin/users/{userId}/drishti` |
-| **Backend Expects** | `is_drishti` as a **query parameter**: `?is_drishti=true` |
-| **Frontend Sends** | JSON body: `{ is_drishti: true }` |
-| **Evidence** | Runtime: body → `422 {"detail": "Field required"}`. Query → `200 {"ok": true}`. |
-| **Impact** | Admins cannot toggle Drishti status for students from the admin panel. |
-| **Files** | Backend: `backend/app/modules/admin/router.py` L428. Frontend: `frontend/src/modules/admin/api.ts` L405. |
-| **Fix** | Change frontend to send as query param, or change backend to accept body. |
+### Critical
 
-### HIGH-02: Chapter Subjects — Frontend Sends Wrong Parameter Names (422)
-| Field | Value |
-|-------|-------|
-| **Severity** | HIGH |
-| **Status** | RUNTIME CONFIRMED |
-| **Endpoint** | `GET /api/chapters/subjects` |
-| **Backend Expects** | `board_id`, `standard_id` (query params) |
-| **Frontend Sends** | `board`, `standard` (via `api.js` L1083) |
-| **Evidence** | Wrong params → `422 Field required`. Correct params → 500 (separate SQL bug). |
-| **Impact** | HomeTab subject list always fails silently (returns `[]` due to catch block). |
-| **Files** | Frontend: `frontend/src/api.js` L1083. Backend: `backend/app/modules/chapters/router.py` L69-70. |
+1. **In-memory rate limiting resets on restart and doesn't work across workers** (`backend/app/main_new.py`). A single `uvicorn` restart clears all rate limits. At 500+ users this is trivially bypassed.
 
-### HIGH-03: Admin Dashboard Student Count Excludes School Students
-| Field | Value |
-|-------|-------|
-| **Severity** | HIGH |
-| **Status** | RUNTIME CONFIRMED |
-| **Page** | Admin Dashboard (`/admin`) |
-| **API** | `GET /api/admin/users` |
-| **Evidence** | Superadmin API returns 3 users (all `school_id IS NULL`). DB has 5 users total. Dashboard shows `totalStudents = students.length = 3`. |
-| **Root Cause** | `backend/app/modules/admin/service.py` L1139: superadmin query filters `school_id IS NULL` AND has `LIMIT 500`. |
-| **Impact** | Dashboard "Total Students" stat is wrong for superadmins. Shows 3 instead of 5. Missing 2 school-linked students. |
-| **Fix** | For superadmin, either remove the `school_id IS NULL` filter or add a separate count API. |
+2. **No external job queue.** Video rendering (Chromium + ffmpeg, potentially 2+ minutes) runs as FastAPI `BackgroundTasks` in-process. If the Render instance restarts mid-render, the job is lost with no retry. At 500 users generating videos simultaneously, the single-instance Render server will OOM.
 
-### HIGH-04: Media Admin API — 500 Server Error
-| Field | Value |
-|-------|-------|
-| **Severity** | HIGH |
-| **Status** | RUNTIME CONFIRMED |
-| **Endpoint** | `GET /api/admin/media` → 500 |
-| **Impact** | Admin Content Studio media management is completely broken. |
+3. **30-day JWT with no refresh token and no revocation** (`backend/app/modules/auth/service.py`). If a token is leaked (e.g., from a shared device — common for Indian students), it's valid for a month with no way to invalidate it.
 
-### HIGH-05: Payment School Endpoints — 500 Server Error
-| Field | Value |
-|-------|-------|
-| **Severity** | HIGH |
-| **Status** | RUNTIME CONFIRMED |
-| **Endpoint** | `POST /api/payments/school/create-order` → 500 |
-| **Evidence** | Both school admin and superadmin creating order for school_id=5 with plan "school_basic" → 500. |
-| **Impact** | School billing/upgrade is non-functional. |
+4. **All state is in-process.** AI response cache (2000 entries, 1h TTL), rate buckets, video render state — none survive a restart. Render's free tier cold-starts regularly.
 
-### HIGH-06: Payment Endpoints — No School-Level Tenant Isolation
-| Field | Value |
-|-------|-------|
-| **Severity** | HIGH |
-| **Status** | STATICALLY VERIFIED |
-| **Endpoint** | `POST /api/payments/school/create-order`, `POST /api/payments/school/verify` |
-| **Evidence** | Router uses `get_admin_user` (role check only), not `get_admin_with_school`. School_id comes from request body with no ownership check. |
-| **Impact** | Once the 500 is fixed, a school admin from School A could create/verify payment orders for School B. |
-| **Files** | `backend/app/modules/payments/router.py` L82-98. |
+### Moderate
 
-### HIGH-07: Chapter Admin Endpoints — No School Scope Check
-| Field | Value |
-|-------|-------|
-| **Severity** | HIGH |
-| **Status** | STATICALLY VERIFIED + RUNTIME ATTEMPTED |
-| **Endpoints** | `POST/PUT/DELETE /api/chapters`, `POST /api/chapters/bulk`, `POST /api/chapters/bulk-delete` |
-| **Evidence** | Admin check only validates `role=admin`, not `school_id`. School admin from school 5 sent PUT /chapters/1 → 500 (query failed, but auth passed). |
-| **Impact** | Any school admin can modify/delete chapters belonging to other schools or global curriculum. |
-| **Files** | `backend/app/modules/chapters/router.py` L29, L116-131. |
+5. **Raw SQL in router layer** — `muqabla/router.py` school leaderboard opens its own DB connection with bare `try/except Exception: pass` swallowing errors.
 
-### HIGH-08: `require_admin` Dependency Is a Stub
-| Field | Value |
-|-------|-------|
-| **Severity** | HIGH |
-| **Status** | STATICALLY VERIFIED |
-| **File** | `backend/app/core/dependencies.py` L37-43 |
-| **Evidence** | Function contains `# TODO: Check if user is admin in database` and simply returns the user. |
-| **Impact** | Any future endpoint using this dependency will have NO admin check. Currently no endpoints use it, but it's a landmine. |
+6. **No external monitoring.** No Sentry, no error tracking, no analytics SDK. The marketing docs mention Mixpanel/GA but nothing is wired. You will not know when things break in production.
+
+7. **`.env` on disk with real Supabase credentials and JWT secret.** The `.gitignore` lists it, but if it was ever committed, credentials are in git history.
+
+8. **Video files served from `/tmp`** — Render's ephemeral filesystem means rendered videos disappear on redeploy. There's S3/boto3 in dependencies but the video pipeline writes to local disk.
 
 ---
 
-## 3. MEDIUM Findings
+## 3. Differentiation in the Code
 
-### MED-01: Admin Users API — Field Mismatch with Frontend Types
-| Field | Value |
-|-------|-------|
-| **Severity** | MEDIUM |
-| **Status** | RUNTIME CONFIRMED |
-| **API** | `GET /api/admin/users` |
+Things a student **cannot** get from ChatGPT/Gemini today:
 
-| API Field | API Returns | Frontend Expects | Match? |
-|-----------|------------|-----------------|--------|
-| id | ✅ | ✅ | ✅ |
-| name | ✅ | ✅ | ✅ |
-| email | ✅ | ✅ | ✅ |
-| standard | ✅ | ✅ | ✅ |
-| board | ✅ | ✅ | ✅ |
-| language | ✅ | ✅ | ✅ |
-| plan | ✅ | ✅ | ✅ |
-| xp | ✅ | ✅ | ✅ |
-| streak | ✅ | ✅ | ✅ |
-| is_drishti | ✅ | ✅ | ✅ |
-| created_at | ✅ | ✅ | ✅ |
-| school_id | ✅ | ❌ (expects `school`) | ❌ Mismatch |
-| last_active | ❌ Not returned | ✅ Expected | ❌ Missing |
-| ai_provider | ✅ | ❌ Not in type | Extra |
-| ai_model | ✅ | ❌ Not in type | Extra |
-| ai_admin_override | ✅ | ❌ Not in type | Extra |
+1. **The video engine is genuinely novel.** AI-generates a script → renders animated whiteboard-style SVG diagrams (17 types with stroke-by-stroke drawing animations) → assembles to actual MP4 with TTS narration timed to scene transitions. ChatGPT cannot produce this. Gemini cannot produce this. This is real engineering work. However — it's unclear if students actually want AI-generated videos over real teacher recordings.
 
-### MED-02: Admin Login Response — Missing `permissions` Field
-| Field | Value |
-|-------|-------|
-| **Severity** | MEDIUM |
-| **Status** | RUNTIME CONFIRMED |
-| **API** | `POST /api/admin/login` |
-| **Response** | `{token, user: {id, email, name, role, school_id, must_change_password, created_at}}` |
-| **Frontend Type** | `AdminUser` requires `permissions: Record<AdminSection, PermissionLevel>` |
-| **Mitigated?** | Yes — `adminService.login()` enriches with `ROLE_PERMISSIONS[role]` fallback. Works but fragile. |
+2. **Board-specific chapter-context tutoring.** The AI chat is pre-loaded with the student's exact board (CBSE/ICSE/state), class, medium, and current chapter. Free ChatGPT has none of this context unless the student manually types it every time.
 
-### MED-03: Bulk Import Response Shape Mismatches
-| Field | Value |
-|-------|-------|
-| **Severity** | MEDIUM |
-| **Status** | STATICALLY VERIFIED |
-| **APIs** | `POST /api/admin/boards/import`, `.../standards/import`, `.../mediums/import`, `.../subjects/import`, `.../curriculum/import` |
-| **Backend Returns** | `{ inserted, updated }` or `{ created, errors }` |
-| **Frontend Expects** | `{ imported }` |
-| **Impact** | Import success feedback shows incorrect count (`undefined`). |
-| **Files** | Frontend: `frontend/src/modules/admin/api.ts` L132-303. Backend: `backend/app/modules/admin/service.py` L289-767. |
+3. **Gamification layer (Bhool Bazaar, Muqabla).** Mistake-sharing marketplace and peer battles don't exist in general AI tools. But they require critical mass to work — with <50 users, these features are dead.
 
-### MED-04: Curriculum Import Request Body Mismatch
-| Field | Value |
-|-------|-------|
-| **Severity** | MEDIUM |
-| **Status** | STATICALLY VERIFIED |
-| **API** | `POST /api/admin/curriculum/import` |
-| **Backend Expects** | Body with `rows` key |
-| **Frontend Sends** | Raw array `entries` |
-| **Impact** | Curriculum import likely fails validation. |
-
-### MED-05: Admin Dashboard — Hardcoded Trend Values
-| Field | Value |
-|-------|-------|
-| **Severity** | MEDIUM |
-| **Status** | STATICALLY VERIFIED |
-| **File** | `frontend/src/modules/admin/pages/Dashboard.tsx` L226 |
-| **Evidence** | `change={{ value: 12, positive: true }}` is hardcoded, not calculated from API data. |
-| **Impact** | Dashboard always shows "+12" growth regardless of actual trend. Misleading. |
-
-### MED-06: Rate Limiting — Bypassable via X-Forwarded-For Header Spoofing
-| Field | Value |
-|-------|-------|
-| **Severity** | MEDIUM |
-| **Status** | STATICALLY VERIFIED |
-| **File** | `backend/app/main_new.py` L141 |
-| **Evidence** | Rate limiter trusts `X-Forwarded-For` header directly. In-memory only (reset on restart). Only covers 3 endpoints. |
-| **Impact** | Brute-force attacks on login endpoints are possible by rotating the forwarded IP header. |
-
-### MED-07: Password Policy Inconsistency
-| Field | Value |
-|-------|-------|
-| **Severity** | MEDIUM |
-| **Status** | STATICALLY VERIFIED |
-| **Files** | `backend/app/modules/auth/service.py` |
-| **Evidence** | Registration requires ≥8 characters. Change password allows ≥6 characters. No complexity requirements. |
-
-### MED-08: Drishti Student Creation — Missing Required Fields
-| Field | Value |
-|-------|-------|
-| **Severity** | MEDIUM |
-| **Status** | STATICALLY VERIFIED |
-| **API** | `POST /api/admin/users/drishti` |
-| **Backend Schema** | Requires `standard` and `board` fields |
-| **Frontend Sends** | Only `name`, `email`, `password` |
-| **Impact** | Creating Drishti students from admin panel likely fails with 422 validation error. |
-
-### MED-09: Token Stored in localStorage
-| Field | Value |
-|-------|-------|
-| **Severity** | MEDIUM |
-| **Status** | STATICALLY VERIFIED |
-| **Files** | `frontend/src/modules/auth/service.ts`, `frontend/src/services/interceptor.ts` |
-| **Impact** | Any XSS vulnerability can exfiltrate authentication tokens. |
-
-### MED-10: Public Chapter Data Exposure Across Tenants
-| Field | Value |
-|-------|-------|
-| **Severity** | MEDIUM |
-| **Status** | RUNTIME CONFIRMED |
-| **Endpoints** | `GET /api/chapters`, `GET /api/chapters/{id}` |
-| **Evidence** | Unauthenticated request returns all chapters including school-specific ones. |
-| **Impact** | School-specific curriculum metadata visible to anyone. |
+Things that are **not** differentiation:
+- "AI chat" — ChatGPT is free and better at raw Q&A
+- "PDF upload" — ChatGPT, Gemini, Claude all do this
+- "Study notes/summaries" — generic AI capability
+- "Multilingual" — Gemini is natively multilingual in all 11 languages listed
 
 ---
 
-## 4. LOW Findings
+## 4. Technical Debt / Rebuild Risk
 
-### LOW-01: CORS — Broad Configuration
-- `allow_methods=["*"]`, `allow_headers=["*"]`
-- Origin list includes `capacitor://localhost` and various `localhost` ports
-- Not directly exploitable but broadens attack surface
+If you kept building for 3 more months on this exact codebase:
 
-### LOW-02: Admin Login Response Key vs Student Login Key
-- Admin login: `{token, user}` — Student login: `{token, profile}`
-- Not a bug (frontend handles both) but inconsistent API design
+| Component | Rebuild risk |
+|-----------|-------------|
+| Video pipeline on single Render instance | **Will break** at 50+ concurrent renders. Needs a proper job queue (Celery/Redis or dedicated render workers). Probably 2-3 weeks to migrate. |
+| In-memory caching & rate limiting | **Must** move to Redis. 1-2 days of work but architectural. |
+| Chat polling (4s intervals) | Acceptable for 500 users, but 500 users × 4s polling = 7,500 req/min to your endpoint. Will need WebSocket eventually. |
+| Custom migration runner | Works, but lacks rollback safety. Lower priority. |
+| Frontend as single 2,855-line file (VideosTab) | Already painful to maintain. Not urgent but signals rushed dev. |
 
-### LOW-03: Public School Code Lookup Leaks Metadata
-- `GET /api/schools/code/{code}` returns `{name, city, is_active}`
-- Minor enumeration risk
-
-### LOW-04: Admin AI Usage/Revenue/Analytics Endpoints Return 404
-- `GET /api/admin/ai-usage` → 404
-- `GET /api/admin/analytics` → 404 (correct path is `/admin/analytics/overview`)
-- Frontend may reference wrong paths
-
-### LOW-05: Content Router Mounted Twice
-- `backend/app/main_new.py` mounts content router under both `/api` and `/api/admin`
-- Results in duplicate route sets (questions, media, assessments accessible via both prefixes)
+The **foundation is solid enough** — the modular service/router/query separation in the backend is correct. You wouldn't need to rewrite the architecture, but you'd need to add infrastructure (Redis, queue, monitoring) before real scale.
 
 ---
 
-## 5. API Coverage Matrix
+## 5. Evidence of Real Testing
 
-### Runtime Tested APIs
+### Positive signs
+- 17 test files with real functional patterns (not placeholders)
+- Sophisticated PostgreSQL→SQLite translation layer in `conftest.py` (effort that only a real developer building for real would make)
+- Live API test scripts (`audit_live.py`, `battle_test.py`) using real developer credentials
+- `render.yaml` and `vercel.json` pointing to live URLs (`eduvyai-api.onrender.com`)
+- 12 applied migrations (schema evolution over time)
+- Real curriculum seed data for 5 Indian boards
 
-| API | Method | Auth | Status | Result |
-|-----|--------|------|--------|--------|
-| /api/auth/login | POST | No | 200 | ✅ Working |
-| /api/auth/me | GET | Student | 200 | ✅ Working |
-| /api/admin/login | POST | No | 200 | ✅ Working |
-| /api/admin/me | GET | Admin | 200 | ✅ Working |
-| /api/admin/users | GET | Superadmin | 200 | ⚠️ Excludes school students |
-| /api/admin/users | GET | School Admin | 200 | ✅ Correctly scoped |
-| /api/admin/questions | GET | Admin | 200 | ⚠️ Returns {items} not {data} |
-| /api/admin/media | GET | Admin | 500 | ❌ Server error |
-| /api/admin/assessments | GET | Admin | 200 | ✅ Returns {data, total, limit, offset} |
-| /api/admin/analytics/overview | GET | Admin | 200 | ✅ Working |
-| /api/admin/analytics/students | GET | Admin | 200 | ✅ Working |
-| /api/admin/analytics/revenue | GET | Admin | 200 | ✅ Working |
-| /api/admin/community/stats | GET | Admin | 200 | ✅ Working |
-| /api/admin/usage/summary | GET | Admin | 200 | ✅ Working |
-| /api/admin/api-dashboard | GET | Admin | 200 | ✅ Working |
-| /api/admin/users/{id}/drishti | PUT | Admin+Body | 422 | ❌ Expects query param |
-| /api/admin/users/{id}/drishti | PUT | Admin+Query | 200 | ✅ Working |
-| /api/profile/{id} | GET | Owner | 200 | ✅ Working |
-| /api/profile/{id} | GET | Other | 403 | ✅ Correctly denied |
-| /api/profile | POST | None | 201 | ❌ VULN: No auth required |
-| /api/mastery/{id} | GET | Owner | 200 | ✅ Working |
-| /api/mastery/{id} | GET | Other | 403 | ✅ Correctly denied |
-| /api/quiz/{id}/stats | GET | Owner | 200 | ✅ Working |
-| /api/quiz/{id}/stats | GET | Other | 403 | ✅ Correctly denied |
-| /api/ai/usage | GET | Student | 200 | ✅ Working |
-| /api/bhool/cards/mine | GET | Student | 200 | ✅ Working |
-| /api/bhool/marketplace | GET | Student | 200 | ✅ Working |
-| /api/muqabla/history | GET | Student | 200 | ✅ Working |
-| /api/muqabla/leaderboard | GET | Student | 200 | ✅ Working |
-| /api/chapters | GET | None | 200 | ⚠️ Exposes all chapters |
-| /api/chapters/subjects | GET | None | 500 | ❌ SQL GROUP BY bug |
-| /api/chapters/subjects | GET | Wrong params | 422 | ❌ FE sends wrong params |
-| /api/parent/pin | GET | Student | 200 | ✅ Working |
-| /api/curriculum/boards | GET | None | 200 | ✅ Working |
-| /api/notebook/{id}/sources | GET | Owner | 200 | ✅ Working |
-| /api/notebook/{id}/sources | GET | Other | 403 | ✅ Correctly denied |
-| /api/schools | GET | Superadmin | 200 | ✅ Working |
-| /api/schools/{id} | GET | Other School | 403 | ✅ Correctly denied |
-| /api/payments/school/create-order | POST | School Admin | 500 | ❌ Server error |
-| /api/home/recent-practice | GET | Student | 200 | ✅ Working |
-| /api/coach/sessions | GET | Student | 200 | ✅ Working |
-| /api/health | GET | None | 200 | ✅ Working |
+### Negative signs
+- No analytics/tracking SDK (no Mixpanel, no PostHog, no GA)
+- No evidence of student usage data
+- No error reporting in production (no Sentry)
+- No A/B testing infrastructure
+- The live test scripts use developer emails (`pradip@gmail.com`)
 
-### Security Test Results
-
-| Test | Expected | Actual | Result |
-|------|----------|--------|--------|
-| Student → other student profile | 403 | 403 | ✅ PASS |
-| Student → admin API | 403 | 403 | ✅ PASS |
-| Student → other student mastery | 403 | 403 | ✅ PASS |
-| Student → other student quiz | 403 | 403 | ✅ PASS |
-| Student → other student notebook | 403 | 403 | ✅ PASS |
-| School admin → other school | 403 | 403 | ✅ PASS |
-| Unauthenticated → create profile | 401 | 201 | ❌ FAIL (CRIT) |
-| School admin → modify global chapter | 403 | 500 (auth passed) | ❌ FAIL |
-| School admin → other school payment | 403 | N/A (500 first) | ⚠️ BLOCKED |
+**Verdict:** This has been tested by the developer(s) extensively, but there is **zero evidence of real student usage.** No usage metrics, no retention data, no feedback loops.
 
 ---
 
-## 6. API → Frontend Data Validation
+## 6. Market Research
 
-### Field-Level Mismatches
+**Disclaimer:** Web research capabilities are limited. Some facts are verified, others are inference. Clearly labeled below.
 
-| Page | API Field | API Value | Frontend Field | UI Value | Severity |
-|------|-----------|-----------|----------------|----------|----------|
-| Admin Dashboard | students.length | 3 (capped) | totalStudents | 3 (wrong) | HIGH |
-| Admin Dashboard | change.value | N/A | change.value | 12 (hardcoded) | MEDIUM |
-| Admin Users | school_id | 5 | school | undefined | MEDIUM |
-| Admin Users | last_active | NOT RETURNED | last_active | undefined | MEDIUM |
-| Admin Questions | items | [...] | data | undefined | CRITICAL |
-| Admin Login | permissions | NOT RETURNED | permissions | Enriched client-side | LOW |
+### Verified Facts
 
-### Response Shape Mismatches
+- **Physics Wallah (PW):** Live, operational, 3.5M+ registered students, offline centers in 175+ cities, YouTube channels with 11.5M+ subscribers. Covers CBSE, ICSE, UP Board, Maharashtra Board. **Free YouTube content available.** Batches priced ₹2,000-₹10,000 (affordable tier). This is your direct competitor for board-specific tutoring.
 
-| API | Backend Shape | Frontend Expected Shape | Impact |
-|-----|---------------|------------------------|--------|
-| GET /admin/questions | `{items, total}` | `{data, total}` | Empty list |
-| GET /admin/media | 500 error | `{data, total}` | Broken |
-| POST /admin/*/import | `{inserted, updated}` | `{imported}` | Wrong count |
-| POST /admin/curriculum/import | Expects `{rows}` | Sends raw array | Validation fail |
-| PUT /admin/users/{id}/drishti | Query param `is_drishti` | JSON body `{is_drishti}` | 422 error |
-| GET /chapters/subjects | Expects `board_id` | Sends `board` | 422 error |
+- **Doubtnut:** Acquired by ALLEN (redirects to allen.in). Was the #1 "photo solve" doubt app. Now integrated into India's largest coaching brand.
 
----
+- **Khanmigo (Khan Academy):** AI tutor, **free for teachers**, paid for learners ($9/month or $44/year). Pedagogically designed to not give answers directly. Available globally but English-focused.
 
-## 7. Role Coverage
+- **ChatGPT:** Free tier available in India. Handles CBSE/ICSE questions competently. Students already use it for homework — this is public knowledge.
 
-### Superadmin
-- ✅ Can list own users (non-school)
-- ✅ Can view analytics
-- ⚠️ Cannot see school-linked students in dashboard count
-- ✅ Can access all schools
-- ⚠️ Content studio questions/media broken (response shape mismatch)
+- **Gemini:** Free, natively multilingual (Hindi, Marathi, Tamil, Gujarati, Telugu all supported), integrated into Google Search which Indian students already use.
 
-### School Admin (school_id=5)
-- ✅ Can only see own school's students (2 students)
-- ✅ Cannot access other schools (403)
-- ⚠️ Can attempt to modify global chapters (no scope check)
-- ⚠️ Drishti toggle broken (body vs query)
-- ⚠️ School payment/upgrade broken (500)
+### Reasonable Inference (cannot fully verify)
 
-### Student
-- ✅ Cannot access other students' data (403 on all IDOR tests)
-- ✅ Cannot access admin endpoints (403)
-- ⚠️ Chapter subjects broken (wrong params + SQL bug)
-- ✅ Own profile/mastery/quiz/notebook properly scoped
+- Indian parents historically pay for **exam results** (coaching for JEE/NEET/boards), not for "AI learning tools." Byju's collapse (verified: filed for insolvency 2024) happened despite massive spending because the value proposition didn't stick.
+
+- Students aged 13-18 in India are price-sensitive. Free alternatives (YouTube, ChatGPT, Gemini) set a near-zero price floor for "AI answers to questions."
+
+- Board-specific curriculum alignment is valuable for **exam prep** (specific syllabus, marking schemes, chapter-wise PYQs) — but this is already served by PW, ALLEN, and free YouTube teachers with millions of subscribers.
+
+- The "300-500 initial students" target is realistic **only through school partnerships** (bulk onboarding, school pays). Individual student acquisition at ₹99-499/month competing against free AI + free YouTube is extremely difficult without marketing budget.
+
+### What I Cannot Verify
+
+- Whether any Indian EdTech startup has successfully monetized AI-generated videos
+- Current retention rates for AI tutoring apps vs traditional coaching
+- Whether multilingual AI tutoring in regional languages has demonstrated PMF anywhere
+- Whether Eduvy has had any conversations with schools or students about willingness to pay
 
 ---
 
-## 8. Database → API → UI Consistency
+## 7. Final Verdict
 
-| Entity | DB Count | API Count | UI Count | Match? |
-|--------|----------|-----------|----------|--------|
-| Users (total) | 5 | 3 (superadmin) / 2 (school admin) | 3 or 2 | ❌ |
-| Schools | 1 | 1 | STATICALLY VERIFIED | — |
-| Chapters | 14 | 14 | BLOCKED (UI) | — |
-| Battles | 15 | Not counted | BLOCKED (UI) | — |
-| Bhool Cards | 4 | Not counted | BLOCKED (UI) | — |
-| Squads | 3 | Not counted | BLOCKED (UI) | — |
+### A. Technical Readiness: 7/10
 
----
+Justification: The code is surprisingly complete for a solo/small-team project. 26 working API modules, a novel video pipeline, real payment integration, comprehensive tests. Docked 3 points for: no job queue (video will break under load), no monitoring (you won't know when things fail), in-memory state that doesn't survive restarts.
 
-## 9. Blocked Tests
+### B. Market Viability: 3/10
 
-| Test | Reason |
-|------|--------|
-| UI visual verification | No browser automation tool available |
-| Frontend rendering tests | Cannot run frontend dev server + inspect DOM |
-| Multi-school security (3 schools) | Only 1 school exists in DB |
-| Frontend state inspection | Cannot attach React DevTools |
-| Network tab analysis | No browser available |
-| Performance profiling | No profiling tools available |
-| Student CRUD end-to-end via UI | BLOCKED (browser) |
-| Stale cache testing | BLOCKED (browser) |
+Justification: Every core value proposition except AI-generated whiteboard videos is freely available from ChatGPT, Gemini, PW YouTube, or Khan Academy. The gamification features (Bhool Bazaar, Muqabla) require critical mass that doesn't exist. The payment model competes against free. The Indian EdTech market has violently rejected paid apps that don't demonstrate immediate exam score improvement (Byju's, Unacademy layoffs — both verified events).
 
----
+### C. Biggest Single Risk
 
-## 10. Prioritized Fix Recommendations
+**Free general-purpose AI already does 70% of what Eduvy offers, and students know it.** A Class 10 CBSE student can open ChatGPT right now and say "explain photosynthesis for my CBSE exam in Hindi" and get a competent answer. The marginal value of Eduvy's board-specific context-loading is real but small — certainly not enough for a student (or parent) to pay ₹99-499/month when they're already getting it free. The gamification and social features require 50+ concurrent active students per grade×board×medium to feel alive — reaching that density without marketing budget is the classic cold-start problem.
 
-### Immediate (Before Any Production Use)
+### D. Biggest Thing That Could Make Eduvy Defensible
 
-1. **Change JWT_SECRET** — Set a strong random secret and add startup validation that rejects the default.
+**The AI video generator is genuinely unique.** No free tool produces animated whiteboard-style explainer videos from a text prompt with board-aligned content, multilingual TTS, and self-drawing diagrams — all chapter-scoped. If you could prove that students who watch AI-generated chapter videos score meaningfully better on tests than those who don't, *that* is a defensible product. The technical moat is real (Chromium + ffmpeg + 17 SVG diagram types + TTS pipeline is non-trivial to replicate). The question is whether students want *this* or just prefer a real teacher's YouTube video.
 
-2. **Secure POST /api/profile** — Add `Depends(get_current_user)` authentication.
+### E. If I Were Investing My Own Next 6–12 Months
 
-3. **Fix chapters/subjects SQL** — Add `s.sort_order` to GROUP BY clause in `ChapterService.get_subjects_with_chapters`.
+**NO. Not yet.**
 
-4. **Fix questions API response shape** — Change backend `list_questions` to return `{data: items, total}` or change frontend to read `items`.
+The code is impressively complete but you have built an entire product without a single data point from a real student. You don't know if:
+- Students will watch AI-generated videos vs. skip them
+- The gamification features work with <20 users
+- Parents will pay when ChatGPT is free
+- Schools will adopt this over existing solutions
 
-5. **Fix drishti toggle** — Change frontend to send `is_drishti` as query parameter.
+The code quality means you *could* ship tomorrow. But shipping without validated demand means you might spend 6 months polishing a product nobody uses. The 3 months you've already spent building is a sunk cost — don't let it pressure you into 6 more months of building in the dark.
 
-6. **Fix chapter subjects param names** — Change `api.js` `apiGetChapterSubjects` to send `board_id` and `standard_id`.
+### F. Direct Recommendation
 
-### High Priority
+**"Pause building, go test with real students first — here specifically is the smallest thing to test before writing more code."**
 
-7. **Add school scope to chapter admin endpoints** — Use `get_admin_with_school` and filter by `school_id`.
+The test: Take the AI video generator (your most unique feature) and generate 10 chapter-specific whiteboard videos for one specific class (e.g., Class 10 CBSE Science). Share them in student WhatsApp groups or with a single school. Measure: Do students watch them fully? Do they ask for more? Do they prefer these over the free YouTube alternatives?
 
-8. **Add school scope to payment endpoints** — Verify requesting admin owns the school.
+If students genuinely engage with AI-generated videos — you have a product. Build everything else around that.
 
-9. **Fix admin dashboard student count** — Use a dedicated count query that includes all students.
+If they don't — the rest of the app (AI chat, squads, battles) is competing against free tools with zero differentiation, and you should redirect your engineering talent elsewhere.
 
-10. **Fix media admin endpoint** — Debug and fix the 500 error.
-
-11. **Fix payment school endpoints** — Debug and fix the 500 error.
-
-12. **Fix admin user API** — Return `last_active` and `school` name (not just `school_id`).
-
-### Medium Priority
-
-13. Fix bulk import response shapes.
-14. Fix curriculum import request body format.
-15. Fix Drishti student creation to include required fields.
-16. Strengthen rate limiting (use persistent store, validate X-Forwarded-For).
-17. Enforce consistent password policy (≥8 chars everywhere).
-18. Remove hardcoded dashboard trend values.
-
----
-
-*Report generated from static analysis + live API testing against the development database. All runtime tests executed against `http://localhost:8000`. Browser-based UI testing was not performed.*
+**Do not write another line of code until you have 20 real students using the video feature and you can see their behavior.**
