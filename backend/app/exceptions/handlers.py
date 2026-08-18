@@ -1,9 +1,12 @@
 """
 Global exception handlers.
 """
+import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from app.exceptions.base import AppException
+
+logger = logging.getLogger(__name__)
 
 
 def register_exception_handlers(app: FastAPI):
@@ -18,8 +21,7 @@ def register_exception_handlers(app: FastAPI):
     
     @app.exception_handler(Exception)
     async def generic_exception_handler(request: Request, exc: Exception):
-        # Log the error in production
-        # logger.error(f"Unhandled exception: {exc}")
+        logger.error(f"Unhandled exception on {request.method} {request.url.path}: {exc}", exc_info=True)
         return JSONResponse(
             status_code=500,
             content={"detail": "Internal server error"}

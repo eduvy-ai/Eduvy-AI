@@ -42,6 +42,7 @@ export interface RegisterRequest {
   subjects: string[]
   mobile?: string
   parent_mobile?: string
+  stream?: string
 }
 
 // ── API Response Types ──

@@ -29,7 +29,7 @@ class NotebookService:
                     (user_id,)
                 )
             except Exception:
-                # Summary/file_url columns might not exist
+                conn.rollback()
                 cur.execute(
                     "SELECT id, name, type, content, icon, added_at FROM notebook_sources WHERE user_id = %s ORDER BY added_at ASC",
                     (user_id,)
@@ -368,7 +368,7 @@ class NotebookService:
                     (source_id, user_id, name, source_type, content, summary, icon, added_at)
                 )
             except Exception:
-                # Summary column doesn't exist - use old method
+                conn.rollback()
                 cur.execute(
                     """INSERT INTO notebook_sources (id, user_id, name, type, content, icon, added_at)
                        VALUES (%s, %s, %s, %s, %s, %s, %s)

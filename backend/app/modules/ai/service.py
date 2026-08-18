@@ -254,7 +254,8 @@ class AIService:
                 max_tokens=max_tokens
             )
         except Exception as e:
-            raise HTTPException(status_code=502, detail=f"AI service error: {str(e)}")
+            logger.error(f"AI chat error for user {user_id}: {e}")
+            raise HTTPException(status_code=502, detail="AI is temporarily unavailable. Please try again.")
         
         # Track usage
         new_count = await asyncio.to_thread(AIService.check_and_increment_usage, user_id, plan, prompt_tokens, completion_tokens)
@@ -321,7 +322,8 @@ IMPORTANT: If this is NOT educational content (social media, memes, random photo
                 language=language,
             )
         except Exception as e:
-            raise HTTPException(status_code=502, detail=f"Vision service error: {str(e)}")
+            logger.error(f"Vision error for user {user_id}: {e}")
+            raise HTTPException(status_code=502, detail="Image analysis is temporarily unavailable. Please try again.")
         
         # Track usage
         await asyncio.to_thread(AIService.check_and_increment_usage, user_id, plan, prompt_tokens, completion_tokens)
@@ -484,7 +486,8 @@ IMPORTANT: If this is NOT educational content (social media, memes, random photo
                 max_tokens=4096,  # Study Coach needs more tokens for full response
             )
         except Exception as e:
-            raise HTTPException(status_code=502, detail=f"AI service error: {str(e)}")
+            logger.error(f"Study coach error for user {user_id}: {e}")
+            raise HTTPException(status_code=502, detail="AI is temporarily unavailable. Please try again.")
         
         # Track usage
         new_count = await asyncio.to_thread(AIService.check_and_increment_usage, user_id, plan, prompt_tokens, completion_tokens)

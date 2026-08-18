@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { callAI, LANG_RULES, getDisplayLang } from '../../shared.js'
+import { callAI, parseAIObject, LANG_RULES, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import { ChatCircle, Question, CalendarBlank, CheckCircle, Warning as WarningIcon, XCircle, Lightbulb, Brain, UsersThree, Lightning, Sparkle, Lock, ArrowCounterClockwise, ThumbsUp, PaperPlaneTilt, CaretLeft } from '@phosphor-icons/react'
 import {
@@ -322,7 +322,7 @@ function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
       setNewQ('')
       await load()
       setView('list')
-    } catch (err) { alert(err.message) }
+    } catch (err) { setToastMsg(err.message || 'Failed to post doubt') }
     finally { setPosting(false) }
   }
 
@@ -343,7 +343,7 @@ function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
         // fire-and-forget  don't block the UI
         runAIVerdict(result.id, openDoubt.question, openDoubt.subject, newAns.trim())
       }
-    } catch (err) { alert(err.message) }
+    } catch (err) { setToastMsg(err.message || 'Failed to post answer') }
     finally { setAnsPosting(false) }
   }
 
@@ -353,11 +353,8 @@ function DoubtsPanel({ squadId, userId, profileName, profile, ui }) {
       const sysPrompt = `You are a strict education evaluator. Reply ONLY with valid JSON, no explanation outside it. ${LANG_RULES[lang] || ''}`
       const userMsg = `Subject: ${subject}\nDoubt: ${question}\nStudent answer: ${answerText}\n\nEvaluate accuracy. Reply ONLY: {"verdict":"correct"|"partial"|"incorrect","note":"one sentence feedback"}`
       const raw = await callAI(userMsg, sysPrompt, [], 2, 400)
-      // Safe parse
-      const match = raw.match(/\{[^}]+\}/s)
-      if (!match) return
-      const obj = JSON.parse(match[0])
-      if (!obj.verdict || !['correct','partial','incorrect'].includes(obj.verdict)) return
+      const obj = parseAIObject(raw)
+      if (!obj || !obj.verdict || !['correct','partial','incorrect'].includes(obj.verdict)) return
       await apiPatchVerdict(squadId, openDoubt.id, answerId, obj.verdict, obj.note || '')
       // Refresh answers to show the badge
       const d = await apiGetDoubtAnswers(squadId, openDoubt.id)
@@ -662,14 +659,11 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile, ui }) {
       const sysPrompt = `You are a strict education evaluator. ${LANG_RULES[lang] || ''} Reply ONLY with valid JSON, nothing else.`
       const userMsg = `Concept: ${data?.concept?.concept} (Subject: ${data?.concept?.subject})\nStudent explanation: ${text.trim()}\n\nEvaluate accuracy. Reply ONLY: {"verdict":"correct"|"partial"|"incorrect","note":"one sentence feedback","xp":30|15|5}\nRules: correct=full understanding?30, partial=some gaps?15, incorrect=misunderstood?5`
       const raw = await callAI(userMsg, sysPrompt, [], 2, 400)
-      const match = raw.match(/\{[\s\S]*?\}/)
-      if (match) {
-        const obj = JSON.parse(match[0])
-        if (['correct', 'partial', 'incorrect'].includes(obj.verdict)) {
-          aiVerdict  = obj.verdict
-          aiNote     = obj.note || ''
-          xpOverride = [5, 15, 30].includes(obj.xp) ? obj.xp : null
-        }
+      const obj = parseAIObject(raw)
+      if (obj && ['correct', 'partial', 'incorrect'].includes(obj.verdict)) {
+        aiVerdict  = obj.verdict
+        aiNote     = obj.note || ''
+        xpOverride = [5, 15, 30].includes(obj.xp) ? obj.xp : null
       }
     } catch { /* AI unavailable ? backend uses fallback 20 XP */ }
     setReviewing(false)
@@ -686,7 +680,7 @@ function DailyPanel({ squadId, userId, profileName, addXp, profile, ui }) {
           if (fresh) setData(fresh)
         } catch { /* ignore refresh failure */ }
       }
-    } catch (err) { alert(err.message) }
+    } catch (err) { setToastMsg(err.message || 'Could not submit') }
     finally { setSubmitting(false) }
   }
 
@@ -822,6 +816,7 @@ export default function SathiTab({ profile, userId, addXp }) {
   const [, setSilenceTick] = useState(0)  // forces re-render for silence check
   const [activePanel,    setActivePanel]    = useState('chat')   // chat|doubts|daily
   const [squadStreak,    setSquadStreak]    = useState(0)
+  const [toastMsg,       setToastMsg]       = useState('')
 
   const messagesEnd   = useRef(null)
   const pollTimer     = useRef(null)
@@ -945,7 +940,7 @@ export default function SathiTab({ profile, userId, addXp }) {
         }
       }
     } catch (e) {
-      alert(e.message || 'Could not find a squad right now. Try again shortly.')
+      setToastMsg(e.message || 'Could not find a squad right now. Try again shortly.')
     } finally {
       setMatching(false)
     }
@@ -1016,7 +1011,7 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
       await apiCreateChallenge(squad.id)
       await loadChallenge(squad.id)
     } catch (e) {
-      alert(e.message || 'Could not create challenge. Complete some quizzes first.')
+      setToastMsg(e.message || 'Could not create challenge. Complete some quizzes first.')
     }
   }
 
@@ -1085,8 +1080,19 @@ You are Owl, a confused but curious Class ${(profile?.standard || 'Class 10').re
   // RENDER: in squad ? full chat
   const memberMap = Object.fromEntries(members.map(m => [m.user_id, m]))
 
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (!toastMsg) return
+    const t = setTimeout(() => setToastMsg(''), 4000)
+    return () => clearTimeout(t)
+  }, [toastMsg])
+
   return (
     <div className="flex flex-col h-full min-h-0">
+      {toastMsg && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-red-600/90 text-white text-[13px] rounded-lg shadow-lg max-w-[80vw] text-center"
+          onClick={() => setToastMsg('')}>{toastMsg}</div>
+      )}
 
       {/* -- Header -- */}
       <div className="px-4 py-2.5 border-b border-app-border bg-app-card flex items-center justify-between flex-shrink-0">

@@ -353,10 +353,19 @@ class SquadService:
             conn.close()
 
     @staticmethod
+    def _verify_doubt_in_squad(cur, squad_id: int, doubt_id: int):
+        """Ensure doubt belongs to the specified squad."""
+        cur.execute("SELECT id FROM squad_doubts WHERE id = %s AND squad_id = %s", (doubt_id, squad_id))
+        if not cur.fetchone():
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Doubt not found in this squad")
+
+    @staticmethod
     def get_doubt_answers(squad_id: int, doubt_id: int) -> dict:
         conn = get_db()
         try:
             cur = conn.cursor()
+            SquadService._verify_doubt_in_squad(cur, squad_id, doubt_id)
             cur.execute("""
                 SELECT id, user_id, display_name, content, upvotes,
                        ai_verdict, ai_note, created_at::text AS created_at
@@ -374,6 +383,7 @@ class SquadService:
         conn = get_db()
         try:
             cur = conn.cursor()
+            SquadService._verify_doubt_in_squad(cur, squad_id, doubt_id)
             cur.execute("""
                 INSERT INTO squad_doubt_answers (doubt_id, user_id, display_name, content)
                 VALUES (%s, %s, %s, %s)
@@ -391,6 +401,7 @@ class SquadService:
         conn = get_db()
         try:
             cur = conn.cursor()
+            SquadService._verify_doubt_in_squad(cur, squad_id, doubt_id)
             cur.execute("""
                 INSERT INTO squad_doubt_upvotes (answer_id, user_id)
                 VALUES (%s, %s) ON CONFLICT DO NOTHING
@@ -411,6 +422,7 @@ class SquadService:
         conn = get_db()
         try:
             cur = conn.cursor()
+            SquadService._verify_doubt_in_squad(cur, squad_id, doubt_id)
             cur.execute("""
                 UPDATE squad_doubt_answers
                 SET ai_verdict = %s, ai_note = %s

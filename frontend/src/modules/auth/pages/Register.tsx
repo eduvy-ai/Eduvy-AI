@@ -28,6 +28,9 @@ const Register: React.FC = () => {
   const [board, setBoard] = useState('CBSE')
   const [language, setLanguage] = useState('English')
   const [subjects, setSubjects] = useState<string[]>([])
+  const [stream, setStream] = useState('')
+
+  const needsStream = ['Class 11', 'Class 12'].includes(standard)
 
   // Dynamic curriculum data from API
   const [availableMediums, setAvailableMediums] = useState<string[]>([...LANGUAGES])
@@ -121,6 +124,7 @@ const Register: React.FC = () => {
       language,
       subjects: finalSubjects,
       mobile: mobile.trim(),
+      stream: needsStream ? stream : '',
     })
 
     if (result.meta.requestStatus === 'fulfilled') {
@@ -258,6 +262,19 @@ const Register: React.FC = () => {
               }}
               options={BOARDS}
             />
+
+            {/* Stream Selection for Class 11-12 */}
+            {needsStream && (
+              <Select
+                label="Stream"
+                value={stream}
+                onChange={(e) => {
+                  setStream(e.target.value)
+                  setSubjects([])
+                }}
+                options={['Science', 'Commerce', 'Arts']}
+              />
+            )}
 
             {/* Medium Selection - dynamic from API */}
             <Select

@@ -419,6 +419,14 @@ def create_all_tables():
         )
     """)
 
+    # ── Performance indexes for notebook and squad queries ──
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_notebook_sources_user ON notebook_sources(user_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_notebook_chats_user ON notebook_chats(user_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_squad_messages_squad ON squad_messages(squad_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_squad_doubts_squad ON squad_doubts(squad_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_squad_doubt_answers_doubt ON squad_doubt_answers(doubt_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_notebook_studio_user ON notebook_studio(user_id)")
+
     # ── Bhool Reactions ────────────────────────────────────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS bhool_reactions (

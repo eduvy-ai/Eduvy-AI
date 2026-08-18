@@ -174,8 +174,10 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
         mood: mood || 'okay',
         mathMastery: masteries['Mathematics'] || 0,
         scienceMastery: masteries['Science'] || 0,
+        subjects: profile.subjects || [],
+        masteries: masteries,
         weakTopics: weakTopics,
-        recentTopics: [] // TODO: track from recent quiz/notebook activity
+        recentTopics: []
       })
       
       if (result?.questions?.length > 0) {
@@ -206,6 +208,8 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
       mood: mood || 'okay',
       mathMastery: masteries['Mathematics'] || 0,
       scienceMastery: masteries['Science'] || 0,
+      subjects: profile.subjects || [],
+      masteries: masteries,
       weakTopics: weakTopics,
       recentTopics: []
     })

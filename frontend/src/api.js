@@ -89,7 +89,7 @@ export async function apiGetMe() {
 export async function apiCreateProfile(data) {
   const res = await fetch(`${API_BASE_URL}/api/profile`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
     body: JSON.stringify(data),
     signal: AbortSignal.timeout(8000),
   })
