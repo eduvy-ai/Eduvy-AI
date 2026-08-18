@@ -16,7 +16,6 @@ import { QUIZ } from './quiz.js'
 import { BATTLES } from './battles.js'
 import { BHOOL } from './bhool.js'
 import { SATHI } from './sathi.js'
-import { VIDEOS } from './videos.js'
 import { PARENT } from './parent.js'
 import { COACH } from './coach.js'
 import { PRACTICE } from './practice.js'
@@ -40,7 +39,6 @@ const STRING_MODULES = {
   ...BATTLES,
   ...BHOOL,
   ...SATHI,
-  ...VIDEOS,
   ...PARENT,
   ...COACH,
   ...PRACTICE,

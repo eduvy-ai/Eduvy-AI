@@ -7,7 +7,6 @@ To use: uvicorn app.main_new:app --reload
 
 The old main.py still works - use this for new development.
 """
-import os
 import time
 import logging
 import warnings
@@ -16,7 +15,6 @@ from collections import defaultdict
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 
 from app.core.config import settings
@@ -43,7 +41,6 @@ from app.modules.payments.router import router as payments_router
 from app.modules.drishti.router import router as drishti_router
 from app.modules.fetch.router import router as fetch_router
 from app.modules.admin.router import router as admin_router
-from app.modules.video.router import router as video_router
 from app.modules.home.router import router as home_router
 from app.modules.storage.router import router as storage_router
 from app.modules.upload.router import router as upload_router
@@ -180,7 +177,6 @@ app.include_router(parent_router, prefix="/api")
 app.include_router(referrals_router, prefix="/api")
 app.include_router(payments_router, prefix="/api")
 app.include_router(drishti_router, prefix="/api")
-app.include_router(video_router, prefix="/api")
 app.include_router(home_router, prefix="/api")
 app.include_router(storage_router, prefix="/api")
 app.include_router(upload_router, prefix="/api")
@@ -188,13 +184,6 @@ app.include_router(coach_router, prefix="/api")
 app.include_router(content_router, prefix="/api")
 app.include_router(schools_router, prefix="/api")
 app.include_router(content_router, prefix="/api/admin")
-
-# ── Static Files — generated videos ──────────────────────────
-_VIDEOS_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "videos")
-)
-os.makedirs(_VIDEOS_DIR, exist_ok=True)
-app.mount("/videos", StaticFiles(directory=_VIDEOS_DIR), name="videos")
 
 # ── Health Check ──────────────────────────────────────────────
 @app.get("/api/health")

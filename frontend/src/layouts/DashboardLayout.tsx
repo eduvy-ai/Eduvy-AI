@@ -11,13 +11,11 @@ import {
   House,
   MagicWand,
   NotePencil,
-  PlayCircle,
   MonitorPlay,
   UsersThree,
   Warning,
   Sword,
   Flask,
-  FilmSlate,
   SignOut,
   Lightning,
   GraduationCap,
@@ -34,13 +32,11 @@ const TAB_ICONS: Record<string, React.ComponentType<any>> = {
   profile:      User,
   coach:        MagicWand,
   notebook:     NotePencil,
-  videos:       PlayCircle,
   learntv:      MonitorPlay,
   squads:       UsersThree,
   mistakes:     Warning,
   battles:      Sword,
   labs:         Flask,
-  videocreator: FilmSlate,
 }
 
 // Primary 5-tab navigation (shown in both mobile bottom nav and desktop sidebar)

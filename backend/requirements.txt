@@ -13,14 +13,11 @@ bcrypt>=4.0
 passlib[bcrypt]>=1.7
 python-multipart>=0.0.9
 razorpay>=1.4
-# Video generation
+# TTS audio generation
 gtts>=2.5
 edge-tts>=6.1.9
 ffmpeg-python>=0.2.0
-playwright>=1.44.0
 aiofiles>=23.2.1
-# Line-art vectorization for `draw` scenes (image -> contour strokes)
-opencv-python-headless>=4.9
 # Cloud storage (Cloudflare R2 / S3-compatible)
 boto3>=1.34
 # PDF text extraction

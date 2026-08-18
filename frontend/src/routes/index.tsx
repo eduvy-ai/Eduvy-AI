@@ -19,7 +19,7 @@ const LandingPage = lazy(() => import('../components/LandingPage'))
 const ParentDashboard = lazy(() => import('../components/ParentDashboard'))
 const AdminPanelLegacy = lazy(() => import('../components/admin'))
 const HelperPortal = lazy(() => import('../components/HelperPortal'))
-const SharedVideoPage = lazy(() => import('../components/video/SharedVideoPage'))
+
 
 // Admin pages (new Redux-connected module)
 const AdminLogin = lazy(() => import('../modules/admin/pages/Login'))
@@ -84,13 +84,11 @@ const AdminLeaderboardPage = lazy(() => import('../modules/admin/pages/community
 // Module pages (Redux-connected)
 const HomePage = lazy(() => import('../modules/home/pages/HomePage'))
 const NotebookPage = lazy(() => import('../modules/notebook/pages/NotebookPage'))
-const VideosPage = lazy(() => import('../modules/videos/pages/VideosPage'))
 const LearnTVPage = lazy(() => import('../modules/learntv/pages/LearnTVPage'))
 const SathiPage = lazy(() => import('../modules/sathi/pages/SathiPage'))
 const BhoolPage = lazy(() => import('../modules/bhool/pages/BhoolPage'))
 const MuqablaPage = lazy(() => import('../modules/muqabla/pages/MuqablaPage'))
 const LabsPage = lazy(() => import('../modules/labs/pages/LabsPage'))
-const VideoCreatorPage = lazy(() => import('../modules/videocreator/pages/VideoCreatorPage'))
 const StudyCoachPage = lazy(() => import('../modules/studycoach/pages/StudyCoachPage'))
 const LearnPage = lazy(() => import('../modules/chapters/pages/LearnPage'))
 const ChapterPage = lazy(() => import('../modules/chapters/pages/ChapterPage'))
@@ -132,9 +130,6 @@ const AppRoutes: React.FC = () => {
 
         {/* Parent dashboard - public with PIN */}
         <Route path="/parent/:pin" element={<ParentDashboard />} />
-
-        {/* Shared video - public, no auth */}
-        <Route path="/share/video/:token" element={<SharedVideoPage />} />
 
         {/* Admin login - public */}
         <Route path="/admin/login" element={<AdminLogin />} />
@@ -233,13 +228,11 @@ const AppRoutes: React.FC = () => {
           <Route path="practice" element={<PracticePage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="notebook" element={<NotebookPage />} />
-          <Route path="videos" element={<VideosPage />} />
           <Route path="learntv" element={<LearnTVPage />} />
           <Route path="squads" element={<SathiPage />} />
           <Route path="mistakes" element={<BhoolPage />} />
           <Route path="battles" element={<MuqablaPage />} />
           <Route path="labs" element={<LabsPage />} />
-          <Route path="videocreator" element={<VideoCreatorPage />} />
           <Route path="coach" element={<StudyCoachPage />} />
         </Route>
 

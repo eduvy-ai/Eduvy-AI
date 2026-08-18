@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { getBhoolStats, getDisplayLang } from '../../shared.js'
 import { apiGetMastery, apiGetPendingMuqabalaBattles, apiGetDailyContent, apiGenerateDailyQuestions, apiGenerateDailyBrief, apiGetChapterSubjects } from '../../api.js'
 import { li } from '../../i18n/index.js'
-import { Lightning, Fire, Brain, SunHorizon, Sparkle, Lightbulb, CheckCircle, DiceFive, HandWaving, Plant, Circle, Sword, Flask, UsersThree, Bell, Notebook, FilmSlate, MapPin, Sun, CloudSun, Target } from '@phosphor-icons/react'
+import { Lightning, Fire, Brain, SunHorizon, Sparkle, Lightbulb, CheckCircle, DiceFive, HandWaving, Plant, Circle, Sword, Flask, UsersThree, Bell, Notebook, MapPin, Sun, CloudSun, Target } from '@phosphor-icons/react'
 
 // ── Bhool Curve stats (reads localStorage) ───────────────────
 function useBhoolStats() {
@@ -412,23 +412,21 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
             <div className="flex items-center gap-3">
               <span className="text-xl">
                 {lastTab === 'notebook' && <Notebook size={24} weight="duotone" className="text-app-blue" />}
-                {lastTab === 'videos' && <FilmSlate size={24} weight="duotone" className="text-app-yellow" />}
                 {lastTab === 'labs' && <Flask size={24} weight="duotone" className="text-app-green" />}
                 {lastTab === 'squads' && <UsersThree size={24} weight="duotone" className="text-app-blue" />}
                 {lastTab === 'mistakes' && <Brain size={24} weight="duotone" className="text-app-red" />}
                 {lastTab === 'battles' && <Sword size={24} weight="duotone" className="text-app-orange" />}
-                {!['notebook','videos','labs','squads','mistakes','battles'].includes(lastTab) && <MapPin size={24} weight="duotone" className="text-app-muted" />}
+                {!['notebook','labs','squads','mistakes','battles'].includes(lastTab) && <MapPin size={24} weight="duotone" className="text-app-muted" />}
               </span>
               <div>
                 <div className="text-[13px] font-bold text-app-text">
                   {lastTab === 'notebook' && (ui.notebookTab?.replace(/^📓\s*/, '') || 'Notebook')}
-                  {lastTab === 'videos' && (ui.videosTab?.replace(/^🎬\s*/, '') || 'Videos')}
                   {lastTab === 'labs' && (ui.labsTab?.replace(/^🧪\s*/, '') || 'Labs')}
                   {lastTab === 'squads' && (ui.sathiTab?.replace(/^🤝\s*/, '') || 'Study Squads')}
                   {lastTab === 'mistakes' && (ui.bhoolTab?.replace(/^📛\s*/, '') || 'Mistakes')}
                   {lastTab === 'battles' && (ui.muqablaTab?.replace(/^⚔️\s*/, '') || 'Battles')}
                   {lastTab === 'learntv' && (ui.learntvTab?.replace(/^📺\s*/, '') || 'Learn TV')}
-                  {!['notebook','videos','labs','squads','mistakes','battles','learntv'].includes(lastTab) && lastTab}
+                  {!['notebook','labs','squads','mistakes','battles','learntv'].includes(lastTab) && lastTab}
                 </div>
                 <div className="text-[11px] text-app-muted">{ui.pickUpWhereLeftOff || 'Pick up where you left off'}</div>
               </div>
