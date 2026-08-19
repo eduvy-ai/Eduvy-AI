@@ -24,6 +24,7 @@ import {
   apiGetChapterFlashcards, apiSaveChapterFlashcards, apiUpdateChapterFlashcards, apiDeleteChapterFlashcards,
   apiGetChapterChatSessions, apiCreateChapterChatSession, apiGetChapterChatMessages,
   apiSaveChapterChatMessage, apiDeleteChapterChatSession,
+  apiYouTubeSearch,
 } from '@/api.js'
 import { li } from '@/i18n/index.js'
 import {
@@ -1331,14 +1332,12 @@ Return ONLY a valid JSON array starting with [ and ending with ]. Do NOT return 
     setLoading(false)
   }
 
-  // Search YouTube for real video
+  // Search YouTube for real video using shared API helper
   const searchYouTubeVideo = async (query: string): Promise<string | null> => {
     try {
       const searchQuery = `${query} ${chapter.board} class ${chapter.standard}`
-      const res = await fetch(`${API_BASE_URL}/api/youtube/search?q=${encodeURIComponent(searchQuery)}&limit=1`)
-      if (!res.ok) return null
-      const data = await res.json()
-      if (data.results && data.results.length > 0) {
+      const data = await apiYouTubeSearch(searchQuery, 1)
+      if (data?.results && data.results.length > 0) {
         return data.results[0].id
       }
       return null

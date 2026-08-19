@@ -125,11 +125,13 @@ button {
   cursor: pointer;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
   touch-action: manipulation; /* removes 300ms tap delay on mobile */
+  min-height: 44px; /* WCAG minimum touch target */
   transition: transform 0.1s ease, opacity 0.1s ease;
 }
 
 a, [role="button"] {
   touch-action: manipulation;
+  min-height: 44px;
 }
 
 button:disabled {

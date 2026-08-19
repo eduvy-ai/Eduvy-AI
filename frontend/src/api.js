@@ -1,8 +1,8 @@
 // ─── Frontend API layer ──────────────────────────────────────
 // All backend calls in one place.
-// Auth token stored in localStorage under 'eduvyai_token'.
-// Device ID kept as fallback for anonymous users.
 import { API_BASE_URL } from './config'
+import { getAuthToken, setAuthToken, clearAuth, getDeviceId } from './shared/utils/localStorage.ts'
+export { getAuthToken, setAuthToken, clearAuth, getDeviceId }
 
 // Safe JSON parsing - handles empty responses
 async function safeJson(res) {
@@ -14,28 +14,6 @@ async function safeJson(res) {
     console.warn('Failed to parse JSON:', text.slice(0, 100))
     return null
   }
-}
-
-export function getDeviceId() {
-  let id = localStorage.getItem('eduvyai_device_id')
-  if (!id) {
-    id = crypto.randomUUID()
-    localStorage.setItem('eduvyai_device_id', id)
-  }
-  return id
-}
-
-// ── Auth token helpers ────────────────────────────────────────
-export function getAuthToken() {
-  return localStorage.getItem('eduvyai_token') || null
-}
-export function setAuthToken(token) {
-  if (token) localStorage.setItem('eduvyai_token', token)
-  else localStorage.removeItem('eduvyai_token')
-}
-export function clearAuth() {
-  localStorage.removeItem('eduvyai_token')
-  localStorage.removeItem('eduvyai_profile')
 }
 
 function _authHeaders() {

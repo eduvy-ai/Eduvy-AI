@@ -25,6 +25,16 @@ PLANS_QUOTA = {
 # Format: {beat_id: asyncio.Future}
 _BEAT_GENERATION_LOCKS: Dict[str, asyncio.Future] = {}
 
+# In-flight request dedup: prevent same user from sending identical prompts concurrently
+_INFLIGHT: Dict[str, asyncio.Task] = {}
+
+
+def _dedup_key(user_id: str, prompt: str, mode: str) -> str:
+    """Create a key for deduplicating in-flight AI requests."""
+    import hashlib
+    h = hashlib.md5(prompt.encode(), usedforsecurity=False).hexdigest()[:12]
+    return f"{user_id}:{mode}:{h}"
+
 
 def _today() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -199,7 +209,26 @@ class AIService:
     
     @staticmethod
     async def chat(user_id: str, prompt: str, system_prompt: str, history: list, max_tokens: int, mode: str = "", chapter_context: dict = None) -> Dict:
-        """Process AI chat request."""
+        """Process AI chat request with dedup for identical in-flight requests."""
+        # Dedup: if same user is already running an identical request, await that result
+        key = _dedup_key(user_id, prompt, mode)
+        if key in _INFLIGHT:
+            try:
+                return await _INFLIGHT[key]
+            except Exception:
+                pass  # Original failed; let this one retry
+
+        task = asyncio.current_task()
+        _INFLIGHT[key] = task
+        try:
+            result = await AIService._chat_impl(user_id, prompt, system_prompt, history, max_tokens, mode, chapter_context)
+            return result
+        finally:
+            _INFLIGHT.pop(key, None)
+
+    @staticmethod
+    async def _chat_impl(user_id: str, prompt: str, system_prompt: str, history: list, max_tokens: int, mode: str = "", chapter_context: dict = None) -> Dict:
+        """Internal chat implementation."""
         user = await asyncio.to_thread(AIService.get_user_info, user_id)
         plan = user["plan"]
 

@@ -95,40 +95,57 @@ def build_teacher_prompt(data: "GenerateDailyQRequest") -> str:
         "tired": "Student is tired - give very simple questions, no complex calculations."
     }.get(data.mood, "Give standard difficulty questions.")
     
-    # Mastery-based focus
-    math_level = "basic" if data.math_mastery < 40 else "intermediate" if data.math_mastery < 70 else "advanced"
-    science_level = "basic" if data.science_mastery < 40 else "intermediate" if data.science_mastery < 70 else "advanced"
+    # Mastery-based focus — use full masteries dict if available
+    mastery_lines = []
+    masteries = data.masteries or {}
+    if masteries:
+        for subj, score in masteries.items():
+            level = "basic" if score < 40 else "intermediate" if score < 70 else "advanced"
+            mastery_lines.append(f"- {subj}: {level} ({score}%)")
+    else:
+        math_level = "basic" if data.math_mastery < 40 else "intermediate" if data.math_mastery < 70 else "advanced"
+        science_level = "basic" if data.science_mastery < 40 else "intermediate" if data.science_mastery < 70 else "advanced"
+        mastery_lines = [f"- Math: {math_level}", f"- Science: {science_level}"]
     
     # Weak topics to reinforce
     weak_topics_text = ""
     if data.weak_topics:
-        weak_topics_text = f"\nWeak topics: {', '.join(data.weak_topics[:3])}"
+        weak_topics_text = f"\nWeak topics to reinforce: {', '.join(data.weak_topics[:5])}"
     
     # Get class number
     class_num = "10"
-    for c in ["10", "9", "8"]:
+    for c in ["10", "9", "8", "7", "6", "5", "11", "12"]:
         if c in data.standard:
             class_num = c
             break
     
-    topics = CLASS_TOPICS.get(class_num, CLASS_TOPICS["10"])
+    # Use student's actual subjects if available, else fall back to hardcoded topics
+    student_subjects = data.subjects or []
+    if student_subjects:
+        subjects_text = ", ".join(student_subjects[:6])
+        topic_section = f"STUDENT'S SUBJECTS: {subjects_text}"
+    else:
+        topics = CLASS_TOPICS.get(class_num, CLASS_TOPICS["10"])
+        topic_section = "SYLLABUS TOPICS:\n" + "\n".join(f"- {k}: {', '.join(v)}" for k, v in topics.items())
     
+    mastery_text = "\n".join(mastery_lines)
+
     return f"""You are a {data.board} Class {class_num} teacher creating daily practice questions.
 
 {get_lang_rule(data.language)}
 
-SYLLABUS TOPICS:
-- Math: {', '.join(topics['Math'])}
-- Science: {', '.join(topics['Science'])}
+{topic_section}
 {weak_topics_text}
 
-STUDENT: {math_level} math, {science_level} science. {mood_instruction}
+STUDENT MASTERY:
+{mastery_text}
+{mood_instruction}
 
-CREATE 2 QUESTIONS (pick from above topics):
+CREATE 2 QUESTIONS (pick from the student's subjects, prioritize weak areas):
 
 EXAMPLE OUTPUT (follow this format exactly):
 [
-{{"q":"question text in {data.language}","a":"step-by-step answer in {data.language}","concept":"Topic Name","subject":"Mathematics or Science"}}
+{{"q":"question text in {data.language}","a":"step-by-step answer in {data.language}","concept":"Topic Name","subject":"Subject Name"}}
 ]
 
 RULES:

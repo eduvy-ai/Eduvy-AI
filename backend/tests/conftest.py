@@ -305,6 +305,7 @@ CREATE TABLE IF NOT EXISTS users (
     is_admin         INTEGER DEFAULT 0,
     is_drishti       INTEGER DEFAULT 0,
     ai_admin_override INTEGER DEFAULT 0,
+    stream           TEXT DEFAULT '',
     created_at       TEXT DEFAULT (date('now'))
 );
 CREATE TABLE IF NOT EXISTS mastery (

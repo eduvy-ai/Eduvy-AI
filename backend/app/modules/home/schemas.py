@@ -32,10 +32,12 @@ class GenerateDailyQRequest(BaseModel):
     mood: str = "okay"      # fresh, okay, stressed, tired
     
     # Progress data
-    math_mastery: int = 0   # 0-100%
+    math_mastery: int = 0   # 0-100% (legacy, kept for compatibility)
     science_mastery: int = 0
-    weak_topics: List[str] = Field(default_factory=list)  # Topics from Bhool curve
-    recent_topics: List[str] = Field(default_factory=list)  # Recently studied topics
+    subjects: List[str] = Field(default_factory=list)
+    masteries: dict = Field(default_factory=dict)  # {"Mathematics": 75, "Science": 40, ...}
+    weak_topics: List[str] = Field(default_factory=list)
+    recent_topics: List[str] = Field(default_factory=list)
 
 
 class DailyQuestion(BaseModel):

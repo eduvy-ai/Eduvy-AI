@@ -27,7 +27,8 @@ class AuthService:
         language: str = "English",
         subjects: list = None,
         mobile: str = "",
-        parent_mobile: str = ""
+        parent_mobile: str = "",
+        stream: str = ""
     ) -> Dict:
         """
         Register a new user account.
@@ -73,7 +74,8 @@ class AuthService:
             language=language,
             subjects=final_subjects,
             mobile=mobile,
-            parent_mobile=parent_mobile
+            parent_mobile=parent_mobile,
+            stream=stream,
         )
         
         # Generate token

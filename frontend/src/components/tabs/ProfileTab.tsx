@@ -19,7 +19,6 @@ import {
   CaretRight,
   Medal,
   Notebook,
-  FilmSlate,
   MonitorPlay,
 } from '@phosphor-icons/react'
 import Loader from '@/shared/components/Loader'
@@ -121,7 +120,6 @@ const ProfileTab: React.FC = () => {
 
   // Navigate to secondary features (not in bottom nav)
   const goToNotebook = () => navigate('/app/notebook')
-  const goToVideos = () => navigate('/app/learntv')
   const goToLearnTV = () => navigate('/app/learntv')
 
   return (
@@ -195,12 +193,6 @@ const ProfileTab: React.FC = () => {
             label={ui.notebook || 'Notebook'}
             color="#BB86FC"
             onClick={goToNotebook}
-          />
-          <QuickLinkCard
-            icon={FilmSlate}
-            label={ui.videos || 'Videos'}
-            color="#FF6B35"
-            onClick={goToVideos}
           />
           <QuickLinkCard
             icon={MonitorPlay}

@@ -184,23 +184,11 @@ export function planHasLab(plan, labKey) {
 }
 
 // ─── Boards ──────────────────────────────────────────────────
-export const BOARDS = [
-  "CBSE","ICSE","GSEB","MSBSHSE","RBSE","UP Board","BSEB","TN Board","KAR Board","PSEB"
-]
-
-// ─── Languages ───────────────────────────────────────────────
-export const LANGS = [
-  "English","Hindi","Gujarati","Marathi","Tamil",
-  "Telugu","Kannada","Bengali","Punjabi","Odia","Urdu"
-]
-
-// ─── Subjects per Class ──────────────────────────────────────
-export const SUBS = {
-  "Class 9":  ["English","Hindi","Mathematics","Science","Social Science","Sanskrit","IT"],
-  "Class 10": ["English","Hindi","Mathematics","Science","Social Science","Sanskrit","IT"],
-  "Class 11": ["Physics","Chemistry","Mathematics","Biology","English","Computer Science","Economics","History","Geography","Accountancy","Business Studies"],
-  "Class 12": ["Physics","Chemistry","Mathematics","Biology","English","Computer Science","Economics","History","Geography","Accountancy","Business Studies"],
-}
+// ─── Curriculum constants (single source: shared/constants/curriculum.ts) ───
+import { BOARDS as _BOARDS, LANGUAGES as _LANGS, SUBJECTS as _SUBS } from './shared/constants/curriculum.ts'
+export const BOARDS = _BOARDS
+export const LANGS = _LANGS
+export const SUBS = _SUBS
 
 // ─── Language Rules ───────────────────────────────────────────
 export const LANG_RULES = {

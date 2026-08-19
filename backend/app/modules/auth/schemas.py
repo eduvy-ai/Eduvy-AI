@@ -15,6 +15,7 @@ class RegisterRequest(BaseModel):
     subjects: List[str] = []
     mobile: str = ""
     parent_mobile: str = ""
+    stream: str = ""
 
 
 class LoginRequest(BaseModel):

@@ -129,7 +129,7 @@ const PracticeTab: React.FC = () => {
         </p>
       </header>
 
-      {/* Quick Stats */}
+      {/* Quick Stats — only show streak (real data from backend) */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         <StatCard
           icon={Fire}
@@ -139,14 +139,14 @@ const PracticeTab: React.FC = () => {
         />
         <StatCard
           icon={Trophy}
-          value={(user as any)?.battle_wins || 0}
-          label={ui.wins || 'Wins'}
+          value={(user as any)?.xp || 0}
+          label="XP"
           color="#FFD166"
         />
         <StatCard
           icon={BookOpen}
-          value={(user as any)?.quiz_count || 0}
-          label={ui.quizzes || 'Quizzes'}
+          value={Math.round((user as any)?.mastery_avg || 0)}
+          label={ui.mastery || 'Mastery'}
           color="#00E5A0"
         />
       </div>

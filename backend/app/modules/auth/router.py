@@ -26,6 +26,7 @@ async def register(data: RegisterRequest):
         subjects=data.subjects,
         mobile=data.mobile,
         parent_mobile=data.parent_mobile,
+        stream=data.stream,
     )
 
 
