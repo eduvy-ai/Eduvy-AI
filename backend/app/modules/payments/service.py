@@ -4,6 +4,7 @@ Payments Service - Business logic for Razorpay integration.
 import os
 import hmac
 import hashlib
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Dict
@@ -11,6 +12,8 @@ from fastapi import HTTPException
 import httpx
 
 from app.db.connection import get_db, row_to_dict
+
+logger = logging.getLogger(__name__)
 
 PLAN_PRICES = {
     "basic": {"amount": 9900, "label": "Basic", "duration_days": 30},
@@ -102,7 +105,7 @@ class PaymentsService:
                     raise HTTPException(status_code=502, detail="Failed to create order")
                 order = resp.json()
         except httpx.RequestError as e:
-            raise HTTPException(status_code=502, detail=f"Payment gateway error: {e}")
+            logger.error(f"Payment gateway error: {e}"); raise HTTPException(status_code=502, detail="Payment service temporarily unavailable. Please try again.")
         
         return {
             "order_id": order["id"],
@@ -241,7 +244,7 @@ class PaymentsService:
                     raise HTTPException(status_code=502, detail="Failed to create order")
                 order = resp.json()
         except httpx.RequestError as e:
-            raise HTTPException(status_code=502, detail=f"Payment gateway error: {e}")
+            logger.error(f"Payment gateway error: {e}"); raise HTTPException(status_code=502, detail="Payment service temporarily unavailable. Please try again.")
 
         return {
             "order_id": order["id"],
@@ -338,3 +341,4 @@ class PaymentsService:
             }
         finally:
             conn.close()
+

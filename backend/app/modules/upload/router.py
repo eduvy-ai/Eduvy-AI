@@ -182,10 +182,12 @@ async def upload_file(
             }
         )
     except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Upload failed for {current_user}: {e}")
         raise HTTPException(
             status_code=500,
             detail={
-                "error": f"Upload failed: {str(e)}",
+                "error": "Upload failed. Please try again.",
                 "code": "upload_error",
             }
         )
@@ -216,7 +218,9 @@ async def delete_uploaded_file(
             "freed_bytes": deleted_size,
         }
     except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Delete failed for {current_user}: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Delete failed: {str(e)}"
+            detail="Delete failed. Please try again."
         )

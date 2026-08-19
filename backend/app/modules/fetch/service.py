@@ -131,8 +131,8 @@ class FetchService:
                 return result
             except asyncio.TimeoutError:
                 return {"content": "YouTube video (timeout fetching details)", "isYouTube": True}
-            except Exception as e:
-                return {"content": f"YouTube video (error: {e})", "isYouTube": True}
+            except Exception:
+                return {"content": "YouTube video (could not fetch details)", "isYouTube": True}
         
         # For non-YouTube URLs, fetch HTML content
         try:
@@ -140,8 +140,8 @@ class FetchService:
                 resp = await client.get(url)
                 content = resp.text[:_MAX_CHARS]
                 return {"content": content, "isYouTube": False}
-        except Exception as e:
-            return {"content": f"Error: {e}", "isYouTube": False}
+        except Exception:
+            return {"content": "Could not fetch this URL", "isYouTube": False}
     
     @staticmethod
     async def youtube_search(query: str, limit: int = 10) -> List[Dict]:
