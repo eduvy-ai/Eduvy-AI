@@ -2056,10 +2056,14 @@ class AdminService:
             key_status = {}
             key_slots = {}
             def mask_key(k: str) -> str:
-                """Return masked hint like 'sk-••••abc' for UI display"""
+                """Decrypt if needed, then return masked hint for UI display."""
                 if not k or len(k) < 8:
                     return "••••••••"
-                return k[:4] + "••••" + k[-4:]
+                from services.ai_service import _decrypt_key
+                plain = _decrypt_key(k)
+                if not plain or len(plain) < 8:
+                    return "••••••••"
+                return plain[:4] + "••••" + plain[-4:]
 
             for prov in providers:
                 has_key = False

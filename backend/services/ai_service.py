@@ -342,9 +342,11 @@ def get_key_slot_status() -> dict:
                 if row and row.get('value'):
                     slots[s] = True
                     key_val = row['value']
-                    # Show masked hint: first4...last4
-                    if len(key_val) > 10:
-                        hints[s] = f"{key_val[:4]}...{key_val[-4:]}"
+                    plain = _decrypt_key(key_val)
+                    if plain and len(plain) > 10:
+                        hints[s] = f"{plain[:4]}...{plain[-4:]}"
+                    elif plain:
+                        hints[s] = "****"
                     else:
                         hints[s] = "****"
                 else:

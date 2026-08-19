@@ -130,8 +130,14 @@ def main():
     # 8. Profile
     print("\n--- 7. Profile ---")
     try:
-        r = requests.get(BASE + "/api/profile", headers=hdr(token), timeout=T)
-        report("Profile", r.status_code == 200, str(r.status_code))
+        # Profile GET requires user_id — get it from /auth/me
+        r = requests.get(BASE + "/api/auth/me", headers=hdr(token), timeout=T)
+        if r.status_code == 200:
+            uid = r.json().get("id", "")
+            r2 = requests.get(BASE + "/api/profile/" + uid, headers=hdr(token), timeout=T)
+            report("Profile", r2.status_code == 200, str(r2.status_code))
+        else:
+            report("Profile", False, "could not get user_id")
     except Exception as e:
         report("Profile", False, str(e)[:80])
 
@@ -151,7 +157,7 @@ def main():
         ("Squads", "/api/squads/me"),
         ("Mastery", "/api/mastery"),
         ("Quiz Stats", "/api/quiz/stats"),
-        ("Bhool Cards", "/api/bhool/cards"),
+        ("Bhool Cards", "/api/bhool/cards/mine"),
         ("Muqabla LB", "/api/muqabla/leaderboard"),
         ("Parent PIN", "/api/parent/pin"),
         ("Chat Sessions", "/api/chat-session/list"),
@@ -168,8 +174,10 @@ def main():
     print("\n--- 10. AI Chat Modes ---")
     for mode in ["quiz_generate", "mental_wellness", "samjhao"]:
         try:
+            import time; time.sleep(5)
+            prompt = "What is gravity?" if mode != "samjhao" else "I think photosynthesis is when plants use sunlight and CO2 to make glucose and oxygen in chloroplasts."
             r = requests.post(BASE + "/api/ai/chat", headers=hdr(token), json={
-                "prompt": "What is gravity?",
+                "prompt": prompt,
                 "mode": mode,
                 "history": [],
                 "max_tokens": 300,

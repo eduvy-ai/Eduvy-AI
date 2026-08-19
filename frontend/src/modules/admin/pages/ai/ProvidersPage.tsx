@@ -28,9 +28,10 @@ import {
 // Provider info
 const PROVIDERS = {
   openai: { name: 'OpenAI', color: 'text-emerald-400', models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'] },
-  google: { name: 'Google AI', color: 'text-blue-400', models: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'] },
+  gemini: { name: 'Google AI (Gemini)', color: 'text-blue-400', models: ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'] },
   anthropic: { name: 'Anthropic', color: 'text-orange-400', models: ['claude-3-5-sonnet', 'claude-3-haiku', 'claude-3-opus'] },
-  groq: { name: 'Groq', color: 'text-pink-400', models: ['llama-3.1-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'] },
+  groq: { name: 'Groq', color: 'text-pink-400', models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'] },
+  nvidia: { name: 'NVIDIA NIM', color: 'text-green-400', models: ['meta/llama-3.3-70b-instruct'] },
 }
 
 type ProviderKey = keyof typeof PROVIDERS
