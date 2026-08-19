@@ -2043,10 +2043,10 @@ class AdminService:
                 except Exception:
                     pass
             default_routing = {
-                "free":    {"provider": "groq",   "model": "llama-3.1-8b-instant"},
-                "basic":   {"provider": "groq",   "model": "llama-3.3-70b-versatile"},
-                "pro":     {"provider": "gemini", "model": "gemini-2.0-flash"},
-                "premium": {"provider": "gemini", "model": "gemini-2.0-flash"},
+                "free":    {"provider": "groq",   "model": "openai/gpt-oss-20b"},
+                "basic":   {"provider": "groq",   "model": "openai/gpt-oss-120b"},
+                "pro":     {"provider": "gemini", "model": "gemini-3.5-flash"},
+                "premium": {"provider": "gemini", "model": "gemini-3.5-flash"},
             }
             for plan, val in default_routing.items():
                 if plan not in routing:
@@ -2124,8 +2124,8 @@ class AdminService:
 
         # Static fallback per provider (used when key missing or API down)
         _FALLBACK: Dict[str, List[str]] = {
-            "groq":      ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"],
-            "gemini":    ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro"],
+            "groq":      ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.6-27b"],
+            "gemini":    ["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.7-flash"],
             "anthropic": ["claude-sonnet-4-20250514", "claude-3-5-haiku-20241022"],
             "openai":    ["gpt-4o-mini", "gpt-4o"],
             "nvidia":    [

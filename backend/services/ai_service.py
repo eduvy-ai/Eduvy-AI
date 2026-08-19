@@ -151,12 +151,12 @@ _ai_cache = _TTLCache(
 )
 
 # ── Plan → default model routing (hardcoded fallback) ─────────
-# Using llama-3.1-8b-instant for free tier (gemma2-9b-it was decommissioned)
+# Using openai/gpt-oss-20b for free tier (llama models decommissioned)
 _DEFAULT_PLAN_ROUTING: dict[str, dict] = {
-    "free":    {"provider": "groq",   "model": "llama-3.1-8b-instant"},
-    "basic":   {"provider": "groq",   "model": "llama-3.3-70b-versatile"},
-    "pro":     {"provider": "gemini", "model": "gemini-2.5-flash"},
-    "premium": {"provider": "gemini", "model": "gemini-2.5-flash"},
+    "free":    {"provider": "groq",   "model": "openai/gpt-oss-20b"},
+    "basic":   {"provider": "groq",   "model": "openai/gpt-oss-120b"},
+    "pro":     {"provider": "gemini", "model": "gemini-3.5-flash"},
+    "premium": {"provider": "gemini", "model": "gemini-3.5-flash"},
 }
 
 # In-memory cache — updated by load_plan_routing() / save_plan_routing()
@@ -165,13 +165,17 @@ _PLAN_ROUTING: dict[str, dict] = dict(_DEFAULT_PLAN_ROUTING)
 
 # Models that have been decommissioned → auto-replace on load
 _DECOMMISSIONED_MODELS = {
-    "llama3-8b-8192":       "llama-3.1-8b-instant",
-    "llama3-70b-8192":      "llama-3.3-70b-versatile",
-    "mixtral-8x7b-32768":   "llama-3.3-70b-versatile",
-    "gemma2-9b-it":         "llama-3.1-8b-instant",
-    "gemma-7b-it":          "llama-3.1-8b-instant",
-    "gemini-2.0-flash":     "gemini-2.5-flash",
-    "gemini-2.0-flash-lite": "gemini-2.5-flash-lite",
+    "llama3-8b-8192":         "openai/gpt-oss-20b",
+    "llama3-70b-8192":        "openai/gpt-oss-120b",
+    "llama-3.1-8b-instant":   "openai/gpt-oss-20b",
+    "llama-3.3-70b-versatile":"openai/gpt-oss-120b",
+    "mixtral-8x7b-32768":     "openai/gpt-oss-120b",
+    "gemma2-9b-it":           "openai/gpt-oss-20b",
+    "gemma-7b-it":            "openai/gpt-oss-20b",
+    "gemini-2.0-flash":       "gemini-3.5-flash",
+    "gemini-2.0-flash-lite":  "gemini-3.5-flash-lite",
+    "gemini-2.5-flash":       "gemini-3.5-flash",
+    "gemini-2.5-flash-lite":  "gemini-3.5-flash-lite",
 }
 
 
@@ -224,6 +228,8 @@ def load_plan_routing():
                     suffix = k[len("api_key_"):]
                     slot_m = _re.match(r'^([a-z]+)_(\d+)$', suffix)
                     provider = slot_m.group(1) if slot_m else suffix
+                    _PROVIDER_ALIASES = {"google": "gemini"}
+                    provider = _PROVIDER_ALIASES.get(provider, provider)
                     try:
                         plain = _decrypt_key(v) if v else ""
                     except Exception as _e:
@@ -405,8 +411,8 @@ _FALLBACK_ORDER = ["groq", "nvidia", "gemini", "anthropic", "openai"]
 # Use the most capable model per provider so fallbacks can handle large outputs
 # (e.g. video script generation that needs 8k–16k output tokens).
 _PROVIDER_DEFAULT_MODEL = {
-    "groq":      "llama-3.3-70b-versatile",   # 32k max output; 8b-instant only has 8k
-    "gemini":    "gemini-2.5-flash",
+    "groq":      "openai/gpt-oss-120b",
+    "gemini":    "gemini-3.5-flash",
     "anthropic": "claude-3-5-haiku-20241022",
     "openai":    "gpt-4o-mini",
     "nvidia":    "meta/llama-3.3-70b-instruct",
@@ -415,11 +421,12 @@ _PROVIDER_DEFAULT_MODEL = {
 # Hard per-model output token caps — used to clamp max_tokens before sending.
 # Prevents HTTP 400 "max_tokens exceeds model limit" errors.
 _MODEL_MAX_OUTPUT_TOKENS: dict[str, int] = {
-    "llama-3.1-8b-instant":     8192,
-    "llama-3.3-70b-versatile": 32768,
-    "gemini-2.5-flash":         8192,
-    "gemini-2.5-flash-lite":    8192,
-    "gemini-1.5-pro":           8192,
+    "openai/gpt-oss-20b":       16384,
+    "openai/gpt-oss-120b":      32768,
+    "qwen/qwen3.6-27b":         32768,
+    "gemini-3.5-flash":          8192,
+    "gemini-3.5-flash-lite":     8192,
+    "gemini-3.7-flash":          8192,
     "gpt-4o-mini":              16384,
     "gpt-4o":                   16384,
     "claude-3-5-haiku-20241022": 8192,
@@ -582,8 +589,8 @@ async def call_ai(
                                 continue  # retry same key with clamped value
                         break  # unrecoverable 400 → try next provider
                     if status == 413:
-                        if cur_provider == "groq" and cur_model != "llama-3.3-70b-versatile":
-                            cur_model = "llama-3.3-70b-versatile"
+                        if cur_provider == "groq" and cur_model != "openai/gpt-oss-120b":
+                            cur_model = "openai/gpt-oss-120b"
                             continue
                         break  # request too large → try next provider
                     if attempt == n_attempts - 1:
@@ -716,7 +723,7 @@ async def call_vision(
     if not key:
         return ("⚠️ Vision service is temporarily unavailable.", 0, 0)
     
-    model = "gemini-2.5-flash"
+    model = "gemini-3.5-flash"
     
     async with httpx.AsyncClient(timeout=60.0, headers={"User-Agent": _BROWSER_UA}) as client:
         try:
