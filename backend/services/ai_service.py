@@ -155,8 +155,8 @@ _ai_cache = _TTLCache(
 _DEFAULT_PLAN_ROUTING: dict[str, dict] = {
     "free":    {"provider": "groq",   "model": "llama-3.1-8b-instant"},
     "basic":   {"provider": "groq",   "model": "llama-3.3-70b-versatile"},
-    "pro":     {"provider": "gemini", "model": "gemini-2.0-flash"},
-    "premium": {"provider": "gemini", "model": "gemini-2.0-flash"},
+    "pro":     {"provider": "gemini", "model": "gemini-2.5-flash"},
+    "premium": {"provider": "gemini", "model": "gemini-2.5-flash"},
 }
 
 # In-memory cache — updated by load_plan_routing() / save_plan_routing()
@@ -168,13 +168,17 @@ _DECOMMISSIONED_MODELS = {
     "llama3-8b-8192":       "llama-3.1-8b-instant",
     "llama3-70b-8192":      "llama-3.3-70b-versatile",
     "mixtral-8x7b-32768":   "llama-3.3-70b-versatile",
-    "gemma2-9b-it":         "llama-3.1-8b-instant",    # decommissioned May 2026
+    "gemma2-9b-it":         "llama-3.1-8b-instant",
     "gemma-7b-it":          "llama-3.1-8b-instant",
+    "gemini-2.0-flash":     "gemini-2.5-flash",
+    "gemini-2.0-flash-lite": "gemini-2.5-flash-lite",
 }
 
 
 def _fix_model(provider: str, model: str) -> str:
     if provider == "groq":
+        return _DECOMMISSIONED_MODELS.get(model, model)
+    if provider == "gemini":
         return _DECOMMISSIONED_MODELS.get(model, model)
     return model
 
@@ -402,7 +406,7 @@ _FALLBACK_ORDER = ["groq", "nvidia", "gemini", "anthropic", "openai"]
 # (e.g. video script generation that needs 8k–16k output tokens).
 _PROVIDER_DEFAULT_MODEL = {
     "groq":      "llama-3.3-70b-versatile",   # 32k max output; 8b-instant only has 8k
-    "gemini":    "gemini-2.0-flash",
+    "gemini":    "gemini-2.5-flash",
     "anthropic": "claude-3-5-haiku-20241022",
     "openai":    "gpt-4o-mini",
     "nvidia":    "meta/llama-3.3-70b-instruct",
@@ -413,7 +417,8 @@ _PROVIDER_DEFAULT_MODEL = {
 _MODEL_MAX_OUTPUT_TOKENS: dict[str, int] = {
     "llama-3.1-8b-instant":     8192,
     "llama-3.3-70b-versatile": 32768,
-    "gemini-2.0-flash":         8192,
+    "gemini-2.5-flash":         8192,
+    "gemini-2.5-flash-lite":    8192,
     "gemini-1.5-pro":           8192,
     "gpt-4o-mini":              16384,
     "gpt-4o":                   16384,
@@ -711,8 +716,7 @@ async def call_vision(
     if not key:
         return ("⚠️ Vision service is temporarily unavailable.", 0, 0)
     
-    # Use gemini-2.0-flash for vision (supports multimodal)
-    model = "gemini-2.0-flash"
+    model = "gemini-2.5-flash"
     
     async with httpx.AsyncClient(timeout=60.0, headers={"User-Agent": _BROWSER_UA}) as client:
         try:
