@@ -2096,55 +2096,21 @@ class AdminService:
 
     @staticmethod
     def save_ai_routing(plan: str, provider: str, model: str) -> Dict:
-        import json as _json
-        conn = get_db()
-        try:
-            cur = conn.cursor()
-            cur.execute(
-                """INSERT INTO app_settings (key, value, updated_at)
-                   VALUES (%s, %s, CURRENT_TIMESTAMP)
-                   ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=CURRENT_TIMESTAMP""",
-                (f"ai_routing_{plan}", _json.dumps({"provider": provider, "model": model}))
-            )
-            conn.commit()
-            return {"ok": True}
-        finally:
-            conn.close()
+        from services.ai_service import save_plan_routing
+        save_plan_routing(plan, provider, model)
+        return {"ok": True}
 
     @staticmethod
     def save_ai_key(provider: str, key: str, slot: int = 1) -> Dict:
-        import hashlib, base64
-        from cryptography.fernet import Fernet
-        import os as _os
-        secret = _os.getenv("JWT_SECRET", "")
-        fernet = Fernet(base64.urlsafe_b64encode(hashlib.sha256(secret.encode()).digest()))
-        encrypted = fernet.encrypt(key.encode()).decode()
-        db_key = f"api_key_{provider}" if slot == 1 else f"api_key_{provider}_{slot}"
-        conn = get_db()
-        try:
-            cur = conn.cursor()
-            cur.execute(
-                """INSERT INTO app_settings (key, value, updated_at)
-                   VALUES (%s, %s, CURRENT_TIMESTAMP)
-                   ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=CURRENT_TIMESTAMP""",
-                (db_key, encrypted)
-            )
-            conn.commit()
-            return {"ok": True}
-        finally:
-            conn.close()
+        from services.ai_service import save_api_key
+        save_api_key(provider, key, slot)
+        return {"ok": True}
 
     @staticmethod
     def remove_ai_key(provider: str, slot: int) -> Dict:
-        db_key = f"api_key_{provider}" if slot == 1 else f"api_key_{provider}_{slot}"
-        conn = get_db()
-        try:
-            cur = conn.cursor()
-            cur.execute("DELETE FROM app_settings WHERE key=%s", (db_key,))
-            conn.commit()
-            return {"ok": True}
-        finally:
-            conn.close()
+        from services.ai_service import remove_api_key_slot
+        remove_api_key_slot(provider, slot)
+        return {"ok": True}
 
     @staticmethod
     async def fetch_provider_models(provider: str) -> List[str]:
@@ -2159,7 +2125,7 @@ class AdminService:
         # Static fallback per provider (used when key missing or API down)
         _FALLBACK: Dict[str, List[str]] = {
             "groq":      ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"],
-            "gemini":    ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"],
+            "gemini":    ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro"],
             "anthropic": ["claude-sonnet-4-20250514", "claude-3-5-haiku-20241022"],
             "openai":    ["gpt-4o-mini", "gpt-4o"],
             "nvidia":    [
