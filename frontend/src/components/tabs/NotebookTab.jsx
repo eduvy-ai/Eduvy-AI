@@ -726,9 +726,14 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
       `[IMPORTANT: Answer in ${userLang} language ONLY. Do NOT use any other language.]\n\nQuestion: ${chatInput.trim()}\n\n[Student: Class ${profile?.standard || '10'}, ${profile?.board || 'CBSE'}]\n[Answering from: ${sourceLabel}]\n\nSources:\n${ctx.slice(0, 6000)}`,
       "", newMsgs, 3, 1500, "notebook_chat"
     )
-    setMessages(m => [...m, { role: "assistant", content: res }])
-    apiSaveChatMessage(userId, "assistant", res).catch(() => {})
-    addXp(2); setChatLoading(false)
+    if (res && res.startsWith('⚠️')) {
+      setMessages(m => [...m, { role: "assistant", content: "Sorry, I couldn't process that right now. Please try again." }])
+    } else {
+      setMessages(m => [...m, { role: "assistant", content: res }])
+      apiSaveChatMessage(userId, "assistant", res).catch(() => {})
+      addXp(2)
+    }
+    setChatLoading(false)
   }
 
   // ── Clear chat session ─────────────────────────────────────────

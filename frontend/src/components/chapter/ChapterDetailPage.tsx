@@ -765,9 +765,12 @@ Return ONLY a valid JSON object with "summary" (string) and "keyPoints" (array o
           : []
         const savedSummary = await apiSaveChapterSummary(chapter.id, parsed.summary, keyPoints)
         setSummary(savedSummary)
+      } else {
+        setSummary({ id: 0, chapter_id: chapter.id, summary: 'Could not generate summary. Tap to retry.', key_points: [], generated_at: '' })
       }
     } catch (err) {
       console.error('Failed to generate summary:', err)
+      setSummary({ id: 0, chapter_id: chapter.id, summary: 'Could not generate summary. Tap to retry.', key_points: [], generated_at: '' })
     }
 
     setIsGenerating(false)

@@ -76,7 +76,12 @@ async def extract_text_from_image_gemini(image_bytes: bytes, mime_type: str) -> 
         image_b64 = base64.b64encode(image_bytes).decode('utf-8')
         
         # Prepare request for Gemini
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+        
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": api_key,
+        }
         
         payload = {
             "contents": [{
@@ -108,7 +113,7 @@ Return ONLY the extracted text, no explanations."""
         }
         
         async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(url, json=payload)
+            response = await client.post(url, headers=headers, json=payload)
             
             if response.status_code != 200:
                 error_data = response.json() if response.content else {}

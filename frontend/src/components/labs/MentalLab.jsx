@@ -58,9 +58,13 @@ export default function MentalLab({ profile, addXp, onBack }) {
     apiSaveToSession(deviceId, "mental", "user", text).catch(() => {})
     try {
       const res = await callAI(text, "", newMsgs, 3, 1200, "mental_wellness")
-      setMessages(m => [...m, { role: "assistant", content: res }])
-      apiSaveToSession(deviceId, "mental", "assistant", res).catch(() => {})
-      addXp(2)
+      if (res && res.startsWith('⚠️')) {
+        setMessages(m => [...m, { role: "assistant", content: "I'm having trouble connecting right now. Please try again in a moment. 🙏" }])
+      } else {
+        setMessages(m => [...m, { role: "assistant", content: res }])
+        apiSaveToSession(deviceId, "mental", "assistant", res).catch(() => {})
+        addXp(2)
+      }
     } finally {
       setLoading(false)
     }

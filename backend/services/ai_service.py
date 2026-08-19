@@ -654,8 +654,8 @@ async def _gemini(client: httpx.AsyncClient, model: str, key: str,
         for m in messages
     ]
     r = await client.post(
-        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}",
-        headers={"Content-Type": "application/json"},
+        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+        headers={"Content-Type": "application/json", "x-goog-api-key": key},
         json={
             "system_instruction": {"parts": [{"text": str(system)}]},
             "contents": gemini_messages,
@@ -677,8 +677,8 @@ async def _gemini_vision(client: httpx.AsyncClient, model: str, key: str,
                          max_tokens: int = 1000) -> tuple[str, int, int]:
     """Call Gemini Vision API with an image."""
     r = await client.post(
-        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}",
-        headers={"Content-Type": "application/json"},
+        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+        headers={"Content-Type": "application/json", "x-goog-api-key": key},
         json={
             "contents": [{
                 "parts": [

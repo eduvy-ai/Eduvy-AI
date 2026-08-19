@@ -26,7 +26,7 @@ PLANS_QUOTA = {
 _BEAT_GENERATION_LOCKS: Dict[str, asyncio.Future] = {}
 
 # In-flight request dedup: prevent same user from sending identical prompts concurrently
-_INFLIGHT: Dict[str, asyncio.Task] = {}
+_INFLIGHT: Dict[str, asyncio.Future] = {}
 
 
 def _dedup_key(user_id: str, prompt: str, mode: str) -> str:
@@ -210,7 +210,6 @@ class AIService:
     @staticmethod
     async def chat(user_id: str, prompt: str, system_prompt: str, history: list, max_tokens: int, mode: str = "", chapter_context: dict = None) -> Dict:
         """Process AI chat request with dedup for identical in-flight requests."""
-        # Dedup: if same user is already running an identical request, await that result
         key = _dedup_key(user_id, prompt, mode)
         if key in _INFLIGHT:
             try:
@@ -218,11 +217,15 @@ class AIService:
             except Exception:
                 pass  # Original failed; let this one retry
 
-        task = asyncio.current_task()
-        _INFLIGHT[key] = task
+        future: asyncio.Future = asyncio.get_event_loop().create_future()
+        _INFLIGHT[key] = future
         try:
             result = await AIService._chat_impl(user_id, prompt, system_prompt, history, max_tokens, mode, chapter_context)
+            future.set_result(result)
             return result
+        except Exception as exc:
+            future.set_exception(exc)
+            raise
         finally:
             _INFLIGHT.pop(key, None)
 
@@ -286,7 +289,11 @@ class AIService:
             logger.error(f"AI chat error for user {user_id}: {e}")
             raise HTTPException(status_code=502, detail="AI is temporarily unavailable. Please try again.")
         
-        # Track usage
+        if response.startswith("\u26a0\ufe0f"):
+            logger.warning(f"AI returned error for user {user_id}: {response[:120]}")
+            raise HTTPException(status_code=502, detail="AI is temporarily unavailable. Please try again.")
+        
+        # Track usage only on successful responses
         new_count = await asyncio.to_thread(AIService.check_and_increment_usage, user_id, plan, prompt_tokens, completion_tokens)
         
         return {
@@ -354,7 +361,11 @@ IMPORTANT: If this is NOT educational content (social media, memes, random photo
             logger.error(f"Vision error for user {user_id}: {e}")
             raise HTTPException(status_code=502, detail="Image analysis is temporarily unavailable. Please try again.")
         
-        # Track usage
+        if response.startswith("\u26a0\ufe0f"):
+            logger.warning(f"Vision returned error for user {user_id}: {response[:120]}")
+            raise HTTPException(status_code=502, detail="Image analysis is temporarily unavailable. Please try again.")
+        
+        # Track usage only on successful responses
         await asyncio.to_thread(AIService.check_and_increment_usage, user_id, plan, prompt_tokens, completion_tokens)
         
         # Check if educational
@@ -518,7 +529,11 @@ IMPORTANT: If this is NOT educational content (social media, memes, random photo
             logger.error(f"Study coach error for user {user_id}: {e}")
             raise HTTPException(status_code=502, detail="AI is temporarily unavailable. Please try again.")
         
-        # Track usage
+        if response.startswith("\u26a0\ufe0f"):
+            logger.warning(f"Study coach AI error for user {user_id}: {response[:120]}")
+            raise HTTPException(status_code=502, detail="AI is temporarily unavailable. Please try again.")
+        
+        # Track usage only on successful responses
         new_count = await asyncio.to_thread(AIService.check_and_increment_usage, user_id, plan, prompt_tokens, completion_tokens)
         
         # Parse JSON response

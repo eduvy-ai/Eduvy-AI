@@ -19,7 +19,8 @@ const QUIZ_LENGTHS = [
 function _updateBhool(subject, concept, correct) {
   if (!concept) return
   try {
-    const data = JSON.parse(localStorage.getItem('eduvyai_bhool') || '{}')
+    let data = {}
+    try { data = JSON.parse(localStorage.getItem('eduvyai_bhool') || '{}') } catch { data = {} }
     const key = `${subject}:${concept}`
     const ex = data[key] || { stability: 1, streak: 0 }
     if (correct) {

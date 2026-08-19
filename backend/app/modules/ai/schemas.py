@@ -30,7 +30,7 @@ class ChatRequest(BaseModel):
 
 class VisionRequest(BaseModel):
     """Request to extract content from an image."""
-    image_base64: str = Field(..., min_length=100, description="Base64-encoded image data")
+    image_base64: str = Field(..., min_length=100, max_length=15_000_000, description="Base64-encoded image data")
     mime_type: str = Field(default="image/png", description="Image MIME type (image/png, image/jpeg, etc.)")
     prompt: str = Field(default="", description="Optional prompt for extraction")
     language: str = Field(default="English", description="Language for response")

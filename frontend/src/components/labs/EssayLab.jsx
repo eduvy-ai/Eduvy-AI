@@ -38,9 +38,13 @@ export default function EssayLab({ profile, addXp, onBack }) {
       `Grade this ${type} for a ${profile.standard} ${profile.board} student:\n\n${writing}`,
       "", [], 3, 1200, "essay_grade"
     )
-    setFeedback(res)
-    apiSaveDraft(deviceId, "essay_draft", writing, res).catch(() => {})
-    addXp(8)
+    if (res && res.startsWith('⚠️')) {
+      setFeedback(ui.aiUnavailable || 'AI is temporarily unavailable. Please try again.')
+    } else {
+      setFeedback(res)
+      apiSaveDraft(deviceId, "essay_draft", writing, res).catch(() => {})
+      addXp(8)
+    }
     setLoading(false)
   }
 
