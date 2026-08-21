@@ -2042,12 +2042,9 @@ class AdminService:
                     routing[plan] = _json.loads(r["value"])
                 except Exception:
                     pass
-            default_routing = {
-                "free":    {"provider": "groq",   "model": "openai/gpt-oss-20b"},
-                "basic":   {"provider": "groq",   "model": "openai/gpt-oss-120b"},
-                "pro":     {"provider": "gemini", "model": "gemini-3.5-flash"},
-                "premium": {"provider": "gemini", "model": "gemini-3.5-flash"},
-            }
+            # Import canonical defaults from ai_service to stay in sync
+            from services.ai_service import _DEFAULT_PLAN_ROUTING
+            default_routing = _DEFAULT_PLAN_ROUTING
             for plan, val in default_routing.items():
                 if plan not in routing:
                     routing[plan] = val

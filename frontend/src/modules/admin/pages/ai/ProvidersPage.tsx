@@ -3,8 +3,8 @@
 
 import React, { useEffect, useState, useRef } from 'react'
 import { useAIConfig, useCanEdit } from '../../hooks'
-import { adminApi } from '../../api'
-import type { AIRouting, AIKeySlot } from '../../types'
+import { adminApi, aiKeysApi } from '../../api'
+import type { AIRouting, AIKeySlot, AIKeyEnhanced, AIProviderModel, AIKeyValidationResult } from '../../types'
 import { PLAN_LABELS } from '../../constants'
 import Modal from '../../../../shared/components/Modal'
 import ConfirmDialog from '../../../../shared/components/ConfirmDialog'
@@ -23,6 +23,12 @@ import {
   Lightning,
   Gear,
   WarningCircle,
+  ArrowsClockwise,
+  User,
+  Buildings,
+  Info,
+  ToggleLeft,
+  ToggleRight,
 } from '@phosphor-icons/react'
 
 // Provider info
@@ -47,11 +53,27 @@ const ProvidersPage: React.FC = () => {
   const [formError, setFormError] = useState('')
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({})
 
-  // Key form state
+  // Enhanced key management state
+  const [enhancedKeys, setEnhancedKeys] = useState<AIKeyEnhanced[]>([])
+  const [isValidating, setIsValidating] = useState(false)
+  const [validationResult, setValidationResult] = useState<AIKeyValidationResult | null>(null)
+  const [availableModels, setAvailableModels] = useState<AIProviderModel[]>([])
+  const [editingKey, setEditingKey] = useState<AIKeyEnhanced | null>(null)
+  const [showInfoModal, setShowInfoModal] = useState(false)
+  const [selectedKeyInfo, setSelectedKeyInfo] = useState<AIKeyEnhanced | null>(null)
+  const [validatingKey, setValidatingKey] = useState<string | null>(null) // "provider-slot"
+
+  // Key form state (enhanced)
   const [keyForm, setKeyForm] = useState({
     provider: '' as ProviderKey | '',
     slot: 1,
     key: '',
+    owner_email: '',
+    project_name: '',
+    description: '',
+    rpm_limit: '' as string | number,
+    tpm_limit: '' as string | number,
+    daily_limit: '' as string | number,
   })
 
   // Routing form state
@@ -73,12 +95,26 @@ const ProvidersPage: React.FC = () => {
       setIsLoading(true)
       try {
         await fetchAIConfig()
+        // Also load enhanced keys
+        try {
+          const keys = await aiKeysApi.getKeysEnhanced()
+          setEnhancedKeys(keys)
+        } catch {
+          // Enhanced keys table might not exist yet, fallback to legacy
+        }
       } finally {
         setIsLoading(false)
       }
     }
     load()
   }, [fetchAIConfig])
+
+  // Group enhanced keys by provider
+  const enhancedKeysByProvider = enhancedKeys.reduce<Record<string, AIKeyEnhanced[]>>((acc, key) => {
+    if (!acc[key.provider]) acc[key.provider] = []
+    acc[key.provider].push(key)
+    return acc
+  }, {})
 
   // Group keys by provider
   const keysByProvider = (aiKeySlots || []).reduce<Record<string, AIKeySlot[]>>((acc, key) => {
@@ -87,21 +123,140 @@ const ProvidersPage: React.FC = () => {
     return acc
   }, {})
 
-  // Add API key
-  const handleAddKey = async () => {
+  // Validate API key
+  const handleValidateKey = async () => {
     if (!keyForm.provider || !keyForm.key) {
+      setFormError('Provider and API key are required')
+      return
+    }
+    setFormError('')
+    setIsValidating(true)
+    setValidationResult(null)
+
+    try {
+      const result = await aiKeysApi.validateKey(keyForm.provider, keyForm.key)
+      setValidationResult(result)
+      if (result.valid && result.models) {
+        setAvailableModels(result.models)
+      }
+    } catch (error: any) {
+      setFormError(error.response?.data?.detail || 'Failed to validate key')
+    } finally {
+      setIsValidating(false)
+    }
+  }
+
+  // Add API key (enhanced)
+  const handleAddKey = async () => {
+    // When adding new key, key is required. When editing, key is optional (keeps existing)
+    if (!keyForm.provider || (!editingKey && !keyForm.key)) {
       setFormError('Provider and API key are required')
       return
     }
     setFormError('')
 
     try {
-      await adminApi.aiConfig.addKey(keyForm.provider, keyForm.slot, keyForm.key)
+      // If editing and no new key provided, call metadata-only update
+      if (editingKey && !keyForm.key) {
+        await aiKeysApi.updateKeyMetadata(keyForm.provider, keyForm.slot, {
+          owner_email: keyForm.owner_email,
+          project_name: keyForm.project_name,
+          description: keyForm.description,
+          rpm_limit: keyForm.rpm_limit ? Number(keyForm.rpm_limit) : null,
+          tpm_limit: keyForm.tpm_limit ? Number(keyForm.tpm_limit) : null,
+          daily_limit: keyForm.daily_limit ? Number(keyForm.daily_limit) : null,
+        })
+      } else {
+        await aiKeysApi.saveKeyEnhanced({
+          provider: keyForm.provider,
+          key: keyForm.key,
+          slot: keyForm.slot,
+          owner_email: keyForm.owner_email,
+          project_name: keyForm.project_name,
+          description: keyForm.description,
+          rpm_limit: keyForm.rpm_limit ? Number(keyForm.rpm_limit) : null,
+          tpm_limit: keyForm.tpm_limit ? Number(keyForm.tpm_limit) : null,
+          daily_limit: keyForm.daily_limit ? Number(keyForm.daily_limit) : null,
+        })
+      }
       await fetchAIConfig()
+      // Reload enhanced keys
+      const keys = await aiKeysApi.getKeysEnhanced()
+      setEnhancedKeys(keys)
       setShowAddKeyModal(false)
-      setKeyForm({ provider: '', slot: 1, key: '' })
+      resetKeyForm()
     } catch (error: any) {
       setFormError(error.response?.data?.detail || 'Failed to add API key')
+    }
+  }
+
+  // Reset key form
+  const resetKeyForm = () => {
+    setKeyForm({
+      provider: '',
+      slot: 1,
+      key: '',
+      owner_email: '',
+      project_name: '',
+      description: '',
+      rpm_limit: '',
+      tpm_limit: '',
+      daily_limit: '',
+    })
+    setValidationResult(null)
+    setAvailableModels([])
+    setEditingKey(null)
+  }
+
+  // Toggle key enabled/disabled
+  const handleToggleKey = async (provider: string, slot: number, currentEnabled: boolean) => {
+    try {
+      await aiKeysApi.toggleKey(provider, slot, !currentEnabled)
+      const keys = await aiKeysApi.getKeysEnhanced()
+      setEnhancedKeys(keys)
+    } catch (error: any) {
+      console.error('Failed to toggle key:', error)
+    }
+  }
+
+  // Edit existing key (opens modal with pre-filled data)
+  const handleEditKey = (keyData: AIKeyEnhanced) => {
+    setEditingKey(keyData)
+    setKeyForm({
+      provider: keyData.provider as ProviderKey,
+      slot: keyData.slot,
+      key: '', // Don't pre-fill key for security - user must re-enter if changing
+      owner_email: keyData.owner_email || '',
+      project_name: keyData.project_name || '',
+      description: keyData.description || '',
+      rpm_limit: keyData.rpm_limit || '',
+      tpm_limit: keyData.tpm_limit || '',
+      daily_limit: keyData.daily_limit || '',
+    })
+    setFormError('')
+    setValidationResult(null)
+    setShowAddKeyModal(true)
+  }
+
+  // View key info
+  const handleViewKeyInfo = (keyData: AIKeyEnhanced) => {
+    setSelectedKeyInfo(keyData)
+    setShowInfoModal(true)
+  }
+
+  // Validate existing key (inline)
+  const handleValidateExistingKey = async (provider: string, slot: number) => {
+    const keyId = `${provider}-${slot}`
+    setValidatingKey(keyId)
+    try {
+      await aiKeysApi.validateExistingKey(provider, slot)
+      // Refresh keys to get updated validation status
+      const keys = await aiKeysApi.getKeysEnhanced()
+      setEnhancedKeys(keys)
+    } catch (error: any) {
+      console.error('Validation failed:', error)
+    } finally {
+      setValidatingKey(null)
     }
   }
 
@@ -217,7 +372,10 @@ const ProvidersPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {Object.entries(PROVIDERS).map(([key, provider]) => {
               const providerKey = key as ProviderKey
-              const keys = keysByProvider[key] || []
+              // Use enhanced keys if available, fallback to legacy
+              const enhancedKeysForProvider = enhancedKeysByProvider[key] || []
+              const legacyKeys = keysByProvider[key] || []
+              const hasEnhanced = enhancedKeysForProvider.length > 0
               const health = getProviderHealth(key)
               
               return (
@@ -245,7 +403,12 @@ const ProvidersPage: React.FC = () => {
                         size="sm"
                         leftIcon={<Plus size={14} />}
                         onClick={() => {
-                          setKeyForm({ provider: providerKey, slot: keys.length + 1, key: '' })
+                          const nextSlot = Math.max(
+                            ...([...enhancedKeysForProvider, ...legacyKeys].map(k => 'slot' in k ? k.slot : 0)),
+                            0
+                          ) + 1
+                          resetKeyForm()
+                          setKeyForm(prev => ({ ...prev, provider: providerKey, slot: nextSlot }))
                           setFormError('')
                           setShowAddKeyModal(true)
                         }}
@@ -255,10 +418,132 @@ const ProvidersPage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Keys list */}
-                  {keys.length > 0 ? (
+                  {/* Enhanced Keys list */}
+                  {hasEnhanced ? (
                     <div className="space-y-2">
-                      {keys.map((keySlot: AIKeySlot) => {
+                      {enhancedKeysForProvider.map((keyData: AIKeyEnhanced) => {
+                        const keyId = `${keyData.provider}-${keyData.slot}`
+                        return (
+                          <div
+                            key={keyId}
+                            className={`p-3 bg-app-card2 rounded-lg ${!keyData.is_enabled ? 'opacity-50' : ''}`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-app-muted">Slot {keyData.slot}</span>
+                                <code className="text-xs text-app-text font-mono">
+                                  {showKeys[keyId] ? keyData.key_hint : '••••••••••••'}
+                                </code>
+                                <button
+                                  onClick={() => toggleKeyVisibility(keyId)}
+                                  className="p-1 text-app-muted hover:text-app-text"
+                                >
+                                  {showKeys[keyId] ? <EyeSlash size={14} /> : <Eye size={14} />}
+                                </button>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {/* Validation status */}
+                                {keyData.validation_status === 'valid' && (
+                                  <span title="Valid">
+                                    <CheckCircle size={14} weight="fill" className="text-app-green" />
+                                  </span>
+                                )}
+                                {keyData.validation_status === 'invalid' && (
+                                  <span title="Invalid">
+                                    <XCircle size={14} weight="fill" className="text-app-red" />
+                                  </span>
+                                )}
+                                {keyData.validation_status === 'pending' && (
+                                  <span title="Pending validation">
+                                    <WarningCircle size={14} className="text-app-yellow" />
+                                  </span>
+                                )}
+                                {/* Validate button (show for pending/invalid) */}
+                                {canEdit && (keyData.validation_status === 'pending' || keyData.validation_status === 'invalid') && (
+                                  <button
+                                    onClick={() => handleValidateExistingKey(keyData.provider, keyData.slot)}
+                                    disabled={validatingKey === `${keyData.provider}-${keyData.slot}`}
+                                    className="px-2 py-0.5 text-xs bg-app-blue/20 text-app-blue hover:bg-app-blue/30 rounded disabled:opacity-50"
+                                    title="Validate key"
+                                  >
+                                    {validatingKey === `${keyData.provider}-${keyData.slot}` ? 'Validating...' : 'Validate'}
+                                  </button>
+                                )}
+                                {/* Info button */}
+                                <button
+                                  onClick={() => handleViewKeyInfo(keyData)}
+                                  className="p-1 text-app-muted hover:text-app-blue"
+                                  title="View details"
+                                >
+                                  <Info size={14} />
+                                </button>
+                                {/* Edit button */}
+                                {canEdit && (
+                                  <button
+                                    onClick={() => handleEditKey(keyData)}
+                                    className="p-1 text-app-muted hover:text-app-text"
+                                    title="Edit key"
+                                  >
+                                    <Pencil size={14} />
+                                  </button>
+                                )}
+                                {/* Toggle enabled */}
+                                {canEdit && (
+                                  <button
+                                    onClick={() => handleToggleKey(keyData.provider, keyData.slot, keyData.is_enabled)}
+                                    className="p-1 text-app-muted hover:text-app-text"
+                                    title={keyData.is_enabled ? 'Disable key' : 'Enable key'}
+                                  >
+                                    {keyData.is_enabled ? (
+                                      <ToggleRight size={18} weight="fill" className="text-app-green" />
+                                    ) : (
+                                      <ToggleLeft size={18} className="text-app-muted" />
+                                    )}
+                                  </button>
+                                )}
+                                {canEdit && (
+                                  <button
+                                    onClick={() => handleRemoveKey(keyData.provider, keyData.slot)}
+                                    className="p-1 text-app-muted hover:text-app-red"
+                                  >
+                                    <Trash size={14} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            {/* Metadata row */}
+                            {(keyData.owner_email || keyData.project_name) && (
+                              <div className="flex items-center gap-3 mt-2 text-xs text-app-muted">
+                                {keyData.owner_email && (
+                                  <span className="flex items-center gap-1">
+                                    <User size={10} />
+                                    {keyData.owner_email}
+                                  </span>
+                                )}
+                                {keyData.project_name && (
+                                  <span className="flex items-center gap-1">
+                                    <Buildings size={10} />
+                                    {keyData.project_name}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {/* Limits row */}
+                            {(keyData.rpm_limit || keyData.tpm_limit || keyData.daily_limit) && (
+                              <div className="flex items-center gap-3 mt-1 text-xs text-app-muted">
+                                {keyData.rpm_limit && <span>RPM: {keyData.rpm_limit.toLocaleString()}</span>}
+                                {keyData.tpm_limit && <span>TPM: {keyData.tpm_limit.toLocaleString()}</span>}
+                                {keyData.daily_limit && <span>Daily: {keyData.daily_limit.toLocaleString()}</span>}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : legacyKeys.length > 0 ? (
+                    /* Legacy keys display (fallback) */
+                    <div className="space-y-2">
+                      {legacyKeys.map((keySlot: AIKeySlot) => {
                         const keyId = `${keySlot.provider}-${keySlot.slot}`
                         return (
                           <div
@@ -395,60 +680,215 @@ const ProvidersPage: React.FC = () => {
         </div>
       )}
 
-      {/* Add Key Modal */}
+      {/* Add/Edit Key Modal (Enhanced) */}
       <Modal
         isOpen={showAddKeyModal}
-        onClose={() => setShowAddKeyModal(false)}
-        title="Add API Key"
-        size="md"
+        onClose={() => { setShowAddKeyModal(false); resetKeyForm() }}
+        title={editingKey ? `Edit API Key - ${PROVIDERS[editingKey.provider as ProviderKey]?.name || editingKey.provider}` : "Add API Key"}
+        size="lg"
       >
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
           {formError && (
             <div className="p-3 rounded-xl bg-app-red/10 border border-app-red/30 text-sm text-app-red">
               {formError}
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-app-muted mb-1.5">Provider</label>
-            <select
-              value={keyForm.provider}
-              onChange={(e) => setKeyForm(prev => ({ ...prev, provider: e.target.value as ProviderKey }))}
-              className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
-            >
-              <option value="">Select provider</option>
-              {Object.entries(PROVIDERS).map(([key, provider]) => (
-                <option key={key} value={key}>{provider.name}</option>
-              ))}
-            </select>
+          {/* Editing hint */}
+          {editingKey && (
+            <div className="p-3 rounded-xl bg-app-blue/10 border border-app-blue/30 text-sm text-app-blue">
+              Editing Slot {editingKey.slot}. Leave "API Key" empty to keep the existing key, or enter a new key to replace it.
+            </div>
+          )}
+
+          {/* Provider & Slot Row */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-app-muted mb-1.5">Provider</label>
+              <select
+                value={keyForm.provider}
+                onChange={(e) => {
+                  setKeyForm(prev => ({ ...prev, provider: e.target.value as ProviderKey }))
+                  setValidationResult(null)
+                  setAvailableModels([])
+                }}
+                disabled={!!editingKey}
+                className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50 disabled:opacity-60"
+              >
+                <option value="">Select provider</option>
+                {Object.entries(PROVIDERS).map(([key, provider]) => (
+                  <option key={key} value={key}>{provider.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-app-muted mb-1.5">Slot Number</label>
+              <input
+                type="number"
+                min="1"
+                max="5"
+                value={keyForm.slot}
+                onChange={(e) => setKeyForm(prev => ({ ...prev, slot: parseInt(e.target.value) || 1 }))}
+                disabled={!!editingKey}
+                className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50 disabled:opacity-60"
+              />
+            </div>
           </div>
 
+          {/* API Key with Validate Button */}
           <div>
-            <label className="block text-sm font-medium text-app-muted mb-1.5">Slot Number</label>
-            <input
-              type="number"
-              min="1"
-              max="5"
-              value={keyForm.slot}
-              onChange={(e) => setKeyForm(prev => ({ ...prev, slot: parseInt(e.target.value) || 1 }))}
-              className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-app-green/50"
-            />
-            <p className="text-xs text-app-muted mt-1">Use multiple slots for key rotation</p>
+            <label className="block text-sm font-medium text-app-muted mb-1.5">
+              API Key {editingKey && <span className="text-app-muted font-normal">(leave empty to keep existing)</span>}
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="password"
+                value={keyForm.key}
+                onChange={(e) => {
+                  setKeyForm(prev => ({ ...prev, key: e.target.value }))
+                  setValidationResult(null)
+                }}
+                placeholder={editingKey ? "(unchanged)" : "sk-..."}
+                className="flex-1 h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text font-mono placeholder:text-app-muted/60 focus:outline-none focus:ring-2 focus:ring-app-green/50"
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleValidateKey}
+                disabled={!keyForm.provider || !keyForm.key || isValidating}
+                leftIcon={isValidating ? <ArrowsClockwise size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+              >
+                {isValidating ? 'Validating...' : 'Validate'}
+              </Button>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-app-muted mb-1.5">API Key</label>
-            <input
-              type="password"
-              value={keyForm.key}
-              onChange={(e) => setKeyForm(prev => ({ ...prev, key: e.target.value }))}
-              placeholder="sk-..."
-              className="w-full h-10 px-3 bg-app-card2 border border-white/10 rounded-xl text-app-text font-mono placeholder:text-app-muted/60 focus:outline-none focus:ring-2 focus:ring-app-green/50"
-            />
+          {/* Validation Result */}
+          {validationResult && (
+            <div className={`p-3 rounded-xl border ${
+              validationResult.valid 
+                ? 'bg-app-green/10 border-app-green/30' 
+                : 'bg-app-red/10 border-app-red/30'
+            }`}>
+              <div className="flex items-center gap-2">
+                {validationResult.valid ? (
+                  <>
+                    <CheckCircle size={18} weight="fill" className="text-app-green" />
+                    <span className="text-sm text-app-green font-medium">
+                      Key valid — {availableModels.length} models available
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle size={18} weight="fill" className="text-app-red" />
+                    <span className="text-sm text-app-red">{validationResult.error}</span>
+                  </>
+                )}
+              </div>
+              {validationResult.valid && availableModels.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {availableModels.slice(0, 8).map(m => (
+                    <span key={m.id} className="px-2 py-0.5 text-xs bg-app-card rounded-full text-app-muted">
+                      {m.name || m.id}
+                    </span>
+                  ))}
+                  {availableModels.length > 8 && (
+                    <span className="px-2 py-0.5 text-xs text-app-muted">
+                      +{availableModels.length - 8} more
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Metadata Section */}
+          <div className="border-t border-app-border pt-4 mt-4">
+            <h4 className="text-sm font-medium text-app-text mb-3 flex items-center gap-2">
+              <Info size={14} />
+              Key Metadata <span className="text-app-muted font-normal">(optional)</span>
+            </h4>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-app-muted mb-1">
+                  <User size={12} className="inline mr-1" />
+                  Owner Email
+                </label>
+                <input
+                  type="email"
+                  value={keyForm.owner_email}
+                  onChange={(e) => setKeyForm(prev => ({ ...prev, owner_email: e.target.value }))}
+                  placeholder="team@company.com"
+                  className="w-full h-9 px-3 bg-app-card2 border border-white/10 rounded-lg text-app-text text-sm placeholder:text-app-muted/60 focus:outline-none focus:ring-2 focus:ring-app-green/50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-app-muted mb-1">
+                  <Buildings size={12} className="inline mr-1" />
+                  Project Name
+                </label>
+                <input
+                  type="text"
+                  value={keyForm.project_name}
+                  onChange={(e) => setKeyForm(prev => ({ ...prev, project_name: e.target.value }))}
+                  placeholder="Production"
+                  className="w-full h-9 px-3 bg-app-card2 border border-white/10 rounded-lg text-app-text text-sm placeholder:text-app-muted/60 focus:outline-none focus:ring-2 focus:ring-app-green/50"
+                />
+              </div>
+            </div>
+
+            <div className="mt-3">
+              <label className="block text-xs font-medium text-app-muted mb-1">Description</label>
+              <input
+                type="text"
+                value={keyForm.description}
+                onChange={(e) => setKeyForm(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Main billing account for production"
+                className="w-full h-9 px-3 bg-app-card2 border border-white/10 rounded-lg text-app-text text-sm placeholder:text-app-muted/60 focus:outline-none focus:ring-2 focus:ring-app-green/50"
+              />
+            </div>
+
+            {/* Limits */}
+            <div className="grid grid-cols-3 gap-3 mt-3">
+              <div>
+                <label className="block text-xs font-medium text-app-muted mb-1">RPM Limit</label>
+                <input
+                  type="number"
+                  value={keyForm.rpm_limit}
+                  onChange={(e) => setKeyForm(prev => ({ ...prev, rpm_limit: e.target.value }))}
+                  placeholder="60"
+                  className="w-full h-9 px-3 bg-app-card2 border border-white/10 rounded-lg text-app-text text-sm placeholder:text-app-muted/60 focus:outline-none focus:ring-2 focus:ring-app-green/50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-app-muted mb-1">TPM Limit</label>
+                <input
+                  type="number"
+                  value={keyForm.tpm_limit}
+                  onChange={(e) => setKeyForm(prev => ({ ...prev, tpm_limit: e.target.value }))}
+                  placeholder="100000"
+                  className="w-full h-9 px-3 bg-app-card2 border border-white/10 rounded-lg text-app-text text-sm placeholder:text-app-muted/60 focus:outline-none focus:ring-2 focus:ring-app-green/50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-app-muted mb-1">Daily Limit</label>
+                <input
+                  type="number"
+                  value={keyForm.daily_limit}
+                  onChange={(e) => setKeyForm(prev => ({ ...prev, daily_limit: e.target.value }))}
+                  placeholder="1000000"
+                  className="w-full h-9 px-3 bg-app-card2 border border-white/10 rounded-lg text-app-text text-sm placeholder:text-app-muted/60 focus:outline-none focus:ring-2 focus:ring-app-green/50"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-app-muted mt-1">
+              RPM = Requests/min, TPM = Tokens/min. Leave empty if unknown.
+            </p>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
-            <Button variant="ghost" onClick={() => setShowAddKeyModal(false)}>
+          <div className="flex justify-end gap-3 pt-4 border-t border-app-border">
+            <Button variant="ghost" onClick={() => { setShowAddKeyModal(false); resetKeyForm() }}>
               Cancel
             </Button>
             <Button variant="primary" onClick={handleAddKey}>
@@ -538,6 +978,151 @@ const ProvidersPage: React.FC = () => {
         confirmText="Remove"
         variant="danger"
       />
+
+      {/* Key Info Modal */}
+      <Modal
+        isOpen={showInfoModal}
+        onClose={() => { setShowInfoModal(false); setSelectedKeyInfo(null) }}
+        title={`Key Details - ${selectedKeyInfo ? PROVIDERS[selectedKeyInfo.provider as ProviderKey]?.name || selectedKeyInfo.provider : ''}`}
+        size="md"
+      >
+        {selectedKeyInfo && (
+          <div className="space-y-4">
+            {/* Basic Info */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-app-muted mb-1">Provider</label>
+                <p className="text-sm text-app-text">{PROVIDERS[selectedKeyInfo.provider as ProviderKey]?.name || selectedKeyInfo.provider}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-app-muted mb-1">Slot</label>
+                <p className="text-sm text-app-text">{selectedKeyInfo.slot}</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-app-muted mb-1">API Key</label>
+              <code className="text-sm text-app-text font-mono bg-app-card2 px-2 py-1 rounded">{selectedKeyInfo.key_hint}</code>
+            </div>
+
+            {/* Status */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-app-muted mb-1">Status</label>
+                <span className={`inline-flex items-center gap-1 text-sm ${selectedKeyInfo.is_enabled ? 'text-app-green' : 'text-app-muted'}`}>
+                  {selectedKeyInfo.is_enabled ? (
+                    <><CheckCircle size={14} weight="fill" /> Enabled</>
+                  ) : (
+                    <><XCircle size={14} /> Disabled</>
+                  )}
+                </span>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-app-muted mb-1">Validation</label>
+                <span className={`inline-flex items-center gap-1 text-sm ${
+                  selectedKeyInfo.validation_status === 'valid' ? 'text-app-green' :
+                  selectedKeyInfo.validation_status === 'invalid' ? 'text-app-red' : 'text-app-yellow'
+                }`}>
+                  {selectedKeyInfo.validation_status === 'valid' && <><CheckCircle size={14} weight="fill" /> Valid</>}
+                  {selectedKeyInfo.validation_status === 'invalid' && <><XCircle size={14} weight="fill" /> Invalid</>}
+                  {selectedKeyInfo.validation_status === 'pending' && <><WarningCircle size={14} /> Pending</>}
+                </span>
+              </div>
+            </div>
+
+            {/* Metadata */}
+            <div className="border-t border-app-border pt-4">
+              <h4 className="text-sm font-medium text-app-text mb-3">Metadata</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-app-muted mb-1">
+                    <User size={10} className="inline mr-1" /> Owner Email
+                  </label>
+                  <p className="text-sm text-app-text">{selectedKeyInfo.owner_email || '—'}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-app-muted mb-1">
+                    <Buildings size={10} className="inline mr-1" /> Project Name
+                  </label>
+                  <p className="text-sm text-app-text">{selectedKeyInfo.project_name || '—'}</p>
+                </div>
+              </div>
+              {selectedKeyInfo.description && (
+                <div className="mt-3">
+                  <label className="block text-xs font-medium text-app-muted mb-1">Description</label>
+                  <p className="text-sm text-app-text">{selectedKeyInfo.description}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Limits */}
+            {(selectedKeyInfo.rpm_limit || selectedKeyInfo.tpm_limit || selectedKeyInfo.daily_limit) && (
+              <div className="border-t border-app-border pt-4">
+                <h4 className="text-sm font-medium text-app-text mb-3">Rate Limits</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-app-muted mb-1">RPM</label>
+                    <p className="text-sm text-app-text">{selectedKeyInfo.rpm_limit?.toLocaleString() || '—'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-app-muted mb-1">TPM</label>
+                    <p className="text-sm text-app-text">{selectedKeyInfo.tpm_limit?.toLocaleString() || '—'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-app-muted mb-1">Daily</label>
+                    <p className="text-sm text-app-text">{selectedKeyInfo.daily_limit?.toLocaleString() || '—'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Audit Info */}
+            <div className="border-t border-app-border pt-4">
+              <h4 className="text-sm font-medium text-app-text mb-3">Audit Info</h4>
+              <div className="grid grid-cols-2 gap-4 text-xs text-app-muted">
+                <div>
+                  <label className="block font-medium mb-1">Created</label>
+                  <p>{selectedKeyInfo.created_at ? new Date(selectedKeyInfo.created_at).toLocaleString() : '—'}</p>
+                </div>
+                <div>
+                  <label className="block font-medium mb-1">Last Updated</label>
+                  <p>{selectedKeyInfo.updated_at ? new Date(selectedKeyInfo.updated_at).toLocaleString() : '—'}</p>
+                </div>
+                {selectedKeyInfo.last_validated && (
+                  <div>
+                    <label className="block font-medium mb-1">Last Validated</label>
+                    <p>{new Date(selectedKeyInfo.last_validated).toLocaleString()}</p>
+                  </div>
+                )}
+                {selectedKeyInfo.created_by && (
+                  <div>
+                    <label className="block font-medium mb-1">Created By</label>
+                    <p>{selectedKeyInfo.created_by}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-app-border">
+              <Button variant="ghost" onClick={() => { setShowInfoModal(false); setSelectedKeyInfo(null) }}>
+                Close
+              </Button>
+              {canEdit && (
+                <Button
+                  variant="primary"
+                  leftIcon={<Pencil size={14} />}
+                  onClick={() => {
+                    setShowInfoModal(false)
+                    handleEditKey(selectedKeyInfo)
+                  }}
+                >
+                  Edit Key
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

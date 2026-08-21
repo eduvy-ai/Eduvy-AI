@@ -191,6 +191,64 @@ export interface AIKeySlot {
   is_active: boolean
 }
 
+// Enhanced API key with metadata
+export interface AIKeyEnhanced {
+  id: number
+  provider: string
+  slot: number
+  key_hint: string
+  owner_email: string
+  project_name: string
+  description: string
+  rpm_limit: number | null
+  tpm_limit: number | null
+  daily_limit: number | null
+  is_enabled: boolean
+  last_validated: string | null
+  validation_status: 'valid' | 'invalid' | 'expired' | 'pending'
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+// Model info from provider API
+export interface AIProviderModel {
+  provider: string
+  id: string
+  name: string
+  context_window: number
+  max_output: number
+  capabilities: {
+    vision?: boolean
+    code?: boolean
+    thinking?: boolean
+    batch?: boolean
+  }
+  last_fetched?: string
+}
+
+// Key validation response
+export interface AIKeyValidationResult {
+  valid: boolean
+  error: string | null
+  models: AIProviderModel[]
+  org_id?: string | null
+  rate_limits?: Record<string, unknown> | null
+}
+
+// Request types for key management
+export interface AIKeyCreateRequest {
+  provider: string
+  key: string
+  slot?: number
+  owner_email?: string
+  project_name?: string
+  description?: string
+  rpm_limit?: number | null
+  tpm_limit?: number | null
+  daily_limit?: number | null
+}
+
 export interface AIUsageSummary {
   total_calls: number
   total_prompt_tokens: number

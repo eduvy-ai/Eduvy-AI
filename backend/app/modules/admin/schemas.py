@@ -180,6 +180,40 @@ class AIKeyUpsert(BaseModel):
     slot: int = 1
 
 
+class AIKeyEnhanced(BaseModel):
+    """Enhanced API key with metadata."""
+    provider: str
+    key: str
+    slot: int = 1
+    owner_email: str = ""
+    project_name: str = ""
+    description: str = ""
+    rpm_limit: Optional[int] = None
+    tpm_limit: Optional[int] = None
+    daily_limit: Optional[int] = None
+
+
+class AIKeyValidate(BaseModel):
+    """Request to validate an API key."""
+    provider: str
+    key: str
+
+
+class AIKeyToggle(BaseModel):
+    """Enable/disable a key."""
+    enabled: bool
+
+
+class AIKeyMetadataUpdate(BaseModel):
+    """Update key metadata only (without changing the key)."""
+    owner_email: Optional[str] = None
+    project_name: Optional[str] = None
+    description: Optional[str] = None
+    rpm_limit: Optional[int] = None
+    tpm_limit: Optional[int] = None
+    daily_limit: Optional[int] = None
+
+
 class HelperCreate(BaseModel):
     helper_name: str
     helper_email: str

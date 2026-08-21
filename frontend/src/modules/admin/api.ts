@@ -729,6 +729,91 @@ export const aiConfigApi = {
   },
 }
 
+
+// ── Enhanced AI Key Management APIs ──
+import type { 
+  AIKeyEnhanced, 
+  AIKeyValidationResult, 
+  AIProviderModel,
+  AIKeyCreateRequest 
+} from './types'
+
+export const aiKeysApi = {
+  // Validate a key and get available models
+  validateKey: async (provider: string, key: string): Promise<AIKeyValidationResult> => {
+    const response = await axiosInstance.post<AIKeyValidationResult>(
+      `${ADMIN_ENDPOINTS.aiKeys}/validate`,
+      { provider, key },
+      adminConfig()
+    )
+    return response.data
+  },
+
+  // Validate an existing key by provider+slot (fetches from DB)
+  validateExistingKey: async (provider: string, slot: number): Promise<AIKeyValidationResult> => {
+    const response = await axiosInstance.post<AIKeyValidationResult>(
+      `${ADMIN_ENDPOINTS.aiKeys}/${provider}/${slot}/validate`,
+      {},
+      adminConfig()
+    )
+    return response.data
+  },
+
+  // Get all keys with enhanced metadata
+  getKeysEnhanced: async (): Promise<AIKeyEnhanced[]> => {
+    const response = await axiosInstance.get<{ keys: AIKeyEnhanced[] }>(
+      `${ADMIN_ENDPOINTS.aiKeys}/enhanced`,
+      adminConfig()
+    )
+    return response.data.keys
+  },
+
+  // Save key with metadata
+  saveKeyEnhanced: async (data: AIKeyCreateRequest): Promise<{ success: boolean; id?: number; error?: string }> => {
+    const response = await axiosInstance.put<{ success: boolean; id?: number; error?: string }>(
+      `${ADMIN_ENDPOINTS.aiKeys}/enhanced`,
+      data,
+      adminConfig()
+    )
+    return response.data
+  },
+
+  // Toggle key enabled/disabled
+  toggleKey: async (provider: string, slot: number, enabled: boolean): Promise<void> => {
+    await axiosInstance.put(
+      `${ADMIN_ENDPOINTS.aiKeys}/${provider}/${slot}/toggle`,
+      { enabled },
+      adminConfig()
+    )
+  },
+
+  // Get cached models for a provider
+  getCachedModels: async (provider?: string): Promise<AIProviderModel[]> => {
+    const url = provider 
+      ? `${ADMIN_ENDPOINTS.aiKeys}/models?provider=${provider}`
+      : `${ADMIN_ENDPOINTS.aiKeys}/models`
+    const response = await axiosInstance.get<{ models: AIProviderModel[] }>(url, adminConfig())
+    return response.data.models
+  },
+
+  // Update key metadata only (without changing the key itself)
+  updateKeyMetadata: async (provider: string, slot: number, metadata: {
+    owner_email?: string
+    project_name?: string
+    description?: string
+    rpm_limit?: number | null
+    tpm_limit?: number | null
+    daily_limit?: number | null
+  }): Promise<void> => {
+    await axiosInstance.patch(
+      `${ADMIN_ENDPOINTS.aiKeys}/${provider}/${slot}/metadata`,
+      metadata,
+      adminConfig()
+    )
+  },
+}
+
+
 // ── AI Usage APIs ──
 export const aiUsageApi = {
   getSummary: async (days: number = 7): Promise<AIUsageSummary> => {

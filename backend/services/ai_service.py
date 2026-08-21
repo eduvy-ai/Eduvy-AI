@@ -151,10 +151,10 @@ _ai_cache = _TTLCache(
 )
 
 # ── Plan → default model routing (hardcoded fallback) ─────────
-# Using openai/gpt-oss-20b for free tier (llama models decommissioned)
+# All plans use Gemini by default; Groq is primary fallback
 _DEFAULT_PLAN_ROUTING: dict[str, dict] = {
-    "free":    {"provider": "groq",   "model": "openai/gpt-oss-20b"},
-    "basic":   {"provider": "groq",   "model": "openai/gpt-oss-120b"},
+    "free":    {"provider": "gemini", "model": "gemini-3.5-flash"},
+    "basic":   {"provider": "gemini", "model": "gemini-3.5-flash"},
     "pro":     {"provider": "gemini", "model": "gemini-3.5-flash"},
     "premium": {"provider": "gemini", "model": "gemini-3.5-flash"},
 }
@@ -406,8 +406,8 @@ def get_plan_routing() -> dict[str, dict]:
 
 
 # Preferred fallback order when the primary provider is rate-limited or unavailable.
-# nvidia sits after groq so it absorbs overflow before burning Gemini quota.
-_FALLBACK_ORDER = ["groq", "nvidia", "gemini", "anthropic", "openai"]
+# Gemini is primary; Groq absorbs overflow before burning other quotas.
+_FALLBACK_ORDER = ["gemini", "groq", "nvidia", "anthropic", "openai"]
 
 # Default model per provider used when falling back (not the user's chosen model).
 # Use the most capable model per provider so fallbacks can handle large outputs
@@ -787,3 +787,614 @@ async def _nvidia(client: httpx.AsyncClient, model: str, key: str,
     text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
     usage = data.get("usage", {})
     return text, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MODEL DISCOVERY — Fetch available models per provider
+# ══════════════════════════════════════════════════════════════════════════════
+
+_model_logger = __import__("logging").getLogger(__name__)
+
+
+async def list_models_gemini(api_key: str) -> list[dict]:
+    """Fetch available models from Gemini API.
+    
+    Returns list of: {id, name, context_window, max_output, capabilities}
+    """
+    async with httpx.AsyncClient(timeout=30.0, headers={"User-Agent": _BROWSER_UA}) as client:
+        try:
+            r = await client.get(
+                "https://generativelanguage.googleapis.com/v1beta/models",
+                params={"key": api_key},
+            )
+            r.raise_for_status()
+            data = r.json()
+            
+            models = []
+            for m in data.get("models", []):
+                # Only include models that support generateContent
+                methods = m.get("supportedGenerationMethods", [])
+                if "generateContent" not in methods:
+                    continue
+                    
+                model_id = m.get("name", "").replace("models/", "")
+                if not model_id:
+                    continue
+                    
+                models.append({
+                    "id": model_id,
+                    "name": m.get("displayName", model_id),
+                    "context_window": m.get("inputTokenLimit", 0),
+                    "max_output": m.get("outputTokenLimit", 0),
+                    "capabilities": {
+                        "vision": "countTokens" in methods,  # Vision models support countTokens
+                        "code": "code" in model_id.lower(),
+                        "thinking": "thinking" in model_id.lower(),
+                    },
+                })
+            return models
+        except httpx.HTTPStatusError as e:
+            _model_logger.error("list_models_gemini HTTP %s: %s", e.response.status_code, e.response.text[:200])
+            return []
+        except Exception as e:
+            _model_logger.error("list_models_gemini error: %s", e)
+            return []
+
+
+async def list_models_groq(api_key: str) -> list[dict]:
+    """Fetch available models from Groq API (OpenAI-compatible endpoint)."""
+    async with httpx.AsyncClient(timeout=30.0, headers={"User-Agent": _BROWSER_UA}) as client:
+        try:
+            r = await client.get(
+                "https://api.groq.com/openai/v1/models",
+                headers={"Authorization": f"Bearer {api_key}"},
+            )
+            r.raise_for_status()
+            data = r.json()
+            
+            models = []
+            for m in data.get("data", []):
+                model_id = m.get("id", "")
+                if not model_id or not m.get("active", True):
+                    continue
+                    
+                models.append({
+                    "id": model_id,
+                    "name": model_id,
+                    "context_window": m.get("context_window", 0),
+                    "max_output": m.get("max_completion_tokens", 8192),
+                    "capabilities": {
+                        "vision": "vision" in model_id.lower(),
+                        "code": True,  # All Groq models support code
+                    },
+                })
+            return models
+        except httpx.HTTPStatusError as e:
+            _model_logger.error("list_models_groq HTTP %s: %s", e.response.status_code, e.response.text[:200])
+            return []
+        except Exception as e:
+            _model_logger.error("list_models_groq error: %s", e)
+            return []
+
+
+async def list_models_openai(api_key: str) -> list[dict]:
+    """Fetch available models from OpenAI API."""
+    async with httpx.AsyncClient(timeout=30.0, headers={"User-Agent": _BROWSER_UA}) as client:
+        try:
+            r = await client.get(
+                "https://api.openai.com/v1/models",
+                headers={"Authorization": f"Bearer {api_key}"},
+            )
+            r.raise_for_status()
+            data = r.json()
+            
+            # Extract org ID from headers if present
+            org_id = r.headers.get("openai-organization", "")
+            
+            models = []
+            for m in data.get("data", []):
+                model_id = m.get("id", "")
+                # Only include chat models (gpt-*)
+                if not model_id.startswith("gpt-"):
+                    continue
+                    
+                models.append({
+                    "id": model_id,
+                    "name": model_id,
+                    "context_window": _MODEL_CONTEXT_WINDOWS.get(model_id, 128000),
+                    "max_output": _MODEL_MAX_OUTPUT_TOKENS.get(model_id, 16384),
+                    "capabilities": {
+                        "vision": "vision" in model_id or model_id in ("gpt-4o", "gpt-4o-mini"),
+                        "code": True,
+                    },
+                    "org_id": org_id,
+                })
+            return models
+        except httpx.HTTPStatusError as e:
+            _model_logger.error("list_models_openai HTTP %s: %s", e.response.status_code, e.response.text[:200])
+            return []
+        except Exception as e:
+            _model_logger.error("list_models_openai error: %s", e)
+            return []
+
+
+async def list_models_anthropic(api_key: str) -> list[dict]:
+    """Fetch available models from Anthropic API (best metadata)."""
+    async with httpx.AsyncClient(timeout=30.0, headers={"User-Agent": _BROWSER_UA}) as client:
+        try:
+            r = await client.get(
+                "https://api.anthropic.com/v1/models",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                },
+            )
+            r.raise_for_status()
+            data = r.json()
+            
+            models = []
+            for m in data.get("data", []):
+                model_id = m.get("id", "")
+                if not model_id:
+                    continue
+                    
+                models.append({
+                    "id": model_id,
+                    "name": m.get("display_name", model_id),
+                    "context_window": m.get("input_context_window", 200000),
+                    "max_output": m.get("max_tokens", 8192),
+                    "capabilities": {
+                        "vision": m.get("supports_vision", False),
+                        "code": True,
+                        "thinking": m.get("supports_extended_thinking", False),
+                        "batch": m.get("supports_batch", False),
+                    },
+                })
+            return models
+        except httpx.HTTPStatusError as e:
+            _model_logger.error("list_models_anthropic HTTP %s: %s", e.response.status_code, e.response.text[:200])
+            return []
+        except Exception as e:
+            _model_logger.error("list_models_anthropic error: %s", e)
+            return []
+
+
+def list_models_nvidia() -> list[dict]:
+    """Return hardcoded NVIDIA NIM models (no listing API available)."""
+    return [
+        {"id": "meta/llama-3.3-70b-instruct", "name": "Llama 3.3 70B Instruct", 
+         "context_window": 128000, "max_output": 32768, "capabilities": {"code": True}},
+        {"id": "meta/llama-3.1-8b-instruct", "name": "Llama 3.1 8B Instruct",
+         "context_window": 128000, "max_output": 8192, "capabilities": {"code": True}},
+        {"id": "nvidia/llama-3.3-nemotron-super-49b-v1", "name": "Nemotron Super 49B",
+         "context_window": 128000, "max_output": 32768, "capabilities": {"code": True}},
+        {"id": "nvidia/llama-3.1-nemotron-ultra-253b-v1", "name": "Nemotron Ultra 253B",
+         "context_window": 128000, "max_output": 32768, "capabilities": {"code": True}},
+        {"id": "mistralai/mistral-nemotron", "name": "Mistral Nemotron",
+         "context_window": 128000, "max_output": 16384, "capabilities": {"code": True}},
+        {"id": "deepseek-ai/deepseek-v4-flash", "name": "DeepSeek V4 Flash",
+         "context_window": 64000, "max_output": 8192, "capabilities": {"code": True}},
+    ]
+
+
+# Context window sizes for models (used when API doesn't return it)
+_MODEL_CONTEXT_WINDOWS = {
+    "gpt-4o": 128000,
+    "gpt-4o-mini": 128000,
+    "gpt-4-turbo": 128000,
+    "gpt-4": 8192,
+    "gpt-3.5-turbo": 16385,
+}
+
+
+async def validate_and_list_models(provider: str, api_key: str) -> dict:
+    """Validate an API key and return available models.
+    
+    Returns: {
+        valid: bool,
+        error: str | None,
+        models: [{id, name, context_window, max_output, capabilities}],
+        org_id: str | None (OpenAI only),
+        rate_limits: dict | None (Anthropic only)
+    }
+    """
+    result = {"valid": False, "error": None, "models": [], "org_id": None, "rate_limits": None}
+    
+    try:
+        if provider == "gemini":
+            models = await list_models_gemini(api_key)
+        elif provider == "groq":
+            models = await list_models_groq(api_key)
+        elif provider == "openai":
+            models = await list_models_openai(api_key)
+            if models and models[0].get("org_id"):
+                result["org_id"] = models[0]["org_id"]
+        elif provider == "anthropic":
+            models = await list_models_anthropic(api_key)
+        elif provider == "nvidia":
+            # For NVIDIA, we just validate the key works with a simple call
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                r = await client.get(
+                    "https://integrate.api.nvidia.com/v1/models",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                )
+                # NVIDIA may not have a models endpoint, so we just check auth
+                if r.status_code in (200, 404):
+                    models = list_models_nvidia()
+                else:
+                    r.raise_for_status()
+                    models = []
+        else:
+            result["error"] = f"Unknown provider: {provider}"
+            return result
+            
+        if models:
+            result["valid"] = True
+            result["models"] = models
+        else:
+            result["error"] = "Key invalid or no models available"
+            
+    except httpx.HTTPStatusError as e:
+        status = e.response.status_code
+        if status == 401:
+            result["error"] = "Invalid API key"
+        elif status == 403:
+            result["error"] = "Access denied (key may be restricted)"
+        elif status == 429:
+            result["error"] = "Rate limited — try again later"
+        else:
+            result["error"] = f"HTTP {status}: {e.response.text[:100]}"
+    except Exception as e:
+        result["error"] = str(e)
+        
+    return result
+
+
+async def validate_existing_key(provider: str, slot: int) -> dict:
+    """Validate an existing key by provider+slot (fetches from DB).
+    
+    Returns same structure as validate_and_list_models.
+    """
+    from app.db.connection import get_db
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT encrypted_key FROM ai_provider_keys WHERE provider = %s AND slot = %s",
+            (provider, slot)
+        )
+        row = cur.fetchone()
+        if not row:
+            return {"valid": False, "error": "Key not found", "models": []}
+        
+        decrypted = _decrypt_key(row["encrypted_key"])
+        if not decrypted:
+            return {"valid": False, "error": "Failed to decrypt key", "models": []}
+        
+        # Run validation
+        result = await validate_and_list_models(provider, decrypted)
+        
+        # Update validation status in DB
+        new_status = "valid" if result["valid"] else "invalid"
+        cur.execute("""
+            UPDATE ai_provider_keys 
+            SET validation_status = %s, last_validated = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+            WHERE provider = %s AND slot = %s
+        """, (new_status, provider, slot))
+        conn.commit()
+        
+        return result
+    except Exception as e:
+        _model_logger.error("validate_existing_key error: %s", e)
+        return {"valid": False, "error": str(e), "models": []}
+    finally:
+        conn.close()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ENHANCED KEY MANAGEMENT — Using new ai_provider_keys table
+# ══════════════════════════════════════════════════════════════════════════════
+
+def save_api_key_enhanced(
+    provider: str,
+    key: str,
+    slot: int = 1,
+    owner_email: str = "",
+    project_name: str = "",
+    description: str = "",
+    rpm_limit: int | None = None,
+    tpm_limit: int | None = None,
+    daily_limit: int | None = None,
+    created_by: str | None = None,
+) -> dict:
+    """Save API key with metadata to new ai_provider_keys table.
+    
+    Also maintains backward compatibility by syncing to app_settings.
+    """
+    from app.db.connection import get_db
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        encrypted = _encrypt_key(key)
+        
+        # Insert/update in new table
+        cur.execute("""
+            INSERT INTO ai_provider_keys 
+                (provider, slot, encrypted_key, owner_email, project_name, description,
+                 rpm_limit, tpm_limit, daily_limit, created_by, validation_status, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending', CURRENT_TIMESTAMP)
+            ON CONFLICT (provider, slot) DO UPDATE SET
+                encrypted_key = EXCLUDED.encrypted_key,
+                owner_email = EXCLUDED.owner_email,
+                project_name = EXCLUDED.project_name,
+                description = EXCLUDED.description,
+                rpm_limit = EXCLUDED.rpm_limit,
+                tpm_limit = EXCLUDED.tpm_limit,
+                daily_limit = EXCLUDED.daily_limit,
+                validation_status = 'pending',
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING id
+        """, (provider, slot, encrypted, owner_email, project_name, description,
+              rpm_limit, tpm_limit, daily_limit, created_by))
+        
+        row = cur.fetchone()
+        key_id = row["id"] if row else None
+        
+        # Backward compat: also save to app_settings
+        db_key = f"api_key_{provider}" if slot == 1 else f"api_key_{provider}_{slot}"
+        cur.execute("""
+            INSERT INTO app_settings (key, value, updated_at)
+            VALUES (%s, %s, CURRENT_TIMESTAMP)
+            ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=CURRENT_TIMESTAMP
+        """, (db_key, encrypted))
+        
+        conn.commit()
+        
+        # Update in-memory pools
+        if slot == 1:
+            _SERVER_KEYS[provider] = key
+        if key and key not in _KEY_POOLS.get(provider, []):
+            _KEY_POOLS.setdefault(provider, []).append(key)
+            
+        return {"success": True, "id": key_id}
+    except Exception as e:
+        conn.rollback()
+        _model_logger.error("save_api_key_enhanced error: %s", e)
+        return {"success": False, "error": str(e)}
+    finally:
+        conn.close()
+
+
+def update_key_validation_status(provider: str, slot: int, status: str):
+    """Update the validation status of a key after testing it."""
+    from app.db.connection import get_db
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE ai_provider_keys 
+            SET validation_status = %s, last_validated = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+            WHERE provider = %s AND slot = %s
+        """, (status, provider, slot))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_provider_keys_enhanced(provider: str | None = None) -> list[dict]:
+    """Get all keys with metadata from ai_provider_keys table.
+    
+    If provider is None, returns all providers.
+    Never returns actual key values - only masked hints.
+    """
+    from app.db.connection import get_db
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        if provider:
+            cur.execute("""
+                SELECT id, provider, slot, encrypted_key, owner_email, project_name, description,
+                       rpm_limit, tpm_limit, daily_limit, is_enabled, last_validated, 
+                       validation_status, created_by, created_at, updated_at
+                FROM ai_provider_keys
+                WHERE provider = %s
+                ORDER BY slot
+            """, (provider,))
+        else:
+            cur.execute("""
+                SELECT id, provider, slot, encrypted_key, owner_email, project_name, description,
+                       rpm_limit, tpm_limit, daily_limit, is_enabled, last_validated,
+                       validation_status, created_by, created_at, updated_at
+                FROM ai_provider_keys
+                ORDER BY provider, slot
+            """)
+        
+        rows = cur.fetchall()
+        result = []
+        for row in rows:
+            # Mask the key
+            plain = _decrypt_key(row["encrypted_key"])
+            if plain and len(plain) > 10:
+                key_hint = f"{plain[:4]}...{plain[-4:]}"
+            elif plain:
+                key_hint = "****"
+            else:
+                key_hint = "(decryption failed)"
+                
+            result.append({
+                "id": row["id"],
+                "provider": row["provider"],
+                "slot": row["slot"],
+                "key_hint": key_hint,
+                "owner_email": row["owner_email"] or "",
+                "project_name": row["project_name"] or "",
+                "description": row["description"] or "",
+                "rpm_limit": row["rpm_limit"],
+                "tpm_limit": row["tpm_limit"],
+                "daily_limit": row["daily_limit"],
+                "is_enabled": row["is_enabled"],
+                "last_validated": row["last_validated"].isoformat() if row["last_validated"] else None,
+                "validation_status": row["validation_status"],
+                "created_by": row["created_by"],
+                "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+                "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None,
+            })
+        return result
+    finally:
+        conn.close()
+
+
+def toggle_key_enabled(provider: str, slot: int, enabled: bool) -> bool:
+    """Enable/disable a key without deleting it."""
+    from app.db.connection import get_db
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE ai_provider_keys 
+            SET is_enabled = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE provider = %s AND slot = %s
+        """, (enabled, provider, slot))
+        conn.commit()
+        
+        # If disabling, remove from in-memory pool
+        if not enabled:
+            cur.execute("SELECT encrypted_key FROM ai_provider_keys WHERE provider = %s AND slot = %s", (provider, slot))
+            row = cur.fetchone()
+            if row:
+                plain = _decrypt_key(row["encrypted_key"])
+                if plain and plain in _KEY_POOLS.get(provider, []):
+                    _KEY_POOLS[provider].remove(plain)
+        else:
+            # Re-add to pool
+            cur.execute("SELECT encrypted_key FROM ai_provider_keys WHERE provider = %s AND slot = %s", (provider, slot))
+            row = cur.fetchone()
+            if row:
+                plain = _decrypt_key(row["encrypted_key"])
+                if plain and plain not in _KEY_POOLS.get(provider, []):
+                    _KEY_POOLS.setdefault(provider, []).append(plain)
+                    
+        return True
+    except Exception as e:
+        conn.rollback()
+        _model_logger.error("toggle_key_enabled error: %s", e)
+        return False
+    finally:
+        conn.close()
+
+
+def update_key_metadata(
+    provider: str,
+    slot: int,
+    owner_email: str | None = None,
+    project_name: str | None = None,
+    description: str | None = None,
+    rpm_limit: int | None = None,
+    tpm_limit: int | None = None,
+    daily_limit: int | None = None,
+) -> bool:
+    """Update key metadata without changing the key itself."""
+    from app.db.connection import get_db
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        
+        # Check if key exists
+        cur.execute("SELECT id FROM ai_provider_keys WHERE provider = %s AND slot = %s", (provider, slot))
+        if not cur.fetchone():
+            return False
+        
+        cur.execute("""
+            UPDATE ai_provider_keys 
+            SET owner_email = COALESCE(%s, owner_email),
+                project_name = COALESCE(%s, project_name),
+                description = COALESCE(%s, description),
+                rpm_limit = %s,
+                tpm_limit = %s,
+                daily_limit = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE provider = %s AND slot = %s
+        """, (owner_email, project_name, description, rpm_limit, tpm_limit, daily_limit, provider, slot))
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        _model_logger.error("update_key_metadata error: %s", e)
+        return False
+    finally:
+        conn.close()
+
+
+def cache_provider_models(provider: str, models: list[dict]):
+    """Cache discovered models in ai_provider_models table."""
+    from app.db.connection import get_db
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        for m in models:
+            cur.execute("""
+                INSERT INTO ai_provider_models 
+                    (provider, model_id, display_name, context_window, max_output, capabilities, last_fetched)
+                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (provider, model_id) DO UPDATE SET
+                    display_name = EXCLUDED.display_name,
+                    context_window = EXCLUDED.context_window,
+                    max_output = EXCLUDED.max_output,
+                    capabilities = EXCLUDED.capabilities,
+                    is_available = TRUE,
+                    last_fetched = CURRENT_TIMESTAMP
+            """, (
+                provider,
+                m["id"],
+                m.get("name", m["id"]),
+                m.get("context_window", 0),
+                m.get("max_output", 0),
+                json.dumps(m.get("capabilities", {})),
+            ))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        _model_logger.error("cache_provider_models error: %s", e)
+    finally:
+        conn.close()
+
+
+def get_cached_models(provider: str | None = None) -> list[dict]:
+    """Get cached models from ai_provider_models table."""
+    from app.db.connection import get_db
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        if provider:
+            cur.execute("""
+                SELECT provider, model_id, display_name, context_window, max_output, capabilities, is_available, last_fetched
+                FROM ai_provider_models
+                WHERE provider = %s AND is_available = TRUE
+                ORDER BY model_id
+            """, (provider,))
+        else:
+            cur.execute("""
+                SELECT provider, model_id, display_name, context_window, max_output, capabilities, is_available, last_fetched
+                FROM ai_provider_models
+                WHERE is_available = TRUE
+                ORDER BY provider, model_id
+            """)
+        
+        rows = cur.fetchall()
+        result = []
+        for row in rows:
+            caps = row["capabilities"]
+            if isinstance(caps, str):
+                caps = json.loads(caps)
+            result.append({
+                "provider": row["provider"],
+                "id": row["model_id"],
+                "name": row["display_name"],
+                "context_window": row["context_window"],
+                "max_output": row["max_output"],
+                "capabilities": caps,
+                "last_fetched": row["last_fetched"].isoformat() if row["last_fetched"] else None,
+            })
+        return result
+    finally:
+        conn.close()

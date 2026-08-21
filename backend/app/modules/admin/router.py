@@ -14,7 +14,7 @@ from app.modules.admin.schemas import (
     ChapterCreate, ChapterUpdate, ChapterBulkCreate,
     UserPlanUpdate, UserAIConfig, CreateDrishtiStudent,
     StudentCreate, StudentUpdate, BulkImportRequest,
-    AIRoutingUpdate, AIKeyUpsert,
+    AIRoutingUpdate, AIKeyUpsert, AIKeyEnhanced, AIKeyValidate, AIKeyToggle, AIKeyMetadataUpdate,
     HelperCreate, HelperUpdate,
     BulkDeleteStr, BulkDeleteInt,
     SquadCreate, SquadUpdate,
@@ -582,6 +582,135 @@ async def remove_ai_key(provider: str, slot: int, admin_scope: tuple = Depends(g
     if school_id is not None:
         raise HTTPException(status_code=403, detail="AI configuration is superadmin only")
     return await asyncio.to_thread(AdminService.remove_ai_key, provider, slot)
+
+
+# ── Enhanced AI Key Management ────────────────────────────────
+
+@router.post("/ai-keys/validate")
+async def validate_ai_key(data: AIKeyValidate, admin_scope: tuple = Depends(get_admin_with_school)):
+    """Validate an API key and return available models."""
+    admin_id, school_id = admin_scope
+    if school_id is not None:
+        raise HTTPException(status_code=403, detail="AI configuration is superadmin only")
+    
+    from services.ai_service import validate_and_list_models, cache_provider_models
+    result = await validate_and_list_models(data.provider, data.key)
+    
+    # Cache models if validation succeeded
+    if result["valid"] and result["models"]:
+        await asyncio.to_thread(cache_provider_models, data.provider, result["models"])
+    
+    return result
+
+
+@router.post("/ai-keys/{provider}/{slot}/validate")
+async def validate_existing_ai_key(provider: str, slot: int, admin_scope: tuple = Depends(get_admin_with_school)):
+    """Validate an existing API key by provider+slot (fetches from DB)."""
+    admin_id, school_id = admin_scope
+    if school_id is not None:
+        raise HTTPException(status_code=403, detail="AI configuration is superadmin only")
+    
+    from services.ai_service import validate_existing_key, cache_provider_models
+    result = await validate_existing_key(provider, slot)
+    
+    # Cache models if validation succeeded
+    if result["valid"] and result.get("models"):
+        await asyncio.to_thread(cache_provider_models, provider, result["models"])
+    
+    return result
+
+
+@router.get("/ai-keys/enhanced")
+async def get_ai_keys_enhanced(admin_scope: tuple = Depends(get_admin_with_school)):
+    """Get all API keys with enhanced metadata."""
+    admin_id, school_id = admin_scope
+    if school_id is not None:
+        raise HTTPException(status_code=403, detail="AI configuration is superadmin only")
+    
+    from services.ai_service import get_provider_keys_enhanced
+    keys = await asyncio.to_thread(get_provider_keys_enhanced, None)
+    return {"keys": keys}
+
+
+@router.put("/ai-keys/enhanced")
+async def save_ai_key_enhanced(data: AIKeyEnhanced, admin_scope: tuple = Depends(get_admin_with_school)):
+    """Save API key with metadata to enhanced table."""
+    admin_id, school_id = admin_scope
+    if school_id is not None:
+        raise HTTPException(status_code=403, detail="AI configuration is superadmin only")
+    if not data.key.strip():
+        raise HTTPException(status_code=400, detail="Key cannot be empty")
+    
+    from services.ai_service import save_api_key_enhanced
+    result = await asyncio.to_thread(
+        save_api_key_enhanced,
+        data.provider,
+        data.key.strip(),
+        data.slot,
+        data.owner_email,
+        data.project_name,
+        data.description,
+        data.rpm_limit,
+        data.tpm_limit,
+        data.daily_limit,
+        admin_id,
+    )
+    return result
+
+
+@router.put("/ai-keys/{provider}/{slot}/toggle")
+async def toggle_ai_key(provider: str, slot: int, data: AIKeyToggle, admin_scope: tuple = Depends(get_admin_with_school)):
+    """Enable or disable an API key without deleting it."""
+    admin_id, school_id = admin_scope
+    if school_id is not None:
+        raise HTTPException(status_code=403, detail="AI configuration is superadmin only")
+    
+    from services.ai_service import toggle_key_enabled
+    success = await asyncio.to_thread(toggle_key_enabled, provider, slot, data.enabled)
+    if success:
+        return {"success": True, "provider": provider, "slot": slot, "enabled": data.enabled}
+    raise HTTPException(status_code=500, detail="Failed to toggle key status")
+
+
+@router.patch("/ai-keys/{provider}/{slot}/metadata")
+async def update_ai_key_metadata(
+    provider: str, 
+    slot: int, 
+    data: AIKeyMetadataUpdate, 
+    admin_scope: tuple = Depends(get_admin_with_school)
+):
+    """Update key metadata without changing the key itself."""
+    admin_id, school_id = admin_scope
+    if school_id is not None:
+        raise HTTPException(status_code=403, detail="AI configuration is superadmin only")
+    
+    from services.ai_service import update_key_metadata
+    success = await asyncio.to_thread(
+        update_key_metadata,
+        provider,
+        slot,
+        data.owner_email,
+        data.project_name,
+        data.description,
+        data.rpm_limit,
+        data.tpm_limit,
+        data.daily_limit,
+    )
+    if success:
+        return {"success": True, "provider": provider, "slot": slot}
+    raise HTTPException(status_code=404, detail="Key not found")
+
+
+@router.get("/ai-keys/models")
+async def get_cached_provider_models(provider: str = None, admin_scope: tuple = Depends(get_admin_with_school)):
+    """Get cached models for a provider (or all providers)."""
+    admin_id, school_id = admin_scope
+    if school_id is not None:
+        raise HTTPException(status_code=403, detail="AI configuration is superadmin only")
+    
+    from services.ai_service import get_cached_models
+    models = await asyncio.to_thread(get_cached_models, provider)
+    return {"models": models}
 
 
 # ── Drishti Helpers ───────────────────────────────────────────
