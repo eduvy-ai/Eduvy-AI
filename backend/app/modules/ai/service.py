@@ -9,7 +9,7 @@ from fastapi import HTTPException
 
 from app.db.connection import get_db
 from services.ai_service import call_ai, resolve_provider_model
-from app.modules.ai.prompts import build_system_prompt, VALID_MODES
+from app.modules.ai.prompts import build_system_prompt, VALID_MODES, get_service_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -328,26 +328,13 @@ class AIService:
                 detail=f"Daily AI quota ({limit} calls) exceeded."
             )
         
-        # Build extraction prompt
-        extraction_prompt = f"""You are analyzing an image uploaded by a Class {user.get('standard', '10')} student in India.
-
-TASK: Extract ALL text and content from this image. This could be:
-- Textbook pages, notes, diagrams
-- Handwritten notes
-- Charts, graphs, tables
-- Question papers, worksheets
-
-RESPOND IN {language.upper()}.
-
-OUTPUT FORMAT:
-1. First, describe what type of document/image this is (1 line)
-2. Then extract ALL readable text, preserving structure
-3. If it's a diagram/chart, describe what it shows
-4. If text is handwritten, do your best to read it
-
-{prompt if prompt else ''}
-
-IMPORTANT: If this is NOT educational content (social media, memes, random photos, etc.), start your response with "[NOT_EDUCATIONAL]" and briefly explain why."""
+        # Build extraction prompt (dynamic)
+        extraction_prompt = get_service_prompt(
+            "image_extraction",
+            standard=user.get('standard', '10'),
+            language=language.upper(),
+            extra_prompt=prompt if prompt else ''
+        )
 
         # Call Vision API
         try:

@@ -321,3 +321,37 @@ class MediaUpdate(BaseModel):
     subject_id: Optional[str] = None
     chapter_id: Optional[int] = None
     is_active: Optional[bool] = None
+
+
+# ── AI Prompts ───────────────────────────────────────────────
+
+class AIPromptCreate(BaseModel):
+    """Create a new AI prompt."""
+    key: str
+    name: str
+    description: str = ""
+    category: str = "system"  # tutor, quiz, grading, summary, chat, system
+    template: str
+    variables: List[str] = []
+    model: str = "gpt-4o-mini"
+    max_tokens: int = 1024
+    temperature: float = 0.7
+    is_active: bool = True
+
+
+class AIPromptUpdate(BaseModel):
+    """Update an AI prompt."""
+    name: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    template: Optional[str] = None
+    variables: Optional[List[str]] = None
+    model: Optional[str] = None
+    max_tokens: Optional[int] = None
+    temperature: Optional[float] = None
+    is_active: Optional[bool] = None
+
+
+class AIPromptSeed(BaseModel):
+    """Request to seed prompts from hardcoded values."""
+    overwrite: bool = False  # If True, overwrites existing prompts

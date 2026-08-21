@@ -1123,6 +1123,59 @@ export const mediaApi = {
   },
 }
 
+// ── AI Prompts APIs ──
+import type { AIPrompt, AIPromptCreate, AIPromptUpdate } from './types'
+
+export interface AIPromptListParams {
+  category?: string
+  search?: string
+  include_inactive?: boolean
+}
+
+export const aiPromptsApi = {
+  getAll: async (params: AIPromptListParams = {}): Promise<AIPrompt[]> => {
+    const response = await axiosInstance.get<AIPrompt[]>(
+      '/api/admin/prompts',
+      { ...adminConfig(), params }
+    )
+    return response.data
+  },
+
+  getById: async (id: number): Promise<AIPrompt> => {
+    const response = await axiosInstance.get<AIPrompt>(`/api/admin/prompts/${id}`, adminConfig())
+    return response.data
+  },
+
+  create: async (data: AIPromptCreate): Promise<AIPrompt> => {
+    const response = await axiosInstance.post<AIPrompt>('/api/admin/prompts', data, adminConfig())
+    return response.data
+  },
+
+  update: async (id: number, data: AIPromptUpdate): Promise<AIPrompt> => {
+    const response = await axiosInstance.put<AIPrompt>(`/api/admin/prompts/${id}`, data, adminConfig())
+    return response.data
+  },
+
+  delete: async (id: number): Promise<{ deleted: boolean }> => {
+    const response = await axiosInstance.delete<{ deleted: boolean }>(`/api/admin/prompts/${id}`, adminConfig())
+    return response.data
+  },
+
+  hardDelete: async (id: number): Promise<{ deleted: boolean }> => {
+    const response = await axiosInstance.delete<{ deleted: boolean }>(`/api/admin/prompts/${id}/hard`, adminConfig())
+    return response.data
+  },
+
+  seed: async (overwrite: boolean = false): Promise<{ inserted: number; updated: number; skipped: number }> => {
+    const response = await axiosInstance.post<{ inserted: number; updated: number; skipped: number }>(
+      '/api/admin/prompts/seed',
+      { overwrite },
+      adminConfig()
+    )
+    return response.data
+  },
+}
+
 // ── Assessments APIs ──
 export interface AssessmentListParams {
   board_id?: string
@@ -1198,6 +1251,7 @@ export const adminApi = {
   helpers: helpersApi,
   aiConfig: aiConfigApi,
   aiUsage: aiUsageApi,
+  aiPrompts: aiPromptsApi,
   storage: storageApi,
   community: communityApi,
   analytics: analyticsApi,

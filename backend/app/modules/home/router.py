@@ -24,6 +24,7 @@ from app.modules.home.schemas import (
     DeepDiveResponse
 )
 from app.modules.home.service import HomeService
+from app.modules.ai.prompts import get_lang_rule, get_home_prompt
 from services.ai_service import call_ai
 
 router = APIRouter(prefix="/home", tags=["Home"])
@@ -62,8 +63,8 @@ Write in English only. Use simple, clear language appropriate for Indian school 
 }
 
 
-def get_lang_rule(language: str) -> str:
-    """Get strict language enforcement rule for prompts."""
+def _get_local_lang_rule(language: str) -> str:
+    """Get local fallback language rule (used when dynamic lookup fails)."""
     return LANG_ENFORCEMENT.get(language, LANG_ENFORCEMENT["English"])
 
 
@@ -86,6 +87,7 @@ CLASS_TOPICS = {
 def build_teacher_prompt(data: "GenerateDailyQRequest") -> str:
     """
     Build a dynamic prompt like a real teacher who knows the student.
+    Uses dynamic template from get_home_prompt().
     """
     # Mood-based difficulty
     mood_instruction = {
@@ -129,32 +131,20 @@ def build_teacher_prompt(data: "GenerateDailyQRequest") -> str:
         topic_section = "SYLLABUS TOPICS:\n" + "\n".join(f"- {k}: {', '.join(v)}" for k, v in topics.items())
     
     mastery_text = "\n".join(mastery_lines)
+    lang_rule = get_lang_rule(data.language)
 
-    return f"""You are a {data.board} Class {class_num} teacher creating daily practice questions.
-
-{get_lang_rule(data.language)}
-
-{topic_section}
-{weak_topics_text}
-
-STUDENT MASTERY:
-{mastery_text}
-{mood_instruction}
-
-CREATE 2 QUESTIONS (pick from the student's subjects, prioritize weak areas):
-
-EXAMPLE OUTPUT (follow this format exactly):
-[
-{{"q":"question text in {data.language}","a":"step-by-step answer in {data.language}","concept":"Topic Name","subject":"Subject Name"}}
-]
-
-RULES:
-1. Questions MUST be Class {class_num} difficulty (not basic arithmetic!)
-2. Math: Include calculation steps
-3. Science: Include "why" reasoning and real-life example
-4. ALL text in q and a fields MUST be in {data.language} — NO mixing with other languages
-5. concept and subject fields stay in English
-6. Return ONLY the JSON array, nothing else"""
+    # Get dynamic template and format it
+    return get_home_prompt(
+        "home_dailyq_user",
+        board=data.board,
+        class_num=class_num,
+        lang_rule=lang_rule,
+        topic_section=topic_section,
+        weak_topics_text=weak_topics_text,
+        mastery_text=mastery_text,
+        mood_instruction=mood_instruction,
+        language=data.language
+    )
 
 
 def _parse_ai_array(text: str) -> list:
@@ -295,7 +285,7 @@ async def generate_daily_questions(
             provider="groq",
             model="llama-3.3-70b-versatile",
             prompt=prompt,
-            system_prompt=f"You are a {data.board} {data.standard} teacher. You MUST generate questions strictly in {data.language} only — do NOT mix languages. Output ONLY a valid JSON array.",
+            system_prompt=get_home_prompt("home_dailyq_system", board=data.board, standard=data.standard, language=data.language),
             history=[],
             max_tokens=1500  # Marathi/Hindi need more tokens per character
         )
@@ -382,25 +372,18 @@ def build_brief_prompt(data: "GenerateBriefRequest") -> str:
     }.get(data.mood, "")
     
     subjects_text = ", ".join(data.subjects[:3]) if data.subjects else "Mathematics, Science"
-    
-    return f"""You are writing a morning study brief for a Class {data.standard} {data.board} student.
+    lang_rule = get_lang_rule(data.language)
 
-{get_lang_rule(data.language)}
-
-{mood_note}
-
-Create a SHORT morning study brief with these sections:
-
-1. 📚 Today's Focus - ONE specific topic from {subjects_text}
-2. 🎯 Exam Tip - ONE practical board exam writing tip
-3. 💪 Motivation - 2 short encouraging sentences
-4. 🌙 Tonight Review - ONE concept to revise before sleep
-
-Rules:
-- Write ENTIRELY in {data.language} — zero mixing with other languages
-- Keep under 120 words total
-- Be specific to {data.board} board exam pattern
-- Simple, clear language for {data.standard} student"""
+    # Get dynamic template and format it
+    return get_home_prompt(
+        "home_brief_user",
+        standard=data.standard,
+        board=data.board,
+        lang_rule=lang_rule,
+        mood_note=mood_note,
+        subjects_text=subjects_text,
+        language=data.language
+    )
 
 
 @router.post("/generate-daily-brief", response_model=GenerateBriefResponse)
@@ -430,7 +413,7 @@ async def generate_daily_brief(
             provider="groq",
             model="llama-3.3-70b-versatile",
             prompt=prompt,
-            system_prompt=f"You are a friendly study coach for {data.board} {data.standard} students. You MUST write strictly in {data.language} only — never mix Hindi/Marathi/English. Keep it brief and motivating.",
+            system_prompt=get_home_prompt("home_brief_system", board=data.board, standard=data.standard, language=data.language),
             history=[],
             max_tokens=800
         )
@@ -508,7 +491,7 @@ Keep it practical and achievable for a student."""
             provider="groq",
             model="llama-3.3-70b-versatile",
             prompt=prompt,
-            system_prompt=f"You are an expert {data.board} {data.standard} {data.subject} teacher. Create practical study plans.",
+            system_prompt=get_home_prompt("home_studyplan_system", board=data.board, standard=data.standard, subject=data.subject),
             history=[],
             max_tokens=1200
         )
@@ -601,7 +584,7 @@ Write topic names in {data.language}."""
             provider="groq",
             model="llama-3.3-70b-versatile",
             prompt=prompt,
-            system_prompt=f"You are an expert {data.board} exam analyst. Predict topics based on real patterns. Write topic names in {data.language}. Output ONLY valid JSON.",
+            system_prompt=get_home_prompt("home_oracle_system", board=data.board, language=data.language),
             history=[],
             max_tokens=800
         )
@@ -666,7 +649,7 @@ Focus on what's important for {data.board} board exam."""
             provider="groq",
             model="llama-3.3-70b-versatile",
             prompt=prompt,
-            system_prompt=f"You are an expert {data.board} {data.standard} {data.subject} teacher. Write in {data.language}. Explain clearly for exam preparation.",
+            system_prompt=get_home_prompt("home_deepdive_system", board=data.board, standard=data.standard, subject=data.subject, language=data.language),
             history=[],
             max_tokens=1000
         )

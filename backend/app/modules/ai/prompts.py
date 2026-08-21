@@ -1789,13 +1789,13 @@ def build_system_prompt(profile: dict, mode: str, progress: dict = None, chapter
     
     # For modes needing language enforcement but not full Study Coach treatment
     if mode in LANGUAGE_ENFORCED_MODES:
-        mode_instruction = MODE_INSTRUCTIONS.get(mode, "")
+        mode_instruction = get_mode_instruction(mode)
         if not mode_instruction:
             return ""
         
         # Get language from profile
         language = profile.get("language", "English") if profile else "English"
-        lang_rule = LANG_RULES.get(language, LANG_RULES["English"])
+        lang_rule = get_lang_rule(language)  # Dynamic lookup
         standard = profile.get("standard", "10") if profile else "10"
         board = profile.get("board", "CBSE") if profile else "CBSE"
         
@@ -1812,58 +1812,38 @@ def build_system_prompt(profile: dict, mode: str, progress: dict = None, chapter
             ch_description = chapter_context.get("description", "")
             
             topics_str = ", ".join(ch_topics) if ch_topics else "Not specified"
+            ch_overview = ch_description if ch_description else 'Refer to your knowledge of this standard textbook chapter'
             
-            chapter_section = f"""
-══════════════════════════════════════════════════════════════
-⚠️ CHAPTER YOU ARE TEACHING — ACCURACY IS CRITICAL ⚠️
-══════════════════════════════════════════════════════════════
-Chapter Name: {ch_name}
-Chapter Number: {ch_number}
-Subject: {ch_subject}
-Board: {ch_board}
-Class/Standard: {ch_standard}
-Medium: {ch_medium}
-Key Topics: {topics_str}
-Chapter Overview: {ch_description if ch_description else 'Refer to your knowledge of this standard textbook chapter'}
-
-🔴 CRITICAL INSTRUCTION:
-This is a REAL {ch_board} Class {ch_standard} {ch_subject} textbook chapter.
-You likely KNOW this chapter's actual content from your training data (NCERT textbooks are widely documented).
-
-For "{ch_name}":
-- USE the CORRECT character names, plot points, and facts from the ACTUAL chapter
-- DO NOT invent alternative storylines or make up fake details  
-- If this is a literature chapter, recall the REAL story/poem as written in NCERT
-- If this is Science/Math, use the ACTUAL concepts and formulas from the curriculum
-
-IF YOU ARE UNCERTAIN:
-Say "Main is specific detail ke baare mein sure nahi hoon, textbook se confirm karo" 
-rather than making up wrong facts.
-
-WRONG FACTS = STUDENT FAILS EXAM = UNACCEPTABLE
-"""
+            # Get dynamic chapter context template
+            chapter_template = get_inline_template("chapter_context_section")
+            chapter_section = chapter_template.format(
+                ch_name=ch_name,
+                ch_number=ch_number,
+                ch_subject=ch_subject,
+                ch_board=ch_board,
+                ch_standard=ch_standard,
+                ch_medium=ch_medium,
+                topics_str=topics_str,
+                ch_overview=ch_overview
+            )
         
-        # Build prompt with language rules prepended
-        return f"""══════════════════════════════════════════════════════════════
-CRITICAL LANGUAGE RULES — MUST FOLLOW
-══════════════════════════════════════════════════════════════
-Student's Medium: {language}
-Student's Class: {standard}, {board} board
-
-{lang_rule}
-{chapter_section}
-══════════════════════════════════════════════════════════════
-TASK INSTRUCTIONS
-══════════════════════════════════════════════════════════════
-{mode_instruction}
-"""
+        # Get dynamic wrapper template and build final prompt
+        wrapper_template = get_inline_template("language_enforced_wrapper")
+        return wrapper_template.format(
+            language=language,
+            standard=standard,
+            board=board,
+            lang_rule=lang_rule,
+            chapter_section=chapter_section,
+            mode_instruction=mode_instruction
+        )
     
     # For other non-study_coach modes (quiz, examiner, etc.), return raw instructions
     if not mode.startswith("study_coach"):
-        return MODE_INSTRUCTIONS.get(mode, "")
+        return get_mode_instruction(mode)
     
     # Get mode instructions
-    mode_instruction = MODE_INSTRUCTIONS.get(mode)
+    mode_instruction = get_mode_instruction(mode)
     if not mode_instruction:
         return ""
     
@@ -1874,13 +1854,13 @@ TASK INSTRUCTIONS
     language = profile.get("language", "English")
     subjects = profile.get("subjects", [])
     
-    # Get teacher persona
-    persona = TEACHER_PERSONAS.get(language, TEACHER_PERSONAS["English"])
+    # Get teacher persona (dynamic lookup)
+    persona = get_teacher_persona(language)
     teacher_name = persona["name"]
     teacher_desc = persona["desc"]
     
-    # Get language rules
-    lang_rule = LANG_RULES.get(language, LANG_RULES["English"])
+    # Get language rules (dynamic lookup)
+    lang_rule = get_lang_rule(language)
     
     # Build student context
     subjects_str = ", ".join(subjects) if subjects else "General"
@@ -1897,8 +1877,444 @@ TASK INSTRUCTIONS
         if strong_areas:
             progress_context += f"\nStudent's strong areas: {', '.join(strong_areas)}"
     
-    # Compose the full system prompt
-    system_prompt = f"""You are {teacher_name}, {teacher_desc}.
+    # Get dynamic study_coach wrapper template and build final prompt
+    wrapper_template = get_inline_template("study_coach_wrapper")
+    system_prompt = wrapper_template.format(
+        teacher_name=teacher_name,
+        teacher_desc=teacher_desc,
+        name=name,
+        standard=standard,
+        board=board,
+        language=language,
+        subjects_str=subjects_str,
+        progress_context=progress_context,
+        lang_rule=lang_rule,
+        mode_instruction=mode_instruction
+    )
+    
+    return system_prompt
+
+
+# ── Dynamic Prompt Loader with DB + Fallback ──────────────────────────────
+
+import time
+from typing import Optional
+
+# Simple in-memory cache with TTL
+_prompt_cache: dict = {}
+_CACHE_TTL_SECONDS = 300  # 5 minutes
+
+
+def _get_cached_prompt(mode: str) -> Optional[str]:
+    """Get prompt from cache if not expired."""
+    cached = _prompt_cache.get(mode)
+    if cached:
+        template, timestamp = cached
+        if time.time() - timestamp < _CACHE_TTL_SECONDS:
+            return template
+    return None
+
+
+def _set_cached_prompt(mode: str, template: str):
+    """Store prompt in cache with timestamp."""
+    _prompt_cache[mode] = (template, time.time())
+
+
+def get_mode_instruction(mode: str) -> str:
+    """
+    Get the instruction template for a mode.
+    
+    Checks database first (for dynamic prompts), then falls back to hardcoded.
+    Results are cached for 5 minutes to reduce DB load.
+    
+    Args:
+        mode: The AI mode key (e.g., "quiz_generate", "study_coach")
+    
+    Returns:
+        The prompt template string, or empty string if mode not found
+    """
+    # Check cache first
+    cached = _get_cached_prompt(mode)
+    if cached is not None:
+        return cached
+    
+    # Try database
+    try:
+        from app.db.connection import get_db
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT template FROM ai_prompts WHERE key = %s AND is_active = TRUE",
+                (mode,)
+            )
+            row = cur.fetchone()
+            if row and row.get("template"):
+                template = row["template"]
+                _set_cached_prompt(mode, template)
+                return template
+        finally:
+            conn.close()
+    except Exception:
+        # Database not available or error - fall back to hardcoded
+        pass
+    
+    # Fallback to hardcoded MODE_INSTRUCTIONS
+    template = MODE_INSTRUCTIONS.get(mode, "")
+    if template:
+        _set_cached_prompt(mode, template)
+    return template
+
+
+def clear_prompt_cache(mode: str = None):
+    """
+    Clear the prompt cache.
+    
+    Args:
+        mode: If provided, only clear cache for this mode. If None, clear all.
+    """
+    global _prompt_cache
+    if mode:
+        _prompt_cache.pop(mode, None)
+    else:
+        _prompt_cache = {}
+
+
+def get_teacher_persona(language: str) -> dict:
+    """
+    Get teacher persona for a language.
+    
+    Checks database first (key = "persona_{language}"), then falls back to hardcoded.
+    Results are cached for 5 minutes.
+    
+    Args:
+        language: The language/medium (e.g., "English", "Hindi", "Marathi")
+    
+    Returns:
+        Dict with "name" and "desc" keys
+    """
+    cache_key = f"persona_{language}"
+    
+    # Check cache first
+    cached = _get_cached_prompt(cache_key)
+    if cached is not None:
+        try:
+            import json
+            return json.loads(cached)
+        except:
+            pass
+    
+    # Try database
+    try:
+        from app.db.connection import get_db
+        import json
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT template FROM ai_prompts WHERE key = %s AND is_active = TRUE",
+                (cache_key,)
+            )
+            row = cur.fetchone()
+            if row and row.get("template"):
+                template = row["template"]
+                _set_cached_prompt(cache_key, template)
+                try:
+                    return json.loads(template)
+                except:
+                    pass
+        finally:
+            conn.close()
+    except Exception:
+        pass
+    
+    # Fallback to hardcoded TEACHER_PERSONAS
+    persona = TEACHER_PERSONAS.get(language, TEACHER_PERSONAS.get("English", {"name": "Vidya", "desc": "a warm teacher"}))
+    import json
+    _set_cached_prompt(cache_key, json.dumps(persona))
+    return persona
+
+
+def get_lang_rule(language: str) -> str:
+    """
+    Get language enforcement rule for a language.
+    
+    Checks database first (key = "lang_rule_{language}"), then falls back to hardcoded.
+    Results are cached for 5 minutes.
+    
+    Args:
+        language: The language/medium (e.g., "English", "Hindi", "Marathi")
+    
+    Returns:
+        Language rule string
+    """
+    cache_key = f"lang_rule_{language}"
+    
+    # Check cache first
+    cached = _get_cached_prompt(cache_key)
+    if cached is not None:
+        return cached
+    
+    # Try database
+    try:
+        from app.db.connection import get_db
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT template FROM ai_prompts WHERE key = %s AND is_active = TRUE",
+                (cache_key,)
+            )
+            row = cur.fetchone()
+            if row and row.get("template"):
+                template = row["template"]
+                _set_cached_prompt(cache_key, template)
+                return template
+        finally:
+            conn.close()
+    except Exception:
+        pass
+    
+    # Fallback to hardcoded LANG_RULES
+    rule = LANG_RULES.get(language, LANG_RULES.get("English", "Respond in English only."))
+    _set_cached_prompt(cache_key, rule)
+    return rule
+
+
+def get_home_prompt(prompt_key: str) -> str:
+    """
+    Get a home router prompt template.
+    
+    Checks database first, then falls back to hardcoded HOME_PROMPTS.
+    Results are cached for 5 minutes.
+    
+    Args:
+        prompt_key: The prompt key (e.g., "home_dailyq_system", "home_brief_system")
+    
+    Returns:
+        Prompt template string
+    """
+    # Check cache first
+    cached = _get_cached_prompt(prompt_key)
+    if cached is not None:
+        return cached
+    
+    # Try database
+    try:
+        from app.db.connection import get_db
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT template FROM ai_prompts WHERE key = %s AND is_active = TRUE",
+                (prompt_key,)
+            )
+            row = cur.fetchone()
+            if row and row.get("template"):
+                template = row["template"]
+                _set_cached_prompt(prompt_key, template)
+                return template
+        finally:
+            conn.close()
+    except Exception:
+        pass
+    
+    # Fallback to hardcoded HOME_PROMPTS
+    template = HOME_PROMPTS.get(prompt_key, "")
+    if template:
+        _set_cached_prompt(prompt_key, template)
+    return template
+
+
+# ── Home Router Prompts (extracted for dynamic loading) ────────────────────
+
+HOME_PROMPTS = {
+    "home_dailyq_system": "You are a {board} {standard} teacher. You MUST generate questions strictly in {language} only — do NOT mix languages. Output ONLY a valid JSON array.",
+    
+    "home_brief_system": "You are a friendly study coach for {board} {standard} students. You MUST write strictly in {language} only — never mix Hindi/Marathi/English. Keep it brief and motivating.",
+    
+    "home_studyplan_system": "You are an expert {board} {standard} {subject} teacher. Create practical study plans.",
+    
+    "home_oracle_system": "You are an expert {board} exam analyst. Predict topics based on real patterns. Write topic names in {language}. Output ONLY valid JSON.",
+    
+    "home_deepdive_system": "You are an expert {board} {standard} {subject} teacher. Write in {language}. Explain clearly for exam preparation.",
+    
+    "home_brief_user": """You are writing a morning study brief for a Class {standard} {board} student.
+
+{lang_rule}
+
+{mood_note}
+
+Create a SHORT morning study brief with these sections:
+
+1. 📚 Today's Focus - ONE specific topic from {subjects_text}
+2. 🎯 Exam Tip - ONE practical board exam writing tip
+3. 💪 Motivation - 2 short encouraging sentences
+4. 🌙 Tonight Review - ONE concept to revise before sleep
+
+Rules:
+- Write ENTIRELY in {language} — zero mixing with other languages
+- Keep under 120 words total
+- Be specific to {board} board exam pattern
+- Simple, clear language for {standard} student""",
+    
+    "home_dailyq_user": """You are a {board} Class {class_num} teacher creating daily practice questions.
+
+{lang_rule}
+
+{topic_section}
+{weak_topics_text}
+
+STUDENT MASTERY:
+{mastery_text}
+{mood_instruction}
+
+CREATE 2 QUESTIONS (pick from the student's subjects, prioritize weak areas):
+
+EXAMPLE OUTPUT (follow this format exactly):
+[
+{{"q":"question text in {language}","a":"step-by-step answer in {language}","concept":"Topic Name","subject":"Subject Name"}}
+]
+
+RULES:
+1. Questions MUST be Class {class_num} difficulty (not basic arithmetic!)
+2. Math: Include calculation steps
+3. Science: Include "why" reasoning and real-life example
+4. ALL text in q and a fields MUST be in {language} — NO mixing with other languages
+5. concept and subject fields stay in English
+6. Return ONLY the JSON array, nothing else""",
+}
+
+
+# ── Service Prompts (image extraction, muqabla, etc.) ──────────────────────
+
+SERVICE_PROMPTS = {
+    "image_extraction": """You are analyzing an image uploaded by a Class {standard} student in India.
+
+TASK: Extract ALL text and content from this image. This could be:
+- Textbook pages, notes, diagrams
+- Handwritten notes
+- Charts, graphs, tables
+- Question papers, worksheets
+
+RESPOND IN {language}.
+
+OUTPUT FORMAT:
+1. First, describe what type of document/image this is (1 line)
+2. Then extract ALL readable text, preserving structure
+3. If it's a diagram/chart, describe what it shows
+4. If text is handwritten, do your best to read it
+
+{extra_prompt}
+
+IMPORTANT: If this is NOT educational content (social media, memes, random photos, etc.), start your response with "[NOT_EDUCATIONAL]" and briefly explain why.""",
+
+    "muqabla_question_system": "You are an expert question generator for Indian school students. You ONLY output valid JSON, nothing else.",
+    
+    "muqabla_question_prompt": """Generate {count} multiple-choice questions for {subject}, {standard} students, difficulty: {difficulty}.
+Return ONLY a JSON array:
+[{{"q":"...","options":["A","B","C","D"],"correct":0,"explanation":"..."}}]
+'correct' is the 0-based index of the right option.""",
+}
+
+
+def get_service_prompt(prompt_key: str, **kwargs) -> str:
+    """
+    Get service prompt by key with DB lookup + fallback, then format with kwargs.
+    
+    Keys: image_extraction, muqabla_question_system, muqabla_question_prompt
+    """
+    from app.db.connection import get_db
+    
+    db_key = f"service_{prompt_key}"
+    
+    # Check cache first
+    cached = _get_cached_prompt(db_key)
+    if cached is not None:
+        try:
+            return cached.format(**kwargs) if kwargs else cached
+        except KeyError:
+            return cached
+    
+    # Try DB
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT template FROM ai_prompts WHERE key = %s AND is_active = TRUE",
+            (db_key,)
+        )
+        row = cur.fetchone()
+        if row and row.get("template"):
+            _set_cached_prompt(db_key, row["template"])
+            try:
+                return row["template"].format(**kwargs) if kwargs else row["template"]
+            except KeyError:
+                return row["template"]
+    except Exception:
+        pass
+    finally:
+        conn.close()
+    
+    # Fallback to hardcoded
+    template = SERVICE_PROMPTS.get(prompt_key, "")
+    if template:
+        _set_cached_prompt(db_key, template)
+        try:
+            return template.format(**kwargs) if kwargs else template
+        except KeyError:
+            return template
+    return ""
+
+
+# ── Inline Templates (chapter context, wrappers) ────────────────────────────
+
+INLINE_TEMPLATES = {
+    "chapter_context_section": """
+══════════════════════════════════════════════════════════════
+⚠️ CHAPTER YOU ARE TEACHING — ACCURACY IS CRITICAL ⚠️
+══════════════════════════════════════════════════════════════
+Chapter Name: {ch_name}
+Chapter Number: {ch_number}
+Subject: {ch_subject}
+Board: {ch_board}
+Class/Standard: {ch_standard}
+Medium: {ch_medium}
+Key Topics: {topics_str}
+Chapter Overview: {ch_overview}
+
+🔴 CRITICAL INSTRUCTION:
+This is a REAL {ch_board} Class {ch_standard} {ch_subject} textbook chapter.
+You likely KNOW this chapter's actual content from your training data (NCERT textbooks are widely documented).
+
+For "{ch_name}":
+- USE the CORRECT character names, plot points, and facts from the ACTUAL chapter
+- DO NOT invent alternative storylines or make up fake details  
+- If this is a literature chapter, recall the REAL story/poem as written in NCERT
+- If this is Science/Math, use the ACTUAL concepts and formulas from the curriculum
+
+IF YOU ARE UNCERTAIN:
+Say "Main is specific detail ke baare mein sure nahi hoon, textbook se confirm karo" 
+rather than making up wrong facts.
+
+WRONG FACTS = STUDENT FAILS EXAM = UNACCEPTABLE
+""",
+
+    "language_enforced_wrapper": """══════════════════════════════════════════════════════════════
+CRITICAL LANGUAGE RULES — MUST FOLLOW
+══════════════════════════════════════════════════════════════
+Student's Medium: {language}
+Student's Class: {standard}, {board} board
+
+{lang_rule}
+{chapter_section}
+══════════════════════════════════════════════════════════════
+TASK INSTRUCTIONS
+══════════════════════════════════════════════════════════════
+{mode_instruction}
+""",
+
+    "study_coach_wrapper": """You are {teacher_name}, {teacher_desc}.
 
 ══════════════════════════════════════════════════════════════
 STUDENT PROFILE
@@ -1918,6 +2334,44 @@ LANGUAGE RULES (CRITICAL)
 TEACHING INSTRUCTIONS
 ══════════════════════════════════════════════════════════════
 {mode_instruction}
-"""
+""",
+}
+
+
+def get_inline_template(template_key: str) -> str:
+    """
+    Get inline template by key with DB lookup + fallback.
     
-    return system_prompt
+    Keys: chapter_context_section, language_enforced_wrapper, study_coach_wrapper
+    """
+    from app.db.connection import get_db
+    
+    db_key = f"template_{template_key}"
+    
+    # Check cache first
+    cached = _get_cached_prompt(db_key)
+    if cached is not None:
+        return cached
+    
+    # Try DB
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT template FROM ai_prompts WHERE key = %s AND is_active = TRUE",
+            (db_key,)
+        )
+        row = cur.fetchone()
+        if row and row.get("template"):
+            _set_cached_prompt(db_key, row["template"])
+            return row["template"]
+    except Exception:
+        pass
+    finally:
+        conn.close()
+    
+    # Fallback to hardcoded
+    template = INLINE_TEMPLATES.get(template_key, "")
+    if template:
+        _set_cached_prompt(db_key, template)
+    return template

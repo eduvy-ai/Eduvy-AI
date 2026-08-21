@@ -1,10 +1,11 @@
 """
 Admin Service - Business logic for admin panel.
 """
+import json
 import os
 import bcrypt
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List
+from typing import Dict, List, Optional
 from fastapi import HTTPException
 from jose import jwt
 
@@ -3428,5 +3429,374 @@ class AdminService:
             deleted = cur.rowcount
             conn.commit()
             return {"deleted": deleted}
+        finally:
+            conn.close()
+
+    # ── AI Prompts ─────────────────────────────────────────────────────────
+
+    @staticmethod
+    def list_prompts(category: str = None, search: str = None, include_inactive: bool = False) -> List[Dict]:
+        """List all AI prompts with optional filters."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            sql = "SELECT * FROM ai_prompts WHERE 1=1"
+            params = []
+            
+            if not include_inactive:
+                sql += " AND is_active = TRUE"
+            
+            if category:
+                sql += " AND category = %s"
+                params.append(category)
+            
+            if search:
+                sql += " AND (name ILIKE %s OR key ILIKE %s OR description ILIKE %s)"
+                params.extend([f"%{search}%", f"%{search}%", f"%{search}%"])
+            
+            sql += " ORDER BY category, name"
+            cur.execute(sql, params)
+            rows = cur.fetchall()
+            
+            prompts = []
+            for row in rows:
+                prompt = dict(row)
+                # Parse variables JSON
+                try:
+                    prompt["variables"] = json.loads(prompt.get("variables", "[]"))
+                except:
+                    prompt["variables"] = []
+                # Convert timestamps to strings
+                if prompt.get("created_at"):
+                    prompt["created_at"] = str(prompt["created_at"])
+                if prompt.get("updated_at"):
+                    prompt["updated_at"] = str(prompt["updated_at"])
+                prompts.append(prompt)
+            
+            return prompts
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_prompt(prompt_id: int) -> Dict:
+        """Get a single AI prompt by ID."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM ai_prompts WHERE id = %s", (prompt_id,))
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Prompt not found")
+            
+            prompt = dict(row)
+            try:
+                prompt["variables"] = json.loads(prompt.get("variables", "[]"))
+            except:
+                prompt["variables"] = []
+            if prompt.get("created_at"):
+                prompt["created_at"] = str(prompt["created_at"])
+            if prompt.get("updated_at"):
+                prompt["updated_at"] = str(prompt["updated_at"])
+            return prompt
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_prompt_by_key(key: str) -> Optional[Dict]:
+        """Get a single AI prompt by key (for AI system use)."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM ai_prompts WHERE key = %s AND is_active = TRUE", (key,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            
+            prompt = dict(row)
+            try:
+                prompt["variables"] = json.loads(prompt.get("variables", "[]"))
+            except:
+                prompt["variables"] = []
+            return prompt
+        finally:
+            conn.close()
+
+    @staticmethod
+    def create_prompt(key: str, name: str, description: str, category: str, template: str,
+                      variables: List[str], model: str, max_tokens: int, temperature: float,
+                      is_active: bool, admin_id: int) -> Dict:
+        """Create a new AI prompt."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            
+            # Check for duplicate key
+            cur.execute("SELECT id FROM ai_prompts WHERE key = %s", (key,))
+            if cur.fetchone():
+                raise HTTPException(status_code=409, detail=f"Prompt with key '{key}' already exists")
+            
+            # Get admin email for updated_by
+            cur.execute("SELECT email FROM admin_users WHERE id = %s", (admin_id,))
+            admin_row = cur.fetchone()
+            updated_by = admin_row["email"] if admin_row else str(admin_id)
+            
+            variables_json = json.dumps(variables or [])
+            
+            cur.execute("""
+                INSERT INTO ai_prompts (key, name, description, category, template, variables,
+                                        model, max_tokens, temperature, is_active, updated_by)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING *
+            """, (key.strip(), name.strip(), description.strip(), category, template,
+                  variables_json, model, max_tokens, temperature, is_active, updated_by))
+            
+            row = cur.fetchone()
+            conn.commit()
+            
+            prompt = dict(row)
+            try:
+                prompt["variables"] = json.loads(prompt.get("variables", "[]"))
+            except:
+                prompt["variables"] = []
+            if prompt.get("created_at"):
+                prompt["created_at"] = str(prompt["created_at"])
+            if prompt.get("updated_at"):
+                prompt["updated_at"] = str(prompt["updated_at"])
+            return prompt
+        finally:
+            conn.close()
+
+    @staticmethod
+    def update_prompt(prompt_id: int, name: str = None, description: str = None, category: str = None,
+                      template: str = None, variables: List[str] = None, model: str = None,
+                      max_tokens: int = None, temperature: float = None, is_active: bool = None,
+                      admin_id: int = None) -> Dict:
+        """Update an AI prompt."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            
+            # Verify prompt exists
+            cur.execute("SELECT id, version FROM ai_prompts WHERE id = %s", (prompt_id,))
+            existing = cur.fetchone()
+            if not existing:
+                raise HTTPException(status_code=404, detail="Prompt not found")
+            
+            # Get admin email for updated_by
+            updated_by = None
+            if admin_id:
+                cur.execute("SELECT email FROM admin_users WHERE id = %s", (admin_id,))
+                admin_row = cur.fetchone()
+                updated_by = admin_row["email"] if admin_row else str(admin_id)
+            
+            updates = ["updated_at = CURRENT_TIMESTAMP", "version = version + 1"]
+            params = []
+            
+            if name is not None:
+                updates.append("name = %s")
+                params.append(name.strip())
+            if description is not None:
+                updates.append("description = %s")
+                params.append(description.strip())
+            if category is not None:
+                updates.append("category = %s")
+                params.append(category)
+            if template is not None:
+                updates.append("template = %s")
+                params.append(template)
+            if variables is not None:
+                updates.append("variables = %s")
+                params.append(json.dumps(variables))
+            if model is not None:
+                updates.append("model = %s")
+                params.append(model)
+            if max_tokens is not None:
+                updates.append("max_tokens = %s")
+                params.append(max_tokens)
+            if temperature is not None:
+                updates.append("temperature = %s")
+                params.append(temperature)
+            if is_active is not None:
+                updates.append("is_active = %s")
+                params.append(is_active)
+            if updated_by:
+                updates.append("updated_by = %s")
+                params.append(updated_by)
+            
+            params.append(prompt_id)
+            cur.execute(f"UPDATE ai_prompts SET {', '.join(updates)} WHERE id = %s RETURNING *", params)
+            row = cur.fetchone()
+            conn.commit()
+            
+            prompt = dict(row)
+            try:
+                prompt["variables"] = json.loads(prompt.get("variables", "[]"))
+            except:
+                prompt["variables"] = []
+            if prompt.get("created_at"):
+                prompt["created_at"] = str(prompt["created_at"])
+            if prompt.get("updated_at"):
+                prompt["updated_at"] = str(prompt["updated_at"])
+            return prompt
+        finally:
+            conn.close()
+
+    @staticmethod
+    def delete_prompt(prompt_id: int) -> Dict:
+        """Delete an AI prompt (soft delete by setting is_active=False)."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("UPDATE ai_prompts SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = %s", (prompt_id,))
+            affected = cur.rowcount
+            conn.commit()
+            return {"deleted": affected > 0}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def hard_delete_prompt(prompt_id: int) -> Dict:
+        """Permanently delete an AI prompt."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM ai_prompts WHERE id = %s", (prompt_id,))
+            affected = cur.rowcount
+            conn.commit()
+            return {"deleted": affected > 0}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def seed_prompts_from_hardcoded(overwrite: bool = False, admin_id: int = None) -> Dict:
+        """Seed prompts from hardcoded MODE_INSTRUCTIONS, TEACHER_PERSONAS, LANG_RULES, HOME_PROMPTS, INLINE_TEMPLATES, SERVICE_PROMPTS in prompts.py."""
+        # Import here to avoid circular imports
+        from app.modules.ai.prompts import MODE_INSTRUCTIONS, VALID_MODES, TEACHER_PERSONAS, LANG_RULES, HOME_PROMPTS, INLINE_TEMPLATES, SERVICE_PROMPTS
+        import json as json_lib
+        
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            
+            # Get admin email
+            updated_by = "system"
+            if admin_id:
+                cur.execute("SELECT email FROM admin_users WHERE id = %s", (admin_id,))
+                admin_row = cur.fetchone()
+                updated_by = admin_row["email"] if admin_row else "system"
+            
+            # Category mapping based on mode key prefix
+            def get_category(key: str) -> str:
+                if key.startswith("quiz_"):
+                    return "quiz"
+                elif key.startswith("examiner_") or key.startswith("essay_"):
+                    return "grading"
+                elif key.startswith("samjhao") or key.startswith("study_coach") or key.startswith("chapter_tutor") or key.startswith("notebook_"):
+                    return "tutor"
+                elif key.startswith("podcast_"):
+                    return "summary"
+                elif key.startswith("mental_"):
+                    return "chat"
+                elif key.startswith("persona_"):
+                    return "persona"
+                elif key.startswith("lang_rule_"):
+                    return "language"
+                elif key.startswith("home_"):
+                    return "home"
+                elif key.startswith("template_"):
+                    return "template"
+                elif key.startswith("service_"):
+                    return "service"
+                else:
+                    return "system"
+            
+            # Name formatting
+            def format_name(key: str) -> str:
+                return key.replace("_", " ").title()
+            
+            def seed_prompt(key: str, template: str, category: str = None) -> str:
+                """Seed single prompt, returns: 'inserted', 'updated', or 'skipped'"""
+                if not template:
+                    return "skipped"
+                    
+                cat = category or get_category(key)
+                name = format_name(key)
+                
+                cur.execute("SELECT id FROM ai_prompts WHERE key = %s", (key,))
+                existing = cur.fetchone()
+                
+                if existing:
+                    if overwrite:
+                        cur.execute("""
+                            UPDATE ai_prompts SET template = %s, category = %s, name = %s,
+                                   version = version + 1, updated_at = CURRENT_TIMESTAMP, updated_by = %s
+                            WHERE key = %s
+                        """, (template, cat, name, updated_by, key))
+                        return "updated"
+                    else:
+                        return "skipped"
+                else:
+                    cur.execute("""
+                        INSERT INTO ai_prompts (key, name, description, category, template, variables,
+                                               model, max_tokens, temperature, is_active, updated_by)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (key, name, f"Prompt for {key}", cat, template,
+                          "[]", "gpt-4o-mini", 1024, 0.7, True, updated_by))
+                    return "inserted"
+            
+            inserted = 0
+            updated = 0
+            skipped = 0
+            
+            # 1. Seed MODE_INSTRUCTIONS
+            for key in VALID_MODES:
+                template = MODE_INSTRUCTIONS.get(key)
+                result = seed_prompt(key, template)
+                if result == "inserted": inserted += 1
+                elif result == "updated": updated += 1
+                else: skipped += 1
+            
+            # 2. Seed TEACHER_PERSONAS (store as JSON)
+            for lang, persona in TEACHER_PERSONAS.items():
+                key = f"persona_{lang}"
+                template = json_lib.dumps(persona)  # {"name": "...", "desc": "..."}
+                result = seed_prompt(key, template, "persona")
+                if result == "inserted": inserted += 1
+                elif result == "updated": updated += 1
+                else: skipped += 1
+            
+            # 3. Seed LANG_RULES
+            for lang, rule in LANG_RULES.items():
+                key = f"lang_rule_{lang}"
+                result = seed_prompt(key, rule, "language")
+                if result == "inserted": inserted += 1
+                elif result == "updated": updated += 1
+                else: skipped += 1
+            
+            # 4. Seed HOME_PROMPTS
+            for key, template in HOME_PROMPTS.items():
+                result = seed_prompt(key, template, "home")
+                if result == "inserted": inserted += 1
+                elif result == "updated": updated += 1
+                else: skipped += 1
+            
+            # 5. Seed INLINE_TEMPLATES (with template_ prefix in DB key)
+            for key, template in INLINE_TEMPLATES.items():
+                db_key = f"template_{key}"
+                result = seed_prompt(db_key, template, "template")
+                if result == "inserted": inserted += 1
+                elif result == "updated": updated += 1
+                else: skipped += 1
+            
+            # 6. Seed SERVICE_PROMPTS (with service_ prefix in DB key)
+            for key, template in SERVICE_PROMPTS.items():
+                db_key = f"service_{key}"
+                result = seed_prompt(db_key, template, "service")
+                if result == "inserted": inserted += 1
+                elif result == "updated": updated += 1
+                else: skipped += 1
+            
+            conn.commit()
+            return {"inserted": inserted, "updated": updated, "skipped": skipped}
         finally:
             conn.close()

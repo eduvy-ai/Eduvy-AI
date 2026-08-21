@@ -51,6 +51,7 @@ export const ADMIN_ENDPOINTS = {
   aiConfig: '/api/admin/ai-config',
   aiKeys: '/api/admin/ai-keys',
   aiModels: '/api/admin/ai-models',
+  aiPrompts: '/api/admin/prompts',
   aiDashboard: '/api/admin/api-dashboard',
   usageSummary: '/api/admin/usage/summary',
   usageUsers: '/api/admin/usage/users',

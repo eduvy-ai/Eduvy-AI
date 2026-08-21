@@ -21,6 +21,7 @@ from app.modules.admin.schemas import (
     SchoolTeacherCreate, SchoolTeacherUpdate,
     QuestionCreate, QuestionUpdate, QuestionBulkCreate,
     MediaCreate, MediaUpdate,
+    AIPromptCreate, AIPromptUpdate, AIPromptSeed,
 )
 from app.modules.admin.service import AdminService
 from app.utils.email import send_email
@@ -1097,3 +1098,60 @@ async def delete_media(media_id: int, admin_scope: tuple = Depends(get_admin_wit
 async def bulk_delete_media(data: BulkDeleteInt, admin_scope: tuple = Depends(get_admin_with_school)):
     admin_id, school_id = admin_scope
     return await asyncio.to_thread(AdminService.bulk_delete_media, data.ids, school_id)
+
+
+# ── AI Prompts ────────────────────────────────────────────────
+
+@router.get("/prompts")
+async def list_prompts(
+    category: str = Query(None),
+    search: str = Query(None),
+    include_inactive: bool = Query(False),
+    admin_id: int = Depends(get_admin_user)
+):
+    """List all AI prompts with optional filters."""
+    return await asyncio.to_thread(AdminService.list_prompts, category, search, include_inactive)
+
+
+@router.get("/prompts/{prompt_id}")
+async def get_prompt(prompt_id: int, admin_id: int = Depends(get_admin_user)):
+    """Get a single AI prompt by ID."""
+    return await asyncio.to_thread(AdminService.get_prompt, prompt_id)
+
+
+@router.post("/prompts", status_code=201)
+async def create_prompt(data: AIPromptCreate, admin_id: int = Depends(get_admin_user)):
+    """Create a new AI prompt."""
+    return await asyncio.to_thread(
+        AdminService.create_prompt,
+        data.key, data.name, data.description, data.category, data.template,
+        data.variables, data.model, data.max_tokens, data.temperature, data.is_active, admin_id
+    )
+
+
+@router.put("/prompts/{prompt_id}")
+async def update_prompt(prompt_id: int, data: AIPromptUpdate, admin_id: int = Depends(get_admin_user)):
+    """Update an AI prompt."""
+    return await asyncio.to_thread(
+        AdminService.update_prompt,
+        prompt_id, data.name, data.description, data.category, data.template,
+        data.variables, data.model, data.max_tokens, data.temperature, data.is_active, admin_id
+    )
+
+
+@router.delete("/prompts/{prompt_id}")
+async def delete_prompt(prompt_id: int, admin_id: int = Depends(get_admin_user)):
+    """Delete an AI prompt (soft delete)."""
+    return await asyncio.to_thread(AdminService.delete_prompt, prompt_id)
+
+
+@router.delete("/prompts/{prompt_id}/hard")
+async def hard_delete_prompt(prompt_id: int, admin_id: int = Depends(get_admin_user)):
+    """Permanently delete an AI prompt."""
+    return await asyncio.to_thread(AdminService.hard_delete_prompt, prompt_id)
+
+
+@router.post("/prompts/seed")
+async def seed_prompts(data: AIPromptSeed, admin_id: int = Depends(get_admin_user)):
+    """Seed prompts from hardcoded MODE_INSTRUCTIONS."""
+    return await asyncio.to_thread(AdminService.seed_prompts_from_hardcoded, data.overwrite, admin_id)

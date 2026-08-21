@@ -8,6 +8,7 @@ from fastapi import HTTPException
 
 from app.db import db
 from app.db.connection import get_db, row_to_dict
+from app.modules.ai.prompts import get_service_prompt
 from services.ai_service import call_ai
 
 BATTLE_XP_WIN = 50
@@ -18,16 +19,13 @@ QUESTIONS_COUNT = 5
 
 async def _generate_questions(subject: str, standard: str, difficulty: str) -> List[Dict]:
     """Generate quiz questions via AI."""
-    system = (
-        "You are an expert question generator for Indian school students. "
-        "You ONLY output valid JSON, nothing else."
-    )
-    prompt = (
-        f"Generate {QUESTIONS_COUNT} multiple-choice questions for {subject}, "
-        f"{standard} students, difficulty: {difficulty}.\n"
-        "Return ONLY a JSON array:\n"
-        '[{"q":"...","options":["A","B","C","D"],"correct":0,"explanation":"..."}]\n'
-        "'correct' is the 0-based index of the right option."
+    system = get_service_prompt("muqabla_question_system")
+    prompt = get_service_prompt(
+        "muqabla_question_prompt",
+        count=QUESTIONS_COUNT,
+        subject=subject,
+        standard=standard,
+        difficulty=difficulty
     )
     text, _, _ = await call_ai(
         provider="groq",

@@ -236,6 +236,52 @@ export interface AIKeyValidationResult {
   rate_limits?: Record<string, unknown> | null
 }
 
+// AI Prompts
+export type AIPromptCategory = 'tutor' | 'quiz' | 'grading' | 'summary' | 'chat' | 'system' | 'persona' | 'language' | 'home' | 'template' | 'service'
+
+export interface AIPrompt {
+  id: number
+  key: string
+  name: string
+  description: string
+  category: AIPromptCategory
+  template: string
+  variables: string[]
+  model: string
+  max_tokens?: number
+  temperature?: number
+  is_active: boolean
+  version: number
+  created_at: string
+  updated_at: string
+  updated_by?: string
+}
+
+export interface AIPromptCreate {
+  key: string
+  name: string
+  description?: string
+  category?: AIPromptCategory
+  template: string
+  variables?: string[]
+  model?: string
+  max_tokens?: number
+  temperature?: number
+  is_active?: boolean
+}
+
+export interface AIPromptUpdate {
+  name?: string
+  description?: string
+  category?: AIPromptCategory
+  template?: string
+  variables?: string[]
+  model?: string
+  max_tokens?: number
+  temperature?: number
+  is_active?: boolean
+}
+
 // Request types for key management
 export interface AIKeyCreateRequest {
   provider: string

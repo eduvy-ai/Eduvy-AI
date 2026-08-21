@@ -589,6 +589,29 @@ def create_all_tables():
         )
     """)
 
+    # ── AI Prompts (dynamic prompt management) ─────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS ai_prompts (
+            id           SERIAL PRIMARY KEY,
+            key          TEXT UNIQUE NOT NULL,
+            name         TEXT NOT NULL,
+            description  TEXT DEFAULT '',
+            category     TEXT NOT NULL DEFAULT 'system',
+            template     TEXT NOT NULL,
+            variables    TEXT DEFAULT '[]',
+            model        TEXT DEFAULT 'gpt-4o-mini',
+            max_tokens   INTEGER DEFAULT 1024,
+            temperature  REAL DEFAULT 0.7,
+            is_active    BOOLEAN DEFAULT TRUE,
+            version      INTEGER DEFAULT 1,
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_by   TEXT
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_ai_prompts_key ON ai_prompts(key)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_ai_prompts_category ON ai_prompts(category)")
+
     # ── Drishti Helpers ───────────────────────────────────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS drishti_helpers (
@@ -908,3 +931,29 @@ def create_all_tables():
     conn.commit()
     cur.close()
     conn.close()
+    
+    # Auto-seed AI prompts if table is empty
+    _auto_seed_prompts()
+
+
+def _auto_seed_prompts():
+    """Auto-seed AI prompts from hardcoded values if ai_prompts table is empty."""
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) as count FROM ai_prompts")
+        row = cur.fetchone()
+        count = row["count"] if row else 0
+        
+        if count == 0:
+            # Table is empty - seed all prompts
+            print("[Schema] ai_prompts table is empty, auto-seeding...")
+            from app.modules.admin.service import AdminService
+            result = AdminService.seed_prompts_from_hardcoded(overwrite=False)
+            print(f"[Schema] Auto-seeded prompts: {result}")
+        else:
+            print(f"[Schema] ai_prompts table has {count} rows, skipping auto-seed")
+    except Exception as e:
+        print(f"[Schema] Auto-seed skipped (table may not exist yet): {e}")
+    finally:
+        conn.close()
