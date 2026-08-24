@@ -66,25 +66,20 @@ describe('useStudentVoiceCopilot integration', () => {
   })
 
   it('auto clears voice message after 3 seconds', async () => {
-    vi.useFakeTimers()
-    try {
-      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-      mockStartVoiceInput.mockResolvedValueOnce('open notebook')
+    const user = userEvent.setup()
+    mockStartVoiceInput.mockResolvedValueOnce('open notebook')
 
-      render(<VoiceHarness />)
-      await user.click(screen.getByRole('button', { name: /run voice/i }))
+    render(<VoiceHarness />)
+    await user.click(screen.getByRole('button', { name: /run voice/i }))
 
-      await waitFor(() => {
-        expect(screen.getByTestId('voice-message')).toHaveTextContent('Opening notebook.')
-      })
+    await waitFor(() => {
+      expect(screen.getByTestId('voice-message')).toHaveTextContent('Opening notebook.')
+    })
 
-      vi.advanceTimersByTime(3000)
+    await new Promise((resolve) => {
+      window.setTimeout(resolve, 3100)
+    })
 
-      await waitFor(() => {
-        expect(screen.getByTestId('voice-message')).toHaveTextContent('')
-      })
-    } finally {
-      vi.useRealTimers()
-    }
-  })
+    expect(screen.getByTestId('voice-message')).toHaveTextContent('')
+  }, 10000)
 })
