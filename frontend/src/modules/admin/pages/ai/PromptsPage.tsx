@@ -17,10 +17,8 @@ import {
   X,
   Clock,
   Code,
-  TestTube,
   Download,
   Check,
-  Warning,
 } from '@phosphor-icons/react'
 
 const PromptsPage: React.FC = () => {

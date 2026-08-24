@@ -2183,6 +2183,51 @@ RULES:
 4. ALL text in q and a fields MUST be in {language} — NO mixing with other languages
 5. concept and subject fields stay in English
 6. Return ONLY the JSON array, nothing else""",
+
+    "home_studyplan_user": """Create a personalized study plan for {subject}.
+
+{lang_rule}
+
+Student Profile:
+- Class: {standard}, Board: {board}
+- Current mastery: {mastery}% ({level} level)
+
+Create a 1-week study plan with:
+1. Daily topics to cover (specific chapters/concepts)
+2. Practice exercises (number of problems per day)
+3. Weak areas to focus on
+4. Revision strategy
+
+Write ENTIRELY in {language}. Be specific to {board} syllabus.
+Keep it practical and achievable for a student.""",
+
+    "home_oracle_user": """Predict the 5 most likely topics for {board} {standard} exam this year.
+
+Subjects to analyze: {subjects_text}
+
+Based on:
+- Past 5 years exam patterns
+- Weightage of chapters
+- Recent syllabus changes
+- Common repeated questions
+
+Return JSON array only:
+[{{"topic":"Topic Name","subject":"Subject","pct":85}}]
+
+pct = likelihood percentage (50-95). Be realistic based on actual exam patterns.
+Include a mix of subjects.
+Write topic names in {language}.""",
+
+    "home_deepdive_user": """Deep dive into "{topic}" for {board} {standard} {subject}.
+
+Cover these sections:
+1. 📖 Key Concepts - Main ideas and definitions
+2. ⚠️ Common Mistakes - What students often get wrong
+3. 📝 Important Formulas/Facts - Must remember points
+4. ❓ 2 Likely Exam Questions - With brief answers
+
+Write in {language}. Be concise but comprehensive.
+Focus on what's important for {board} board exam.""",
 }
 
 

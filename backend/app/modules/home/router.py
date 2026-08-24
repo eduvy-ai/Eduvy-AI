@@ -468,23 +468,19 @@ async def generate_study_plan(
         return StudyPlanResponse(plan=existing["content"], saved=True)
     
     level = "beginner" if data.mastery < 30 else "intermediate" if data.mastery < 70 else "advanced"
+    lang_rule = get_lang_rule(data.language)
     
-    prompt = f"""Create a personalized study plan for {data.subject}.
-
-{get_lang_rule(data.language)}
-
-Student Profile:
-- Class: {data.standard}, Board: {data.board}
-- Current mastery: {data.mastery}% ({level} level)
-
-Create a 1-week study plan with:
-1. Daily topics to cover (specific chapters/concepts)
-2. Practice exercises (number of problems per day)
-3. Weak areas to focus on
-4. Revision strategy
-
-Write ENTIRELY in {data.language}. Be specific to {data.board} syllabus.
-Keep it practical and achievable for a student."""
+    # Get dynamic user prompt
+    prompt = get_home_prompt(
+        "home_studyplan_user",
+        subject=data.subject,
+        lang_rule=lang_rule,
+        standard=data.standard,
+        board=data.board,
+        mastery=data.mastery,
+        level=level,
+        language=data.language
+    )
 
     try:
         response, _, _ = await call_ai(
@@ -562,22 +558,14 @@ async def generate_exam_oracle(
     
     subjects_text = ", ".join(data.subjects[:4]) if data.subjects else "Mathematics, Science"
     
-    prompt = f"""Predict the 5 most likely topics for {data.board} {data.standard} exam this year.
-
-Subjects to analyze: {subjects_text}
-
-Based on:
-- Past 5 years exam patterns
-- Weightage of chapters
-- Recent syllabus changes
-- Common repeated questions
-
-Return JSON array only:
-[{{"topic":"Topic Name","subject":"Subject","pct":85}}]
-
-pct = likelihood percentage (50-95). Be realistic based on actual exam patterns.
-Include a mix of subjects.
-Write topic names in {data.language}."""
+    # Get dynamic user prompt
+    prompt = get_home_prompt(
+        "home_oracle_user",
+        board=data.board,
+        standard=data.standard,
+        subjects_text=subjects_text,
+        language=data.language
+    )
 
     try:
         response, _, _ = await call_ai(
@@ -633,16 +621,15 @@ async def generate_deep_dive(
 ):
     """Generate deep dive content for a specific topic."""
     
-    prompt = f"""Deep dive into "{data.topic}" for {data.board} {data.standard} {data.subject}.
-
-Cover these sections:
-1. 📖 Key Concepts - Main ideas and definitions
-2. ⚠️ Common Mistakes - What students often get wrong
-3. 📝 Important Formulas/Facts - Must remember points
-4. ❓ 2 Likely Exam Questions - With brief answers
-
-Write in {data.language}. Be concise but comprehensive.
-Focus on what's important for {data.board} board exam."""
+    # Get dynamic user prompt
+    prompt = get_home_prompt(
+        "home_deepdive_user",
+        topic=data.topic,
+        board=data.board,
+        standard=data.standard,
+        subject=data.subject,
+        language=data.language
+    )
 
     try:
         response, _, _ = await call_ai(
