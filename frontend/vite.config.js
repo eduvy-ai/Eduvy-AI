@@ -38,9 +38,24 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-            'vendor-redux': ['@reduxjs/toolkit', 'react-redux'],
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('/node_modules/@phosphor-icons/')) {
+                return 'vendor-icons'
+              }
+              if (id.includes('react-router') || id.includes('@remix-run')) {
+                return 'vendor-router'
+              }
+              if (id.includes('/node_modules/react/') || id.includes('/node_modules/react-dom/')) {
+                return 'vendor-react'
+              }
+              if (id.includes('@reduxjs/toolkit') || id.includes('react-redux')) {
+                return 'vendor-redux'
+              }
+              if (id.includes('katex')) {
+                return 'vendor-katex'
+              }
+            }
           },
         },
       },

@@ -1,6 +1,6 @@
 // ─── Study Coach Page ───────────────────────────────────────
 
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef, lazy, Suspense } from 'react'
 import { useLocation } from 'react-router-dom'
 import { ClockCounterClockwise, BookOpen, X } from '@phosphor-icons/react'
 import { useStudyCoach } from '../../modules/studycoach'
@@ -10,7 +10,6 @@ import { li, getDisplayLang } from '../../shared.js'
 import QuestionInput from './QuestionInput'
 import ConceptOverview from './ConceptOverview'
 import KeyTakeaways from './KeyTakeaways'
-import DiagramViewer from './DiagramViewer'
 import RealWorldExample from './RealWorldExample'
 import QuizSection from './QuizSection'
 import FlashcardSection from './FlashcardSection'
@@ -24,6 +23,8 @@ import LoadingSkeleton from './LoadingSkeleton'
 import CoachHistory from './CoachHistory'
 import { TeacherModePlayer } from '../teacher'
 import type { StudyCoachMode } from '../../modules/studycoach'
+
+const DiagramViewer = lazy(() => import('./DiagramViewer'))
 
 // Chapter context from Learn tab navigation
 interface ChapterContext {
@@ -321,7 +322,9 @@ export default function StudyCoachPage() {
 
             {/* Diagram */}
             {response.diagram && response.diagram.content && (
-              <DiagramViewer diagram={response.diagram} ui={ui} />
+              <Suspense fallback={<div className="text-[12px] text-app-muted">Loading diagram...</div>}>
+                <DiagramViewer diagram={response.diagram} ui={ui} />
+              </Suspense>
             )}
 
             {/* Real World Example */}

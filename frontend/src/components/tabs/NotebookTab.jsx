@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, lazy, Suspense } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { COLORS, callAI, parseAIArray, parseAIObject, SUBS, checkStudentQuery, validateSourceContent, checkContentRelevance, generateSmartSummary, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
@@ -10,7 +10,7 @@ import {
   apiExtractImageContent,
 } from '../../api.js'
 import StudioHistory from '../notebook/StudioHistory.jsx'
-import DiagramViewer from '../studycoach/DiagramViewer'
+const DiagramViewer = lazy(() => import('../studycoach/DiagramViewer'))
 
 // ── Max limits ─────────────────────────────────────────────────
 const MAX_SOURCES = 15
@@ -1257,12 +1257,14 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
                         if (seg.type === 'diagram') {
                           return (
                             <div key={`d-${i}-${segIdx}`} className="my-2">
-                              <DiagramViewer
-                                diagram={{ type: detectDiagramType(seg.value), content: seg.value }}
-                                ui={ui}
-                                compact
-                                showHeader
-                              />
+                              <Suspense fallback={<div className="text-[12px] text-app-muted">Loading diagram...</div>}>
+                                <DiagramViewer
+                                  diagram={{ type: detectDiagramType(seg.value), content: seg.value }}
+                                  ui={ui}
+                                  compact
+                                  showHeader
+                                />
+                              </Suspense>
                             </div>
                           )
                         }

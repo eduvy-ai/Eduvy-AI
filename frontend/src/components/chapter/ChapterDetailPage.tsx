@@ -4,14 +4,13 @@
  * Shows: Overview, Notes, Videos, Flashcards, Quiz, AI Tutor
  */
 
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import React, { useState, useMemo, useCallback, useEffect, useRef, lazy, Suspense } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import type { RootState } from '@/redux/store'
 import { useChapterById } from '@/modules/chapters/hooks'
 import { getDisplayLang, callAI, parseAIObject, parseAIArray, buildSystemPrompt, LANG_RULES } from '@/shared.js'
 import { API_BASE_URL } from '@/config'
-import DiagramViewer from '@/components/studycoach/DiagramViewer'
 import {
   getAuthToken,
   apiGetChapterNotes, apiCreateChapterNote, apiUpdateChapterNote, apiDeleteChapterNote,
@@ -63,6 +62,8 @@ import {
   X,
 } from '@phosphor-icons/react'
 import Loader from '@/shared/components/Loader'
+
+const DiagramViewer = lazy(() => import('@/components/studycoach/DiagramViewer'))
 
 type SubTab = 'overview' | 'notes' | 'videos' | 'flashcards' | 'quiz' | 'ai'
 
@@ -3772,11 +3773,13 @@ const renderMarkdown = (text: string): React.ReactNode => {
         
         elements.push(
           <div key={`mermaid-${keyIndex++}`} className="my-3 overflow-hidden">
-            <DiagramViewer 
-              diagram={{ type: diagramType, content: mermaidContent }}
-              showHeader={false}
-              compact={true}
-            />
+            <Suspense fallback={<div className="text-[12px] text-app-muted">Loading diagram...</div>}>
+              <DiagramViewer 
+                diagram={{ type: diagramType, content: mermaidContent }}
+                showHeader={false}
+                compact={true}
+              />
+            </Suspense>
           </div>
         )
       }
