@@ -27,6 +27,19 @@ const COMMAND_WORDS = [
   'dikhao', 'jaa', 'jao', 'chal', 'khol', 'खोलो', 'चालू', 'जाओ', 'चलो',
 ]
 
+const QUESTION_WORDS = [
+  'what', 'why', 'how', 'when', 'where', 'who', 'which', 'explain', 'solve', 'derive', 'prove',
+  'difference', 'meaning', 'define', 'concept', 'formula', 'example',
+  'क्या', 'क्यों', 'कैसे', 'समझाओ', 'बताओ', 'क्योंकि',
+]
+
+const SUBJECT_HINTS = [
+  'math', 'mathematics', 'algebra', 'geometry', 'trigonometry', 'calculus',
+  'physics', 'chemistry', 'biology', 'science', 'history', 'geography',
+  'civics', 'economics', 'english', 'hindi', 'marathi', 'computer', 'coding',
+  'equation', 'chapter', 'numerical', 'theorem', 'photosynthesis',
+]
+
 const TAB_ALIASES: Record<TabKey, string[]> = {
   home: ['home', 'ghar', 'dashboard', 'home tab'],
   learn: ['learn', 'study', 'padhai', 'पढ़ाई', 'सीखो'],
@@ -79,6 +92,15 @@ function stripFillerWords(text: string): string {
     .replace(/\b(please|pls|kindly|haan|han|yes|no|nahi|nahin|nhi)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+function looksLikeStudyQuery(text: string): boolean {
+  const tokens = text.split(/\s+/).filter(Boolean)
+  const hasQuestionWord = QUESTION_WORDS.some((w) => text.includes(normalizeText(w)))
+  const hasSubjectHint = SUBJECT_HINTS.some((w) => text.includes(normalizeText(w)))
+  const hasQuestionMarkStyle = /\?$/.test(text) || text.includes(' ?')
+  const isLongEnough = tokens.length >= 4
+  return hasQuestionWord || hasSubjectHint || (hasQuestionMarkStyle && isLongEnough)
 }
 
 function topTabMatches(text: string): Array<{ tab: TabKey; score: number }> {
@@ -191,6 +213,17 @@ export function parseStudentVoiceIntent(raw: string, parseContext: StudentVoiceP
         confidence: tabScore,
         raw,
       }
+    }
+  }
+
+  const conversationalText = stripFillerWords(raw).trim()
+  if (looksLikeStudyQuery(normalized) && conversationalText.length >= 8) {
+    return {
+      intent: 'ask_coach',
+      targetTab: 'coach',
+      query: conversationalText,
+      confidence: Math.max(0.65, Math.max(tabScore, labScore)),
+      raw,
     }
   }
 

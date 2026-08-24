@@ -46,4 +46,11 @@ describe('parseStudentVoiceIntent', () => {
     expect(intent.intent).toBe('navigate_tab')
     expect(intent.targetTab).toBe('learntv')
   })
+
+  it('routes conversational study question to coach', () => {
+    const intent = parseStudentVoiceIntent('Can you explain photosynthesis in simple words?')
+    expect(intent.intent).toBe('ask_coach')
+    expect(intent.targetTab).toBe('coach')
+    expect(intent.query).toContain('photosynthesis')
+  })
 })

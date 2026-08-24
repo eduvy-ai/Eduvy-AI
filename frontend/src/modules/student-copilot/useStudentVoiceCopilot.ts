@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { LabKey, TabKey } from '../../shared/constants/plans'
 import { LANG_TO_SPEECH_CODE, startVoiceInput } from '../../shared.js'
@@ -20,6 +20,7 @@ const TAB_ALLOWLIST: TabKey[] = [
 ]
 
 const LAB_ALLOWLIST: LabKey[] = ['quiz', 'examiner', 'samjhao', 'podcast', 'essay', 'mental']
+const VOICE_MESSAGE_TTL_MS = 3000
 
 function executeIntent(navigate: ReturnType<typeof useNavigate>, intent: StudentVoiceIntent): StudentVoiceResult {
   if (intent.intent === 'blocked') {
@@ -46,6 +47,15 @@ function executeIntent(navigate: ReturnType<typeof useNavigate>, intent: Student
     return { ok: true, message: `Opening ${intent.targetTab}.`, intent }
   }
 
+  if (intent.intent === 'ask_coach') {
+    const query = (intent.query || intent.raw || '').trim()
+    if (!query) {
+      return { ok: false, message: 'I did not catch your question. Please try again.', intent }
+    }
+    navigate('/app/coach', { state: { prefillQuestion: query } })
+    return { ok: true, message: 'Opening AI Coach with your question.', intent }
+  }
+
   if (intent.alternatives && intent.alternatives.length === 2) {
     return {
       ok: false,
@@ -67,6 +77,18 @@ export function useStudentVoiceCopilot(language?: string) {
   const [lastTranscript, setLastTranscript] = useState('')
   const [lastMessage, setLastMessage] = useState('')
   const [pendingAlternatives, setPendingAlternatives] = useState<TabKey[]>([])
+
+  useEffect(() => {
+    if (!lastMessage) return
+    const timeoutId = window.setTimeout(() => {
+      setLastMessage('')
+      setPendingAlternatives([])
+    }, VOICE_MESSAGE_TTL_MS)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [lastMessage])
 
   const chooseAlternative = useCallback((targetTab: TabKey): StudentVoiceResult => {
     const intent: StudentVoiceIntent = {

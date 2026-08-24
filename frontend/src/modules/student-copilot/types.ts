@@ -1,11 +1,12 @@
 import type { LabKey, TabKey } from '../../shared/constants/plans'
 
-export type StudentVoiceIntentType = 'navigate_tab' | 'open_lab' | 'unknown' | 'blocked'
+export type StudentVoiceIntentType = 'navigate_tab' | 'open_lab' | 'ask_coach' | 'unknown' | 'blocked'
 
 export interface StudentVoiceIntent {
   intent: StudentVoiceIntentType
   targetTab?: TabKey
   targetLab?: LabKey
+  query?: string
   confidence: number
   raw: string
   alternatives?: TabKey[]
