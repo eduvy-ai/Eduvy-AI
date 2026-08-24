@@ -21,8 +21,10 @@ import {
   GraduationCap,
   BookOpen,
   User,
+  Microphone,
 } from '@phosphor-icons/react'
 import type { IconWeight } from '@phosphor-icons/react'
+import { useStudentVoiceCopilot } from '../modules/student-copilot/useStudentVoiceCopilot'
 
 // Icon mapping: tabKey -> Phosphor Icon component
 const TAB_ICONS: Record<string, React.ComponentType<any>> = {
@@ -76,6 +78,7 @@ const DashboardLayout: React.FC = () => {
   const lang = getDisplayLang(user)
   const ui = useMemo(() => li(lang), [lang])
   const rtl = isRTL(lang)
+  const { isListening, lastMessage, pendingAlternatives, chooseAlternative, runVoiceCommand } = useStudentVoiceCopilot(user?.language)
 
   // Primary 5-tab nav (shown in both mobile bottom nav and desktop sidebar)
   const primaryNavItems = PRIMARY_NAV_ITEMS
@@ -188,6 +191,40 @@ const DashboardLayout: React.FC = () => {
           </button>
         ))}
       </nav>
+
+      {/* Student Voice Copilot trigger */}
+      <button
+        type="button"
+        onClick={() => { runVoiceCommand().catch(() => {}) }}
+        aria-label={isListening ? 'Listening for command' : 'Start voice command'}
+        className={`fixed right-4 z-50 w-12 h-12 rounded-full border shadow-lg flex items-center justify-center transition-all duration-150 ${
+          isListening
+            ? 'bottom-24 bg-app-green text-app-bg border-app-green animate-pulse'
+            : 'bottom-24 bg-app-card text-app-green border-app-green/40 hover:border-app-green'
+        }`}
+      >
+        <Microphone size={20} weight="fill" />
+      </button>
+
+      {lastMessage && (
+        <div className="fixed right-4 bottom-40 z-50 max-w-[260px] px-3 py-2 rounded-xl bg-app-card border border-app-border text-[11px] text-app-text shadow-lg">
+          {lastMessage}
+          {pendingAlternatives.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {pendingAlternatives.map((tabOption) => (
+                <button
+                  key={tabOption}
+                  type="button"
+                  onClick={() => { chooseAlternative(tabOption) }}
+                  className="px-2 py-1 rounded-lg bg-app-card2 border border-app-green/30 text-app-green text-[10px] font-semibold"
+                >
+                  {tabOption}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
