@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { getBhoolStats, getDisplayLang } from '../../shared.js'
-import { apiGetMastery, apiGetPendingMuqabalaBattles, apiGetDailyContent, apiGenerateDailyQuestions, apiGenerateDailyBrief, apiGetChapterSubjects } from '../../api.js'
+import { apiGetMastery, apiGetPendingMuqabalaBattles, apiGetDailyContent, apiGenerateDailyQuestions, apiGenerateDailyBrief, apiGetChapterSubjects, apiGetRecentPractice } from '../../api.js'
 import { li } from '../../i18n/index.js'
 import { Lightning, Fire, Brain, SunHorizon, Sparkle, Lightbulb, CheckCircle, DiceFive, HandWaving, Plant, Circle, Sword, Flask, UsersThree, Bell, Notebook, MapPin, Sun, CloudSun, Target } from '@phosphor-icons/react'
+
+const HOME_BUDGET_KEY = 'eduvyai_study_budget_min'
 
 // ── Bhool Curve stats (reads localStorage) ───────────────────
 function useBhoolStats() {
@@ -23,6 +25,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
   const [briefLoading, setBriefLoading]   = useState(false)
   const [brief, setBrief]                 = useState("")
   const [masteries, setMasteries]         = useState({})
+  const [recentPractice, setRecentPractice] = useState([])
   
   // ── Notifications ───────────────────────────────────────────
   const [pendingBattles, setPendingBattles] = useState([])
@@ -41,6 +44,16 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
   const [dailyQs, setDailyQs]       = useState([])  // Array of 2 questions
   const [dailyAns, setDailyAns]     = useState({})  // { 0: true, 1: false } - track which are revealed
   const [dailyQLoad, setDailyQLoad] = useState(false)
+  const [studyBudgetMin, setStudyBudgetMin] = useState(() => {
+    const profileBudget = readProfileStudyBudget(profile)
+    if (profileBudget > 0) return profileBudget
+    try {
+      const raw = Number(localStorage.getItem(HOME_BUDGET_KEY) || 0)
+      return Number.isFinite(raw) && raw > 0 ? raw : 0
+    } catch {
+      return 0
+    }
+  })
   
   // Track XP awards to prevent duplicates on refresh
   const [dailyXpAwarded, setDailyXpAwarded] = useState(() => {
@@ -61,6 +74,9 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
   // ── Bhool Curve ─────────────────────────────────────────────
   const bhool = useBhoolStats()
   const bhoolDue = bhool.overdue.length + bhool.soon.length
+  const lang = getDisplayLang(profile)
+  const ui = li(lang)
+  const greeting = getTimeGreeting(lang)
 
   // ── Subjects from chapters API (same as Learn tab) ──────────
   const [subjects, setSubjects] = useState(profile.subjects?.length ? profile.subjects : [])
@@ -94,11 +110,153 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
     apiGetPendingMuqabalaBattles()
       .then(data => { if (data?.battles?.length) setPendingBattles(data.battles) })
       .catch(() => {})
-  }, [])
+
+    if (userId) {
+      apiGetRecentPractice()
+        .then(items => setRecentPractice(Array.isArray(items) ? items.slice(0, 4) : []))
+        .catch(() => setRecentPractice([]))
+    }
+  }, [userId])
 
   // Overall mastery average (0% for untouched subjects)
   const masteryValues = subjects.map(s => masteries[s] ?? 0)
   const avgMastery = Math.round(masteryValues.reduce((a, b) => a + b, 0) / (masteryValues.length || 1))
+  const weakestSubjects = [...subjects]
+    .map(subject => ({ subject, score: masteries[subject] ?? 0 }))
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 2)
+
+  const daysToExam = estimateDaysToExam(profile.standard, getProfileExamDate(profile))
+
+  useEffect(() => {
+    const profileBudget = readProfileStudyBudget(profile)
+    if (profileBudget > 0 && profileBudget !== studyBudgetMin) {
+      setStudyBudgetMin(profileBudget)
+      return
+    }
+  }, [profile, studyBudgetMin])
+
+  useEffect(() => {
+    if (studyBudgetMin > 0) return
+    const recommended = daysToExam <= 45 ? 90 : (daysToExam <= 90 ? 60 : 35)
+    setStudyBudgetMin(recommended)
+    try {
+      localStorage.setItem(HOME_BUDGET_KEY, String(recommended))
+    } catch {}
+  }, [studyBudgetMin, daysToExam])
+
+  const trackHomeEvent = (eventName, meta = {}) => {
+    try {
+      window.dispatchEvent(new CustomEvent('analytics:home', {
+        detail: {
+          event: eventName,
+          ts: Date.now(),
+          user_id: userId || '',
+          standard: profile.standard || '',
+          board: profile.board || '',
+          ...meta,
+        },
+      }))
+    } catch {}
+  }
+
+  const goWithTrack = (tab, source, meta = {}) => {
+    trackHomeEvent('home_navigate', { tab, source, ...meta })
+    setTab(tab)
+  }
+
+  const startRecallWarmup = () => {
+    const focusSubject = weakestSubjects[0]?.subject || (subjects[0] || 'Mathematics')
+    try {
+      localStorage.setItem('eduvyai_practice_focus_subject', focusSubject)
+      localStorage.setItem('eduvyai_practice_session_mode', 'recall_sprint_5q')
+    } catch {}
+    trackHomeEvent('home_recall_warmup_start', {
+      focus_subject: focusSubject,
+      budget_min: studyBudgetMin,
+      days_to_exam: daysToExam,
+    })
+    setTab('practice')
+  }
+
+  const todayMission = (() => {
+    if (daysToExam <= 30 && weakestSubjects.length > 0) {
+      return {
+        title: `${ui.examSprint || 'Exam sprint'}: ${weakestSubjects[0].subject}`,
+        subtitle: ui.examSprintDesc || 'Board exam is close. Do a focused recall sprint first.',
+        eta: `${Math.max(15, Math.min(studyBudgetMin || 45, 45))} min`,
+        reward: '+25 XP',
+        actionLabel: ui.startExamSprint || 'Start Exam Sprint',
+        action: () => {
+          trackHomeEvent('home_mission_click', { mission: 'exam_sprint', days_to_exam: daysToExam })
+          startRecallWarmup()
+        },
+      }
+    }
+    if (pendingBattles.length > 0 && daysToExam > 30) {
+      return {
+        title: ui.joinBattleMission || 'Battle challenge waiting',
+        subtitle: ui.joinBattleMissionDesc || 'Complete your pending Muqabla challenge first.',
+        eta: ui.eta5Min || '5 min',
+        reward: '+20 XP',
+        actionLabel: ui.acceptBattle || 'Accept Battle',
+        action: () => {
+          trackHomeEvent('home_mission_click', { mission: 'pending_battle' })
+          goWithTrack('battles', 'today_mission', { mission: 'pending_battle' })
+        },
+      }
+    }
+    if (bhool.overdue.length > 0) {
+      return {
+        title: ui.revisionMission || 'Urgent revision mission',
+        subtitle: ui.revisionMissionDesc || 'Review concepts due today before they fade.',
+        eta: `${Math.max(12, Math.min(studyBudgetMin || 30, 30))} min`,
+        reward: '+15 XP',
+        actionLabel: ui.startRevision || 'Start Revision',
+        action: () => {
+          trackHomeEvent('home_mission_click', { mission: 'urgent_revision' })
+          goWithTrack('mistakes', 'today_mission', { mission: 'urgent_revision' })
+        },
+      }
+    }
+    if ((studyBudgetMin || 0) <= 20) {
+      return {
+        title: ui.quickWinMission || 'Quick win mission',
+        subtitle: ui.quickWinMissionDesc || 'Short time today. Complete a 5-question recall warm-up.',
+        eta: ui.eta8Min || '8 min',
+        reward: '+10 XP',
+        actionLabel: ui.startWarmup || 'Start Warm-up',
+        action: () => {
+          trackHomeEvent('home_mission_click', { mission: 'quick_warmup' })
+          startRecallWarmup()
+        },
+      }
+    }
+    if (weakestSubjects.length > 0) {
+      return {
+        title: `${ui.focusMission || 'Focus mission'}: ${weakestSubjects[0].subject}`,
+        subtitle: ui.focusMissionDesc || 'Do a quick recall sprint on your weakest subject.',
+        eta: ui.eta10Min || '10 min',
+        reward: '+12 XP',
+        actionLabel: ui.startPractice || 'Start Practice',
+        action: () => {
+          trackHomeEvent('home_mission_click', { mission: 'weak_subject' })
+          startRecallWarmup()
+        },
+      }
+    }
+    return {
+      title: ui.continueMission || 'Continue your learning flow',
+      subtitle: ui.continueMissionDesc || 'Pick up where you left off and keep the momentum.',
+      eta: ui.eta8Min || '8 min',
+      reward: '+8 XP',
+      actionLabel: ui.continueNow || 'Continue Now',
+      action: () => {
+        trackHomeEvent('home_mission_click', { mission: 'continue_flow' })
+        goWithTrack(lastTab || 'learn', 'today_mission', { mission: 'continue_flow' })
+      },
+    }
+  })()
 
   const saveMood = (m) => {
     setMood(m)
@@ -224,9 +382,6 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
       .catch(() => {})
   }, [mood, masteries, profile.language])
 
-  const greeting = getTimeGreeting(getDisplayLang(profile))
-  const ui = li(getDisplayLang(profile))
-
   return (
     <div className="py-4 px-4 md:px-6 lg:px-8 pb-6">
 
@@ -285,6 +440,15 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
           {profile.standard} &nbsp;·&nbsp; {profile.board} &nbsp;·&nbsp; {profile.language}
         </p>
 
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[11px] font-bold text-app-blue bg-app-blue/15 border border-app-blue/30 rounded-full px-2.5 py-1">
+            {daysToExam <= 120 ? `${daysToExam}d to exam` : (ui.longTermPrep || 'Long-term prep')}
+          </span>
+          <span className="text-[11px] font-bold text-app-green bg-app-green/15 border border-app-green/30 rounded-full px-2.5 py-1">
+            {studyBudgetMin || 35} min today
+          </span>
+        </div>
+
         {/* Stats row */}
         <div className="flex gap-2">
           <StatChip icon={<Lightning size={14} weight="fill" />} value={`${xp} ${ui.xpLabel || 'XP'}`} color={'#FFD166'} />
@@ -292,6 +456,76 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
           <StatChip icon={<Brain size={14} weight="fill" />} value={`${avgMastery}% ${ui.avgLabel || 'avg'}`} color={masteryColor(avgMastery)} />
         </div>
       </div>
+
+      {/* ── Today Mission ───────────────────────────────────── */}
+      <Section title={<><Target size={16} weight="duotone" className="inline text-app-green" /> {ui.todayMission || 'Today Mission'}</>}>
+        <div className="rounded-2xl border border-app-green/25 bg-gradient-to-br from-app-green/10 via-app-green/5 to-transparent p-4">
+          <div className="text-[15px] font-black text-app-text mb-1">{todayMission.title}</div>
+          <div className="text-[12px] text-app-muted leading-relaxed mb-3">{todayMission.subtitle}</div>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[11px] font-bold text-app-blue bg-app-blue/15 border border-app-blue/30 rounded-full px-2.5 py-1">⏱ {todayMission.eta}</span>
+            <span className="text-[11px] font-bold text-app-yellow bg-app-yellow/15 border border-app-yellow/30 rounded-full px-2.5 py-1">⚡ {todayMission.reward}</span>
+          </div>
+          <button onClick={todayMission.action} className="primary-btn">{todayMission.actionLabel}</button>
+        </div>
+      </Section>
+
+      {/* ── Recall Warm-up Launcher ───────────────────────── */}
+      <Section title={<><Lightning size={16} weight="duotone" className="inline text-app-yellow" /> {ui.recallWarmup || 'Recall Warm-up'}</>}>
+        <div className="bg-app-card2 border border-app-border rounded-xl p-3.5 mb-3">
+          <div className="text-[13px] font-bold text-app-text mb-1">
+            {weakestSubjects[0]?.subject ? `${weakestSubjects[0].subject} · 5Q Sprint` : (ui.fiveQuestionSprint || '5-Question Sprint')}
+          </div>
+          <div className="text-[12px] text-app-muted">
+            {ui.recallWarmupHint || 'Answer from memory first, then check feedback. Stronger recall, faster revision.'}
+          </div>
+        </div>
+        {weakestSubjects.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3">
+            {weakestSubjects.map(item => (
+              <div key={item.subject} className="bg-app-card2 border border-app-border rounded-xl p-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[12px] font-bold text-app-text">{item.subject}</span>
+                  <span className="text-[11px] font-bold" style={{ color: masteryColor(item.score) }}>{item.score}%</span>
+                </div>
+                <div className="h-2 rounded-full bg-white/8 overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${Math.max(4, item.score)}%`, background: masteryColor(item.score) }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <button onClick={startRecallWarmup} className="primary-btn">{ui.startWarmup || 'Start Warm-up'}</button>
+          <button onClick={() => goWithTrack('coach', 'warmup_explain', { subject: weakestSubjects[0]?.subject || '' })} className="ghost-btn">{ui.explainQuickly || 'Explain Quickly'}</button>
+          <button onClick={() => goWithTrack('notebook', 'warmup_flashcards', { subject: weakestSubjects[0]?.subject || '' })} className="ghost-btn">{ui.makeFlashcards || 'Make Flashcards'}</button>
+        </div>
+      </Section>
+
+      {/* ── Due Review Queue ───────────────────────────────── */}
+      <Section title={<><Brain size={16} weight="duotone" className="inline text-app-blue" /> {ui.dueReviewQueue || 'Due Review Queue'}</>}>
+        <div className="grid grid-cols-3 gap-2.5 mb-3.5">
+          <MiniMetric label={ui.overdueLabel || 'Overdue'} value={bhool.overdue.length} tone="red" />
+          <MiniMetric label={ui.todayLabel || 'Today'} value={bhool.soon.length} tone="yellow" />
+          <MiniMetric label={ui.freshLabel || 'Fresh'} value={bhool.fresh.length} tone="green" />
+        </div>
+        <div className="text-[12px] text-app-muted mb-3">
+          {ui.reviewQueueHint || 'Short spaced reviews now will make recall faster during tests.'}
+        </div>
+        <button onClick={() => goWithTrack('mistakes', 'due_review_queue')} className="primary-btn">
+          {ui.reviewNow || 'Review Now'}
+        </button>
+      </Section>
+
+      {/* ── Quick Launch ────────────────────────────────────── */}
+      <Section title={<><Sparkle size={16} weight="duotone" className="inline text-app-blue" /> {ui.quickActions || 'Quick Actions'}</>}>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <QuickLaunch label={ui.practiceTab?.replace(/^📝\s*/, '') || 'Practice'} icon={<Target size={16} weight="fill" />} onClick={() => goWithTrack('practice', 'quick_launch')} />
+          <QuickLaunch label={ui.aiTutorTab?.replace(/^🤖\s*/, '') || 'Coach'} icon={<Brain size={16} weight="fill" />} onClick={() => goWithTrack('coach', 'quick_launch')} />
+          <QuickLaunch label={ui.notebookTab?.replace(/^📓\s*/, '') || 'Notebook'} icon={<Notebook size={16} weight="fill" />} onClick={() => goWithTrack('notebook', 'quick_launch')} />
+          <QuickLaunch label={ui.learntvTab?.replace(/^📺\s*/, '') || 'LearnTV'} icon={<Flask size={16} weight="fill" />} onClick={() => goWithTrack('learntv', 'quick_launch')} />
+        </div>
+      </Section>
 
       {/* ── Daily Brain Brief ─────────────────────────────── */}
       <Section title={<><SunHorizon size={16} weight="duotone" className="inline text-app-orange" /> {ui.dailyBrief?.replace(/^📋\s*/, '') || 'Daily Brain Brief'}</>}>
@@ -347,7 +581,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
               </div>
             ))}
           </div>
-          <button onClick={() => setTab('labs')} className="primary-btn">
+          <button onClick={() => goWithTrack('labs', 'memory_health_quick_revise')} className="primary-btn">
             {ui.quickReviseNow || <><Lightning size={14} weight="fill" className="inline" /> Quick Revise Now</>}
           </button>
         </Section>
@@ -410,7 +644,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
       {lastTab && (
         <Section title={`📚 ${ui.continueLearning || 'Continue Learning'}`}>
           <button
-            onClick={() => setTab(lastTab)}
+            onClick={() => goWithTrack(lastTab, 'continue_learning')}
             className="w-full rounded-[14px] py-3.5 px-4 flex items-center justify-between cursor-pointer font-[Sora,sans-serif] border bg-app-card2 border-app-blue/30 hover:border-app-blue/50 transition-colors"
           >
             <div className="flex items-center gap-3">
@@ -447,7 +681,7 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
             {pendingBattles.slice(0, 3).map((battle, i) => (
               <button
                 key={battle.id || i}
-                onClick={() => setTab('battles')}
+                onClick={() => goWithTrack('battles', 'pending_battle_notification', { battle_id: battle.id || '' })}
                 className="w-full rounded-xl py-3 px-3.5 flex items-center gap-3 cursor-pointer font-[Sora,sans-serif] text-left border bg-app-red/10 border-app-red/30"
               >
                 <span className="text-lg"><Sword size={20} weight="duotone" className="text-app-orange" /></span>
@@ -461,6 +695,29 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
                 </div>
                 <span className="text-[11px] font-bold text-app-red bg-app-red/20 rounded-lg py-1 px-2">{ui.accept || 'Accept'}</span>
               </button>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* ── Recent Practice Snapshot ────────────────────────── */}
+      {recentPractice.length > 0 && (
+        <Section title={<><Lightning size={16} weight="duotone" className="inline text-app-yellow" /> {ui.recentPractice || 'Recent Practice Snapshot'}</>}>
+          <div className="flex flex-col gap-2">
+            {recentPractice.map((item, idx) => (
+              <div key={`${item.type}-${idx}`} className="bg-app-card2 border border-app-border rounded-xl px-3 py-2.5 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-[12px] font-bold text-app-text truncate">
+                    {(item.subject || ui.general || 'General')} · {formatActivityType(item.type, ui)}
+                  </div>
+                  <div className="text-[11px] text-app-muted truncate">
+                    {item.chapter_name || item.difficulty || item.result || (ui.practice || 'Practice')}
+                  </div>
+                </div>
+                <div className="text-[12px] font-black text-app-green shrink-0">
+                  {typeof item.score === 'number' && typeof item.total === 'number' ? `${item.score}/${item.total}` : '—'}
+                </div>
+              </div>
             ))}
           </div>
         </Section>
@@ -493,23 +750,6 @@ function StatChip({ icon, value, color }) {
   )
 }
 
-function LoadingDots({ label }) {
-  return (
-    <div className="flex items-center gap-2 py-2.5 justify-center">
-      <div className="flex gap-1">
-        {[0, 1, 2].map(i => (
-          <div 
-            key={i} 
-            className="w-1.5 h-1.5 rounded-full bg-app-green opacity-60"
-            style={{ animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite` }}
-          />
-        ))}
-      </div>
-      <span className="text-xs text-app-muted">{label}</span>
-    </div>
-  )
-}
-
 function Section({ title, children }) {
   return (
     <div className="bg-app-card border border-app-border rounded-[18px] p-4 mb-3.5">
@@ -517,6 +757,97 @@ function Section({ title, children }) {
       {children}
     </div>
   )
+}
+
+function MiniMetric({ label, value, tone = 'green' }) {
+  const tones = {
+    red: { bg: 'bg-app-red/10', border: 'border-app-red/30', text: 'text-app-red' },
+    yellow: { bg: 'bg-app-yellow/10', border: 'border-app-yellow/30', text: 'text-app-yellow' },
+    green: { bg: 'bg-app-green/10', border: 'border-app-green/20', text: 'text-app-green' },
+  }
+  const t = tones[tone] || tones.green
+
+  return (
+    <div className={`rounded-xl border ${t.border} ${t.bg} text-center px-2 py-2.5`}>
+      <div className={`text-[18px] font-black ${t.text}`}>{value}</div>
+      <div className="text-[10px] text-app-muted">{label}</div>
+    </div>
+  )
+}
+
+function QuickLaunch({ label, icon, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-xl border border-app-border bg-app-card2 hover:border-app-green/30 py-2.5 px-2 flex items-center justify-center gap-1.5 text-[12px] font-bold text-app-text"
+    >
+      <span className="text-app-green">{icon}</span>
+      <span>{label}</span>
+    </button>
+  )
+}
+
+function formatActivityType(type, ui) {
+  if (type === 'quiz') return ui.quiz || 'Quiz'
+  if (type === 'battle') return ui.muqablaTab?.replace(/^⚔️\s*/, '') || 'Battle'
+  if (type === 'chapter_quiz') return ui.chapterQuiz || 'Chapter Quiz'
+  return type || 'Practice'
+}
+
+function estimateDaysToExam(standard, examDateIso) {
+  const parsedExamDate = parseOptionalDate(examDateIso)
+  if (parsedExamDate) {
+    return Math.max(1, Math.ceil((parsedExamDate.getTime() - Date.now()) / 86400000))
+  }
+
+  const now = new Date()
+  const year = now.getFullYear()
+  const std = String(standard || '')
+
+  // Approximation: board exams for Class 10/12 generally around March.
+  if (std.includes('10') || std.includes('12')) {
+    const currentYearExam = new Date(year, 2, 1)
+    const nextExam = now <= currentYearExam ? currentYearExam : new Date(year + 1, 2, 1)
+    return Math.max(1, Math.ceil((nextExam.getTime() - now.getTime()) / 86400000))
+  }
+
+  // For other classes, default to a medium-horizon cycle.
+  return 120
+}
+
+function getProfileExamDate(profile) {
+  if (!profile || typeof profile !== 'object') return ''
+  const candidates = [
+    profile.examDate,
+    profile.exam_date,
+    profile.targetExamDate,
+    profile.target_exam_date,
+  ]
+  const found = candidates.find(Boolean)
+  return typeof found === 'string' ? found : ''
+}
+
+function parseOptionalDate(value) {
+  if (!value || typeof value !== 'string') return null
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return null
+  if (d.getTime() <= Date.now()) return null
+  return d
+}
+
+function readProfileStudyBudget(profile) {
+  if (!profile || typeof profile !== 'object') return 0
+  const candidates = [
+    profile.dailyStudyMinutes,
+    profile.daily_study_minutes,
+    profile.studyBudgetMinutes,
+    profile.study_budget_minutes,
+  ]
+  for (const value of candidates) {
+    const minutes = Number(value)
+    if (Number.isFinite(minutes) && minutes > 0) return minutes
+  }
+  return 0
 }
 
 // Note: primaryBtn, ghostBtn, aiCard classes are defined in index.css

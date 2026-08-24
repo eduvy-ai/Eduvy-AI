@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { COLORS, callAI, parseAIArray, parseAIObject, SUBS, checkStudentQuery, validateSourceContent, checkContentRelevance, generateSmartSummary, getDisplayLang } from '../../shared.js'
 import { li } from '../../i18n/index.js'
 import { Microphone, Books, ClipboardText, Question, CalendarBlank, MapTrifold, Target, Cards, Warning, Trash, ClockCounterClockwise, CaretLeft } from '@phosphor-icons/react'
@@ -188,8 +188,12 @@ async function renderPdfPageAsImage(pdf, pageNum = 1, scale = 1.5) {
 export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx, docName, setDocName }) {
 
   const navigate = useNavigate()
+  const location = useLocation()
   const lang = profile?.language || 'English'
   const ui = li(getDisplayLang(profile))
+  const backTarget = (location.state?.from && String(location.state.from).startsWith('/app/'))
+    ? location.state.from
+    : '/app/home'
 
   // ── View state ──────────────────────────────────────────────
   const [view, setView]       = useState("sources") // sources | chat | studio
@@ -931,7 +935,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
 
       {/* ── Top sub-nav ── */}
       <div className="flex bg-app-card border-b border-app-border py-2 px-3 md:px-5 pb-0 gap-1 shrink-0 overflow-x-auto min-h-[40px] items-center">
-        <button onClick={() => navigate('/app/home')}
+        <button onClick={() => navigate(backTarget)}
           className="w-8 h-8 rounded-xl bg-app-card border border-app-border flex items-center justify-center cursor-pointer hover:border-app-green/30 active:scale-95 transition-all mr-1 shrink-0">
           <CaretLeft size={16} weight="bold" className="text-app-text" />
         </button>

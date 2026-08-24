@@ -22,10 +22,10 @@ class HomeService:
                     SELECT 'quiz' AS type, subject, difficulty,
                            correct AS score, total, NULL AS opponent_name,
                            NULL AS result, NULL AS chapter_name,
-                           created_at AS completed_at
+                           NULLIF(created_at::text, '')::timestamp AS completed_at
                     FROM quiz_results
                     WHERE user_id = %s
-                    ORDER BY created_at DESC LIMIT %s
+                    ORDER BY NULLIF(created_at::text, '')::timestamp DESC LIMIT %s
                 )
                 UNION ALL
                 (
@@ -42,24 +42,32 @@ class HomeService:
                                 WHEN status = 'completed' THEN 'lost'
                                 ELSE status END AS result,
                            NULL AS chapter_name,
-                           COALESCE(completed_at, created_at) AS completed_at
+                           COALESCE(
+                               NULLIF(completed_at::text, '')::timestamp,
+                               NULLIF(created_at::text, '')::timestamp
+                           ) AS completed_at
                     FROM muqabla_battles
                     WHERE (challenger_id = %s OR opponent_id = %s)
                       AND status IN ('completed', 'expired')
-                    ORDER BY COALESCE(completed_at, created_at) DESC LIMIT %s
+                    ORDER BY COALESCE(
+                        NULLIF(completed_at::text, '')::timestamp,
+                        NULLIF(created_at::text, '')::timestamp
+                    ) DESC LIMIT %s
                 )
                 UNION ALL
                 (
                     SELECT 'chapter_quiz' AS type,
-                           c.subject, cqh.mode AS difficulty,
+                           COALESCE(s.name, c.subject_id, 'General') AS subject,
+                           cqh.mode AS difficulty,
                            cqh.score, cqh.total,
                            NULL AS opponent_name, NULL AS result,
                            c.chapter_name,
-                           cqh.completed_at
+                           NULLIF(cqh.completed_at::text, '')::timestamp AS completed_at
                     FROM chapter_quiz_history cqh
                     JOIN chapters c ON c.id = cqh.chapter_id
+                    LEFT JOIN subjects s ON s.id = c.subject_id
                     WHERE cqh.user_id = %s
-                    ORDER BY cqh.completed_at DESC LIMIT %s
+                    ORDER BY NULLIF(cqh.completed_at::text, '')::timestamp DESC LIMIT %s
                 )
                 ORDER BY completed_at DESC
                 LIMIT %s

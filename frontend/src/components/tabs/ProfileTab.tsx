@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useMemo, lazy, Suspense } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/modules/auth'
 import { PLANS } from '@/shared/constants/plans'
 import { getDisplayLang } from '@/shared.js'
@@ -92,6 +92,7 @@ const StatItem: React.FC<StatItemProps> = ({ icon: Icon, value, label, color }) 
 
 const ProfileTab: React.FC = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, logout, refresh } = useAuth()
   
   const [showSettings, setShowSettings] = useState(false)
@@ -119,8 +120,9 @@ const ProfileTab: React.FC = () => {
   }
 
   // Navigate to secondary features (not in bottom nav)
-  const goToNotebook = () => navigate('/app/notebook')
-  const goToLearnTV = () => navigate('/app/learntv')
+  const fromPath = location.pathname.startsWith('/app/') ? location.pathname : '/app/profile'
+  const goToNotebook = () => navigate('/app/notebook', { state: { from: fromPath } })
+  const goToLearnTV = () => navigate('/app/learntv', { state: { from: fromPath } })
 
   return (
     <div className="min-h-screen bg-app-bg p-4 pb-24 md:p-6 lg:p-8">

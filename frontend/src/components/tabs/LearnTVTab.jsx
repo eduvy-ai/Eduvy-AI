@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { callAI, parseAIObject, parseAIArray, checkStudentQuery, getDisplayLang } from '../../shared.js'
 import { apiYouTubeSearch, apiYouTubeSmartSearch, apiYouTubeEduReels, apiYouTubeGetVideo } from '../../api.js'
 import { li } from '../../i18n/index.js'
@@ -105,7 +105,11 @@ function detectUrlType(url) {
 // ═════════════════════════════════════════════════════════════
 export default function LearnTVTab({ profile }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const ui = li(getDisplayLang(profile))
+  const backTarget = (location.state?.from && String(location.state.from).startsWith('/app/'))
+    ? location.state.from
+    : '/app/home'
   const [mode, setMode] = useState('discover')  // discover | analyze | create
 
   // ── Discover state ─────────────────────────────────────────
@@ -378,7 +382,7 @@ export default function LearnTVTab({ profile }) {
     <div className="px-4 md:px-6 lg:px-8 py-4 pb-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-3.5">
-        <button onClick={() => navigate('/app/home')}
+        <button onClick={() => navigate(backTarget)}
           className="w-9 h-9 rounded-xl bg-app-card border border-app-border flex items-center justify-center cursor-pointer hover:border-app-green/30 active:scale-95 transition-all">
           <CaretLeft size={18} weight="bold" className="text-app-text" />
         </button>
