@@ -477,6 +477,13 @@ async def create_student(data: StudentCreate, admin_scope: tuple = Depends(get_a
     )
 
 
+@router.get("/users/{user_id}/temp-password")
+async def get_student_temp_password(user_id: str, admin_scope: tuple = Depends(get_admin_with_school)):
+    """Get student's temporary password for admin fallback support."""
+    admin_id, school_id = admin_scope
+    return await asyncio.to_thread(AdminService.get_student_temp_password, user_id, school_id)
+
+
 @router.put("/users/{user_id}")
 async def update_student(user_id: str, data: StudentUpdate, admin_scope: tuple = Depends(get_admin_with_school)):
     """Update a student. School admins can only update their school's students."""

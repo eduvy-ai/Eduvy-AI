@@ -28,6 +28,8 @@ import {
   Upload,
   FileText,
   DownloadSimple,
+  Copy,
+  Check,
 } from '@phosphor-icons/react'
 
 // Default create form state
@@ -103,8 +105,14 @@ const StudentsPage: React.FC = () => {
     failed: number
     errors: Array<{ row: number; email: string; error: string }>
     created_students: Array<{ id: string; name: string; email: string; temp_password: string }>
+    email_status?: 'queued' | 'skipped' | 'failed'
+    emails_queued?: number
   } | null>(null)
   const [isBulkImporting, setIsBulkImporting] = useState(false)
+  const [tempPassword, setTempPassword] = useState<{ value: string; mustChange: boolean } | null>(null)
+  const [isLoadingTempPassword, setIsLoadingTempPassword] = useState(false)
+  const [tempPasswordError, setTempPasswordError] = useState('')
+  const [copiedKey, setCopiedKey] = useState('')
   
   // Ref to keep fetch function stable
   const fetchStudentsRef = useRef(fetchStudents)
@@ -164,7 +172,41 @@ const StudentsPage: React.FC = () => {
   // View student details
   const handleView = (student: StudentUser) => {
     setSelectedStudent(student)
+    setTempPassword(student.temp_password ? { value: student.temp_password, mustChange: true } : null)
+    setTempPasswordError('')
     setShowDetailModal(true)
+  }
+
+  const copyToClipboard = async (text: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedKey(key)
+      setTimeout(() => setCopiedKey(''), 1500)
+    } catch (error) {
+      setFormError('Could not copy to clipboard. Please copy manually.')
+    }
+  }
+
+  const handleFetchTempPassword = async () => {
+    if (!selectedStudent) return
+    setIsLoadingTempPassword(true)
+    setTempPasswordError('')
+    try {
+      const data = await adminApi.users.getTempPassword(selectedStudent.id)
+      setTempPassword({
+        value: data.temp_password,
+        mustChange: !!data.must_change_password,
+      })
+      updateStudentLocal({
+        ...selectedStudent,
+        temp_password: data.temp_password,
+      })
+      setSelectedStudent(prev => prev ? { ...prev, temp_password: data.temp_password } : prev)
+    } catch (error: any) {
+      setTempPasswordError(error.response?.data?.detail || 'Temporary password is not available for this student')
+    } finally {
+      setIsLoadingTempPassword(false)
+    }
   }
 
   // Open edit modal
@@ -317,6 +359,22 @@ const StudentsPage: React.FC = () => {
           plan_expires_at: null,
         }
         addStudentLocal({ ...defaults, ...newStudent } as StudentUser)
+      }
+
+      if (newStudent.temp_password) {
+        const mergedStudent = {
+          xp: 0,
+          streak: 0,
+          is_drishti: false,
+          school: '',
+          created_at: new Date().toISOString(),
+          last_active: '',
+          plan_expires_at: null,
+          ...newStudent,
+        } as StudentUser
+        setSelectedStudent(mergedStudent)
+        setTempPassword({ value: newStudent.temp_password, mustChange: true })
+        setShowDetailModal(true)
       }
       
       setShowCreateModal(false)
@@ -824,6 +882,55 @@ Priya Sharma, priya@example.com, Class 12, CBSE, Commerce, English, pro`
               </div>
             </div>
 
+            {/* Temporary password fallback */}
+            {canEdit && (
+              <div className="p-4 bg-app-blue/5 border border-app-blue/20 rounded-xl space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-medium text-app-text">Temporary Password Fallback</div>
+                    <div className="text-xs text-app-muted mt-1">
+                      Use this if email delivery is delayed or failed.
+                    </div>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleFetchTempPassword}
+                    disabled={isLoadingTempPassword}
+                  >
+                    {isLoadingTempPassword ? 'Loading...' : 'Fetch Temp Password'}
+                  </Button>
+                </div>
+
+                {tempPassword && (
+                  <div className="rounded-lg border border-app-blue/30 bg-app-card2 p-3 flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs text-app-muted">Temporary Password</div>
+                      <div className="font-mono text-app-green text-sm mt-1">{tempPassword.value}</div>
+                    </div>
+                    <button
+                      onClick={() => copyToClipboard(tempPassword.value, `temp-${selectedStudent.id}`)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/10 text-xs text-app-text hover:bg-white/5"
+                      title="Copy temporary password"
+                    >
+                      {copiedKey === `temp-${selectedStudent.id}` ? <Check size={14} /> : <Copy size={14} />}
+                      {copiedKey === `temp-${selectedStudent.id}` ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                )}
+
+                {tempPassword?.mustChange && (
+                  <div className="text-xs text-app-yellow">
+                    Student will be asked to change this password on first login.
+                  </div>
+                )}
+
+                {tempPasswordError && (
+                  <div className="text-xs text-app-red">{tempPasswordError}</div>
+                )}
+              </div>
+            )}
+
             {/* Subscription */}
             {selectedStudent.plan !== 'free' && (
               <div className="p-4 bg-app-green/5 border border-app-green/20 rounded-xl">
@@ -1323,6 +1430,13 @@ Priya Sharma, priya@example.com, Class 12, CBSE, Commerce, English, pro`
                 </div>
               </div>
 
+              {bulkImportResult.email_status && (
+                <div className="text-xs text-app-muted p-2 rounded-lg bg-app-card2 border border-white/10">
+                  Email status: {bulkImportResult.email_status}
+                  {bulkImportResult.emails_queued ? ` (${bulkImportResult.emails_queued} queued)` : ''}
+                </div>
+              )}
+
               {bulkImportResult.errors.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium text-app-text">Errors</h4>
@@ -1346,6 +1460,7 @@ Priya Sharma, priya@example.com, Class 12, CBSE, Commerce, English, pro`
                           <th className="text-left py-1">Name</th>
                           <th className="text-left py-1">Email</th>
                           <th className="text-left py-1">Temp Password</th>
+                          <th className="text-left py-1">Copy</th>
                         </tr>
                       </thead>
                       <tbody className="text-app-text">
@@ -1354,6 +1469,15 @@ Priya Sharma, priya@example.com, Class 12, CBSE, Commerce, English, pro`
                             <td className="py-1.5">{student.name}</td>
                             <td className="py-1.5">{student.email}</td>
                             <td className="py-1.5 font-mono text-app-green">{student.temp_password}</td>
+                            <td className="py-1.5">
+                              <button
+                                onClick={() => copyToClipboard(student.temp_password, `bulk-${student.id}`)}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded border border-white/10 text-app-muted hover:text-app-text"
+                              >
+                                {copiedKey === `bulk-${student.id}` ? <Check size={12} /> : <Copy size={12} />}
+                                {copiedKey === `bulk-${student.id}` ? 'Copied' : 'Copy'}
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>

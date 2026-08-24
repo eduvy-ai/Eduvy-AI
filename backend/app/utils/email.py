@@ -1,6 +1,7 @@
 """
 Email utility for sending transactional emails via SMTP.
 """
+import asyncio
 import smtplib
 import ssl
 from email.mime.text import MIMEText
@@ -11,6 +12,41 @@ import logging
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+def _send_email_sync(
+    to_email: str,
+    subject: str,
+    html_body: str,
+    plain_body: Optional[str] = None,
+) -> bool:
+    """Blocking SMTP send with network timeout. Run this in a worker thread."""
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM}>"
+    msg["To"] = to_email
+
+    if plain_body:
+        msg.attach(MIMEText(plain_body, "plain"))
+
+    msg.attach(MIMEText(html_body, "html"))
+
+    context = ssl.create_default_context()
+    timeout = max(3, int(getattr(settings, "SMTP_TIMEOUT_SEC", 12)))
+
+    if settings.SMTP_PORT == 465:
+        with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, context=context, timeout=timeout) as server:
+            server.login(settings.SMTP_USER, settings.SMTP_PASS)
+            server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
+        return True
+
+    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=timeout) as server:
+        server.ehlo()
+        server.starttls(context=context)
+        server.ehlo()
+        server.login(settings.SMTP_USER, settings.SMTP_PASS)
+        server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
+    return True
 
 
 async def send_email(
@@ -28,24 +64,13 @@ async def send_email(
         return False
 
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM}>"
-        msg["To"] = to_email
-
-        # Plain text fallback
-        if plain_body:
-            msg.attach(MIMEText(plain_body, "plain"))
-        
-        # HTML body
-        msg.attach(MIMEText(html_body, "html"))
-
-        # Connect and send
-        context = ssl.create_default_context()
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-            server.starttls(context=context)
-            server.login(settings.SMTP_USER, settings.SMTP_PASS)
-            server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
+        await asyncio.to_thread(
+            _send_email_sync,
+            to_email,
+            subject,
+            html_body,
+            plain_body,
+        )
 
         logger.info(f"Email sent to {to_email}: {subject}")
         return True

@@ -96,6 +96,7 @@ class Settings:
     SMTP_PASS: str = os.getenv("SMTP_PASS", "")
     SMTP_FROM: str = os.getenv("SMTP_FROM", "noreply@eduvy.co.in")
     SMTP_FROM_NAME: str = os.getenv("SMTP_FROM_NAME", "Eduvy-AI")
+    SMTP_TIMEOUT_SEC: int = int(os.getenv("SMTP_TIMEOUT_SEC", "12"))
 
     @property
     def smtp_configured(self) -> bool:

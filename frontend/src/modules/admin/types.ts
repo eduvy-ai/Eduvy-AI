@@ -141,6 +141,8 @@ export interface StudentUser {
   id: string
   email: string
   name: string
+  temp_password?: string
+  email_status?: 'queued' | 'skipped' | 'failed'
   standard: string
   board: string
   stream?: string  // For Class 11-12 (Science, Commerce, Arts)

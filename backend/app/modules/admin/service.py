@@ -4,6 +4,9 @@ Admin Service - Business logic for admin panel.
 import json
 import os
 import bcrypt
+import asyncio
+import logging
+import threading
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 from fastapi import HTTPException
@@ -14,6 +17,7 @@ from app.db.connection import get_db
 _JWT_SECRET = os.getenv("JWT_SECRET", "eduvyai-change-me")
 _JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 _ADMIN_JWT_DAYS = 7
+logger = logging.getLogger(__name__)
 
 
 def _hash(plain: str) -> str:
@@ -45,6 +49,61 @@ def _make_admin_token(admin_id: int, school_id: int = None) -> str:
     if school_id:
         payload["school_id"] = school_id
     return jwt.encode(payload, _JWT_SECRET, algorithm=_JWT_ALGORITHM)
+
+
+def _run_async_in_background(coro, task_name: str) -> None:
+    """Run an async coroutine in a daemon thread without blocking the request path."""
+    def _runner() -> None:
+        try:
+            asyncio.run(coro)
+        except Exception as exc:
+            logger.warning("Background task '%s' failed: %s", task_name, exc)
+
+    thread = threading.Thread(target=_runner, name=f"admin-{task_name}", daemon=True)
+    thread.start()
+
+
+async def _send_student_welcome_email(
+    student_name: str,
+    student_email: str,
+    temp_password: str,
+    school_name: Optional[str],
+) -> None:
+    from app.utils.email import send_email, student_welcome_html, student_welcome_plain
+
+    html = student_welcome_html(
+        student_name=student_name,
+        student_email=student_email,
+        temp_password=temp_password,
+        school_name=school_name,
+    )
+    plain = student_welcome_plain(
+        student_name=student_name,
+        student_email=student_email,
+        temp_password=temp_password,
+        school_name=school_name,
+    )
+    ok = await send_email(
+        to_email=student_email,
+        subject="Welcome to Eduvy-AI! 🎓",
+        html_body=html,
+        plain_body=plain,
+    )
+    if not ok:
+        logger.warning("Welcome email delivery failed for %s", student_email)
+
+
+async def _send_bulk_student_welcome_emails(
+    created_students: List[Dict],
+    school_name: Optional[str],
+) -> None:
+    for student in created_students:
+        await _send_student_welcome_email(
+            student_name=student["name"],
+            student_email=student["email"],
+            temp_password=student["temp_password"],
+            school_name=school_name,
+        )
 
 
 class AdminService:
@@ -1436,43 +1495,6 @@ class AdminService:
             )
             conn.commit()
             
-            # Send welcome email if requested and temp password was generated
-            if send_welcome_email and temp_password:
-                try:
-                    from app.utils.email import send_email as send_email_func, student_welcome_html, student_welcome_plain
-                    import asyncio
-                    
-                    html = student_welcome_html(
-                        student_name=name.strip(),
-                        student_email=email,
-                        temp_password=temp_password,
-                        school_name=school_name
-                    )
-                    plain = student_welcome_plain(
-                        student_name=name.strip(),
-                        student_email=email,
-                        temp_password=temp_password,
-                        school_name=school_name
-                    )
-                    # Run async email in sync context
-                    try:
-                        loop = asyncio.get_event_loop()
-                    except RuntimeError:
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-                    loop.run_until_complete(
-                        send_email_func(
-                            to_email=email,
-                            subject="Welcome to Eduvy-AI! 🎓",
-                            html_body=html,
-                            plain_body=plain
-                        )
-                    )
-                except Exception as e:
-                    # Don't fail student creation if email fails
-                    import logging
-                    logging.getLogger(__name__).warning(f"Failed to send welcome email to {email}: {e}")
-            
             result = {
                 "id": user_id, 
                 "name": name, 
@@ -1487,6 +1509,22 @@ class AdminService:
             }
             if temp_password:
                 result["temp_password"] = temp_password
+
+            # Queue email in background so student creation remains fast.
+            if send_welcome_email and temp_password:
+                _run_async_in_background(
+                    _send_student_welcome_email(
+                        student_name=name.strip(),
+                        student_email=email,
+                        temp_password=temp_password,
+                        school_name=school_name,
+                    ),
+                    task_name="student-welcome-email",
+                )
+                result["email_status"] = "queued"
+            elif send_welcome_email:
+                result["email_status"] = "skipped"
+
             return result
         finally:
             conn.close()
@@ -1601,39 +1639,51 @@ class AdminService:
             
             conn.commit()
             
-            # Send welcome emails (async would be better but keeping it simple)
-            if send_email:
-                from app.utils.email import send_email as send_email_func, student_welcome_html, student_welcome_plain
-                import asyncio
-                
-                for student in results["created_students"]:
-                    try:
-                        html = student_welcome_html(
-                            student_name=student["name"],
-                            student_email=student["email"],
-                            temp_password=student["temp_password"],
-                            school_name=school_name
-                        )
-                        plain = student_welcome_plain(
-                            student_name=student["name"],
-                            student_email=student["email"],
-                            temp_password=student["temp_password"],
-                            school_name=school_name
-                        )
-                        # Run async email in sync context
-                        asyncio.get_event_loop().run_until_complete(
-                            send_email_func(
-                                to_email=student["email"],
-                                subject="Welcome to Eduvy-AI! 🎓",
-                                html_body=html,
-                                plain_body=plain
-                            )
-                        )
-                    except Exception as e:
-                        # Don't fail the whole import if email fails
-                        pass
+            if send_email and results["created_students"]:
+                _run_async_in_background(
+                    _send_bulk_student_welcome_emails(results["created_students"], school_name),
+                    task_name="bulk-student-welcome-emails",
+                )
+                results["email_status"] = "queued"
+                results["emails_queued"] = len(results["created_students"])
+            elif send_email:
+                results["email_status"] = "skipped"
+                results["emails_queued"] = 0
             
             return results
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_student_temp_password(user_id: str, school_id: int = None) -> Dict:
+        """Return a student's temporary password for admin fallback workflows."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            AdminService._verify_user_school(cur, user_id, school_id)
+            cur.execute(
+                """
+                SELECT id, name, email, temp_password, must_change_password
+                FROM users
+                WHERE id = %s
+                """,
+                (user_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Student not found")
+
+            temp_password = (row.get("temp_password") or "").strip()
+            if not temp_password:
+                raise HTTPException(status_code=404, detail="No temporary password available for this student")
+
+            return {
+                "id": row["id"],
+                "name": row["name"],
+                "email": row["email"],
+                "temp_password": temp_password,
+                "must_change_password": bool(row.get("must_change_password")),
+            }
         finally:
             conn.close()
 

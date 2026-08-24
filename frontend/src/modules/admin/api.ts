@@ -470,6 +470,20 @@ export const usersApi = {
     return response.data
   },
 
+  getTempPassword: async (userId: string): Promise<{
+    id: string
+    name: string
+    email: string
+    temp_password: string
+    must_change_password: boolean
+  }> => {
+    const response = await axiosInstance.get(
+      `${ADMIN_ENDPOINTS.users}/${userId}/temp-password`,
+      adminConfig()
+    )
+    return response.data
+  },
+
   update: async (userId: string, data: {
     name?: string
     email?: string
@@ -505,6 +519,8 @@ export const usersApi = {
     failed: number
     errors: Array<{ row: number; email: string; error: string }>
     created_students: Array<{ id: string; name: string; email: string; temp_password: string; stream?: string }>
+    email_status?: 'queued' | 'skipped' | 'failed'
+    emails_queued?: number
   }> => {
     const response = await axiosInstance.post(
       `${ADMIN_ENDPOINTS.users}/bulk-import`,
