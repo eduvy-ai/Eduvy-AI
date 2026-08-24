@@ -61,7 +61,7 @@ This is achievable in 60 days with the tactics below.
 - [ ] **Day 9:** Contact 5 local schools — offer 30-day free pilot for Class 10 batch
 - [ ] **Day 9:** Post Marathi Reel + Telugu Reel (grow regional audience)
 - [ ] **Day 10:** First micro-influencer posts should go live (if collab confirmed in Week 1)
-- [ ] **Day 11:** Post "Muqabla Battle" demo Reel — show two students competing
+- [ ] **Day 11:** Post "Battle" demo Reel — show two students competing
 - [ ] **Day 12:** Email/WhatsApp outreach to tutoring centres — "refer your students, they get free access"
 - [ ] **Day 13:** Publish first blog article: "Best free CBSE study app 2026" (SEO)
 - [ ] **Day 14:** Weekly review. Calculate Cost Per Signup from paid ads. Adjust targeting.

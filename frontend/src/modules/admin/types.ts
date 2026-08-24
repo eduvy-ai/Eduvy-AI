@@ -318,6 +318,56 @@ export interface AIUserUsage {
   completion_tokens: number
 }
 
+export interface AIProviderQuota {
+  provider: string
+  keys: number
+  per_key_daily_limit: number
+  daily_capacity: number
+  daily_calls_used: number
+  daily_calls_remaining: number | null
+  month_capacity: number
+  month_calls_used: number
+  month_calls_remaining: number | null
+  tokens_today: number
+  tokens_month: number
+}
+
+export interface AIQuotaOverview {
+  scope: 'global' | 'school'
+  today: {
+    date: string
+    active_users: number
+    calls_used: number
+    tokens_used: number
+  }
+  month: {
+    month_start: string
+    month_end: string
+    days_in_month: number
+    active_users: number
+    calls_used: number
+    tokens_used: number
+  }
+  users: {
+    total_users: number
+    by_plan: Record<string, number>
+  }
+  user_quota: {
+    daily_total: number
+    daily_remaining: number
+    month_total: number
+    month_remaining: number
+  }
+  keys_quota: {
+    total_keys: number
+    daily_total_capacity: number
+    daily_remaining: number
+    month_total_capacity: number
+    month_remaining: number
+    providers: AIProviderQuota[]
+  }
+}
+
 // ── Dashboard Types ──
 export interface DashboardStats {
   total_students: number

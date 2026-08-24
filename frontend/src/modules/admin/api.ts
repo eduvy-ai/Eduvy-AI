@@ -21,6 +21,7 @@ import type {
   AIKeySlot,
   AIUsageSummary,
   AIUserUsage,
+  AIQuotaOverview,
   Squad,
   SquadMember,
   SquadMessage,
@@ -827,6 +828,14 @@ export const aiUsageApi = {
   getUserUsage: async (days: number = 7): Promise<AIUserUsage[]> => {
     const response = await axiosInstance.get<AIUserUsage[]>(
       `${ADMIN_ENDPOINTS.usageUsers}?days=${days}`,
+      adminConfig()
+    )
+    return response.data
+  },
+
+  getQuotaOverview: async (): Promise<AIQuotaOverview> => {
+    const response = await axiosInstance.get<AIQuotaOverview>(
+      ADMIN_ENDPOINTS.usageQuotaOverview,
       adminConfig()
     )
     return response.data

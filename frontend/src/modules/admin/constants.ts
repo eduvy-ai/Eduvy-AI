@@ -55,6 +55,7 @@ export const ADMIN_ENDPOINTS = {
   aiDashboard: '/api/admin/api-dashboard',
   usageSummary: '/api/admin/usage/summary',
   usageUsers: '/api/admin/usage/users',
+  usageQuotaOverview: '/api/admin/usage/quota-overview',
   
   // Storage
   storageStats: '/api/storage/stats',
@@ -164,8 +165,8 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     label: 'Operations',
     icon: 'Gear',
     children: [
-      { key: 'jobs', label: 'Jobs', path: '/admin/operations/jobs' },
-      { key: 'logs', label: 'Logs', path: '/admin/operations/logs' },
+      // { key: 'jobs', label: 'Jobs', path: '/admin/operations/jobs' },
+      // { key: 'logs', label: 'Logs', path: '/admin/operations/logs' },
       { key: 'storage', label: 'Storage', path: '/admin/operations/storage' },
     ],
   },

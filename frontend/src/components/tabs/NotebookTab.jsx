@@ -10,6 +10,7 @@ import {
   apiExtractImageContent,
 } from '../../api.js'
 import StudioHistory from '../notebook/StudioHistory.jsx'
+import DiagramViewer from '../studycoach/DiagramViewer'
 
 // ── Max limits ─────────────────────────────────────────────────
 const MAX_SOURCES = 15
@@ -40,6 +41,64 @@ const STUDIO_ITEMS = [
 
 let _sourceIdCounter = 1
 const newId = () => String(_sourceIdCounter++)
+
+function detectDiagramType(content) {
+  const src = String(content || '').trim().toLowerCase()
+  if (src.startsWith('mindmap')) return 'mindmap'
+  if (src.startsWith('sequencediagram')) return 'sequence'
+  if (src.startsWith('classdiagram')) return 'classDiagram'
+  return 'flowchart'
+}
+
+function parseAssistantVisualBlocks(text) {
+  const input = String(text || '')
+  const segments = []
+  const mermaidRegex = /```mermaid\s*([\s\S]*?)```/gi
+  let last = 0
+  let m
+
+  while ((m = mermaidRegex.exec(input)) !== null) {
+    if (m.index > last) {
+      segments.push({ type: 'text', value: input.slice(last, m.index) })
+    }
+    segments.push({ type: 'diagram', value: (m[1] || '').trim() })
+    last = mermaidRegex.lastIndex
+  }
+
+  if (last < input.length) {
+    segments.push({ type: 'text', value: input.slice(last) })
+  }
+
+  const expanded = []
+  const imageRegex = /!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/gi
+  for (const part of segments) {
+    if (part.type !== 'text') {
+      expanded.push(part)
+      continue
+    }
+
+    let pLast = 0
+    let im
+    const txt = part.value || ''
+    while ((im = imageRegex.exec(txt)) !== null) {
+      if (im.index > pLast) {
+        expanded.push({ type: 'text', value: txt.slice(pLast, im.index) })
+      }
+      expanded.push({ type: 'image', alt: (im[1] || 'diagram').trim() || 'diagram', src: im[2] })
+      pLast = imageRegex.lastIndex
+    }
+
+    if (pLast < txt.length) {
+      expanded.push({ type: 'text', value: txt.slice(pLast) })
+    }
+  }
+
+  return expanded.filter(s => {
+    if (s.type === 'text') return String(s.value || '').trim().length > 0
+    if (s.type === 'diagram') return String(s.value || '').trim().length > 0
+    return true
+  })
+}
 
 // ─── Fetch URL via backend (falls back to allorigins if backend is down) ──
 async function fetchUrlContent(url) {
@@ -723,7 +782,7 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
     // Include language instruction so AI responds in user's preferred language
     const userLang = profile?.language || 'English'
     const res = await callAI(
-      `[IMPORTANT: Answer in ${userLang} language ONLY. Do NOT use any other language.]\n\nQuestion: ${chatInput.trim()}\n\n[Student: Class ${profile?.standard || '10'}, ${profile?.board || 'CBSE'}]\n[Answering from: ${sourceLabel}]\n\nSources:\n${ctx.slice(0, 6000)}`,
+      `[IMPORTANT: Answer in ${userLang} language ONLY. Do NOT use any other language.]\n[FORMAT RULE: Start with clear, simple text explanation first.]\n[VISUAL RULE: If question needs process/flow/diagram/comparison/label-map, include ONE Mermaid block after explanation using \`\`\`mermaid. Keep diagram labels in ENGLISH only.]\n[IMAGE RULE: If a reliable educational image URL exists in sources, include at most one markdown image line ![label](url).]\n\nQuestion: ${chatInput.trim()}\n\n[Student: Class ${profile?.standard || '10'}, ${profile?.board || 'CBSE'}]\n[Answering from: ${sourceLabel}]\n\nSources:\n${ctx.slice(0, 6000)}`,
       "", newMsgs, 3, 1500, "notebook_chat"
     )
     if (res && res.startsWith('⚠️')) {
@@ -1186,7 +1245,43 @@ export default function NotebookTab({ profile, userId, addXp, docCtx, setDocCtx,
 
               <div className="flex flex-col gap-2.5">
                 {messages.map((m, i) => (
-                  <div key={i} className={m.role === "user" ? "user-bubble" : "ai-bubble"}>{m.content}</div>
+                  m.role === "user" ? (
+                    <div key={i} className="user-bubble">{m.content}</div>
+                  ) : (
+                    <div key={i} className="ai-bubble">
+                      {parseAssistantVisualBlocks(m.content).map((seg, segIdx) => {
+                        if (seg.type === 'diagram') {
+                          return (
+                            <div key={`d-${i}-${segIdx}`} className="my-2">
+                              <DiagramViewer
+                                diagram={{ type: detectDiagramType(seg.value), content: seg.value }}
+                                ui={ui}
+                                compact
+                                showHeader
+                              />
+                            </div>
+                          )
+                        }
+                        if (seg.type === 'image') {
+                          return (
+                            <div key={`img-${i}-${segIdx}`} className="my-2">
+                              <img
+                                src={seg.src}
+                                alt={seg.alt}
+                                loading="lazy"
+                                className="max-w-full rounded-xl border border-app-border"
+                              />
+                            </div>
+                          )
+                        }
+                        return (
+                          <p key={`t-${i}-${segIdx}`} className="whitespace-pre-wrap leading-relaxed m-0 mb-2 last:mb-0">
+                            {seg.value}
+                          </p>
+                        )
+                      })}
+                    </div>
+                  )
                 ))}
                 {chatLoading && (
                   <div className="ai-bubble">

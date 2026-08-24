@@ -3,6 +3,7 @@ AI Service - Business logic for AI chat proxy.
 """
 import asyncio
 import logging
+import re
 from datetime import datetime, timezone
 from typing import Dict, Tuple
 from fastapi import HTTPException
@@ -27,6 +28,42 @@ _BEAT_GENERATION_LOCKS: Dict[str, asyncio.Future] = {}
 
 # In-flight request dedup: prevent same user from sending identical prompts concurrently
 _INFLIGHT: Dict[str, asyncio.Future] = {}
+
+
+def _normalize_chapter_tutor_response(text: str) -> str:
+    """Keep AI Tutor responses direct and study-focused without hardcoded content."""
+    if not text or not isinstance(text, str):
+        return text
+
+    out = text.strip()
+
+    # Remove accidental outer quotes copied from examples.
+    if len(out) >= 2 and ((out[0] == '"' and out[-1] == '"') or (out[0] == "'" and out[-1] == "'")):
+        out = out[1:-1].strip()
+
+    # Remove common hype/filler opener sentence from the beginning only.
+    opener_patterns = [
+        r"^(?:देखो|अरे वाह|वाह|चलो)\b[^\n.!?]{0,120}[.!?]\s+",
+        r"^(?:great question|excellent question|awesome question|sure|of course)\b[^\n.!?]{0,120}[.!?]\s+",
+        r"^(?:let us|let's)\s+[^\n.!?]{0,120}[.!?]\s+",
+    ]
+
+    for pattern in opener_patterns:
+        cleaned = re.sub(pattern, "", out, flags=re.IGNORECASE)
+        if cleaned != out and cleaned.strip():
+            out = cleaned.strip()
+            break
+
+    # If first non-empty line is still filler-like, drop just that line.
+    lines = out.splitlines()
+    if lines:
+        first = lines[0].strip().lower()
+        if first.startswith(("देखो", "चलो", "अरे", "great question", "excellent question", "awesome question")):
+            remaining = "\n".join(lines[1:]).strip()
+            if remaining:
+                out = remaining
+
+    return out.strip() or text
 
 
 def _dedup_key(user_id: str, prompt: str, mode: str) -> str:
@@ -292,6 +329,10 @@ class AIService:
         if response.startswith("\u26a0\ufe0f"):
             logger.warning(f"AI returned error for user {user_id}: {response[:120]}")
             raise HTTPException(status_code=502, detail="AI is temporarily unavailable. Please try again.")
+
+        # Generic response cleanup for chapter tutor: avoid fluffy intros.
+        if mode == "chapter_tutor":
+            response = _normalize_chapter_tutor_response(response)
         
         # Track usage only on successful responses
         new_count = await asyncio.to_thread(AIService.check_and_increment_usage, user_id, plan, prompt_tokens, completion_tokens)

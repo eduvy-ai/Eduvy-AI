@@ -53,7 +53,7 @@ Your entire marketing strategy should flow from this. Don't advertise to student
 - Gets perfect Marathi answer + quiz on the topic
 - Ends with: "Tera tutor so nahi raha tha"
 
-#### Type 3: Muqabla Battle Challenge
+#### Type 3: Battle Challenge
 - Show two students battling on Class 10 Science
 - Leaderboard, XP, intensity
 - Call to action: "Challenge your best friend. Link in bio."

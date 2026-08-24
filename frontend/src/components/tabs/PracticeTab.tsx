@@ -168,7 +168,7 @@ const PracticeTab: React.FC = () => {
           />
           <QuickActionCard
             icon={Sword}
-            label={ui.muqabalaBattle || 'Muqabla Battle'}
+            label={ui.muqabalaBattle || 'Battle'}
             description={ui.battleDesc || '1v1 quiz battles with classmates'}
             color="#FF6B35"
             onClick={goToBattles}
@@ -245,7 +245,7 @@ const RecentActivityItem: React.FC<{ item: any; ui: any }> = ({ item, ui }) => {
       case 'battle':
         return item.opponent_name 
           ? `${ui.battleVs || 'Battle vs'} ${item.opponent_name}`
-          : ui.muqabalaBattle || 'Muqabla Battle'
+          : ui.muqabalaBattle || 'Battle'
       case 'chapter_quiz':
         return item.chapter_name || item.subject
       default:

@@ -373,7 +373,7 @@ App at **http://localhost:5173**
 | `/app/labs` | Labs hub |
 | `/app/sathi` | Sathi Study Squads |
 | `/app/bhool` | Bhool Bazaar |
-| `/app/muqabla` | Muqabla Battle Arena |
+| `/app/muqabla` | Battle Arena |
 | `/app/discover` | Discover Feed (Premium) |
 | `/parent/:pin` | **Public** parent dashboard (no login needed) |
 | `/admin/login` | Superadmin login |

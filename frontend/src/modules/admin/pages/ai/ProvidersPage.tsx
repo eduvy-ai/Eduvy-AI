@@ -271,7 +271,18 @@ const ProvidersPage: React.FC = () => {
     if (!deleteTarget) return
     try {
       await adminApi.aiConfig.removeKey(deleteTarget.provider, deleteTarget.slot)
+      // Update local enhanced state immediately so UI does not keep stale slots.
+      setEnhancedKeys(prev => prev.filter(
+        (k) => !(k.provider === deleteTarget.provider && k.slot === deleteTarget.slot)
+      ))
       await fetchAIConfig()
+      // Re-fetch enhanced keys from server for final source of truth.
+      try {
+        const keys = await aiKeysApi.getKeysEnhanced()
+        setEnhancedKeys(keys)
+      } catch {
+        // If enhanced endpoint fails, keep optimistic state.
+      }
       setShowDeleteConfirm(false)
       setDeleteTarget(null)
     } catch (error: any) {

@@ -119,7 +119,7 @@ export const PRACTICE = {
   },
 
   muqabalaBattle: {
-    English:  "Muqabla Battle",
+    English:  "Battle",
     Hindi:    "मुकाबला",
     Gujarati: "મુકાબલો",
     Marathi:  "मुकाबला",

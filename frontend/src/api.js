@@ -1325,6 +1325,8 @@ export async function apiGenerateDailyQuestions(context) {
       mood: context.mood || 'okay',
       math_mastery: context.mathMastery || 0,
       science_mastery: context.scienceMastery || 0,
+      subjects: context.subjects || [],
+      masteries: context.masteries || {},
       weak_topics: context.weakTopics || [],
       recent_topics: context.recentTopics || []
     }),

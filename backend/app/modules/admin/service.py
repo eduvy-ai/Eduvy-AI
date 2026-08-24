@@ -1964,6 +1964,239 @@ class AdminService:
             conn.close()
 
     @staticmethod
+    def get_quota_overview(school_id: int = None) -> Dict:
+        """Return day/month usage, pending quota, and overall provider key capacity."""
+        from services.ai_service import _KEY_POOLS, _PLAN_ROUTING
+        from app.modules.ai.service import PLANS_QUOTA
+
+        now = datetime.now(timezone.utc)
+        today = now.strftime("%Y-%m-%d")
+        month_start_dt = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        month_start = month_start_dt.strftime("%Y-%m-%d")
+
+        if now.month == 12:
+            next_month = now.replace(year=now.year + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        else:
+            next_month = now.replace(month=now.month + 1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        days_in_month = (next_month - month_start_dt).days
+
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+
+            school_filter = ""
+            school_params: list = []
+            if school_id is not None:
+                school_filter = "AND u.school_id = %s"
+                school_params = [school_id]
+
+            # Total users in scope
+            if school_id is not None:
+                cur.execute("SELECT COUNT(*) AS cnt FROM users WHERE school_id = %s", (school_id,))
+            else:
+                cur.execute("SELECT COUNT(*) AS cnt FROM users")
+            total_users = int(cur.fetchone()["cnt"])
+
+            # Today usage
+            cur.execute(
+                f"""SELECT COALESCE(SUM(a.call_count), 0) AS calls,
+                           COALESCE(SUM(a.prompt_tokens + a.completion_tokens), 0) AS tokens,
+                           COUNT(DISTINCT a.user_id) AS active_users
+                    FROM ai_usage a
+                    JOIN users u ON u.id = a.user_id
+                    WHERE a.date = %s {school_filter}""",
+                [today] + school_params,
+            )
+            today_row = cur.fetchone()
+            today_calls = int(today_row["calls"])
+            today_tokens = int(today_row["tokens"])
+            today_active_users = int(today_row["active_users"])
+
+            # Month-to-date usage
+            cur.execute(
+                f"""SELECT COALESCE(SUM(a.call_count), 0) AS calls,
+                           COALESCE(SUM(a.prompt_tokens + a.completion_tokens), 0) AS tokens,
+                           COUNT(DISTINCT a.user_id) AS active_users
+                    FROM ai_usage a
+                    JOIN users u ON u.id = a.user_id
+                    WHERE a.date >= %s AND a.date <= %s {school_filter}""",
+                [month_start, today] + school_params,
+            )
+            month_row = cur.fetchone()
+            month_calls = int(month_row["calls"])
+            month_tokens = int(month_row["tokens"])
+            month_active_users = int(month_row["active_users"])
+
+            # Users by plan in scope
+            if school_id is not None:
+                cur.execute("SELECT plan, COUNT(*) AS cnt FROM users WHERE school_id = %s GROUP BY plan", (school_id,))
+            else:
+                cur.execute("SELECT plan, COUNT(*) AS cnt FROM users GROUP BY plan")
+            user_counts_by_plan = {r["plan"]: int(r["cnt"]) for r in cur.fetchall()}
+
+            # Plan usage today and month (for provider estimates)
+            cur.execute(
+                f"""SELECT u.plan,
+                           COALESCE(SUM(a.call_count), 0) AS calls,
+                           COALESCE(SUM(a.prompt_tokens + a.completion_tokens), 0) AS tokens
+                    FROM ai_usage a
+                    JOIN users u ON u.id = a.user_id
+                    WHERE a.date = %s {school_filter}
+                    GROUP BY u.plan""",
+                [today] + school_params,
+            )
+            plan_usage_today = {
+                r["plan"]: {"calls": int(r["calls"]), "tokens": int(r["tokens"])}
+                for r in cur.fetchall()
+            }
+
+            cur.execute(
+                f"""SELECT u.plan,
+                           COALESCE(SUM(a.call_count), 0) AS calls,
+                           COALESCE(SUM(a.prompt_tokens + a.completion_tokens), 0) AS tokens
+                    FROM ai_usage a
+                    JOIN users u ON u.id = a.user_id
+                    WHERE a.date >= %s AND a.date <= %s {school_filter}
+                    GROUP BY u.plan""",
+                [month_start, today] + school_params,
+            )
+            plan_usage_month = {
+                r["plan"]: {"calls": int(r["calls"]), "tokens": int(r["tokens"])}
+                for r in cur.fetchall()
+            }
+
+            # User quota capacity (plan daily limits) and pending
+            daily_user_quota_total = 0
+            for plan, count in user_counts_by_plan.items():
+                limit = int(PLANS_QUOTA.get(plan, PLANS_QUOTA.get("free", 10)))
+                daily_user_quota_total += count * limit
+
+            daily_user_quota_remaining = max(daily_user_quota_total - today_calls, 0)
+            month_user_quota_total = daily_user_quota_total * days_in_month
+            month_user_quota_remaining = max(month_user_quota_total - month_calls, 0)
+
+            # Provider capacity estimates from key pools
+            FREE_LIMITS = {
+                "groq": 1000,
+                "gemini": 1500,
+                "anthropic": 0,
+                "openai": 0,
+                "nvidia": 40,
+            }
+            GROQ_MODEL_LIMITS = {
+                "llama-3.1-8b-instant": 14400,
+                "llama-3.3-70b-versatile": 1000,
+                "llama-3.3-70b-specdec": 1000,
+                "llama-3.1-70b-versatile": 1000,
+                "openai/gpt-oss-20b": 1000,
+                "openai/gpt-oss-120b": 1000,
+            }
+
+            provider_calls_today: dict = {}
+            provider_calls_month: dict = {}
+            provider_tokens_today: dict = {}
+            provider_tokens_month: dict = {}
+
+            for plan, usage in plan_usage_today.items():
+                routing = _PLAN_ROUTING.get(plan, {})
+                prov = routing.get("provider", "groq")
+                provider_calls_today[prov] = provider_calls_today.get(prov, 0) + usage["calls"]
+                provider_tokens_today[prov] = provider_tokens_today.get(prov, 0) + usage["tokens"]
+
+            for plan, usage in plan_usage_month.items():
+                routing = _PLAN_ROUTING.get(plan, {})
+                prov = routing.get("provider", "groq")
+                provider_calls_month[prov] = provider_calls_month.get(prov, 0) + usage["calls"]
+                provider_tokens_month[prov] = provider_tokens_month.get(prov, 0) + usage["tokens"]
+
+            providers = []
+            total_keys = 0
+            total_daily_key_capacity = 0
+            known_provider_calls_today = 0
+            known_provider_calls_month = 0
+
+            for prov in ["groq", "gemini", "anthropic", "openai", "nvidia"]:
+                keys_count = len(_KEY_POOLS.get(prov, []))
+                total_keys += keys_count
+
+                per_key_limit = FREE_LIMITS[prov]
+                if prov == "groq":
+                    active_groq_model = next(
+                        (r.get("model") for r in _PLAN_ROUTING.values() if r.get("provider") == "groq"),
+                        "llama-3.3-70b-versatile",
+                    )
+                    per_key_limit = GROQ_MODEL_LIMITS.get(active_groq_model, FREE_LIMITS["groq"])
+
+                daily_capacity = per_key_limit * keys_count if per_key_limit > 0 else 0
+                calls_today_provider = int(provider_calls_today.get(prov, 0))
+                calls_month_provider = int(provider_calls_month.get(prov, 0))
+
+                daily_remaining = max(daily_capacity - calls_today_provider, 0) if daily_capacity > 0 else None
+                month_capacity = daily_capacity * days_in_month if daily_capacity > 0 else 0
+                month_remaining = max(month_capacity - calls_month_provider, 0) if month_capacity > 0 else None
+
+                if daily_capacity > 0:
+                    total_daily_key_capacity += daily_capacity
+                    known_provider_calls_today += calls_today_provider
+                    known_provider_calls_month += calls_month_provider
+
+                providers.append({
+                    "provider": prov,
+                    "keys": keys_count,
+                    "per_key_daily_limit": per_key_limit,
+                    "daily_capacity": daily_capacity,
+                    "daily_calls_used": calls_today_provider,
+                    "daily_calls_remaining": daily_remaining,
+                    "month_capacity": month_capacity,
+                    "month_calls_used": calls_month_provider,
+                    "month_calls_remaining": month_remaining,
+                    "tokens_today": int(provider_tokens_today.get(prov, 0)),
+                    "tokens_month": int(provider_tokens_month.get(prov, 0)),
+                })
+
+            total_daily_key_remaining = max(total_daily_key_capacity - known_provider_calls_today, 0)
+            total_month_key_capacity = total_daily_key_capacity * days_in_month
+            total_month_key_remaining = max(total_month_key_capacity - known_provider_calls_month, 0)
+
+            return {
+                "scope": "school" if school_id is not None else "global",
+                "today": {
+                    "date": today,
+                    "active_users": today_active_users,
+                    "calls_used": today_calls,
+                    "tokens_used": today_tokens,
+                },
+                "month": {
+                    "month_start": month_start,
+                    "month_end": today,
+                    "days_in_month": days_in_month,
+                    "active_users": month_active_users,
+                    "calls_used": month_calls,
+                    "tokens_used": month_tokens,
+                },
+                "users": {
+                    "total_users": total_users,
+                    "by_plan": user_counts_by_plan,
+                },
+                "user_quota": {
+                    "daily_total": daily_user_quota_total,
+                    "daily_remaining": daily_user_quota_remaining,
+                    "month_total": month_user_quota_total,
+                    "month_remaining": month_user_quota_remaining,
+                },
+                "keys_quota": {
+                    "total_keys": total_keys,
+                    "daily_total_capacity": total_daily_key_capacity,
+                    "daily_remaining": total_daily_key_remaining,
+                    "month_total_capacity": total_month_key_capacity,
+                    "month_remaining": total_month_key_remaining,
+                    "providers": providers,
+                },
+            }
+        finally:
+            conn.close()
+
+    @staticmethod
     def get_usage_by_date(date: str) -> Dict:
         conn = get_db()
         try:

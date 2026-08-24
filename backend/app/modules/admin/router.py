@@ -533,6 +533,13 @@ async def usage_by_users(days: int = Query(7), admin_scope: tuple = Depends(get_
     return await asyncio.to_thread(AdminService.get_usage_by_users, days, school_id)
 
 
+@router.get("/usage/quota-overview")
+async def usage_quota_overview(admin_scope: tuple = Depends(get_admin_with_school)):
+    """Get quota overview for today/month and overall provider key-pool capacity."""
+    admin_id, school_id = admin_scope
+    return await asyncio.to_thread(AdminService.get_quota_overview, school_id)
+
+
 # ── AI Config ─────────────────────────────────────────────────
 # AI config endpoints are SUPERADMIN ONLY (school admins cannot modify global AI settings)
 

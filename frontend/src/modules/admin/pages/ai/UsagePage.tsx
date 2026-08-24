@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState, useMemo, useRef } from 'react'
 import { adminApi } from '../../api'
-import type { AIUsageSummary, AIUserUsage } from '../../types'
+import type { AIUsageSummary, AIUserUsage, AIQuotaOverview } from '../../types'
 import { PLAN_LABELS } from '../../constants'
 import { adminService } from '../../service'
 import Table, { type TableColumn } from '../../../../shared/components/Table'
@@ -25,6 +25,7 @@ const UsagePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [summary, setSummary] = useState<AIUsageSummary | null>(null)
   const [userUsage, setUserUsage] = useState<AIUserUsage[]>([])
+  const [quotaOverview, setQuotaOverview] = useState<AIQuotaOverview | null>(null)
   const [dateRange, setDateRange] = useState(7)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterPlan, setFilterPlan] = useState('')
@@ -47,9 +48,11 @@ const UsagePage: React.FC = () => {
           adminApi.aiUsage.getSummary(dateRange),
           adminApi.aiUsage.getUserUsage(dateRange),
         ])
+        const quotaData = await adminApi.aiUsage.getQuotaOverview()
         console.log('UsagePage loaded data:', { summaryData, userData })
         setSummary(summaryData)
         setUserUsage(userData)
+        setQuotaOverview(quotaData)
       } catch (err) {
         console.error('UsagePage load error:', err)
       } finally {
@@ -122,6 +125,35 @@ const UsagePage: React.FC = () => {
   }
 
   const hasFilters = searchQuery || filterPlan
+
+  const quotaConsumption = useMemo(() => {
+    const userDailyTotal = quotaOverview?.user_quota.daily_total || 0
+    const userDailyRemaining = quotaOverview?.user_quota.daily_remaining || 0
+    const userMonthTotal = quotaOverview?.user_quota.month_total || 0
+    const userMonthRemaining = quotaOverview?.user_quota.month_remaining || 0
+
+    const keysDailyTotal = quotaOverview?.keys_quota.daily_total_capacity || 0
+    const keysDailyRemaining = quotaOverview?.keys_quota.daily_remaining || 0
+    const keysMonthTotal = quotaOverview?.keys_quota.month_total_capacity || 0
+    const keysMonthRemaining = quotaOverview?.keys_quota.month_remaining || 0
+
+    const toPercent = (used: number, total: number) => {
+      if (total <= 0) return 0
+      return Math.min(100, Math.max(0, (used / total) * 100))
+    }
+
+    const userDailyUsed = Math.max(userDailyTotal - userDailyRemaining, 0)
+    const userMonthUsed = Math.max(userMonthTotal - userMonthRemaining, 0)
+    const keysDailyUsed = Math.max(keysDailyTotal - keysDailyRemaining, 0)
+    const keysMonthUsed = Math.max(keysMonthTotal - keysMonthRemaining, 0)
+
+    return {
+      todayUserPct: toPercent(userDailyUsed, userDailyTotal),
+      todayKeysPct: toPercent(keysDailyUsed, keysDailyTotal),
+      monthUserPct: toPercent(userMonthUsed, userMonthTotal),
+      monthKeysPct: toPercent(keysMonthUsed, keysMonthTotal),
+    }
+  }, [quotaOverview])
 
   // Table columns for user usage
   const columns: TableColumn<AIUserUsage>[] = [
@@ -297,6 +329,176 @@ const UsagePage: React.FC = () => {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Quota Overview */}
+      <div className="bg-app-card rounded-xl border border-app-border p-4 space-y-4">
+        <h3 className="font-bold text-app-text">Quota Overview</h3>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="p-3 bg-app-card2 rounded-xl border border-app-border/60">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-app-muted">Today Quota Consumed</span>
+              <span className="text-xs font-semibold text-app-text">
+                User {quotaConsumption.todayUserPct.toFixed(1)}% | Keys {quotaConsumption.todayKeysPct.toFixed(1)}%
+              </span>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <div className="flex items-center justify-between text-[11px] text-app-muted mb-1">
+                  <span>User Quota</span>
+                  <span>{quotaConsumption.todayUserPct.toFixed(1)}%</span>
+                </div>
+                <div className="h-2 bg-app-card rounded-full overflow-hidden">
+                  <div className="h-full bg-app-green" style={{ width: `${quotaConsumption.todayUserPct}%` }} />
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between text-[11px] text-app-muted mb-1">
+                  <span>All Keys Quota</span>
+                  <span>{quotaConsumption.todayKeysPct.toFixed(1)}%</span>
+                </div>
+                <div className="h-2 bg-app-card rounded-full overflow-hidden">
+                  <div className="h-full bg-app-blue" style={{ width: `${quotaConsumption.todayKeysPct}%` }} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-3 bg-app-card2 rounded-xl border border-app-border/60">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-app-muted">Month Quota Consumed</span>
+              <span className="text-xs font-semibold text-app-text">
+                User {quotaConsumption.monthUserPct.toFixed(1)}% | Keys {quotaConsumption.monthKeysPct.toFixed(1)}%
+              </span>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <div className="flex items-center justify-between text-[11px] text-app-muted mb-1">
+                  <span>User Quota</span>
+                  <span>{quotaConsumption.monthUserPct.toFixed(1)}%</span>
+                </div>
+                <div className="h-2 bg-app-card rounded-full overflow-hidden">
+                  <div className="h-full bg-app-green" style={{ width: `${quotaConsumption.monthUserPct}%` }} />
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between text-[11px] text-app-muted mb-1">
+                  <span>All Keys Quota</span>
+                  <span>{quotaConsumption.monthKeysPct.toFixed(1)}%</span>
+                </div>
+                <div className="h-2 bg-app-card rounded-full overflow-hidden">
+                  <div className="h-full bg-app-blue" style={{ width: `${quotaConsumption.monthKeysPct}%` }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-3 bg-app-card2 rounded-xl">
+            <div className="text-xs text-app-muted">Total Users</div>
+            <div className="text-xl font-black text-app-text mt-1">
+              {adminService.formatNumber(quotaOverview?.users.total_users || 0)}
+            </div>
+            <div className="text-xs text-app-muted mt-1">in {quotaOverview?.scope === 'school' ? 'this school' : 'platform'}</div>
+          </div>
+
+          <div className="p-3 bg-app-card2 rounded-xl">
+            <div className="text-xs text-app-muted">Today Pending Calls</div>
+            <div className="text-xl font-black text-app-green mt-1">
+              {adminService.formatNumber(quotaOverview?.user_quota.daily_remaining || 0)}
+            </div>
+            <div className="text-xs text-app-muted mt-1">
+              of {adminService.formatNumber(quotaOverview?.user_quota.daily_total || 0)} total user quota
+            </div>
+          </div>
+
+          <div className="p-3 bg-app-card2 rounded-xl">
+            <div className="text-xs text-app-muted">Month Pending Calls</div>
+            <div className="text-xl font-black text-app-blue mt-1">
+              {adminService.formatNumber(quotaOverview?.user_quota.month_remaining || 0)}
+            </div>
+            <div className="text-xs text-app-muted mt-1">
+              of {adminService.formatNumber(quotaOverview?.user_quota.month_total || 0)} monthly user quota
+            </div>
+          </div>
+
+          <div className="p-3 bg-app-card2 rounded-xl">
+            <div className="text-xs text-app-muted">All Keys Pending Today</div>
+            <div className="text-xl font-black text-app-text mt-1">
+              {adminService.formatNumber(quotaOverview?.keys_quota.daily_remaining || 0)}
+            </div>
+            <div className="text-xs text-app-muted mt-1">
+              keys: {adminService.formatNumber(quotaOverview?.keys_quota.total_keys || 0)}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="p-3 bg-app-card2 rounded-xl">
+            <div className="text-xs text-app-muted">Today Usage</div>
+            <div className="mt-1 text-sm text-app-text">
+              Calls used: {adminService.formatNumber(quotaOverview?.today.calls_used || 0)}
+            </div>
+            <div className="text-sm text-app-text">
+              Active users: {adminService.formatNumber(quotaOverview?.today.active_users || 0)}
+            </div>
+            <div className="text-sm text-app-text">
+              Tokens used: {adminService.formatNumber(quotaOverview?.today.tokens_used || 0)}
+            </div>
+          </div>
+
+          <div className="p-3 bg-app-card2 rounded-xl">
+            <div className="text-xs text-app-muted">Month Usage</div>
+            <div className="mt-1 text-sm text-app-text">
+              Calls used: {adminService.formatNumber(quotaOverview?.month.calls_used || 0)}
+            </div>
+            <div className="text-sm text-app-text">
+              Active users: {adminService.formatNumber(quotaOverview?.month.active_users || 0)}
+            </div>
+            <div className="text-sm text-app-text">
+              Tokens used: {adminService.formatNumber(quotaOverview?.month.tokens_used || 0)}
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] text-sm">
+            <thead>
+              <tr className="text-left text-xs text-app-muted border-b border-app-border">
+                <th className="py-2 pr-3">Provider</th>
+                <th className="py-2 pr-3">Keys</th>
+                <th className="py-2 pr-3">Daily Capacity</th>
+                <th className="py-2 pr-3">Daily Used</th>
+                <th className="py-2 pr-3">Daily Pending</th>
+                <th className="py-2 pr-3">Month Capacity</th>
+                <th className="py-2 pr-3">Month Pending</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(quotaOverview?.keys_quota.providers || []).map((provider) => (
+                <tr key={provider.provider} className="border-b border-app-border/40">
+                  <td className="py-2 pr-3 font-medium text-app-text capitalize">{provider.provider}</td>
+                  <td className="py-2 pr-3 text-app-muted">{adminService.formatNumber(provider.keys)}</td>
+                  <td className="py-2 pr-3 text-app-text">{adminService.formatNumber(provider.daily_capacity)}</td>
+                  <td className="py-2 pr-3 text-app-text">{adminService.formatNumber(provider.daily_calls_used)}</td>
+                  <td className="py-2 pr-3 text-app-green">
+                    {provider.daily_calls_remaining === null
+                      ? 'N/A'
+                      : adminService.formatNumber(provider.daily_calls_remaining)}
+                  </td>
+                  <td className="py-2 pr-3 text-app-text">{adminService.formatNumber(provider.month_capacity)}</td>
+                  <td className="py-2 pr-3 text-app-blue">
+                    {provider.month_calls_remaining === null
+                      ? 'N/A'
+                      : adminService.formatNumber(provider.month_calls_remaining)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Daily Breakdown Chart */}

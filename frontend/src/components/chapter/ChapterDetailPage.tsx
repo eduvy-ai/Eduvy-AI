@@ -1245,6 +1245,59 @@ interface BookmarkedVideo {
 
 type VideoViewState = 'home' | 'generating' | 'list' | 'player' | 'history' | 'bookmarks'
 
+function normalizeVideoRecommendations(raw: any): VideoItem[] {
+  const candidateList = Array.isArray(raw)
+    ? raw
+    : Array.isArray(raw?.recommendations)
+      ? raw.recommendations
+      : Array.isArray(raw?.videos)
+        ? raw.videos
+        : Array.isArray(raw?.items)
+          ? raw.items
+          : (raw && typeof raw === 'object' ? [raw] : [])
+
+  if (!Array.isArray(candidateList)) return []
+
+  return candidateList
+    .map((v: any, i: number) => ({
+      id: `vid_${Date.now()}_${i}`,
+      title: String(v?.title || v?.name || '').trim(),
+      description: String(v?.description || v?.desc || v?.summary || '').trim(),
+      searchQuery: String(v?.searchQuery || v?.search_query || v?.query || v?.title || '').trim(),
+      concept: String(v?.concept || v?.topic || v?.keyConcept || '').trim(),
+      watched: false,
+    }))
+    .filter((v) => v.title && v.searchQuery)
+}
+
+function buildFallbackVideoRecommendations(chapter: any): VideoItem[] {
+  const chapterName = String(chapter?.chapter_name || 'this chapter').trim()
+  const subject = String(chapter?.subject || chapter?.subject_name || '').trim()
+  const board = String(chapter?.board || chapter?.board_id || 'CBSE').trim()
+  const standard = String(chapter?.standard || chapter?.standard_id || 'Class 10').trim()
+  const topics = Array.isArray(chapter?.topics) ? chapter.topics.filter(Boolean) : []
+
+  const baseConcepts = topics.length > 0
+    ? topics.slice(0, 6)
+    : [
+        `Summary of ${chapterName}`,
+        `Important themes in ${chapterName}`,
+        `Character analysis in ${chapterName}`,
+        `Key questions from ${chapterName}`,
+        `Exam revision of ${chapterName}`,
+        `Line-by-line explanation of ${chapterName}`,
+      ]
+
+  return baseConcepts.slice(0, 6).map((concept: string, i: number) => ({
+    id: `fallback_vid_${Date.now()}_${i}`,
+    title: `${chapterName}: ${String(concept).slice(0, 42)}`,
+    description: `Focused explanation video for ${concept} from ${chapterName}.`,
+    searchQuery: `${chapterName} ${concept} ${subject} ${board} ${standard}`.trim(),
+    concept: String(concept),
+    watched: false,
+  }))
+}
+
 const VideosTab: React.FC<{ chapter: any; ui: any; user: any }> = ({ chapter, ui, user }) => {
   const [viewState, setViewState] = useState<VideoViewState>('home')
   const [videos, setVideos] = useState<VideoItem[]>([])
@@ -1282,54 +1335,109 @@ const VideosTab: React.FC<{ chapter: any; ui: any; user: any }> = ({ chapter, ui
     setViewState('generating')
 
     try {
-      const prompt = `Generate 6 educational video topic recommendations for studying "${chapter.chapter_name}" (${chapter.subject}, ${chapter.board} ${chapter.standard}).
-
-${chapter.topics?.length ? `Key topics to cover: ${chapter.topics.join(', ')}` : ''}
-
-Return ONLY a valid JSON array. Each object must have:
-- "title": Short video title (max 60 chars)
-- "description": What the video should explain (1 sentence)
-- "searchQuery": YouTube search query to find this type of video (include class level and board)
-- "concept": The topic/concept covered
-
-Return ONLY the JSON array, no other text.`
+      const chapterMedium = String(
+        chapter?.medium || chapter?.chapter_medium || chapter?.medium_name || chapter?.language || ''
+      ).trim()
+      const effectiveLang = (chapterMedium || user?.language || 'English') as keyof typeof LANG_RULES
+      let usedFallback = false
 
       // Build language-aware system prompt
-      const userLang = (user?.language || 'English') as keyof typeof LANG_RULES
-      const langRule = LANG_RULES[userLang] || LANG_RULES.English
-      const systemPrompt = `You are a video recommendation expert. Generate content in the student's language.
+      const langRule = LANG_RULES[effectiveLang] || LANG_RULES.English
+      const systemPrompt = `You are a video recommendation expert. Generate content in the chapter medium language.
 
 🚨 LANGUAGE RULE — MANDATORY:
 ${langRule}
 
 🚨 FORMAT RULE — MANDATORY:
-Return ONLY a valid JSON array starting with [ and ending with ]. Do NOT return separate JSON objects on different lines. Example format: [{"title": "...", "description": "...", "searchQuery": "...", "concept": "..."}, {...}]`
+Return ONLY ONE valid JSON object (not array) with keys: "title", "description", "searchQuery", "concept".
+No markdown/code fences.`
 
-      const response = await callAI(prompt, systemPrompt, [], 3, 1500, 'video_rec')
-      const parsed = parseAIArray(response)
-      
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        const videoList: VideoItem[] = parsed.map((v: any, i: number) => ({
-          id: `vid_${Date.now()}_${i}`,
-          title: v.title || '',
-          description: v.description || '',
-          searchQuery: v.searchQuery || v.title || '',
-          concept: v.concept || '',
-          watched: false
-        })).filter(v => v.title && v.searchQuery)
-        
-        if (videoList.length > 0) {
-          setVideos(videoList)
+      const topicPool = Array.isArray(chapter.topics) ? chapter.topics : []
+      const generated: VideoItem[] = []
+      const seenTitles = new Set<string>()
+      const seenConcepts = new Set<string>()
+      const maxAttempts = 24
+
+      for (let attempt = 0; attempt < maxAttempts && generated.length < 6; attempt++) {
+        const avoidConcepts = Array.from(seenConcepts).slice(0, 8)
+        const randomSeed = Math.random().toString(36).slice(2, 8)
+
+        const prompt = `Generate exactly ONE educational video recommendation for chapter "${chapter.chapter_name}" (${chapter.subject}, ${chapter.board} ${chapter.standard}).
+
+${topicPool.length ? `Focus on chapter topics: ${topicPool.join(', ')}` : ''}
+${avoidConcepts.length ? `Avoid already covered concepts: ${avoidConcepts.join(', ')}` : ''}
+
+Requirements:
+- Must be strictly relevant to this chapter only.
+- Title: short and specific (max 60 chars)
+- Description: 1 sentence
+- searchQuery: YouTube query including class and board
+- concept: short concept label
+
+Output JSON object format:
+{"title":"...","description":"...","searchQuery":"...","concept":"..."}
+
+[seed:${randomSeed}]`
+
+        const response = await callAI(prompt, systemPrompt, [], 2, 900, '')
+        if (typeof response === 'string' && response.startsWith('⚠️')) continue
+
+        let parsedObj = parseAIObject(response)
+        let one = normalizeVideoRecommendations(parsedObj)
+
+        if (one.length === 0) {
+          // Repair malformed/truncated object
+          const repairPrompt = `Convert this into ONE valid JSON object only with keys title, description, searchQuery, concept.
+No markdown/code fences.
+
+Content:
+${String(response || '')}`
+          const repaired = await callAI(repairPrompt, systemPrompt, [], 1, 700, '')
+          parsedObj = parseAIObject(repaired)
+          one = normalizeVideoRecommendations(parsedObj)
+        }
+
+        if (one.length === 0) continue
+
+        const item = one[0]
+        const titleKey = item.title.toLowerCase().trim()
+        const conceptKey = (item.concept || item.title).toLowerCase().trim()
+        if (seenTitles.has(titleKey) || seenConcepts.has(conceptKey)) continue
+
+        seenTitles.add(titleKey)
+        seenConcepts.add(conceptKey)
+        generated.push(item)
+      }
+
+      if (generated.length > 0) {
+        setVideos(generated.slice(0, 6))
+        setError('')
+        setViewState('list')
+      } else {
+        const fallback = buildFallbackVideoRecommendations(chapter)
+        if (fallback.length > 0) {
+          usedFallback = true
+          setVideos(fallback)
+          setError('AI could not generate recommendations right now. Showing chapter-based YouTube search suggestions instead.')
           setViewState('list')
         } else {
           throw new Error('No recommendations generated')
         }
-      } else {
-        throw new Error('Failed to parse recommendations')
+      }
+
+      if (!usedFallback) {
+        setError('')
       }
     } catch (err) {
-      setError('Failed to generate recommendations. Please try again.')
-      setViewState('home')
+      const fallback = buildFallbackVideoRecommendations(chapter)
+      if (fallback.length > 0) {
+        setVideos(fallback)
+        setError('AI recommendations are temporarily unavailable. Showing chapter-based YouTube search suggestions.')
+        setViewState('list')
+      } else {
+        setError('No video recommendations available right now. Please try again after some time.')
+        setViewState('home')
+      }
     }
 
     setLoading(false)
@@ -1539,9 +1647,6 @@ Return ONLY a valid JSON array starting with [ and ending with ]. Do NOT return 
             className="bg-gradient-to-br from-red-600/20 to-red-900/30 rounded-xl aspect-video overflow-hidden relative cursor-pointer group"
           >
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <div className="w-16 h-16 rounded-2xl bg-red-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-lg">
-                <PlayCircle size={32} weight="fill" className="text-white ml-1" />
-              </div>
               <p className="text-[14px] font-bold text-white mb-1">Watch on YouTube</p>
               <p className="text-[11px] text-white/70 text-center px-6">Click to open in YouTube</p>
             </div>
@@ -1584,12 +1689,6 @@ Return ONLY a valid JSON array starting with [ and ending with ]. Do NOT return 
             <BookmarkSimple size={14} weight={isBookmarked ? 'fill' : 'regular'} />
             {isBookmarked ? 'Bookmarked' : 'Bookmark'}
           </button>
-          <button
-            onClick={() => videos.length > 0 ? setViewState('list') : setViewState('home')}
-            className="flex-1 bg-white/[0.04] text-app-text text-[12px] font-semibold rounded-xl py-2.5"
-          >
-            ← More Videos
-          </button>
         </div>
       </div>
     )
@@ -1614,7 +1713,6 @@ Return ONLY a valid JSON array starting with [ and ending with ]. Do NOT return 
 
         {history.length === 0 ? (
           <div className="text-center py-8">
-            <ClockCounterClockwise size={32} className="text-app-muted mx-auto mb-2" />
             <p className="text-[12px] text-app-muted">No watch history yet</p>
           </div>
         ) : (
@@ -1738,6 +1836,12 @@ Return ONLY a valid JSON array starting with [ and ending with ]. Do NOT return 
           </button>
         </div>
 
+        {error && (
+          <p className="text-[11px] text-app-yellow bg-app-yellow/10 border border-app-yellow/20 rounded-lg px-2.5 py-2">
+            {error}
+          </p>
+        )}
+
         {/* Video list */}
         <div className="space-y-2">
           {videos.map((video) => {
@@ -1818,7 +1922,6 @@ Return ONLY a valid JSON array starting with [ and ending with ]. Do NOT return 
             onClick={() => setViewState('history')}
             className="flex-1 bg-white/[0.02] border border-white/[0.06] rounded-xl p-3 text-left"
           >
-            <ClockCounterClockwise size={18} className="text-app-orange mb-1" />
             <p className="text-[11px] font-semibold text-app-text">History</p>
             <p className="text-[9px] text-app-muted">{history.length} watched</p>
           </button>
@@ -2397,6 +2500,103 @@ interface BookmarkedQuestion {
   bookmarked_at: string
 }
 
+function normalizeQuizQuestion(parsed: any): QuizQuestion | null {
+  if (!parsed || typeof parsed !== 'object') return null
+
+  const rawQ = parsed.q ?? parsed.question ?? parsed.prompt
+  if (!rawQ) return null
+
+  const rawOptions = parsed.o ?? parsed.options ?? parsed.choices
+  let options: string[] = []
+  if (Array.isArray(rawOptions)) {
+    options = rawOptions.map((opt: unknown) => String(opt).trim())
+  } else if (rawOptions && typeof rawOptions === 'object') {
+    const keyed = ['A', 'B', 'C', 'D']
+      .map((k) => (rawOptions as Record<string, unknown>)[k] ?? (rawOptions as Record<string, unknown>)[k.toLowerCase()])
+      .filter((v) => v != null)
+      .map((v) => String(v).trim())
+    options = keyed
+  }
+
+  if (options.length < 4) return null
+
+  const normalizedOptions = options.slice(0, 4).map((opt) =>
+    String(opt).replace(/^[A-D][\)\.:-]?\s*/i, '').trim()
+  )
+
+  const rawCorrect = parsed.c ?? parsed.correct ?? parsed.answer ?? parsed.correctOption
+  let correctAnswer = String(rawCorrect ?? '').toUpperCase().trim()
+
+  if (/^[1-4]$/.test(correctAnswer)) {
+    correctAnswer = ['A', 'B', 'C', 'D'][Number(correctAnswer) - 1]
+  } else if (/^[0-3]$/.test(correctAnswer)) {
+    correctAnswer = ['A', 'B', 'C', 'D'][Number(correctAnswer)]
+  } else if (!['A', 'B', 'C', 'D'].includes(correctAnswer)) {
+    const letterMatch = correctAnswer.match(/^([A-D])/i)
+    if (letterMatch) {
+      correctAnswer = letterMatch[1].toUpperCase()
+    } else {
+      const byText = normalizedOptions.findIndex(
+        (opt) => opt.toLowerCase() === String(rawCorrect ?? '').trim().toLowerCase()
+      )
+      correctAnswer = byText >= 0 ? ['A', 'B', 'C', 'D'][byText] : 'A'
+    }
+  }
+
+  return {
+    q: String(rawQ).trim(),
+    o: normalizedOptions,
+    c: correctAnswer,
+    concept: String(parsed.concept ?? parsed.topic ?? '').trim(),
+    exp: String(parsed.exp ?? parsed.explanation ?? '').trim(),
+  }
+}
+
+function isLikelyTruncatedJson(text: string): boolean {
+  const t = String(text || '').trim()
+  if (!t) return true
+  if (!t.includes('{')) return false
+  if (!t.endsWith('}')) return true
+  const opens = (t.match(/\{/g) || []).length
+  const closes = (t.match(/\}/g) || []).length
+  if (opens !== closes) return true
+  return /"o"\s*:\s*$/.test(t) || /"q"\s*:\s*"[^"]*$/.test(t)
+}
+
+function isQuizQuestionRelevantToChapter(question: QuizQuestion, chapter: any): boolean {
+  const subject = String(chapter?.subject || chapter?.subject_name || '').toLowerCase()
+  const chapterName = String(chapter?.chapter_name || '').toLowerCase()
+  const topicText = Array.isArray(chapter?.topics) ? chapter.topics.join(' ') : ''
+  const chapterDesc = String(chapter?.description || '')
+
+  const keywordSource = `${chapterName} ${topicText} ${chapterDesc}`.toLowerCase()
+  const keywords = Array.from(
+    new Set(
+      keywordSource
+        .replace(/[^a-z\s]/g, ' ')
+        .split(/\s+/)
+        .filter((w) => w.length >= 4 && !['chapter', 'class', 'story', 'about', 'from', 'this', 'that'].includes(w))
+    )
+  )
+
+  const qText = `${question.q} ${question.concept || ''} ${question.exp || ''} ${question.o.join(' ')}`.toLowerCase()
+  const overlap = keywords.filter((k) => qText.includes(k)).length
+
+  // For English/literature chapters, reject clearly off-topic science/math style MCQs.
+  if (subject.includes('english')) {
+    const offTopicPatterns = [
+      /chemical|reaction|equation|molecule|acid|base|salt|photosynthesis|respiration/i,
+      /solve|quadratic|polynomial|integral|derivative|triangle|pythagoras/i,
+      /newton|velocity|acceleration|voltage|current|resistance/i,
+    ]
+    const looksOffTopic = offTopicPatterns.some((p) => p.test(qText))
+    if (looksOffTopic && overlap === 0) return false
+    return overlap > 0 || keywords.length === 0
+  }
+
+  return true
+}
+
 const QuizTab: React.FC<{ chapter: any; ui: any; user: any }> = ({ chapter, ui, user }) => {
   // Quiz states
   const [quizState, setQuizState] = useState<QuizState>('setup')
@@ -2406,10 +2606,10 @@ const QuizTab: React.FC<{ chapter: any; ui: any; user: any }> = ({ chapter, ui, 
   const [answers, setAnswers] = useState<QuizAnswer[]>([])
   const [selected, setSelected] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [batchProgress, setBatchProgress] = useState<{ generated: number; total: number } | null>(null)
   const [error, setError] = useState('')
   const [startTime, setStartTime] = useState<number | null>(null)
   const [endTime, setEndTime] = useState<number | null>(null)
-  const [askedConcepts, setAskedConcepts] = useState<string[]>([])
   const [_isLoading, setIsLoading] = useState(true)
   
   // Final quiz results (stored when transitioning to summary)
@@ -2518,30 +2718,38 @@ const QuizTab: React.FC<{ chapter: any; ui: any; user: any }> = ({ chapter, ui, 
     }
   }
 
-  // Generate a question for this chapter
-  const generateQuestion = useCallback(async () => {
+  // Generate one question for this chapter
+  const generateQuestion = useCallback(async (excludedConcepts: string[] = []) => {
     const randomSeed = Math.random().toString(36).slice(2, 8)
     const topicsHint = chapter.topics?.length
       ? `Focus on one of these topics: ${chapter.topics.slice(0, 5).join(', ')}.`
       : ''
-    const avoidList = askedConcepts.length > 0
-      ? `\nAVOID these topics (already asked): ${askedConcepts.join(', ')}`
+    const avoidList = excludedConcepts.length > 0
+      ? `\nAVOID these topics (already asked): ${excludedConcepts.join(', ')}`
       : ''
+    const chapterOverview = chapter.description
+      ? `Chapter context: ${chapter.description}`
+      : ''
+    const subjectLine = chapter.subject || chapter.subject_name || 'General'
 
-    const prompt = `Generate exactly ONE multiple choice question for "${chapter.chapter_name}" (${chapter.subject}).
+    const prompt = `Generate exactly ONE multiple choice question for "${chapter.chapter_name}" (${subjectLine}).
 
-${topicsHint}${avoidList}
+${topicsHint}
+${chapterOverview}
+${avoidList}
 
 CRITICAL Requirements:
+- The question MUST be strictly from this chapter only.
+- Stay inside chapter scope; do NOT ask from other chapters or other subjects.
+- If this is an English literature chapter, ask about plot, character, theme, tone, irony, message, or textual detail only.
 - Return ONLY a single JSON object, no markdown, no code fences
 - The "o" array MUST have EXACTLY 4 options (not 5, not 6 - exactly 4)
-- Options should be SHORT text (not labeled with A), B), etc - just the answer text)
-- The "c" field must be exactly ONE letter: A, B, C, or D (the correct answer)
+  - The "c" field must be exactly ONE letter: A, B, C, or D (the correct answer)
 - Include a short "exp" field explaining why the answer is correct (1-2 sentences)
 - Do NOT use LaTeX or special formatting - write equations as plain text (e.g. "Zn + CuSO4 → ZnSO4 + Cu")
 
 Format:
-{"q":"Question text?","o":["First option","Second option","Third option","Fourth option"],"c":"B","concept":"Topic","exp":"Brief explanation"}
+  {"q":"Question text?","o":["A) First option","B) Second option","C) Third option","D) Fourth option"],"c":"B","concept":"Topic","exp":"Brief explanation"}
 
 [seed:${randomSeed}]`
 
@@ -2558,7 +2766,7 @@ ${userLang === 'Hindi' ? '\n⚠️ Write question and options in DEVANAGARI SCRI
 Return ONLY a single JSON object. The question, options, explanation must all be strings. Example: {"q": "...", "o": ["A", "B", "C", "D"], "c": "B", "concept": "...", "exp": "..."}`
 
     try {
-      const res = await callAI(prompt, systemPrompt, [], 3, 500, 'chapter_quiz')
+      const res = await callAI(prompt, systemPrompt, [], 3, 1800, 'quiz_generate')
       console.log('AI response:', res)
       if (typeof res === 'string' && res.startsWith('⚠️')) {
         setError(res)
@@ -2596,39 +2804,96 @@ Return ONLY a single JSON object. The question, options, explanation must all be
       }
       
       const parsed = parseAIObject(cleaned)
-      
-      // Validate and normalize the response
-      if (parsed?.q && Array.isArray(parsed?.o) && parsed.o.length >= 4 && parsed?.c) {
-        // Normalize options: take first 4, strip any "A)", "B)" prefixes
-        const normalizedOptions = parsed.o.slice(0, 4).map((opt: string) => 
-          String(opt).replace(/^[A-D]\)\s*/i, '').trim()
-        )
-        
-        // Normalize correct answer to A/B/C/D
-        let correctAnswer = String(parsed.c).toUpperCase().trim()
-        if (!['A','B','C','D'].includes(correctAnswer)) {
-          // Try to extract letter from "A)" or similar
-          const match = correctAnswer.match(/^([A-D])/i)
-          correctAnswer = match ? match[1].toUpperCase() : 'A'
-        }
-        
-        return {
-          q: String(parsed.q),
-          o: normalizedOptions,
-          c: correctAnswer,
-          concept: String(parsed.concept || ''),
-          exp: String(parsed.exp || '')
-        }
+      const normalized = normalizeQuizQuestion(parsed)
+      if (normalized) return normalized
+
+      // If model got cut mid-JSON, ask for a full regenerate with higher budget.
+      if (typeof cleaned === 'string' && isLikelyTruncatedJson(cleaned)) {
+        const continuePrompt = `Your previous output was truncated and incomplete. Regenerate the COMPLETE quiz JSON object in one shot.
+
+Return ONLY this format:
+{"q":"...","o":["A) ...","B) ...","C) ...","D) ..."],"c":"A|B|C|D","concept":"...","exp":"..."}
+
+No markdown. No prefix. No explanation outside JSON.`
+
+        const continued = await callAI(continuePrompt, systemPrompt, [], 2, 2200, 'quiz_generate')
+        const continuedParsed = parseAIObject(typeof continued === 'string' ? continued : '')
+        const continuedNormalized = normalizeQuizQuestion(continuedParsed)
+        if (continuedNormalized) return continuedNormalized
       }
-      
-      console.warn('Invalid quiz response:', parsed, 'cleaned:', cleaned)
+
+      // Recovery pass: ask model to repair malformed output into strict JSON.
+      const repairPrompt = `Convert the following malformed quiz output into ONE valid JSON object only.
+
+Required format:
+{"q":"...","o":["A) ...","B) ...","C) ...","D) ..."],"c":"A|B|C|D","concept":"...","exp":"..."}
+
+Rules:
+- Keep language same as student language.
+- Exactly 4 options.
+- c must be one of A/B/C/D.
+- No markdown, no code fences, no extra text.
+
+Malformed output:
+${String(cleaned || res || '')}`
+
+      const repaired = await callAI(repairPrompt, systemPrompt, [], 2, 1400, 'quiz_generate')
+      const repairedParsed = parseAIObject(typeof repaired === 'string' ? repaired : '')
+      const repairedNormalized = normalizeQuizQuestion(repairedParsed)
+      if (repairedNormalized) return repairedNormalized
+
+      // Last-resort fallback: bypass mode-specific backend prompt overrides.
+      const fallbackSystemPrompt = `${systemPrompt}
+
+You MUST return a complete JSON object in one response. Do not stop early. Do not prefix with any sentence.`
+      const fallback = await callAI(prompt, fallbackSystemPrompt, [], 2, 2200, '')
+      const fallbackParsed = parseAIObject(typeof fallback === 'string' ? fallback : '')
+      const fallbackNormalized = normalizeQuizQuestion(fallbackParsed)
+      if (fallbackNormalized) return fallbackNormalized
+
+      console.warn('Invalid quiz response after repair/fallback:', {
+        parsed,
+        repairedParsed,
+        fallbackParsed,
+        cleaned,
+        repaired,
+        fallback,
+      })
       return null
     } catch (err) {
       console.error('Quiz AI error:', err)
       setError(ui.errorGenerating || 'AI service unavailable. Please try again.')
       return null
     }
-  }, [chapter, askedConcepts, user, ui])
+  }, [chapter, user, ui])
+
+  // Pre-generate full quiz so user doesn't wait between questions.
+  const generateQuizBatch = useCallback(async (totalQuestions: number) => {
+    const generated: QuizQuestion[] = []
+    const localConcepts: string[] = []
+    const seenQuestions = new Set<string>()
+    const maxAttempts = totalQuestions * 5
+
+    let attempts = 0
+    while (generated.length < totalQuestions && attempts < maxAttempts) {
+      attempts += 1
+      const q = await generateQuestion(localConcepts)
+      if (!q?.q || !q?.o || q.o.length !== 4) continue
+      if (!isQuizQuestionRelevantToChapter(q, chapter)) continue
+
+      const qKey = q.q.trim().toLowerCase()
+      if (seenQuestions.has(qKey)) continue
+
+      seenQuestions.add(qKey)
+      generated.push(q)
+      setBatchProgress({ generated: generated.length, total: totalQuestions })
+
+      const concept = q.concept?.trim()
+      if (concept) localConcepts.push(concept)
+    }
+
+    return generated
+  }, [chapter, generateQuestion])
 
   // Start quiz
   const startQuiz = async () => {
@@ -2640,25 +2905,24 @@ Return ONLY a single JSON object. The question, options, explanation must all be
     setSelected(null)
     setStartTime(Date.now())
     setEndTime(null)
-    setAskedConcepts([])
+    setBatchProgress({ generated: 0, total: quizLength })
 
-    // Try up to 3 times to generate a valid first question
-    let q = null
-    for (let attempt = 0; attempt < 3 && !q; attempt++) {
-      q = await generateQuestion()
-      if (q?.q && q?.o?.length === 4) break
-      q = null
-      await new Promise(r => setTimeout(r, 500))
+    try {
+      const batch = await generateQuizBatch(quizLength)
+      if (batch.length === quizLength) {
+        setQuestions(batch)
+        setQuizState('active')
+      } else {
+        setError(
+          (prev) =>
+            prev ||
+            `Could not generate ${quizLength} relevant questions for this chapter right now. Please try again.`
+        )
+      }
+    } finally {
+      setLoading(false)
+      setBatchProgress(null)
     }
-
-    if (q?.q && q?.o?.length === 4) {
-      setQuestions([q])
-      if (q.concept) setAskedConcepts([q.concept])
-      setQuizState('active')
-    } else {
-      setError(ui.errorGenerating || 'Could not generate question. Try again.')
-    }
-    setLoading(false)
   }
 
   // Answer question
@@ -2679,7 +2943,7 @@ Return ONLY a single JSON object. The question, options, explanation must all be
   const nextQuestion = async () => {
     const nextIndex = currentIndex + 1
 
-    if (nextIndex >= quizLength) {
+    if (nextIndex >= questions.length) {
       setEndTime(Date.now())
       setQuizState('summary')
       return
@@ -2687,30 +2951,6 @@ Return ONLY a single JSON object. The question, options, explanation must all be
 
     setSelected(null)
     setCurrentIndex(nextIndex)
-    
-    // Generate next question if needed
-    if (nextIndex >= questions.length) {
-      setLoading(true)
-      
-      // Try up to 3 times to generate a valid question
-      let q = null
-      for (let attempt = 0; attempt < 3 && !q; attempt++) {
-        q = await generateQuestion()
-        if (q?.q && q?.o?.length === 4) break
-        q = null
-        await new Promise(r => setTimeout(r, 500)) // Brief delay between retries
-      }
-      
-      if (q?.q && q?.o?.length === 4) {
-        setQuestions((prev) => [...prev, q])
-        if (q.concept) setAskedConcepts((prev) => [...prev, q.concept])
-      } else {
-        // If we couldn't generate a question after retries, end quiz early
-        setEndTime(Date.now())
-        setQuizState('summary')
-      }
-      setLoading(false)
-    }
   }
 
   // Reset quiz
@@ -2721,7 +2961,6 @@ Return ONLY a single JSON object. The question, options, explanation must all be
     setCurrentIndex(0)
     setSelected(null)
     setError('')
-    setAskedConcepts([])
     setFinalStats(null)
     setStartTime(null)
     setEndTime(null)
@@ -2808,7 +3047,9 @@ Return ONLY a single JSON object. The question, options, explanation must all be
                     disabled:opacity-50 active:scale-[0.99] transition-all flex items-center justify-center gap-2"
         >
           {loading ? (
-            <>Generating...</>
+            <>
+              Generating {batchProgress?.generated ?? 0}/{batchProgress?.total ?? quizLength}...
+            </>
           ) : (
             <>
               <Lightning size={16} weight="fill" />
@@ -2816,6 +3057,11 @@ Return ONLY a single JSON object. The question, options, explanation must all be
             </>
           )}
         </button>
+        {loading && batchProgress && (
+          <p className="text-[11px] text-app-muted text-center">
+            Preparing relevant chapter questions: {batchProgress.generated}/{batchProgress.total}
+          </p>
+        )}
         
         {/* History & Bookmarks */}
         <div className="flex gap-2 pt-2">
@@ -3346,6 +3592,38 @@ interface ChatSession {
 }
 
 // Simple markdown renderer for chat messages with Mermaid diagram support
+function sanitizeMermaidContent(raw: string): string {
+  const text = String(raw || '').trim()
+  if (!text) return text
+
+  const lines = text
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+
+  if (lines.length === 0) return text
+
+  // Normalize loose mindmap output into valid Mermaid indentation.
+  if (lines[0].toLowerCase() === 'mindmap') {
+    const rootLine = lines.find((l) => /^root\s*\(/i.test(l)) || 'root((Topic))'
+    const children = lines.filter((l) => l !== 'mindmap' && l !== rootLine)
+
+    const safeChildren = children
+      .map((l) => l.replace(/^[-*]\s*/, '').trim())
+      .filter(Boolean)
+
+    const normalized = [
+      'mindmap',
+      `  ${rootLine}`,
+      ...safeChildren.map((c) => `    ${c}`),
+    ]
+
+    return normalized.join('\n')
+  }
+
+  return text
+}
+
 const renderMarkdown = (text: string): React.ReactNode => {
   // First, extract Mermaid code blocks and replace with placeholders
   const mermaidBlocks: string[] = []
@@ -3355,7 +3633,7 @@ const renderMarkdown = (text: string): React.ReactNode => {
   
   while ((match = mermaidRegex.exec(text)) !== null) {
     const placeholder = `__MERMAID_BLOCK_${mermaidBlocks.length}__`
-    mermaidBlocks.push(match[1].trim())
+    mermaidBlocks.push(sanitizeMermaidContent(match[1]))
     processedText = processedText.replace(match[0], placeholder)
   }
 
@@ -3505,6 +3783,23 @@ const renderMarkdown = (text: string): React.ReactNode => {
       continue
     }
 
+    // Markdown image: ![alt](https://...)
+    const imageMatch = line.match(/^!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)$/i)
+    if (imageMatch) {
+      flushList()
+      elements.push(
+        <div key={`img-${keyIndex++}`} className="my-2">
+          <img
+            src={imageMatch[2]}
+            alt={imageMatch[1] || 'diagram'}
+            loading="lazy"
+            className="max-w-full rounded-xl border border-white/[0.12]"
+          />
+        </div>
+      )
+      continue
+    }
+
     // Regular paragraph
     flushList()
     elements.push(<p key={`p-${keyIndex++}`} className="text-[12px] leading-relaxed">{renderInline(line)}</p>)
@@ -3512,6 +3807,142 @@ const renderMarkdown = (text: string): React.ReactNode => {
 
   flushList()
   return <div className="space-y-1">{elements}</div>
+}
+
+function normalizeTutorAnswer(raw: string): string {
+  if (!raw) return raw
+  let text = String(raw).trim()
+
+  // Remove accidental wrapping quotes copied from prompt examples.
+  if (text.length >= 2 && ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'")))) {
+    text = text.slice(1, -1).trim()
+  }
+
+  const fillerLine = /^(देखो|चलो|सुनो|अरे वाह|वाह|हाँ, बिल्कुल|Great question|Excellent question|Awesome question|Sure|Of course)\b/i
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+  while (lines.length > 1 && fillerLine.test(lines[0])) {
+    lines.shift()
+  }
+
+  text = lines.join('\n').trim()
+
+  // Remove repeated paragraphs if model accidentally duplicates blocks.
+  const paragraphs = text
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+
+  if (paragraphs.length > 1) {
+    const seen = new Set<string>()
+    const deduped: string[] = []
+    for (const p of paragraphs) {
+      const key = p
+        .toLowerCase()
+        .replace(/[\u200B-\u200D\uFEFF]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+      if (seen.has(key)) continue
+      seen.add(key)
+      deduped.push(p)
+    }
+    text = deduped.join('\n\n').trim()
+  }
+
+  // Normalize raw LaTeX-ish math into plain readable text.
+  text = text
+    .replace(/\$\$([\s\S]*?)\$\$/g, '$1')
+    .replace(/\$([^$]+)\$/g, '$1')
+    .replace(/\\sqrt\{([^}]+)\}/g, 'sqrt($1)')
+    .replace(/\\times/g, 'x')
+    .replace(/\\div/g, '/')
+    .replace(/\\to/g, '->')
+    .replace(/\\pi/g, 'pi')
+
+  // Convert loose Mermaid diagram text into fenced mermaid blocks so renderer can detect it.
+  if (!/```mermaid/i.test(text)) {
+    const lines = text.split('\n')
+    const out: string[] = []
+    let i = 0
+    while (i < lines.length) {
+      const line = lines[i].trim()
+      if (/^(mindmap|flowchart|graph\s|sequencediagram|classdiagram)/i.test(line)) {
+        const block: string[] = [line]
+        let j = i + 1
+        while (j < lines.length && lines[j].trim()) {
+          const stop = /^#{1,6}\s|^[-*]\s|^\d+\.\s/.test(lines[j].trim())
+          if (stop) break
+          block.push(lines[j])
+          j += 1
+        }
+        out.push('```mermaid')
+        out.push(block.join('\n'))
+        out.push('```')
+        i = j
+        continue
+      }
+      out.push(lines[i])
+      i += 1
+    }
+    text = out.join('\n')
+  }
+
+  return text || raw
+}
+
+function isMostlyDevanagari(text: string): boolean {
+  const t = String(text || '')
+  const devCount = (t.match(/[\u0900-\u097F]/g) || []).length
+  const latinCount = (t.match(/[A-Za-z]/g) || []).length
+  return devCount > 30 && devCount > latinCount
+}
+
+function isLikelyTruncatedAnswer(raw: string): boolean {
+  const text = String(raw || '').trim()
+  if (!text) return false
+
+  // Ends cleanly with sentence punctuation in common scripts.
+  if (/[.!?।॥]$/.test(text)) return false
+
+  // Typical dangling endings from interrupted generations.
+  const dangling = [
+    'चलो', 'सुनो', 'तो', 'और', 'लेकिन', 'इसलिए', 'कि',
+    'let', 'lets', 'let\'s', 'so', 'and', 'because'
+  ]
+  const lastWord = text.split(/\s+/).pop()?.replace(/[,'"():;\-]+$/g, '').toLowerCase() || ''
+  if (dangling.includes(lastWord)) return true
+
+  // Trailing comma/colon usually indicates unfinished thought.
+  if (/[,;:]$/.test(text)) return true
+
+  return text.length > 30
+}
+
+function isFullTutorAnswer(raw: string, questionText: string): boolean {
+  const text = String(raw || '').trim()
+  if (!text) return false
+
+  const q = String(questionText || '').toLowerCase()
+  const asksSimpleExplain =
+    q.includes('explain in simple') ||
+    q.includes('simple terms') ||
+    q.includes('समझाओ') ||
+    q.includes('सरल') ||
+    q.includes('easy')
+
+  // Baseline completeness checks
+  if (text.length < 120) return false
+  if (isLikelyTruncatedAnswer(text)) return false
+
+  // For explain-in-simple asks, require a fuller response body.
+  if (asksSimpleExplain) {
+    const nonEmptyLines = text.split('\n').map(l => l.trim()).filter(Boolean)
+    const approxWords = text.split(/\s+/).filter(Boolean).length
+    if (text.length < 260) return false
+    if (approxWords < 45) return false
+    if (nonEmptyLines.length < 3) return false
+  }
+
+  return true
 }
 
 // localStorage helpers for chat history — REMOVED, using API now
@@ -3600,6 +4031,9 @@ const AITutorTab: React.FC<{ chapter: any; ui: any; user: any }> = ({ chapter, u
     const text = question || input.trim()
     if (!text || loading) return
 
+    const isFollowUp = /^(explain more|tell me more|elaborate|aur bat|aur batao|और बताओ|और समझाओ|विस्तार|और details|more details)/i.test(text.trim())
+    const lastAssistantMsg = [...messages].reverse().find((m) => m.role === 'assistant')?.content || ''
+
     // Create session if this is the first message
     let sessionId = currentSessionId
     if (!sessionId) {
@@ -3630,16 +4064,40 @@ const AITutorTab: React.FC<{ chapter: any; ui: any; user: any }> = ({ chapter, u
 
     try {
       // Build language-aware system prompt using buildSystemPrompt
-      const userLang = user?.language || 'English'
+      const chapterMedium = String(
+        chapter?.medium || chapter?.chapter_medium || chapter?.medium_name || chapter?.language || ''
+      ).trim()
+      const userLang = chapterMedium || user?.language || 'English'
       const modeInstructions = `You are tutoring the student on the chapter "${chapter.chapter_name}" (${chapter.subject}, ${chapter.board} ${chapter.standard}).
 ${chapter.topics?.length ? `Key topics: ${chapter.topics.join(', ')}.` : ''}
 ${chapter.description ? `Chapter overview: ${chapter.description}` : ''}
 
-Answer the student's question clearly and concisely. Use simple language appropriate for ${chapter.standard}. If relevant, include examples.
+    Answer the student's question clearly and concisely. Use simple language appropriate for ${chapter.standard}. If relevant, include examples.
+
+    RESPONSE FORMAT (MANDATORY):
+    - Start directly with explanation. No hype opener lines.
+    - Keep answers easy to understand: short sentences, classroom style.
+    - For simple asks: 4-6 lines. For complex asks: 6-10 lines.
+    - If user asks for flowchart/diagram/process/comparison/"draw": add ONE Mermaid block after text.
+    - Mermaid output must be in fenced format: \`\`\`mermaid ... \`\`\`.
+    - Do NOT use LaTeX ($...$, \\sqrt{}, \\times). Write plain text math like: sqrt(2), a/b, x.
+    - If user asks for image and a reliable public URL is available, include one markdown image line: ![label](url)
+    - Never invent fake image URLs.
+    - For literature chapter questions (like story summary): text-first; no diagram unless explicitly requested.
+    ${isFollowUp ? `
+
+    FOLLOW-UP RULE (MANDATORY):
+    - The student asked a follow-up. Do NOT repeat the same explanation.
+    - Add new value: deeper meaning, character motive, theme, irony, exam writing tip, or likely question-answer angle.
+    - Reuse at most one sentence from earlier response; rest must be fresh.
+    ` : ''}
 
 ⚠️ CRITICAL REMINDER: Your ENTIRE response must be in ${userLang} using the proper script for that language. ${userLang === 'Hindi' ? 'Use ONLY Devanagari script (हिंदी). Do NOT use Roman/Latin script or Hinglish.' : userLang === 'Marathi' ? 'Use ONLY Devanagari script (मराठी). Do NOT use Hindi words.' : userLang !== 'English' ? `Write in ${userLang} script only.` : ''}`
 
-      const systemPrompt = buildSystemPrompt(user || { language: 'English', standard: chapter.standard, board: chapter.board, name: 'Student' }, modeInstructions)
+      const systemPrompt = buildSystemPrompt(
+        { ...(user || {}), language: userLang, standard: chapter.standard, board: chapter.board, name: user?.name || 'Student' },
+        modeInstructions
+      )
 
       // Build chapter context for backend - this is critical for AI to know the actual chapter content
       const chapterCtx = {
@@ -3649,7 +4107,7 @@ Answer the student's question clearly and concisely. Use simple language appropr
         subject: chapter.subject || chapter.subject_name || chapter.subject_id,
         board: chapter.board || chapter.board_id,
         standard: chapter.standard || chapter.standard_id,
-        medium: user?.language || 'English',
+        medium: userLang,
         topics: chapter.topics || [],
         description: chapter.description || '',
       }
@@ -3657,14 +4115,117 @@ Answer the student's question clearly and concisely. Use simple language appropr
       const response = await (callAI as Function)(
         text,
         systemPrompt,
-        messages.map((m) => ({ role: m.role, content: m.content })),
+        messages.slice(-6).map((m) => ({ role: m.role, content: m.content })),
         3,
-        1000,
+        2200,
         'chapter_tutor',
         chapterCtx
       )
 
-      const assistantMsg: ChatMessage = { role: 'assistant', content: response || (ui.noResponse || "I couldn't generate a response. Please try again.") }
+      let finalAnswer = normalizeTutorAnswer(response || '')
+
+      // Ensure we return a complete study answer, not a fragment.
+      let repairAttempts = 0
+      while (!isFullTutorAnswer(finalAnswer, text) && repairAttempts < 3) {
+        try {
+          const repairPrompt = isLikelyTruncatedAnswer(finalAnswer)
+            ? `Your previous answer was cut off mid-sentence. Regenerate a COMPLETE, final answer from scratch in ${userLang}.\n\nRules:\n1) Start directly with the concept (no filler opener).\n2) Keep chapter facts accurate; do not invent details.\n3) For "explain in simple terms", give 3 short paragraphs or 5-7 simple lines.\n4) End with a complete final sentence.\n5) Do NOT return a partial answer.\n\nStudent question: ${text}`
+            : `Rewrite the following into ONE complete, student-friendly answer in ${userLang}.\n\nRules:\n1) Start directly with the concept (no filler opener).\n2) Keep all original facts accurate; do not invent facts.\n3) Complete all broken/incomplete sentences.\n4) For "explain in simple terms" style questions, give a full explanation in 3 short paragraphs or 5-7 simple lines.\n5) End with a complete sentence.\n\nStudent question: ${text}\n\nCurrent answer:\n${finalAnswer}`
+
+          const repaired = await (callAI as Function)(
+            repairPrompt,
+            systemPrompt,
+            [],
+            2,
+            2200,
+            'chapter_tutor',
+            chapterCtx
+          )
+
+          if (repaired && typeof repaired === 'string') {
+            finalAnswer = normalizeTutorAnswer(repaired)
+          } else {
+            break
+          }
+        } catch {
+          break
+        }
+        repairAttempts += 1
+      }
+
+      // For follow-ups, avoid near-repeat of the previous assistant message.
+      if (isFollowUp && lastAssistantMsg) {
+        const prevHead = normalizeTutorAnswer(lastAssistantMsg).slice(0, 180)
+        const currHead = normalizeTutorAnswer(finalAnswer).slice(0, 180)
+        if (prevHead && currHead && currHead === prevHead) {
+          try {
+            const improvePrompt = `This follow-up answer is repeating prior content. Rewrite it in ${userLang} with NEW points only.
+
+Rules:
+1) Keep chapter facts accurate.
+2) Do not repeat earlier wording.
+3) Add exam-useful depth (theme, irony, character intent, likely question framing).
+4) Keep it simple and complete.
+
+Previous answer:
+${lastAssistantMsg}
+
+Current repeated answer:
+${finalAnswer}`
+
+            const improved = await (callAI as Function)(
+              improvePrompt,
+              systemPrompt,
+              [],
+              2,
+              2200,
+              'chapter_tutor',
+              chapterCtx
+            )
+            if (improved && typeof improved === 'string') {
+              finalAnswer = normalizeTutorAnswer(improved)
+            }
+          } catch {
+            // Keep current final answer if enhancement fails.
+          }
+        }
+      }
+
+      // English-medium guard: if answer is mostly Devanagari, auto-rewrite to clean English.
+      if (String(userLang).toLowerCase() === 'english' && isMostlyDevanagari(finalAnswer)) {
+        try {
+          const englishFixPrompt = `Rewrite the answer in clear ENGLISH only.
+
+Rules:
+1) Keep all facts intact, do not add/remove meaning.
+2) No Hindi/Marathi words.
+3) No LaTeX ($...$, \\sqrt{}, \\times). Use plain text math.
+4) Keep diagrams only if explicitly asked; if kept, use fenced mermaid block.
+5) End with a complete sentence.
+
+Student question: ${text}
+
+Current answer:
+${finalAnswer}`
+
+          const englishFixed = await (callAI as Function)(
+            englishFixPrompt,
+            systemPrompt,
+            [],
+            2,
+            1800,
+            'chapter_tutor',
+            chapterCtx
+          )
+          if (englishFixed && typeof englishFixed === 'string') {
+            finalAnswer = normalizeTutorAnswer(englishFixed)
+          }
+        } catch {
+          // Keep existing answer when rewrite fails.
+        }
+      }
+
+      const assistantMsg: ChatMessage = { role: 'assistant', content: finalAnswer || (ui.noResponse || "I couldn't generate a response. Please try again.") }
       setMessages((prev) => [...prev, assistantMsg])
       
       // Save assistant response to DB

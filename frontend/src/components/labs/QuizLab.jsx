@@ -15,6 +15,138 @@ const QUIZ_LENGTHS = [
   { count: 15, label: "Challenge", icon: "🔥", color: "#FF6B35", time: "~10 min" },
 ]
 
+const SUBJECT_TOPIC_MAP = {
+  mathematics: {
+    common: [
+      'real number', 'polynomial', 'pair of linear equations', 'quadratic', 'arithmetic progression',
+      'triangle', 'coordinate geometry', 'trigonometry', 'circle', 'construction', 'area',
+      'surface area', 'volume', 'statistics', 'probability', 'integer', 'rational', 'irrational',
+      'hcf', 'lcm', 'theorem', 'factorization'
+    ],
+  },
+  science: {
+    common: [
+      'chemical reaction', 'acid', 'base', 'salt', 'metal', 'non-metal', 'carbon compound',
+      'periodic classification', 'life process', 'control and coordination', 'reproduction',
+      'heredity', 'light', 'human eye', 'electricity', 'magnetic effect', 'energy source',
+      'environment', 'atom', 'molecule', 'force', 'newton', 'work', 'power'
+    ],
+  },
+  english: {
+    common: [
+      'poem', 'poetry', 'prose', 'story', 'character', 'theme', 'tone', 'plot', 'author',
+      'narrator', 'message', 'summary', 'grammar', 'tense', 'voice', 'speech',
+      'letter to god', 'nelson mandela', 'first flight', 'hundred dresses'
+    ],
+  },
+  'social science': {
+    common: [
+      'history', 'geography', 'civics', 'economics', 'constitution', 'democracy',
+      'federalism', 'parliament', 'judiciary', 'nationalism', 'resources', 'agriculture',
+      'manufacturing', 'money', 'development', 'power sharing', 'globalisation', 'sectors'
+    ],
+  },
+}
+
+function getSubjectTopicHints(subject, standard, board) {
+  const sub = String(subject || '').toLowerCase().trim()
+  const std = String(standard || '').toLowerCase()
+  const brd = String(board || '').toLowerCase()
+
+  let key = sub
+  if (sub.includes('math')) key = 'mathematics'
+  else if (sub.includes('science') && !sub.includes('social')) key = 'science'
+  else if (sub.includes('english')) key = 'english'
+  else if (sub.includes('social')) key = 'social science'
+
+  const base = SUBJECT_TOPIC_MAP[key]?.common || []
+
+  // Keep room for future board/class specialization without breaking current behavior.
+  const classBoardHints = []
+  if (std.includes('10') && brd.includes('cbse') && key === 'mathematics') {
+    classBoardHints.push('euclid', 'arithmetic theorem')
+  }
+  if (std.includes('10') && brd.includes('cbse') && key === 'science') {
+    classBoardHints.push('ncert', 'ohm')
+  }
+
+  return Array.from(new Set([...base, ...classBoardHints]))
+}
+
+function normalizeQuizQuestion(parsed) {
+  if (!parsed || typeof parsed !== 'object') return null
+
+  const rawQ = parsed.q ?? parsed.question ?? parsed.prompt
+  const rawOptions = parsed.o ?? parsed.options ?? parsed.choices
+  const rawC = parsed.c ?? parsed.correct ?? parsed.answer
+  if (!rawQ || !Array.isArray(rawOptions) || rawOptions.length < 4 || !rawC) return null
+
+  const options = rawOptions.slice(0, 4).map((o) => String(o).replace(/^[A-D][\)\.:-]?\s*/i, '').trim())
+  let c = String(rawC).toUpperCase().trim()
+  if (/^[1-4]$/.test(c)) c = ['A', 'B', 'C', 'D'][Number(c) - 1]
+  if (!['A', 'B', 'C', 'D'].includes(c)) {
+    const m = c.match(/^([A-D])/i)
+    c = m ? m[1].toUpperCase() : 'A'
+  }
+
+  return {
+    q: String(rawQ).trim(),
+    o: options,
+    c,
+    concept: String(parsed.concept ?? parsed.topic ?? '').trim(),
+    explanation: String(parsed.explanation ?? parsed.exp ?? '').trim(),
+  }
+}
+
+function isLikelyTruncatedJson(text) {
+  const t = String(text || '').trim()
+  if (!t) return true
+  if (!t.includes('{')) return false
+  if (!t.endsWith('}')) return true
+  const opens = (t.match(/\{/g) || []).length
+  const closes = (t.match(/\}/g) || []).length
+  return opens !== closes || /"o"\s*:\s*$/.test(t)
+}
+
+function isQuestionRelevantToSubject(question, subject) {
+  const sub = String(subject || '').toLowerCase()
+  const text = `${question?.q || ''} ${question?.concept || ''} ${(question?.o || []).join(' ')} ${(question?.explanation || '')}`.toLowerCase()
+
+  const scienceTerms = /chemical|reaction|molecule|atom|acid|base|salt|photosynthesis|respiration|force|newton|velocity|electric|current|circuit|refraction|lens|dna|cell/i
+  const mathTerms = /equation|algebra|polynomial|quadratic|factor|lcm|hcf|theorem|geometry|triangle|angle|coordinate|integer|rational|irrational|sqrt|probability/i
+  const englishTerms = /poem|poetry|prose|story|character|theme|author|passage|grammar|tense|synonym|antonym|literature|chapter/i
+  const sstTerms = /history|geography|civics|economics|constitution|democracy|parliament|monsoon|resource|population|agriculture|industry|colonial/i
+
+  if (sub.includes('math')) {
+    if (scienceTerms.test(text) || englishTerms.test(text) || sstTerms.test(text)) return false
+    return true
+  }
+  if (sub.includes('science')) {
+    if (mathTerms.test(text) || englishTerms.test(text) || sstTerms.test(text)) return false
+    return true
+  }
+  if (sub.includes('english')) {
+    if (scienceTerms.test(text) || mathTerms.test(text) || sstTerms.test(text)) return false
+    return true
+  }
+  if (sub.includes('social')) {
+    if (scienceTerms.test(text) || mathTerms.test(text) || englishTerms.test(text)) return false
+    return true
+  }
+
+  return true
+}
+
+function matchesAllowedSubjectTopics(question, subject, standard, board) {
+  const hints = getSubjectTopicHints(subject, standard, board)
+  if (!hints.length) return true
+
+  const text = `${question?.q || ''} ${question?.concept || ''} ${(question?.o || []).join(' ')} ${(question?.explanation || '')}`
+    .toLowerCase()
+
+  return hints.some((hint) => text.includes(hint))
+}
+
 // ── Bhool Curve: track every concept answered in localStorage ─
 function _updateBhool(subject, concept, correct) {
   if (!concept) return
@@ -84,6 +216,7 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
   const [selected, setSelected] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [batchProgress, setBatchProgress] = useState(null)
   const [startTime, setStartTime] = useState(null)
   const [endTime, setEndTime] = useState(null)
   
@@ -107,28 +240,22 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
       .catch(() => {})
   }, [selSub, uid])
 
-  // Track asked concepts to avoid repetition
-  const [askedConcepts, setAskedConcepts] = useState([])
-
   // Generate a single question with randomness
-  const generateQuestion = useCallback(async () => {
+  const generateQuestion = useCallback(async (excludedConcepts = []) => {
     // Add randomness to avoid same question
     const randomSeed = Math.random().toString(36).slice(2, 8)
-    const avoidList = askedConcepts.length > 0 
-      ? `\nIMPORTANT: Do NOT ask about these concepts (already asked): ${askedConcepts.join(', ')}. Pick a DIFFERENT topic.`
+    const avoidList = excludedConcepts.length > 0 
+      ? `\nIMPORTANT: Do NOT ask about these concepts (already asked): ${excludedConcepts.join(', ')}. Pick a DIFFERENT topic.`
       : ''
     
     const lang = profile.language || 'English'
-    // If subject IS English, always generate in English (it's the subject being tested)
-    const isEnglishSubject = selSub.toLowerCase() === 'english'
-    const effectiveLang = isEnglishSubject ? 'English' : lang
+    // Always use student's selected medium language for quiz content.
+    const effectiveLang = lang
     const langRule = LANG_RULES[effectiveLang] || LANG_RULES.English
     
     // Language-specific instructions for the question
     let langInstruction
-    if (isEnglishSubject) {
-      langInstruction = 'This is an English subject quiz. Write EVERYTHING in English — question, options, and explanation.'
-    } else if (lang === 'English') {
+    if (lang === 'English') {
       langInstruction = 'Write the question and all options in English.'
     } else {
       langInstruction = `Write the question (q) and all 4 options (o) ENTIRELY in ${lang}. Do NOT mix English words into the question or options unless they are technical terms (like "DNA", "pH", "Newton"). ${lang === 'Marathi' ? 'Use ONLY Marathi (मराठी), NEVER Hindi.' : ''}`
@@ -144,22 +271,72 @@ Output ONLY a valid JSON object. No markdown, no explanation.`
 ${langInstruction}
 ${avoidList}
 
+  CRITICAL SUBJECT RULE:
+  - The question MUST belong ONLY to subject: ${selSub}
+  - Do NOT mix topics from other subjects.
+  - If subject is Mathematics: ask ONLY math concepts.
+  - If subject is Science: ask ONLY science concepts.
+  - If subject is English: ask ONLY language/literature concepts.
+  - If subject is Social Science: ask ONLY history/geography/civics/economics concepts.
+
+  Topic whitelist for this subject (must stay within these kinds of concepts):
+  ${getSubjectTopicHints(selSub, profile.standard, profile.board).slice(0, 20).join(', ')}
+
 Return ONLY this JSON format:
 {"q":"question text in ${effectiveLang}","o":["option A","option B","option C","option D"],"c":"A","concept":"topic name in English","explanation":"brief explanation in ${effectiveLang}"}
 
 "c" must be exactly one of: "A", "B", "C", or "D".
 [seed:${randomSeed}]`
 
-    const res = await callAI(prompt, systemPrompt, [], 3, 800, "quiz_generate")
-    const parsed = parseAIObject(res)
-    
-    // Track this concept to avoid repetition
-    if (parsed?.concept) {
-      setAskedConcepts(prev => [...prev, parsed.concept])
+    const res = await callAI(prompt, systemPrompt, [], 3, 1600, "quiz_generate")
+    if (typeof res === 'string' && res.startsWith('⚠️')) return null
+
+    let parsed = parseAIObject(res)
+    let normalized = normalizeQuizQuestion(parsed)
+    if (normalized) return normalized
+
+    if (isLikelyTruncatedJson(res)) {
+      const continuePrompt = `Your previous output was truncated. Regenerate ONE COMPLETE JSON object only.\n\nFormat:\n{"q":"...","o":["A) ...","B) ...","C) ...","D) ..."],"c":"A|B|C|D","concept":"...","explanation":"..."}`
+      const continued = await callAI(continuePrompt, systemPrompt, [], 2, 1800, 'quiz_generate')
+      parsed = parseAIObject(continued)
+      normalized = normalizeQuizQuestion(parsed)
+      if (normalized) return normalized
     }
-    
-    return parsed
-  }, [difficulty, selSub, profile.standard, profile.board, profile.language, askedConcepts])
+
+    const repairPrompt = `Convert the following into ONE valid quiz JSON object only.\n\nRequired format:\n{"q":"...","o":["A) ...","B) ...","C) ...","D) ..."],"c":"A|B|C|D","concept":"...","explanation":"..."}\n\nContent:\n${String(res || '')}`
+    const repaired = await callAI(repairPrompt, systemPrompt, [], 2, 1400, 'quiz_generate')
+    parsed = parseAIObject(repaired)
+    normalized = normalizeQuizQuestion(parsed)
+    return normalized
+  }, [difficulty, selSub, profile.standard, profile.board, profile.language])
+
+  const generateQuizBatch = useCallback(async (totalQuestions) => {
+    const generated = []
+    const localConcepts = []
+    const seenQuestions = new Set()
+    const maxAttempts = totalQuestions * 5
+
+    let attempts = 0
+    while (generated.length < totalQuestions && attempts < maxAttempts) {
+      attempts += 1
+      const q = await generateQuestion(localConcepts)
+      if (!q?.q || !q?.o || q.o.length !== 4) continue
+      if (!isQuestionRelevantToSubject(q, selSub)) continue
+      if (!matchesAllowedSubjectTopics(q, selSub, profile.standard, profile.board)) continue
+
+      const key = q.q.trim().toLowerCase()
+      if (seenQuestions.has(key)) continue
+      seenQuestions.add(key)
+
+      generated.push(q)
+      setBatchProgress({ generated: generated.length, total: totalQuestions })
+
+      const concept = q.concept?.trim()
+      if (concept) localConcepts.push(concept)
+    }
+
+    return generated
+  }, [generateQuestion])
 
   // Start a new quiz
   const startQuiz = async () => {
@@ -172,16 +349,16 @@ Return ONLY this JSON format:
     setGaltiDiag(null)
     setStartTime(Date.now())
     setEndTime(null)
-    setAskedConcepts([])  // Reset asked concepts for new quiz
+    setBatchProgress({ generated: 0, total: quizLength })
     
-    // Generate first question
-    const q = await generateQuestion()
-    if (q?.q && q?.o?.length === 4) {
-      setQuestions([q])
+    const batch = await generateQuizBatch(quizLength)
+    if (batch.length === quizLength) {
+      setQuestions(batch)
       setQuizState(QUIZ_STATE.ACTIVE)
     } else {
-      setError(ui.couldNotGenerate || "Could not generate question. Try again.")
+      setError(ui.couldNotGenerate || "Could not generate question. Please try again.")
     }
+    setBatchProgress(null)
     setLoading(false)
   }
 
@@ -222,20 +399,9 @@ Return ONLY this JSON format:
       return
     }
     
-    setLoading(true)
     setSelected(null)
     setGaltiDiag(null)
-    
-    // Generate next question if needed
-    if (nextIndex >= questions.length) {
-      const q = await generateQuestion()
-      if (q?.q && q?.o?.length === 4) {
-        setQuestions(prev => [...prev, q])
-      }
-    }
-    
     setCurrentIndex(nextIndex)
-    setLoading(false)
   }
 
   // Diagnose error
@@ -270,7 +436,7 @@ Return ONLY this JSON format:
     setSelected(null)
     setError("")
     setGaltiDiag(null)
-    setAskedConcepts([])
+    setBatchProgress(null)
   }
 
   // Option styling
@@ -394,7 +560,7 @@ Return ONLY this JSON format:
           <button onClick={startQuiz} disabled={loading}
             className="w-full bg-gradient-to-r from-app-green to-[#33cc88] text-app-bg text-[14px] font-extrabold rounded-xl py-3.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] transition-all flex items-center justify-center gap-2">
             {loading ? (
-              <>{ui.generatingQ || 'Generating...'}</>
+              <>{(ui.generatingQ || 'Generating...')} {batchProgress ? `${batchProgress.generated}/${batchProgress.total}` : ''}</>
             ) : (
               <>
                 <Lightning size={18} weight="fill" />

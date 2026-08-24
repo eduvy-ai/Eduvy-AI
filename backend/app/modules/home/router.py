@@ -62,6 +62,69 @@ Write in English only. Use simple, clear language appropriate for Indian school 
 </language_constraint>""",
 }
 
+LANG_SCRIPT_PATTERNS = {
+    "Hindi": r"[\u0900-\u097F]",
+    "Marathi": r"[\u0900-\u097F]",
+    "Gujarati": r"[\u0A80-\u0AFF]",
+    "Tamil": r"[\u0B80-\u0BFF]",
+    "Telugu": r"[\u0C00-\u0C7F]",
+    "Kannada": r"[\u0C80-\u0CFF]",
+    "Bengali": r"[\u0980-\u09FF]",
+    "Punjabi": r"[\u0A00-\u0A7F]",
+    "Odia": r"[\u0B00-\u0B7F]",
+    "Urdu": r"[\u0600-\u06FF]",
+}
+
+
+def _content_matches_language(language: str, text: str) -> bool:
+    """Best-effort language check to avoid serving stale wrong-language cached content."""
+    if not text or not language:
+        return True
+    if language == "English":
+        return True
+
+    script_pat = LANG_SCRIPT_PATTERNS.get(language)
+    if not script_pat:
+        return True
+
+    # Count script chars and broad alphabetic chars.
+    script_chars = len(re.findall(script_pat, text))
+    alpha_chars = len(re.findall(r"[A-Za-z\u0600-\u06FF\u0900-\u0CFF]", text))
+    if alpha_chars == 0:
+        return True
+
+    return (script_chars / alpha_chars) >= 0.2
+
+
+def _build_brief_fallback(language: str) -> str:
+    """Return brief fallback in requested medium where available."""
+    lang_key = (language or "").strip().lower()
+    if lang_key == "marathi":
+        return """📚 आजचा फोकस: गणित - द्विघात समीकरणे आणि त्यांचे गुणधर्म
+
+🎯 परीक्षेची टिप: बोर्ड परीक्षेत प्रत्येक पायरी स्पष्ट लिहा.
+
+💪 तुम्ही नक्की करू शकता! रोज थोडा सातत्यपूर्ण अभ्यास मोठा फरक करतो.
+
+🌙 आज रात्री: त्रिकोणाच्या क्षेत्रफळाचे सूत्र पुन्हा पाहा."""
+
+    if lang_key == "hindi":
+        return """📚 आज का फोकस: गणित - द्विघात समीकरण और उसके गुण
+
+🎯 परीक्षा टिप: बोर्ड परीक्षा में हर स्टेप साफ-साफ लिखें।
+
+💪 आप कर सकते हैं! रोज़ थोड़ा-थोड़ा अभ्यास बड़ा फर्क लाता है।
+
+🌙 आज रात: त्रिभुज के क्षेत्रफल का सूत्र दोहराएँ।"""
+
+    return """📚 Today's Focus: Mathematics - Quadratic Equations and their properties
+
+🎯 Exam Tip: Always show your working steps clearly in board exams.
+
+💪 You can do it! Consistent daily practice leads to exam success.
+
+🌙 Tonight: Revise the area of triangle formula."""
+
 
 def _get_local_lang_rule(language: str) -> str:
     """Get local fallback language rule (used when dynamic lookup fails)."""
@@ -83,6 +146,124 @@ CLASS_TOPICS = {
         "Science": ["Crop Production", "Microorganisms", "Force Pressure", "Friction", "Sound"]
     }
 }
+
+
+def _build_dailyq_fallback(standard: str, language: str) -> list[dict]:
+    """Return safe fallback daily questions in student language (default English)."""
+    lang_key = (language or "").strip().lower()
+    is_marathi = lang_key == "marathi"
+    is_hindi = lang_key == "hindi"
+
+    if "10" in standard:
+        if is_marathi:
+            return [
+                {"q": "एक काटकोन त्रिकोणाच्या दोन बाजू 6 सेमी आणि 8 सेमी आहेत. कर्ण किती?",
+                 "a": "चला सोडवूया!\nStep 1: पायथागोरस प्रमेय: c² = a² + b²\nStep 2: c² = 6² + 8² = 36 + 64 = 100\nStep 3: c = √100 = 10\nउत्तर: कर्ण = 10 सेमी ✓",
+                 "concept": "Pythagoras Theorem", "subject": "Mathematics"},
+                {"q": "आम्ल आणि आम्लारी यांच्या अभिक्रियेला काय म्हणतात?",
+                 "a": "उदासीनीकरण (Neutralization)\nका? आम्ल + आम्लारी → मीठ + पाणी\nउदाहरण: HCl + NaOH → NaCl + H₂O\nदैनंदिन जीवनात: अॅसिडिटीवर antacid घेतो - हेच उदासीनीकरण!",
+                 "concept": "Acids and Bases", "subject": "Science"}
+            ]
+        if is_hindi:
+            return [
+                {"q": "एक समकोण त्रिभुज की दो भुजाएँ 6 सेमी और 8 सेमी हैं। कर्ण कितना होगा?",
+                 "a": "चलो हल करते हैं!\nStep 1: पाइथागोरस प्रमेय: c² = a² + b²\nStep 2: c² = 6² + 8² = 36 + 64 = 100\nStep 3: c = √100 = 10\nउत्तर: कर्ण = 10 सेमी ✓",
+                 "concept": "Pythagoras Theorem", "subject": "Mathematics"},
+                {"q": "अम्ल और क्षार की अभिक्रिया को क्या कहते हैं?",
+                 "a": "उदासीनीकरण (Neutralization)\nक्यों? अम्ल + क्षार → लवण + जल\nउदाहरण: HCl + NaOH → NaCl + H₂O\nदैनिक जीवन: अम्लता में antacid इसी सिद्धांत पर काम करता है।",
+                 "concept": "Acids and Bases", "subject": "Science"}
+            ]
+        return [
+            {"q": "In a right triangle, two sides are 6 cm and 8 cm. What is the hypotenuse?",
+             "a": "Let's solve it!\nStep 1: Pythagoras theorem: c² = a² + b²\nStep 2: c² = 6² + 8² = 36 + 64 = 100\nStep 3: c = √100 = 10\nAnswer: hypotenuse = 10 cm ✓",
+             "concept": "Pythagoras Theorem", "subject": "Mathematics"},
+            {"q": "What is the reaction between an acid and a base called?",
+             "a": "Neutralization\nWhy? Acid + Base → Salt + Water\nExample: HCl + NaOH → NaCl + H₂O\nIn daily life: antacids for acidity work through neutralization.",
+             "concept": "Acids and Bases", "subject": "Science"}
+        ]
+
+    if "9" in standard:
+        if is_marathi:
+            return [
+                {"q": "एका आयताची लांबी 12 मीटर आणि रुंदी 5 मीटर आहे. क्षेत्रफळ आणि परिमिती किती?",
+                 "a": "चला सोडवूया!\nक्षेत्रफळ = लांबी × रुंदी = 12 × 5 = 60 चौ.मी.\nपरिमिती = 2(लांबी + रुंदी) = 2(12 + 5) = 2 × 17 = 34 मी.\nउत्तर: क्षेत्रफळ = 60 चौ.मी., परिमिती = 34 मी. ✓",
+                 "concept": "Mensuration", "subject": "Mathematics"},
+                {"q": "पेशीचे 'पॉवरहाउस' कोणते आणि का?",
+                 "a": "माइटोकॉन्ड्रिया\nका? ATP (ऊर्जा) तयार करते - पेशीला काम करण्यासाठी ऊर्जा लागते!\nउदाहरण: बॅटरी जसे फोनला ऊर्जा देते, तसे माइटोकॉन्ड्रिया पेशीला ऊर्जा देते.",
+                 "concept": "Cell Biology", "subject": "Science"}
+            ]
+        if is_hindi:
+            return [
+                {"q": "एक आयत की लंबाई 12 मीटर और चौड़ाई 5 मीटर है। क्षेत्रफल और परिमाप ज्ञात करें।",
+                 "a": "चलो हल करते हैं!\nक्षेत्रफल = लंबाई × चौड़ाई = 12 × 5 = 60 वर्ग मीटर\nपरिमाप = 2(लंबाई + चौड़ाई) = 2(12 + 5) = 34 मीटर\nउत्तर: क्षेत्रफल = 60 वर्ग मीटर, परिमाप = 34 मीटर ✓",
+                 "concept": "Mensuration", "subject": "Mathematics"},
+                {"q": "कोशिका का 'पावरहाउस' किसे कहते हैं और क्यों?",
+                 "a": "माइटोकॉन्ड्रिया\nक्यों? यह ATP (ऊर्जा) बनाता है, जिससे कोशिका काम करती है।\nउदाहरण: जैसे बैटरी फोन को ऊर्जा देती है, वैसे ही माइटोकॉन्ड्रिया कोशिका को ऊर्जा देता है।",
+                 "concept": "Cell Biology", "subject": "Science"}
+            ]
+        return [
+            {"q": "A rectangle has length 12 m and breadth 5 m. Find its area and perimeter.",
+             "a": "Let's solve it!\nArea = length × breadth = 12 × 5 = 60 m²\nPerimeter = 2(length + breadth) = 2(12 + 5) = 34 m\nAnswer: area = 60 m², perimeter = 34 m ✓",
+             "concept": "Mensuration", "subject": "Mathematics"},
+            {"q": "Which organelle is called the powerhouse of the cell, and why?",
+             "a": "Mitochondria\nWhy? It produces ATP (energy) needed by the cell.\nExample: like a battery powers a phone, mitochondria powers the cell.",
+             "concept": "Cell Biology", "subject": "Science"}
+        ]
+
+    if "8" in standard:
+        if is_marathi:
+            return [
+                {"q": "एका वस्तूची किंमत Rs 400 आहे. 15% सूट मिळाल्यास किती रुपये द्यावे लागतील?",
+                 "a": "चला सोडवूया!\nStep 1: सूट = 400 × 15/100 = Rs 60\nStep 2: देय रक्कम = 400 - 60 = Rs 340\nउत्तर: Rs 340 द्यावे लागतील ✓",
+                 "concept": "Discount", "subject": "Mathematics"},
+                {"q": "प्रकाशसंश्लेषण म्हणजे काय आणि कुठे होते?",
+                 "a": "वनस्पती सूर्यप्रकाशाच्या मदतीने अन्न तयार करतात.\nका? CO₂ + H₂O + सूर्यप्रकाश → ग्लुकोज + O₂\nकुठे? पानांतील हरितलवक (Chloroplast) मध्ये\nमजेशीर: वनस्पती आपल्यासाठी ऑक्सिजन तयार करतात!",
+                 "concept": "Photosynthesis", "subject": "Science"}
+            ]
+        if is_hindi:
+            return [
+                {"q": "किसी वस्तु की कीमत Rs 400 है। 15% छूट मिलने पर कितने रुपये देने होंगे?",
+                 "a": "चलो हल करते हैं!\nStep 1: छूट = 400 × 15/100 = Rs 60\nStep 2: अंतिम कीमत = 400 - 60 = Rs 340\nउत्तर: Rs 340 देने होंगे ✓",
+                 "concept": "Discount", "subject": "Mathematics"},
+                {"q": "प्रकाश संश्लेषण क्या है और यह कहाँ होता है?",
+                 "a": "पौधे सूर्यप्रकाश की मदद से अपना भोजन बनाते हैं।\nक्यों? CO₂ + H₂O + सूर्यप्रकाश → ग्लूकोज + O₂\nकहाँ? पत्तियों के क्लोरोप्लास्ट में\nरोचक बात: पौधे हमारे लिए ऑक्सीजन बनाते हैं।",
+                 "concept": "Photosynthesis", "subject": "Science"}
+            ]
+        return [
+            {"q": "An item costs Rs 400. After a 15% discount, how much should be paid?",
+             "a": "Let's solve it!\nStep 1: Discount = 400 × 15/100 = Rs 60\nStep 2: Final price = 400 - 60 = Rs 340\nAnswer: pay Rs 340 ✓",
+             "concept": "Discount", "subject": "Mathematics"},
+            {"q": "What is photosynthesis and where does it happen?",
+             "a": "Plants make food using sunlight.\nWhy? CO₂ + H₂O + sunlight → glucose + O₂\nWhere? In chloroplasts in the leaves.\nFun fact: plants produce oxygen for us.",
+             "concept": "Photosynthesis", "subject": "Science"}
+        ]
+
+    if is_marathi:
+        return [
+            {"q": "एका बागेत 5 ओळींमध्ये प्रत्येकी 8 झाडे आहेत. एकूण किती झाडे?",
+             "a": "चला सोडवूया!\n5 ओळी × 8 झाडे = 40 झाडे\nउत्तर: बागेत एकूण 40 झाडे आहेत ✓",
+             "concept": "Multiplication", "subject": "Mathematics"},
+            {"q": "पाण्याचे रासायनिक सूत्र काय आहे?",
+             "a": "H₂O\nका? 2 हायड्रोजन + 1 ऑक्सिजन = पाणी\nमजेशीर: H-O-H असे तीन अणू एकत्र येऊन पाण्याचा एक रेणू बनतो!",
+             "concept": "Chemistry", "subject": "Science"}
+        ]
+    if is_hindi:
+        return [
+            {"q": "एक बगीचे में 5 पंक्तियाँ हैं और हर पंक्ति में 8 पौधे हैं। कुल कितने पौधे हैं?",
+             "a": "चलो हल करते हैं!\n5 पंक्तियाँ × 8 पौधे = 40 पौधे\nउत्तर: कुल पौधे = 40 ✓",
+             "concept": "Multiplication", "subject": "Mathematics"},
+            {"q": "पानी का रासायनिक सूत्र क्या है?",
+             "a": "H₂O\nक्यों? 2 हाइड्रोजन परमाणु + 1 ऑक्सीजन परमाणु = पानी।\nरोचक बात: पानी के एक अणु का रूप H-O-H होता है।",
+             "concept": "Chemistry", "subject": "Science"}
+        ]
+    return [
+        {"q": "A garden has 5 rows with 8 plants in each row. How many plants are there in total?",
+         "a": "Let's solve it!\n5 rows × 8 plants = 40 plants\nAnswer: total plants = 40 ✓",
+         "concept": "Multiplication", "subject": "Mathematics"},
+        {"q": "What is the chemical formula of water?",
+         "a": "H₂O\nWhy? 2 hydrogen atoms + 1 oxygen atom = water.\nFun fact: one water molecule is built like H-O-H.",
+         "concept": "Chemistry", "subject": "Science"}
+    ]
 
 def build_teacher_prompt(data: "GenerateDailyQRequest") -> str:
     """
@@ -182,6 +363,46 @@ def _parse_ai_array(text: str) -> list:
         return []
 
 
+async def _repair_dailyq_json(raw_response: str, language: str) -> list:
+    """Try to repair malformed AI output into strict JSON while preserving target language."""
+    if not raw_response or not raw_response.strip():
+        return []
+
+    repair_prompt = f"""Convert the content below into VALID JSON ONLY.
+
+Required output format:
+[
+  {{"q": "...", "a": "...", "concept": "...", "subject": "..."}},
+  {{"q": "...", "a": "...", "concept": "...", "subject": "..."}}
+]
+
+Rules:
+1) Return exactly 2 objects.
+2) Keep q and a in {language}.
+3) Keep concept and subject in English.
+4) Do not add markdown, explanation, or extra text.
+
+Content to repair:
+{raw_response}
+"""
+
+    try:
+        repaired, _, _ = await call_ai(
+            provider="groq",
+            model="llama-3.3-70b-versatile",
+            prompt=repair_prompt,
+            system_prompt="You are a strict JSON repair tool. Return only valid JSON array.",
+            history=[],
+            max_tokens=1200,
+        )
+        parsed = _parse_ai_array(repaired)
+        if isinstance(parsed, list) and len(parsed) > 0:
+            return parsed[:2]
+    except Exception as e:
+        print(f"[DailyQ] Repair failed: {e}")
+    return []
+
+
 @router.get("/daily-content/{content_type}")
 async def get_daily_content(
     content_type: str,
@@ -203,6 +424,10 @@ async def get_daily_content(
     )
     
     if not result:
+        return {"exists": False, "content": None}
+
+    # If cached content does not match requested medium, force regeneration.
+    if not _content_matches_language(language, str(result.get("content") or "")):
         return {"exists": False, "content": None}
     
     return result
@@ -270,6 +495,9 @@ async def generate_daily_questions(
         try:
             questions = json.loads(existing["content"])
             if isinstance(questions, list) and len(questions) > 0:
+                combined = "\n".join(f"{q.get('q','')} {q.get('a','')}" for q in questions if isinstance(q, dict))
+                if not _content_matches_language(data.language, combined):
+                    raise ValueError("Cached dailyq language mismatch")
                 return GenerateDailyQResponse(
                     questions=[DailyQuestion(**q) for q in questions[:2]],
                     saved=True
@@ -296,6 +524,11 @@ async def generate_daily_questions(
         print(f"[DailyQ] Parsed count: {len(parsed)}")  # Debug log
         
         questions = parsed[:2] if isinstance(parsed, list) and len(parsed) > 0 else []
+
+        # Second chance: repair malformed AI output to avoid wrong-language static fallback.
+        if not questions:
+            repaired = await _repair_dailyq_json(response, data.language)
+            questions = repaired if repaired else []
         
         if questions:
             # Save to database
@@ -311,46 +544,9 @@ async def generate_daily_questions(
                 saved=True
             )
         
-        # Return fallback questions if AI fails - based on student's class
-        print(f"[DailyQ] No questions parsed, returning fallback for {data.standard}")
-        
-        # Class-appropriate fallbacks with teacher-style explanations
-        if "10" in data.standard:
-            fallback = [
-                {"q": "एक काटकोन त्रिकोणाच्या दोन बाजू 6 सेमी आणि 8 सेमी आहेत. कर्ण किती?", 
-                 "a": "चला सोडवूया!\nStep 1: पायथागोरस प्रमेय: c² = a² + b²\nStep 2: c² = 6² + 8² = 36 + 64 = 100\nStep 3: c = √100 = 10\nउत्तर: कर्ण = 10 सेमी ✓", 
-                 "concept": "Pythagoras Theorem", "subject": "Mathematics"},
-                {"q": "आम्ल आणि आम्लारी यांच्या अभिक्रियेला काय म्हणतात?",
-                 "a": "उदासीनीकरण (Neutralization)\nका? आम्ल + आम्लारी → मीठ + पाणी\nउदाहरण: HCl + NaOH → NaCl + H₂O\nदैनंदिन जीवनात: अॅसिडिटीवर antacid घेतो - हेच उदासीनीकरण!",
-                 "concept": "Acids and Bases", "subject": "Science"}
-            ]
-        elif "9" in data.standard:
-            fallback = [
-                {"q": "एका आयताची लांबी 12 मीटर आणि रुंदी 5 मीटर आहे. क्षेत्रफळ आणि परिमिती किती?",
-                 "a": "चला सोडवूया!\nक्षेत्रफळ = लांबी × रुंदी = 12 × 5 = 60 चौ.मी.\nपरिमिती = 2(लांबी + रुंदी) = 2(12 + 5) = 2 × 17 = 34 मी.\nउत्तर: क्षेत्रफळ = 60 चौ.मी., परिमिती = 34 मी. ✓",
-                 "concept": "Mensuration", "subject": "Mathematics"},
-                {"q": "पेशीचे 'पॉवरहाउस' कोणते आणि का?",
-                 "a": "माइटोकॉन्ड्रिया\nका? ATP (ऊर्जा) तयार करते - पेशीला काम करण्यासाठी ऊर्जा लागते!\nउदाहरण: बॅटरी जसे फोनला ऊर्जा देते, तसे माइटोकॉन्ड्रिया पेशीला ऊर्जा देते.",
-                 "concept": "Cell Biology", "subject": "Science"}
-            ]
-        elif "8" in data.standard:
-            fallback = [
-                {"q": "एका वस्तूची किंमत Rs 400 आहे. 15% सूट मिळाल्यास किती रुपये द्यावे लागतील?",
-                 "a": "चला सोडवूया!\nStep 1: सूट = 400 × 15/100 = Rs 60\nStep 2: देय रक्कम = 400 - 60 = Rs 340\nउत्तर: Rs 340 द्यावे लागतील ✓",
-                 "concept": "Discount", "subject": "Mathematics"},
-                {"q": "प्रकाशसंश्लेषण म्हणजे काय आणि कुठे होते?",
-                 "a": "वनस्पती सूर्यप्रकाशाच्या मदतीने अन्न तयार करतात.\nका? CO₂ + H₂O + सूर्यप्रकाश → ग्लुकोज + O₂\nकुठे? पानांतील हरितलवक (Chloroplast) मध्ये\nमजेशीर: वनस्पती आपल्यासाठी ऑक्सिजन तयार करतात!",
-                 "concept": "Photosynthesis", "subject": "Science"}
-            ]
-        else:
-            fallback = [
-                {"q": "एका बागेत 5 ओळींमध्ये प्रत्येकी 8 झाडे आहेत. एकूण किती झाडे?",
-                 "a": "चला सोडवूया!\n5 ओळी × 8 झाडे = 40 झाडे\nउत्तर: बागेत एकूण 40 झाडे आहेत ✓",
-                 "concept": "Multiplication", "subject": "Mathematics"},
-                {"q": "पाण्याचे रासायनिक सूत्र काय आहे?",
-                 "a": "H₂O\nका? 2 हायड्रोजन + 1 ऑक्सिजन = पाणी\nमजेशीर: H-O-H असे तीन अणू एकत्र येऊन पाण्याचा एक रेणू बनतो!",
-                 "concept": "Chemistry", "subject": "Science"}
-            ]
+        # Return fallback questions if AI fails - based on student's class and language
+        print(f"[DailyQ] No questions parsed, returning fallback for {data.standard} in {data.language}")
+        fallback = _build_dailyq_fallback(data.standard, data.language)
         
         return GenerateDailyQResponse(questions=[DailyQuestion(**q) for q in fallback], saved=False)
         
@@ -403,7 +599,10 @@ async def generate_daily_brief(
     )
     
     if existing and existing.get("exists") and existing.get("content"):
-        return GenerateBriefResponse(brief=existing["content"], saved=True)
+        if not _content_matches_language(data.language, existing["content"]):
+            existing = None
+        else:
+            return GenerateBriefResponse(brief=existing["content"], saved=True)
     
     # Build prompt
     prompt = build_brief_prompt(data)
@@ -429,14 +628,8 @@ async def generate_daily_brief(
             )
             return GenerateBriefResponse(brief=response, saved=True)
         
-        # Fallback brief (English — universal fallback)
-        fallback = f"""📚 Today's Focus: Mathematics - Quadratic Equations and their properties
-
-🎯 Exam Tip: Always show your working steps clearly in board exams.
-
-💪 You can do it! Consistent daily practice leads to exam success.
-
-🌙 Tonight: Revise the area of triangle formula."""
+        # Fallback brief in requested medium when available.
+        fallback = _build_brief_fallback(data.language)
         
         return GenerateBriefResponse(brief=fallback, saved=False)
         

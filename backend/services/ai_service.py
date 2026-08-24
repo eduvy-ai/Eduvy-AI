@@ -121,8 +121,8 @@ class _TTLCache:
         self._lock    = threading.Lock()
 
     @staticmethod
-    def make_key(provider: str, model: str, system: str, last_msg: str) -> str:
-        raw = f"{provider}|{model}|{system}|{last_msg}"
+    def make_key(provider: str, model: str, system: str, last_msg: str, token_budget: str = "") -> str:
+        raw = f"{provider}|{model}|{system}|{last_msg}|{token_budget}"
         return hashlib.sha256(raw.encode()).hexdigest()
 
     def get(self, key: str) -> tuple | None:
@@ -299,27 +299,63 @@ def save_api_key(provider: str, key: str, slot: int = 1):
 
 
 def remove_api_key_slot(provider: str, slot: int):
-    """Delete a DB key slot and rebuild the in-memory pool from env vars + remaining slots."""
+    """Delete a key slot from legacy+enhanced storage and rebuild in-memory pool.
+
+    This keeps admin UI (enhanced table) and runtime key pools in sync without restart.
+    """
     db_key = f"api_key_{provider}" if slot == 1 else f"api_key_{provider}_{slot}"
     from app.db.connection import get_db
     conn = get_db()
     try:
         cur = conn.cursor()
+        # Remove from legacy table used by older admin flow.
         cur.execute("DELETE FROM app_settings WHERE key=%s", (db_key,))
+
+        # Remove from enhanced table used by the new admin UI.
+        cur.execute(
+            "DELETE FROM ai_provider_keys WHERE provider=%s AND slot=%s",
+            (provider, slot),
+        )
         conn.commit()
+
         if slot == 1:
             _SERVER_KEYS[provider] = ""
-        # Rebuild pool: env keys first, then remaining DB slots
+
+        # Rebuild pool: env keys first, then enabled enhanced rows if present.
+        # Fall back to legacy app_settings slots for backward compatibility.
         env_base = _ENV_BASE.get(provider, "")
         new_pool = _load_pool(env_base) if env_base else []
-        for s in range(1, 6):
-            dk = f"api_key_{provider}" if s == 1 else f"api_key_{provider}_{s}"
-            cur.execute("SELECT value FROM app_settings WHERE key=%s", (dk,))
-            row = cur.fetchone()
-            if row and row["value"]:
-                plain = _decrypt_key(row["value"])
+
+        loaded_from_enhanced = False
+        try:
+            cur.execute(
+                """
+                SELECT encrypted_key
+                FROM ai_provider_keys
+                WHERE provider = %s AND is_enabled = TRUE
+                ORDER BY slot
+                """,
+                (provider,),
+            )
+            rows = cur.fetchall()
+            for row in rows:
+                plain = _decrypt_key(row["encrypted_key"])
                 if plain and plain not in new_pool:
                     new_pool.append(plain)
+            loaded_from_enhanced = True
+        except Exception:
+            loaded_from_enhanced = False
+
+        if not loaded_from_enhanced:
+            for s in range(1, 6):
+                dk = f"api_key_{provider}" if s == 1 else f"api_key_{provider}_{s}"
+                cur.execute("SELECT value FROM app_settings WHERE key=%s", (dk,))
+                row = cur.fetchone()
+                if row and row["value"]:
+                    plain = _decrypt_key(row["value"])
+                    if plain and plain not in new_pool:
+                        new_pool.append(plain)
+
         _KEY_POOLS[provider] = new_pool
     finally:
         conn.close()
@@ -501,7 +537,7 @@ async def call_ai(
     # ── Cache lookup — only for stateless calls (no prior history) ─
     cache_key: str | None = None
     if not history:
-        cache_key = _TTLCache.make_key(provider, model, system_prompt, str(prompt))
+        cache_key = _TTLCache.make_key(provider, model, system_prompt, str(prompt), str(max_tokens))
         cached = _ai_cache.get(cache_key)
         if cached is not None:
             return cached

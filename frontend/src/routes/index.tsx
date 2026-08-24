@@ -55,8 +55,6 @@ const AdminStudentsAnalyticsPage = lazy(() => import('../modules/admin/pages/ana
 const AdminRevenuePage = lazy(() => import('../modules/admin/pages/analytics/RevenuePage'))
 
 // Admin operations pages
-const AdminJobsPage = lazy(() => import('../modules/admin/pages/operations/JobsPage'))
-const AdminLogsPage = lazy(() => import('../modules/admin/pages/operations/LogsPage'))
 const AdminStoragePage = lazy(() => import('../modules/admin/pages/operations/StoragePage'))
 
 // Admin settings pages
@@ -194,9 +192,9 @@ const AppRoutes: React.FC = () => {
           <Route path="analytics/revenue" element={<AdminRevenuePage />} />
           
           {/* Operations */}
-          <Route path="operations" element={<Navigate to="/admin/operations/jobs" replace />} />
-          <Route path="operations/jobs" element={<AdminJobsPage />} />
-          <Route path="operations/logs" element={<AdminLogsPage />} />
+          <Route path="operations" element={<Navigate to="/admin/operations/storage" replace />} />
+          {/* <Route path="operations/jobs" element={<AdminJobsPage />} />
+          <Route path="operations/logs" element={<AdminLogsPage />} /> */}
           <Route path="operations/storage" element={<AdminStoragePage />} />
           
           {/* Settings */}

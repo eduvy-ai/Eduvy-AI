@@ -547,7 +547,7 @@ Keep responses short (2-3 sentences max). Use simple, friendly language a studen
 
 ---
 
-## Backend — Muqabla Battle
+## Backend — Battle
 
 **File:** `backend/app/modules/muqabla/service.py`
 
