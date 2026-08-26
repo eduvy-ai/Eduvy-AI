@@ -26,7 +26,7 @@ if (Capacitor.isNativePlatform()) {
   // Back button: prevent accidental app exit
   import('@capacitor/app').then(({ App: CapApp }) => {
     let lastBack = 0
-    const EXIT_PAGES = ['/auth', '/auth/register', '/', '/admin/login']
+    const EXIT_PAGES = ['/auth', '/request-account', '/', '/admin/login']
     
     CapApp.addListener('backButton', ({ canGoBack }) => {
       const path = window.location.pathname

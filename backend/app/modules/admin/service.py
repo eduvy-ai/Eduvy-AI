@@ -161,6 +161,17 @@ class AdminService:
     }
 
     @staticmethod
+    def _build_baseline_description(subject_name: str, chapter_name: str, standard: str) -> str:
+        """Generate a clear, learner-friendly chapter overview for baseline seeded records."""
+        std_label = (standard or "").replace("class-", "Class ")
+        std_label = " ".join(std_label.split())
+        return (
+            f"This chapter, '{chapter_name}', builds core {subject_name} understanding for {std_label} under GSEB Commerce. "
+            f"You will study the main ideas step by step, connect them with practical examples, and practice question patterns commonly asked in school and board exams. "
+            f"By the end of this chapter, you should be able to explain key concepts in your own words, solve standard application problems, and revise confidently using structured notes and exercises."
+        )
+
+    @staticmethod
     def _require_super_admin(cur, admin_id: int) -> None:
         """Ensure caller is a super admin account."""
         cur.execute("SELECT role FROM admin_users WHERE id = %s", (admin_id,))
@@ -403,7 +414,7 @@ class AdminService:
                                 "commerce",
                                 idx,
                                 chapter_name,
-                                f"Baseline chapter for {subject_name} ({standard}, GSEB Commerce)",
+                                AdminService._build_baseline_description(subject_name, chapter_name, standard),
                                 "[]",
                             ),
                         )
@@ -4317,5 +4328,172 @@ class AdminService:
             
             conn.commit()
             return {"inserted": inserted, "updated": updated, "skipped": skipped}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def list_account_requests(
+        admin_id: int,
+        status: Optional[str] = None,
+        request_type: Optional[str] = None,
+        search: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> Dict:
+        """List public account requests (superadmin only)."""
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            AdminService._require_super_admin(cur, admin_id)
+
+            where = []
+            params: List = []
+
+            if status:
+                where.append("status = %s")
+                params.append(status.strip().lower())
+            if request_type:
+                where.append("request_type = %s")
+                params.append(request_type.strip().lower())
+            if search:
+                like = f"%{search.strip()}%"
+                where.append("(full_name ILIKE %s OR email ILIKE %s OR school_name ILIKE %s)")
+                params.extend([like, like, like])
+
+            where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+
+            cur.execute(f"SELECT COUNT(*) AS cnt FROM account_requests {where_sql}", params)
+            total = int(cur.fetchone()["cnt"])
+
+            offset = (page - 1) * page_size
+            cur.execute(
+                f"""
+                SELECT id, request_type, status, full_name, email, phone, school_name,
+                       standard, board, stream, language, city, state, message,
+                       review_notes, reviewed_by, reviewed_at, created_at, updated_at
+                FROM account_requests
+                {where_sql}
+                ORDER BY
+                    CASE status
+                        WHEN 'pending' THEN 0
+                        WHEN 'in_review' THEN 1
+                        ELSE 2
+                    END,
+                    created_at DESC
+                LIMIT %s OFFSET %s
+                """,
+                [*params, page_size, offset],
+            )
+            rows = cur.fetchall()
+            items = [dict(r) for r in rows]
+            return {
+                "items": items,
+                "total": total,
+                "page": page,
+                "page_size": page_size,
+            }
+        finally:
+            conn.close()
+
+    @staticmethod
+    def review_account_request(
+        admin_id: int,
+        request_id: int,
+        status: str,
+        review_notes: str = "",
+        create_account: bool = False,
+    ) -> Dict:
+        """Review an account request and optionally provision requested account."""
+        next_status = (status or "").strip().lower()
+        if next_status not in {"in_review", "approved", "rejected"}:
+            raise HTTPException(status_code=422, detail="status must be in_review, approved, or rejected")
+        if create_account and next_status != "approved":
+            raise HTTPException(status_code=422, detail="create_account is allowed only when approving")
+
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            AdminService._require_super_admin(cur, admin_id)
+
+            cur.execute(
+                """
+                SELECT id, request_type, status, full_name, email, phone, school_name,
+                       standard, board, stream, language, city, state, message
+                FROM account_requests
+                WHERE id = %s
+                """,
+                (request_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Account request not found")
+
+            request_obj = dict(row)
+            resolution_payload = {}
+
+            if create_account:
+                if request_obj["request_type"] == "individual":
+                    student = AdminService.create_student(
+                        name=request_obj["full_name"],
+                        email=request_obj["email"],
+                        password="",
+                        standard=request_obj["standard"] or "Class 10",
+                        board=request_obj["board"] or "CBSE",
+                        stream=request_obj["stream"] or "",
+                        language=request_obj["language"] or "English",
+                        plan="free",
+                        school_id=None,
+                        send_welcome_email=True,
+                    )
+                    resolution_payload = {
+                        "action": "created_student",
+                        "student_id": student.get("id"),
+                        "email_status": student.get("email_status", "skipped"),
+                    }
+                elif request_obj["request_type"] == "school":
+                    from app.modules.schools.service import SchoolsService
+
+                    school = SchoolsService.create_school({
+                        "name": request_obj["school_name"] or f"{request_obj['full_name']} School",
+                        "contact_email": request_obj["email"],
+                        "contact_phone": request_obj["phone"] or "",
+                        "city": request_obj["city"] or "",
+                        "state": request_obj["state"] or "",
+                        "plan": "pilot",
+                    })
+                    resolution_payload = {
+                        "action": "created_school",
+                        "school_id": school.get("id"),
+                        "school_code": school.get("school_code", ""),
+                        "admin_created": bool(school.get("admin_created")),
+                    }
+
+            cur.execute(
+                """
+                UPDATE account_requests
+                SET status = %s,
+                    review_notes = %s,
+                    resolution_payload = %s,
+                    reviewed_by = %s,
+                    reviewed_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+                RETURNING id, request_type, status, full_name, email, school_name,
+                          review_notes, reviewed_by, reviewed_at, updated_at
+                """,
+                (
+                    next_status,
+                    (review_notes or "").strip(),
+                    json.dumps(resolution_payload) if resolution_payload else "",
+                    admin_id,
+                    request_id,
+                ),
+            )
+            updated = cur.fetchone()
+            conn.commit()
+            result = dict(updated)
+            if resolution_payload:
+                result["resolution_payload"] = resolution_payload
+            return result
         finally:
             conn.close()

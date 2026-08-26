@@ -47,6 +47,7 @@ import {
   Trash,
   ClockCounterClockwise,
   Plus,
+  Minus,
   ChatCircle,
   PencilSimple,
   MagicWand,
@@ -3625,7 +3626,12 @@ function sanitizeMermaidContent(raw: string): string {
   return text
 }
 
-const renderMarkdown = (text: string): React.ReactNode => {
+interface MarkdownRenderOptions {
+  onOpenDiagram?: (diagram: { type: 'flowchart' | 'mindmap' | 'sequence' | 'classDiagram'; content: string }) => void
+  onOpenImage?: (src: string, alt: string) => void
+}
+
+const renderMarkdown = (text: string, options?: MarkdownRenderOptions): React.ReactNode => {
   // First, extract Mermaid code blocks and replace with placeholders
   const mermaidBlocks: string[] = []
   const mermaidRegex = /```mermaid\s*([\s\S]*?)```/gi
@@ -3773,13 +3779,20 @@ const renderMarkdown = (text: string): React.ReactNode => {
         
         elements.push(
           <div key={`mermaid-${keyIndex++}`} className="my-3 overflow-hidden">
-            <Suspense fallback={<div className="text-[12px] text-app-muted">Loading diagram...</div>}>
-              <DiagramViewer 
-                diagram={{ type: diagramType, content: mermaidContent }}
-                showHeader={false}
-                compact={true}
-              />
-            </Suspense>
+            <button
+              type="button"
+              onClick={() => options?.onOpenDiagram?.({ type: diagramType, content: mermaidContent })}
+              className="w-full text-left rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+            >
+              <Suspense fallback={<div className="text-[12px] text-app-muted">Loading diagram...</div>}>
+                <DiagramViewer
+                  diagram={{ type: diagramType, content: mermaidContent }}
+                  showHeader={false}
+                  compact={true}
+                />
+              </Suspense>
+            </button>
+            <p className="text-[10px] text-app-muted mt-1">Tap to expand</p>
           </div>
         )
       }
@@ -3792,12 +3805,19 @@ const renderMarkdown = (text: string): React.ReactNode => {
       flushList()
       elements.push(
         <div key={`img-${keyIndex++}`} className="my-2">
-          <img
-            src={imageMatch[2]}
-            alt={imageMatch[1] || 'diagram'}
-            loading="lazy"
-            className="max-w-full rounded-xl border border-white/[0.12]"
-          />
+          <button
+            type="button"
+            onClick={() => options?.onOpenImage?.(imageMatch[2], imageMatch[1] || 'diagram')}
+            className="w-full text-left rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+          >
+            <img
+              src={imageMatch[2]}
+              alt={imageMatch[1] || 'diagram'}
+              loading="lazy"
+              className="max-w-full rounded-xl border border-white/[0.12]"
+            />
+          </button>
+          <p className="text-[10px] text-app-muted mt-1">Tap to expand</p>
         </div>
       )
       continue
@@ -3960,6 +3980,95 @@ const AITutorTab: React.FC<{ chapter: any; ui: any; user: any }> = ({ chapter, u
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null)
   const [history, setHistory] = useState<ChatSession[]>([])
   const [_isLoading, setIsLoading] = useState(true)
+  const [viewer, setViewer] = useState<
+    | { kind: 'image'; src: string; alt: string }
+    | { kind: 'diagram'; diagram: { type: 'flowchart' | 'mindmap' | 'sequence' | 'classDiagram'; content: string } }
+    | null
+  >(null)
+  const [viewerZoom, setViewerZoom] = useState(1)
+  const pinchStartDistanceRef = useRef<number | null>(null)
+  const pinchStartZoomRef = useRef<number>(1)
+
+  const MIN_ZOOM = 0.75
+  const MAX_ZOOM = 3
+  const ZOOM_STEP = 0.25
+
+  const closeViewer = useCallback(() => {
+    setViewer(null)
+    setViewerZoom(1)
+  }, [])
+
+  const openDiagramViewer = useCallback((diagram: { type: 'flowchart' | 'mindmap' | 'sequence' | 'classDiagram'; content: string }) => {
+    setViewer({ kind: 'diagram', diagram })
+    setViewerZoom(1)
+  }, [])
+
+  const openImageViewer = useCallback((src: string, alt: string) => {
+    setViewer({ kind: 'image', src, alt })
+    setViewerZoom(1)
+  }, [])
+
+  const zoomIn = useCallback(() => {
+    setViewerZoom((prev) => Math.min(MAX_ZOOM, Math.round((prev + ZOOM_STEP) * 100) / 100))
+  }, [])
+
+  const zoomOut = useCallback(() => {
+    setViewerZoom((prev) => Math.max(MIN_ZOOM, Math.round((prev - ZOOM_STEP) * 100) / 100))
+  }, [])
+
+  const resetZoom = useCallback(() => {
+    setViewerZoom(1)
+  }, [])
+
+  const getTouchDistance = useCallback((touches: React.TouchList): number | null => {
+    if (touches.length < 2) return null
+    const a = touches[0]
+    const b = touches[1]
+    const dx = a.clientX - b.clientX
+    const dy = a.clientY - b.clientY
+    return Math.sqrt(dx * dx + dy * dy)
+  }, [])
+
+  const handlePinchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    const distance = getTouchDistance(e.touches)
+    if (!distance) return
+    pinchStartDistanceRef.current = distance
+    pinchStartZoomRef.current = viewerZoom
+  }, [getTouchDistance, viewerZoom])
+
+  const handlePinchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    const startDistance = pinchStartDistanceRef.current
+    if (!startDistance || e.touches.length < 2) return
+
+    const currentDistance = getTouchDistance(e.touches)
+    if (!currentDistance) return
+
+    const scale = currentDistance / startDistance
+    const nextZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, pinchStartZoomRef.current * scale))
+    setViewerZoom(Math.round(nextZoom * 100) / 100)
+  }, [getTouchDistance])
+
+  const handlePinchEnd = useCallback(() => {
+    pinchStartDistanceRef.current = null
+    pinchStartZoomRef.current = viewerZoom
+  }, [viewerZoom])
+
+  useEffect(() => {
+    if (!viewer) return
+
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeViewer()
+    }
+    window.addEventListener('keydown', onEsc)
+
+    return () => {
+      document.body.style.overflow = prevOverflow
+      window.removeEventListener('keydown', onEsc)
+    }
+  }, [viewer, closeViewer])
 
   // Load history from API on mount
   useEffect(() => {
@@ -4392,7 +4501,12 @@ ${finalAnswer}`
                             : 'bg-white/[0.04] border border-white/[0.06] text-app-text rounded-bl-md'
                           }`}
               >
-                {msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content}
+                {msg.role === 'assistant'
+                  ? renderMarkdown(msg.content, {
+                    onOpenDiagram: openDiagramViewer,
+                    onOpenImage: openImageViewer,
+                  })
+                  : msg.content}
               </div>
             </div>
           ))
@@ -4449,6 +4563,104 @@ ${finalAnswer}`
               {q}
             </button>
           ))}
+        </div>
+      )}
+
+      {viewer && (
+        <div
+          className="fixed inset-0 z-[120] bg-black/85 flex items-center justify-center p-3 sm:p-6"
+          onClick={closeViewer}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="relative w-full max-w-5xl max-h-[92vh] bg-app-card border border-white/[0.12] rounded-2xl p-3 sm:p-4 overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 z-10 mb-3 flex items-center justify-between gap-2 bg-app-card/95 backdrop-blur rounded-xl p-2 border border-white/[0.08]">
+              <button
+                type="button"
+                onClick={closeViewer}
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-app-text flex items-center justify-center"
+                aria-label="Close viewer"
+              >
+                <X size={18} weight="bold" />
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={zoomOut}
+                  disabled={viewerZoom <= MIN_ZOOM}
+                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-40 text-app-text flex items-center justify-center"
+                  aria-label="Zoom out"
+                >
+                  <Minus size={16} weight="bold" />
+                </button>
+                <button
+                  type="button"
+                  onClick={resetZoom}
+                  className="px-2.5 h-9 rounded-full bg-white/10 hover:bg-white/20 text-[11px] font-semibold text-app-text"
+                >
+                  {Math.round(viewerZoom * 100)}%
+                </button>
+                <button
+                  type="button"
+                  onClick={zoomIn}
+                  disabled={viewerZoom >= MAX_ZOOM}
+                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-40 text-app-text flex items-center justify-center"
+                  aria-label="Zoom in"
+                >
+                  <Plus size={16} weight="bold" />
+                </button>
+              </div>
+            </div>
+
+            {viewer.kind === 'image' ? (
+              <div
+                className="w-full overflow-auto touch-pan-x touch-pan-y"
+                onTouchStart={handlePinchStart}
+                onTouchMove={handlePinchMove}
+                onTouchEnd={handlePinchEnd}
+                onTouchCancel={handlePinchEnd}
+              >
+                <img
+                  src={viewer.src}
+                  alt={viewer.alt}
+                  className="h-auto max-h-none object-contain rounded-xl"
+                  style={{
+                    width: `${Math.max(100, Math.round(viewerZoom * 100))}%`,
+                    minWidth: '100%',
+                  }}
+                />
+              </div>
+            ) : (
+              <div
+                className="w-full overflow-auto touch-pan-x touch-pan-y"
+                onTouchStart={handlePinchStart}
+                onTouchMove={handlePinchMove}
+                onTouchEnd={handlePinchEnd}
+                onTouchCancel={handlePinchEnd}
+              >
+                <Suspense fallback={<div className="text-[12px] text-app-muted">Loading diagram...</div>}>
+                  <div
+                    style={{
+                      width: `${Math.max(100, Math.round(viewerZoom * 100))}%`,
+                      minWidth: '100%',
+                    }}
+                  >
+                    <DiagramViewer
+                      diagram={viewer.diagram}
+                      showHeader={false}
+                      compact={false}
+                    />
+                  </div>
+                </Suspense>
+              </div>
+            )}
+
+            <p className="text-[10px] text-app-muted mt-3 text-center">Tap + to zoom in, - to zoom out, and % to reset.</p>
+          </div>
         </div>
       )}
     </div>

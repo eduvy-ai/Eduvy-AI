@@ -18,6 +18,21 @@ class RegisterRequest(BaseModel):
     stream: str = ""
 
 
+class AccountRequestCreate(BaseModel):
+    request_type: str  # school | individual
+    full_name: str
+    email: EmailStr
+    phone: str = ""
+    school_name: str = ""
+    standard: str = ""
+    board: str = ""
+    stream: str = ""
+    language: str = ""
+    city: str = ""
+    state: str = ""
+    message: str = ""
+
+
 class LoginRequest(BaseModel):
     email: str
     password: str

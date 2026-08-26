@@ -171,6 +171,34 @@ export interface DrishtiHelper {
   assigned_count?: number
 }
 
+export interface AccountRequest {
+  id: number
+  request_type: 'school' | 'individual'
+  status: 'pending' | 'in_review' | 'approved' | 'rejected'
+  full_name: string
+  email: string
+  phone: string
+  school_name: string
+  standard: string
+  board: string
+  stream: string
+  language: string
+  city: string
+  state: string
+  message: string
+  review_notes: string
+  reviewed_by: number | null
+  reviewed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface AccountRequestReviewPayload {
+  status: 'in_review' | 'approved' | 'rejected'
+  review_notes?: string
+  create_account?: boolean
+}
+
 // ── AI Configuration Types ──
 export interface AIProvider {
   id: string

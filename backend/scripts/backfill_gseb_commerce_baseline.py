@@ -95,6 +95,17 @@ SUBJECT_CHAPTERS = {
 }
 
 
+def _build_baseline_description(subject_name: str, chapter_name: str, standard: str) -> str:
+    """Generate a clear, learner-friendly chapter overview for baseline seeded records."""
+    std_label = (standard or "").replace("class-", "Class ")
+    std_label = " ".join(std_label.split())
+    return (
+        f"This chapter, '{chapter_name}', builds core {subject_name} understanding for {std_label} under GSEB Commerce. "
+        f"You will study the main ideas step by step, connect them with practical examples, and practice question patterns commonly asked in school and board exams. "
+        f"By the end of this chapter, you should be able to explain key concepts in your own words, solve standard application problems, and revise confidently using structured notes and exercises."
+    )
+
+
 def main() -> None:
     conn = psycopg2.connect(_db_url(), cursor_factory=psycopg2.extras.RealDictCursor)
     cur = conn.cursor()
@@ -160,7 +171,7 @@ def main() -> None:
                         "commerce",
                         idx,
                         chapter_name,
-                        f"Baseline chapter for {subject_name} ({standard}, GSEB Commerce)",
+                        _build_baseline_description(subject_name, chapter_name, standard),
                         "[]",
                     ),
                 )

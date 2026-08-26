@@ -47,6 +47,36 @@ def create_all_tables():
         EXCEPTION WHEN duplicate_column THEN NULL;
         END $$
     """)
+
+    # ── Public Account Requests ───────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS account_requests (
+            id                SERIAL PRIMARY KEY,
+            request_type      TEXT NOT NULL,
+            status            TEXT NOT NULL DEFAULT 'pending',
+            full_name         TEXT NOT NULL,
+            email             TEXT NOT NULL,
+            phone             TEXT DEFAULT '',
+            school_name       TEXT DEFAULT '',
+            standard          TEXT DEFAULT '',
+            board             TEXT DEFAULT '',
+            stream            TEXT DEFAULT '',
+            language          TEXT DEFAULT '',
+            city              TEXT DEFAULT '',
+            state             TEXT DEFAULT '',
+            message           TEXT DEFAULT '',
+            review_notes      TEXT DEFAULT '',
+            resolution_payload TEXT DEFAULT '',
+            reviewed_by       INTEGER DEFAULT NULL,
+            reviewed_at       TIMESTAMP DEFAULT NULL,
+            created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_account_requests_status ON account_requests(status)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_account_requests_type ON account_requests(request_type)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_account_requests_created_at ON account_requests(created_at DESC)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_account_requests_email ON account_requests(LOWER(email))")
     
     # ── Users ─────────────────────────────────────────────────
     cur.execute("""

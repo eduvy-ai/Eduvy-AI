@@ -12,7 +12,7 @@ import Loader from '../shared/components/Loader'
 // ── Lazy-loaded Pages ──
 // Auth pages
 const Login = lazy(() => import('../modules/auth/pages/Login'))
-const Register = lazy(() => import('../modules/auth/pages/Register'))
+const AccountRequest = lazy(() => import('../modules/auth/pages/AccountRequest'))
 
 // Public pages
 const LandingPage = lazy(() => import('../components/LandingPage'))
@@ -36,6 +36,7 @@ const AdminChaptersPage = lazy(() => import('../modules/admin/pages/academics/Ch
 // Admin users pages
 const AdminStudentsPage = lazy(() => import('../modules/admin/pages/users/StudentsPage'))
 const AdminParentsPage = lazy(() => import('../modules/admin/pages/users/ParentsPage'))
+const AdminAccountRequestsPage = lazy(() => import('../modules/admin/pages/users/AccountRequestsPage'))
 
 // Admin schools pages (B2B)
 const AdminSchoolsPage = lazy(() => import('../modules/admin/pages/schools/SchoolsPage'))
@@ -118,10 +119,10 @@ const AppRoutes: React.FC = () => {
           }
         />
         <Route
-          path="/auth/register"
+          path="/request-account"
           element={
-            <PublicRoute restricted>
-              <Register />
+            <PublicRoute>
+              <AccountRequest />
             </PublicRoute>
           }
         />
@@ -158,6 +159,7 @@ const AppRoutes: React.FC = () => {
           
           {/* Users */}
           <Route path="students" element={<AdminStudentsPage />} />
+          <Route path="students/requests" element={<AdminAccountRequestsPage />} />
           <Route path="parents" element={<AdminParentsPage />} />
           
           {/* Schools (B2B) */}

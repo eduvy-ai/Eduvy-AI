@@ -236,6 +236,12 @@ class BulkDeleteInt(BaseModel):
     ids: List[int]
 
 
+class AccountRequestReview(BaseModel):
+    status: str  # in_review | approved | rejected
+    review_notes: str = ""
+    create_account: bool = False
+
+
 # ── Community / Squads ────────────────────────────────────────
 
 class SquadCreate(BaseModel):

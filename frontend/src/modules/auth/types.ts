@@ -46,6 +46,34 @@ export interface RegisterRequest {
   stream?: string
 }
 
+export interface AccountRequestPayload {
+  request_type: 'school' | 'individual'
+  full_name: string
+  email: string
+  phone?: string
+  school_name?: string
+  standard?: string
+  board?: string
+  stream?: string
+  language?: string
+  city?: string
+  state?: string
+  message?: string
+}
+
+export interface AccountRequestResponse {
+  ok: boolean
+  message: string
+  request: {
+    id: number
+    request_type: 'school' | 'individual'
+    status: string
+    full_name: string
+    email: string
+    created_at: string | null
+  }
+}
+
 // ── API Response Types ──
 export interface AuthResponse {
   token: string

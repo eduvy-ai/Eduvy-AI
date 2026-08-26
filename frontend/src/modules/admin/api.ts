@@ -16,6 +16,8 @@ import type {
   CurriculumEntry,
   Chapter,
   StudentUser,
+  AccountRequest,
+  AccountRequestReviewPayload,
   DrishtiHelper,
   AIRouting,
   AIKeySlot,
@@ -534,6 +536,37 @@ export const usersApi = {
     const response = await axiosInstance.post<{ deleted: number }>(
       `${ADMIN_ENDPOINTS.users}/bulk-delete`,
       { ids },
+      adminConfig()
+    )
+    return response.data
+  },
+}
+
+// ── Account Request APIs (superadmin) ──
+export const accountRequestsApi = {
+  getAll: async (filters?: {
+    status?: string
+    request_type?: string
+    search?: string
+    page?: number
+    page_size?: number
+  }): Promise<PagedResponse<AccountRequest>> => {
+    const params = new URLSearchParams()
+    if (filters?.status) params.append('status', filters.status)
+    if (filters?.request_type) params.append('request_type', filters.request_type)
+    if (filters?.search) params.append('search', filters.search)
+    params.append('page', String(filters?.page || 1))
+    params.append('page_size', String(filters?.page_size || 50))
+
+    const url = `${ADMIN_ENDPOINTS.accountRequests}?${params}`
+    const response = await axiosInstance.get<PagedResponse<AccountRequest>>(url, adminConfig())
+    return response.data
+  },
+
+  review: async (id: number, data: AccountRequestReviewPayload): Promise<AccountRequest> => {
+    const response = await axiosInstance.patch<AccountRequest>(
+      `${ADMIN_ENDPOINTS.accountRequests}/${id}`,
+      data,
       adminConfig()
     )
     return response.data
@@ -1273,6 +1306,7 @@ export const adminApi = {
   curriculum: curriculumApi,
   chapters: chaptersApi,
   users: usersApi,
+  accountRequests: accountRequestsApi,
   helpers: helpersApi,
   aiConfig: aiConfigApi,
   aiUsage: aiUsageApi,

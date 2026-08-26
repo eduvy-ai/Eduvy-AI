@@ -132,7 +132,8 @@ async def add_security_headers(request: Request, call_next):
 _rate_buckets: dict[str, list[float]] = defaultdict(list)
 _RATE_RULES = {
     "/api/auth/login":    (10, 60),
-    "/api/auth/register": (5,  60),
+    "/api/auth/register": (2,  60),
+    "/api/auth/account-request": (5, 60),
     "/api/admin/login":   (5,  60),
 }
 

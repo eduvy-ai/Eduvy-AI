@@ -26,6 +26,7 @@ export const ADMIN_ENDPOINTS = {
   
   // Users
   users: '/api/admin/users',
+  accountRequests: '/api/admin/account-requests',
   helpers: '/api/admin/drishti-helpers',
   drishtiStudents: '/api/admin/drishti-students',
   

@@ -16,6 +16,64 @@ _EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
 
 class AuthService:
     """Authentication business logic."""
+
+    @staticmethod
+    def create_account_request(data: dict) -> Dict:
+        """Create a public account request for superadmin review."""
+        request_type = (data.get("request_type") or "").strip().lower()
+        if request_type not in {"school", "individual"}:
+            raise HTTPException(status_code=422, detail="request_type must be school or individual")
+
+        full_name = (data.get("full_name") or "").strip()
+        if not full_name:
+            raise HTTPException(status_code=422, detail="full_name is required")
+
+        email = (data.get("email") or "").strip().lower()
+        if not email or not _EMAIL_RE.match(email):
+            raise HTTPException(status_code=422, detail="Valid email address required")
+
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                INSERT INTO account_requests (
+                    request_type, full_name, email, phone, school_name,
+                    standard, board, stream, language, city, state, message
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id, request_type, status, full_name, email, created_at
+                """,
+                (
+                    request_type,
+                    full_name,
+                    email,
+                    (data.get("phone") or "").strip(),
+                    (data.get("school_name") or "").strip(),
+                    (data.get("standard") or "").strip(),
+                    (data.get("board") or "").strip(),
+                    (data.get("stream") or "").strip(),
+                    (data.get("language") or "").strip(),
+                    (data.get("city") or "").strip(),
+                    (data.get("state") or "").strip(),
+                    (data.get("message") or "").strip(),
+                ),
+            )
+            row = cur.fetchone()
+            conn.commit()
+            return {
+                "ok": True,
+                "message": "Request received. We will notify you by email once your account access is approved.",
+                "request": {
+                    "id": row["id"],
+                    "request_type": row["request_type"],
+                    "status": row["status"],
+                    "full_name": row["full_name"],
+                    "email": row["email"],
+                    "created_at": str(row["created_at"]) if row.get("created_at") else None,
+                },
+            }
+        finally:
+            conn.close()
     
     @staticmethod
     def register(

@@ -3,10 +3,10 @@ Auth Router - API endpoints only.
 NO business logic, NO database code.
 """
 import asyncio
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.dependencies import get_current_user
-from app.modules.auth.schemas import RegisterRequest, LoginRequest, ChangePasswordRequest
+from app.modules.auth.schemas import RegisterRequest, LoginRequest, ChangePasswordRequest, AccountRequestCreate
 from app.modules.auth.service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -14,20 +14,17 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.post("/register", status_code=201)
 async def register(data: RegisterRequest):
-    """Register a new user account."""
-    return await asyncio.to_thread(
-        AuthService.register,
-        email=data.email,
-        password=data.password,
-        name=data.name,
-        standard=data.standard,
-        board=data.board,
-        language=data.language,
-        subjects=data.subjects,
-        mobile=data.mobile,
-        parent_mobile=data.parent_mobile,
-        stream=data.stream,
+    """Legacy registration endpoint is disabled in favor of account requests."""
+    raise HTTPException(
+        status_code=410,
+        detail="Direct signup is disabled. Please submit an account request.",
     )
+
+
+@router.post("/account-request", status_code=201)
+async def create_account_request(data: AccountRequestCreate):
+    """Submit a public account request for superadmin review."""
+    return await asyncio.to_thread(AuthService.create_account_request, data.model_dump())
 
 
 @router.post("/login")

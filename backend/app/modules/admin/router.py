@@ -22,6 +22,7 @@ from app.modules.admin.schemas import (
     QuestionCreate, QuestionUpdate, QuestionBulkCreate,
     MediaCreate, MediaUpdate,
     AIPromptCreate, AIPromptUpdate, AIPromptSeed,
+    AccountRequestReview,
 )
 from app.modules.admin.service import AdminService
 from app.utils.email import send_email
@@ -1176,3 +1177,45 @@ async def hard_delete_prompt(prompt_id: int, admin_id: int = Depends(get_admin_u
 async def seed_prompts(data: AIPromptSeed, admin_id: int = Depends(get_admin_user)):
     """Seed prompts from hardcoded MODE_INSTRUCTIONS."""
     return await asyncio.to_thread(AdminService.seed_prompts_from_hardcoded, data.overwrite, admin_id)
+
+
+# ── Account Requests (superadmin only) ───────────────────────
+
+@router.get("/account-requests")
+async def list_account_requests(
+    status: str = Query(None),
+    request_type: str = Query(None),
+    search: str = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    admin_scope: tuple = Depends(get_admin_with_school),
+):
+    admin_id, school_id = admin_scope
+    _require_superadmin(school_id)
+    return await asyncio.to_thread(
+        AdminService.list_account_requests,
+        admin_id,
+        status,
+        request_type,
+        search,
+        page,
+        page_size,
+    )
+
+
+@router.patch("/account-requests/{request_id}")
+async def review_account_request(
+    request_id: int,
+    data: AccountRequestReview,
+    admin_scope: tuple = Depends(get_admin_with_school),
+):
+    admin_id, school_id = admin_scope
+    _require_superadmin(school_id)
+    return await asyncio.to_thread(
+        AdminService.review_account_request,
+        admin_id,
+        request_id,
+        data.status,
+        data.review_notes,
+        data.create_account,
+    )

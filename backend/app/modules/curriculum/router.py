@@ -2,29 +2,30 @@
 Curriculum Router - Public endpoints for curriculum data.
 """
 import asyncio
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.core.dependencies import get_optional_user
 from app.modules.curriculum.service import CurriculumService
 
 router = APIRouter(prefix="/curriculum", tags=["Curriculum"])
 
 
 @router.get("/boards")
-async def list_boards():
+async def list_boards(user_id: str | None = Depends(get_optional_user)):
     """Get all active boards."""
-    return await asyncio.to_thread(CurriculumService.list_boards)
+    return await asyncio.to_thread(CurriculumService.list_boards, user_id)
 
 
 @router.get("/standards")
-async def list_standards(board: str = Query(None)):
+async def list_standards(board: str = Query(None), user_id: str | None = Depends(get_optional_user)):
     """Get active standards, optionally filtered by board."""
-    return await asyncio.to_thread(CurriculumService.list_standards, board)
+    return await asyncio.to_thread(CurriculumService.list_standards, board, user_id)
 
 
 @router.get("/mediums")
-async def list_mediums(board: str = Query(None), standard: str = Query(None)):
+async def list_mediums(board: str = Query(None), standard: str = Query(None), user_id: str | None = Depends(get_optional_user)):
     """Get mediums available for board+standard combo."""
-    return await asyncio.to_thread(CurriculumService.list_mediums, board, standard)
+    return await asyncio.to_thread(CurriculumService.list_mediums, board, standard, user_id)
 
 
 @router.get("/streams")
@@ -43,6 +44,7 @@ async def get_subjects(
     standard_id: str = Query(None),
     medium_id: str = Query(None),
     stream_id: str = Query(None),
+    user_id: str | None = Depends(get_optional_user),
 ):
     """Get subjects for a specific curriculum combination.
     
@@ -64,4 +66,5 @@ async def get_subjects(
         final_standard,
         final_medium,
         final_stream,
+        user_id,
     )

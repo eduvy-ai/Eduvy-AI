@@ -56,10 +56,10 @@ const Login: React.FC = () => {
             Login
           </div>
           <Link
-            to="/auth/register"
+            to="/request-account"
             className="flex-1 py-2.5 rounded-lg bg-transparent text-app-muted font-medium text-sm text-center no-underline hover:text-app-text transition-colors"
           >
-            Register
+            Request Access
           </Link>
         </div>
 
@@ -121,9 +121,9 @@ const Login: React.FC = () => {
 
         {/* Register Link */}
         <div className="text-center text-sm text-app-muted">
-          Don't have an account?{' '}
-          <Link to="/auth/register" className="text-app-green font-semibold no-underline hover:underline">
-            Create account
+          Need a new account?{' '}
+          <Link to="/request-account" className="text-app-green font-semibold no-underline hover:underline">
+            Submit request
           </Link>
         </div>
 

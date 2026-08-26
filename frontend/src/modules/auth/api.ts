@@ -2,11 +2,19 @@
 // Raw API calls for authentication - no business logic here
 
 import axiosInstance from '../../services/axios'
-import type { LoginRequest, RegisterRequest, AuthResponse, UserProfile } from './types'
+import type {
+  LoginRequest,
+  RegisterRequest,
+  AuthResponse,
+  UserProfile,
+  AccountRequestPayload,
+  AccountRequestResponse,
+} from './types'
 
 const AUTH_ENDPOINTS = {
   login: '/api/auth/login',
   register: '/api/auth/register',
+  accountRequest: '/api/auth/account-request',
   me: '/api/auth/me',
   changePassword: '/api/auth/change-password',
 } as const
@@ -29,6 +37,14 @@ export const authApi = {
       mobile: data.mobile || '',
       parent_mobile: data.parent_mobile || '',
     })
+    return response.data
+  },
+
+  /**
+   * Submit a public account request
+   */
+  requestAccount: async (data: AccountRequestPayload): Promise<AccountRequestResponse> => {
+    const response = await axiosInstance.post<AccountRequestResponse>(AUTH_ENDPOINTS.accountRequest, data)
     return response.data
   },
 

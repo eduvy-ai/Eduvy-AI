@@ -2,6 +2,7 @@
 // View and manage student users
 
 import React, { useEffect, useState, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useStudents, useCanEdit, useAdminAuth } from '../../hooks'
 import { adminApi, boardsApi, standardsApi, mediumsApi, streamsApi } from '../../api'
 import { adminService } from '../../service'
@@ -30,6 +31,7 @@ import {
   DownloadSimple,
   Copy,
   Check,
+  ClipboardText,
 } from '@phosphor-icons/react'
 
 // Default create form state
@@ -51,6 +53,7 @@ const needsStream = (standard: string) => {
 }
 
 const StudentsPage: React.FC = () => {
+  const navigate = useNavigate()
   const { students, studentsTotal, fetchStudents, updateStudentLocal, removeStudents, addStudentLocal } = useStudents()
   const canEdit = useCanEdit('students')
   const { user: adminUser } = useAdminAuth()
@@ -702,6 +705,16 @@ Priya Sharma, priya@example.com, Class 12, CBSE, Commerce, English, pro`
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {!isSchoolAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              leftIcon={<ClipboardText size={16} />}
+              onClick={() => navigate('/admin/students/requests')}
+            >
+              Account Requests
+            </Button>
+          )}
           {canEdit && selectedIds.size > 0 && (
             <Button
               variant="danger"
