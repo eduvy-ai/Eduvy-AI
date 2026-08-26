@@ -78,6 +78,7 @@ interface LearnTabProps {
   profile?: {
     board?: string
     standard?: string
+    stream?: string
     subjects?: string[]
   }
 }
@@ -90,6 +91,7 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
   // Get user's board and standard
   const board = profile?.board || user?.board || 'CBSE'
   const standard = profile?.standard || user?.standard || 'Class 10'
+  const stream = profile?.stream || user?.stream || ''
   
   // UI language
   const lang = getDisplayLang(user || profile)
@@ -108,7 +110,7 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
   }
   
   // Load subjects
-  const { subjects, isLoading: subjectsLoading } = useSubjectsWithChapters(board, standard)
+  const { subjects, isLoading: subjectsLoading } = useSubjectsWithChapters(board, standard, stream)
   
   // Get selected subject details
   const selectedSubject = subjects.find(s => s.subject_id === selectedSubjectId)
@@ -117,7 +119,8 @@ const LearnTab: React.FC<LearnTabProps> = ({ profile }) => {
   const { chapters, isLoading: chaptersLoading } = useChaptersWithProgress(
     board,
     standard,
-    selectedSubjectId || ''
+    selectedSubjectId || '',
+    stream
   )
 
   // ── Subject Card ──

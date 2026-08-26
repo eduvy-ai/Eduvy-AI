@@ -70,6 +70,7 @@ async def list_chapters(
 async def get_subjects_with_chapters(
     board_id: str = Query(..., description="Board ID (FK to boards.id)"),
     standard_id: str = Query(..., description="Standard ID (FK to standards.id)"),
+    stream_id: Optional[str] = Query(None, description="Optional stream ID/name override"),
     user_id: str | None = Depends(get_optional_user),
 ):
     """
@@ -80,6 +81,7 @@ async def get_subjects_with_chapters(
         ChapterService.get_subjects_with_chapters,
         board_id=board_id,
         standard_id=standard_id,
+        stream_id=stream_id,
         user_id=user_id,
     )
 
@@ -89,6 +91,7 @@ async def get_chapters_with_progress(
     board_id: str = Query(..., description="Board ID (FK to boards.id)"),
     standard_id: str = Query(..., description="Standard ID (FK to standards.id)"),
     subject_id: str = Query(..., description="Subject ID (FK to subjects.id)"),
+    stream_id: Optional[str] = Query(None, description="Optional stream ID/name override"),
     user_id: str = Depends(get_current_user),
 ):
     """
@@ -101,6 +104,7 @@ async def get_chapters_with_progress(
         board_id=board_id,
         standard_id=standard_id,
         subject_id=subject_id,
+        stream_id=stream_id,
     )
 
 

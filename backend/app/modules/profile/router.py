@@ -24,6 +24,7 @@ async def create_profile(data: ProfileCreate, current_user: str = Depends(get_cu
         parent_mobile=data.parent_mobile or "",
         standard=data.standard,
         board=data.board,
+        stream=data.stream,
         language=data.language,
         subjects=data.subjects,
     )
@@ -52,6 +53,7 @@ async def update_profile(
         parent_mobile=data.parent_mobile,
         standard=data.standard,
         board=data.board,
+        stream=data.stream,
         language=data.language,
         display_language=data.display_language,
         subjects=data.subjects,

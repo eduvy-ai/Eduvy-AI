@@ -130,13 +130,14 @@ function CreateChallengeModal({ profile, onClose, onCreated, ui }) {
   useEffect(() => {
     const board = profile?.board || 'CBSE'
     const standard = profile?.standard || 'Class 10'
-    apiGetChapterSubjects(board, standard).then(subs => {
+    const stream = profile?.stream || ''
+    apiGetChapterSubjects(board, standard, stream).then(subs => {
       if (subs.length > 0) {
         setSubjects(subs)
         setSubject(subs[0])
       }
     })
-  }, [profile?.board, profile?.standard])
+  }, [profile?.board, profile?.standard, profile?.stream])
 
   async function handleCreate() {
     setCreating(true); setErr('')

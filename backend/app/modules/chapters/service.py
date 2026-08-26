@@ -15,6 +15,34 @@ logger = logging.getLogger(__name__)
 
 class ChapterService:
     """Chapter business logic."""
+
+    @staticmethod
+    def _resolve_stream_id(cur, stream_id: Optional[str]) -> Optional[str]:
+        """Resolve stream value (id or name) to canonical stream id."""
+        if not stream_id:
+            return None
+
+        raw = stream_id.strip()
+        if not raw:
+            return None
+
+        # Direct id match first.
+        cur.execute("SELECT id FROM streams WHERE id = %s", (raw,))
+        row = cur.fetchone()
+        if row:
+            return row["id"]
+
+        # Slug fallback for values like "Commerce" -> "commerce".
+        slug = raw.lower().replace(" ", "-")
+        cur.execute("SELECT id FROM streams WHERE id = %s", (slug,))
+        row = cur.fetchone()
+        if row:
+            return row["id"]
+
+        # Name lookup fallback.
+        cur.execute("SELECT id FROM streams WHERE LOWER(name) = LOWER(%s)", (raw,))
+        row = cur.fetchone()
+        return row["id"] if row else None
     
     @staticmethod
     def _resolve_board_id(cur, board_id: str, school_id: int = None) -> str:
@@ -82,6 +110,8 @@ class ChapterService:
                 board_id = ChapterService._resolve_board_id(cur, board_id, school_id)
             if standard_id:
                 standard_id = ChapterService._resolve_standard_id(cur, standard_id, school_id)
+            if stream_id:
+                stream_id = ChapterService._resolve_stream_id(cur, stream_id)
             
             query = """
                 SELECT c.id, c.board_id, c.standard_id, c.subject_id, c.stream_id, c.chapter_number, c.chapter_name,
@@ -107,7 +137,8 @@ class ChapterService:
                 query += " AND c.subject_id = %s"
                 params.append(subject_id)
             if stream_id:
-                query += " AND c.stream_id = %s"
+                # Support migrated rows where stream may live on subjects table.
+                query += " AND COALESCE(c.stream_id, s.stream_id) = %s"
                 params.append(stream_id)
             if is_active is not None:
                 query += " AND c.is_active = %s"
@@ -300,7 +331,12 @@ class ChapterService:
             conn.close()
     
     @staticmethod
-    def get_subjects_with_chapters(board_id: str, standard_id: str, user_id: str = None) -> List[Dict]:
+    def get_subjects_with_chapters(
+        board_id: str,
+        standard_id: str,
+        stream_id: Optional[str] = None,
+        user_id: str = None,
+    ) -> List[Dict]:
         """
         Get list of subjects with chapter counts for a board+standard.
         Accepts either IDs (e.g. "cbse") or names (e.g. "CBSE").
@@ -312,24 +348,35 @@ class ChapterService:
             
             # Look up user's school_id
             school_id = None
+            user_stream = None
             if user_id:
-                cur.execute("SELECT school_id FROM users WHERE id = %s", (user_id,))
+                cur.execute("SELECT school_id, stream FROM users WHERE id = %s", (user_id,))
                 row = cur.fetchone()
                 if row:
                     school_id = row.get("school_id")
+                    user_stream = row.get("stream")
             
             board_id = ChapterService._resolve_board_id(cur, board_id, school_id)
             standard_id = ChapterService._resolve_standard_id(cur, standard_id, school_id)
-            
-            cur.execute(
-                """SELECT c.subject_id, s.name as subject_name, COUNT(*) as chapter_count
+
+            # Explicit query param takes precedence, then user profile stream.
+            effective_stream_id = ChapterService._resolve_stream_id(cur, stream_id) or ChapterService._resolve_stream_id(cur, user_stream)
+
+            query = """SELECT c.subject_id, s.name as subject_name, COUNT(*) as chapter_count
                    FROM chapters c
                    LEFT JOIN subjects s ON c.subject_id = s.id
-                   WHERE c.board_id = %s AND c.standard_id = %s AND c.is_active = TRUE
+                   WHERE c.board_id = %s AND c.standard_id = %s AND c.is_active = TRUE"""
+            params = [board_id, standard_id]
+
+            if effective_stream_id:
+                query += " AND COALESCE(c.stream_id, s.stream_id) = %s"
+                params.append(effective_stream_id)
+
+            query += """
                    GROUP BY c.subject_id, s.name, s.sort_order
-                   ORDER BY s.sort_order, s.name""",
-                (board_id, standard_id)
-            )
+                   ORDER BY s.sort_order, s.name"""
+            
+            cur.execute(query, tuple(params))
             return [dict(row) for row in cur.fetchall()]
         finally:
             conn.close()
@@ -339,7 +386,8 @@ class ChapterService:
         user_id: str,
         board_id: str,
         standard_id: str,
-        subject_id: str
+        subject_id: str,
+        stream_id: Optional[str] = None,
     ) -> List[Dict]:
         """
         Get chapters with user's progress data.
@@ -356,16 +404,20 @@ class ChapterService:
             
             # Resolve school_id for the user
             school_id = None
+            user_stream_id = None
             if user_id:
-                cur.execute("SELECT school_id FROM users WHERE id = %s", (user_id,))
+                cur.execute("SELECT school_id, stream FROM users WHERE id = %s", (user_id,))
                 urow = cur.fetchone()
                 if urow:
                     school_id = urow.get("school_id")
+                    user_stream_id = ChapterService._resolve_stream_id(cur, urow.get("stream"))
+
+            effective_stream_id = ChapterService._resolve_stream_id(cur, stream_id) or user_stream_id
             
             # Get base chapters
             chapters = ChapterService.list_chapters(
                 board_id=board_id, standard_id=standard_id, subject_id=subject_id,
-                is_active=True, school_id=school_id
+                stream_id=effective_stream_id, is_active=True, school_id=school_id
             )
             
             if not chapters:

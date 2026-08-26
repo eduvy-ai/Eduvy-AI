@@ -6,6 +6,7 @@ import { HandWaving, CheckCircle, Books, Confetti, GraduationCap, ClipboardText,
 
 // Static fallback for standards
 const CLASSES_FALLBACK = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
+const STREAMS = ['Science', 'Commerce', 'Arts']
 
 // ── Curriculum API helpers ────────────────────────────────────
 async function fetchBoards() {
@@ -51,13 +52,20 @@ async function fetchMediums(board, standard) {
   return LANGS // fallback
 }
 
-async function fetchSubjects(board, standard, medium) {
+async function fetchSubjects(board, standard, medium, stream = '') {
   const boardSlug  = board.toLowerCase().replace(/\s+/g, '-')
   const stdSlug    = standard.toLowerCase().replace(/\s+/g, '-')
   const mediumSlug = medium.toLowerCase().replace(/\s+/g, '-')
   try {
+    const params = new URLSearchParams({
+      board: boardSlug,
+      standard: stdSlug,
+      medium: mediumSlug,
+    })
+    if (stream) params.set('stream', stream.toLowerCase().replace(/\s+/g, '-'))
+
     const res = await fetch(
-      `/api/curriculum/subjects?board=${encodeURIComponent(boardSlug)}&standard=${encodeURIComponent(stdSlug)}&medium=${encodeURIComponent(mediumSlug)}`,
+      `/api/curriculum/subjects?${params.toString()}`,
       { signal: AbortSignal.timeout(5000) }
     )
     if (res.ok) {
@@ -65,6 +73,9 @@ async function fetchSubjects(board, standard, medium) {
       if (Array.isArray(data) && data.length > 0) return data
     }
   } catch {}
+  if ((standard.includes('11') || standard.includes('12')) && !stream) {
+    return []
+  }
   return SUBS[standard] || [] // fallback
 }
 
@@ -79,6 +90,7 @@ export default function Onboard({ onComplete }) {
   const [parent, setParent]       = useState("")
   const [standard, setStd]        = useState("Class 10")
   const [board, setBoard]         = useState("CBSE")
+  const [stream, setStream]       = useState('')
   const [language, setLang]       = useState("English")
   const [subjects, setSubs]       = useState([])
   const [saving, setSaving]       = useState(false)
@@ -94,6 +106,7 @@ export default function Onboard({ onComplete }) {
   const [mediumList,   setMediumList]   = useState(LANGS)
   const [subjectList,  setSubjectList]  = useState([])
   const [loadingSubs,  setLoadingSubs]  = useState(false)
+  const needsStream = standard.includes('11') || standard.includes('12')
 
   // Load boards once on mount
   useEffect(() => {
@@ -146,12 +159,12 @@ export default function Onboard({ onComplete }) {
   // When board, standard, or language (medium) changes → refresh subjects
   useEffect(() => {
     setLoadingSubs(true)
-    fetchSubjects(board, standard, language).then(subs => {
+    fetchSubjects(board, standard, language, stream).then(subs => {
       setSubjectList(subs)
       setSubs([...subs]) // auto-select all
       setLoadingSubs(false)
     })
-  }, [board, standard, language])
+  }, [board, standard, language, stream])
 
   const toggleSub = s => setSubs(prev =>
     prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
@@ -171,7 +184,7 @@ export default function Onboard({ onComplete }) {
 
   const finish = async () => {
     const finalSubs = subjects.length ? subjects : subjectList
-    const profileData = { name: name.trim(), standard, board, language, subjects: finalSubs }
+    const profileData = { name: name.trim(), standard, board, stream: needsStream ? stream : '', language, subjects: finalSubs }
     setSaving(true)
     try {
       const deviceId = getDeviceId()
@@ -182,6 +195,7 @@ export default function Onboard({ onComplete }) {
         parent_mobile: parent.trim(),
         standard,
         board,
+        stream: needsStream ? stream : '',
         language,
         subjects: finalSubs,
       })
@@ -312,7 +326,13 @@ export default function Onboard({ onComplete }) {
 
               <div>
                 <label className="text-xs text-app-muted font-semibold mb-1.5 block">{ui.classLabel}</label>
-                <select className={selectClass} value={standard} onChange={e => setStd(e.target.value)}>
+                <select className={selectClass} value={standard} onChange={e => {
+                  const nextStandard = e.target.value
+                  setStd(nextStandard)
+                  if (!(nextStandard.includes('11') || nextStandard.includes('12'))) {
+                    setStream('')
+                  }
+                }}>
                   {standardList.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
@@ -333,6 +353,16 @@ export default function Onboard({ onComplete }) {
                   <CheckCircle size={13} weight="fill" /> {ui.aiInLanguage.replace('{language}', language)}
                 </div>
               </div>
+
+              {needsStream && (
+                <div>
+                  <label className="text-xs text-app-muted font-semibold mb-1.5 block">Stream</label>
+                  <select className={selectClass} value={stream} onChange={e => setStream(e.target.value)}>
+                    <option value="">Select Stream</option>
+                    {STREAMS.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              )}
             </div>
 
             <button onClick={goStep2} className="w-full py-3 rounded-xl border-none bg-gradient-to-br from-app-green to-emerald-400 text-app-bg font-extrabold text-sm cursor-pointer">
@@ -349,7 +379,7 @@ export default function Onboard({ onComplete }) {
                 {ui.pickSubjects} <Books size={22} weight="duotone" className="text-app-blue" />
               </h2>
               <p className="text-sm text-app-muted">
-                {standard} • {board} • {language}
+                {standard} • {board} • {needsStream && stream ? `${stream} • ` : ''}{language}
               </p>
             </div>
 
@@ -409,6 +439,7 @@ export default function Onboard({ onComplete }) {
               {[
                 [GraduationCap, ui.classLabel, standard],
                 [ClipboardText, ui.boardLabel, board],
+                ...(needsStream && stream ? [[BookOpen, 'Stream', stream]] : []),
                 [Globe, ui.languageLabel, language],
                 [Books, ui.subjectsLabel, (subjects.length ? subjects : subjectList).join(", ")],
               ].map(([Icon, label, value]) => (

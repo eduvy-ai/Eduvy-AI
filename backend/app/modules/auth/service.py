@@ -60,7 +60,7 @@ class AuthService:
                 board_slug = board.lower().replace(" ", "-")
                 std_slug = standard.lower().replace(" ", "-")
                 medium_slug = language.lower().replace(" ", "-")
-                final_subjects = CurriculumService.get_subjects(board_slug, std_slug, medium_slug)
+                final_subjects = CurriculumService.get_subjects(board_slug, std_slug, medium_slug, stream)
             except Exception:
                 final_subjects = []
         

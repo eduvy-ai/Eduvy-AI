@@ -84,11 +84,12 @@ export default function HomeTab({ profile, userId, xp, streak, addXp, setTab }) 
   useEffect(() => {
     const board = profile.board || 'CBSE'
     const standard = profile.standard || 'Class 10'
-    apiGetChapterSubjects(board, standard).then(subs => {
+    const stream = profile.stream || ''
+    apiGetChapterSubjects(board, standard, stream).then(subs => {
       if (subs.length > 0) setSubjects(subs)
       else if (profile.subjects?.length) setSubjects(profile.subjects)
     })
-  }, [profile.board, profile.standard])
+  }, [profile.board, profile.standard, profile.stream])
 
   // ── Load mastery from backend on mount ─────────────────────
   useEffect(() => {

@@ -12,6 +12,7 @@ class ProfileCreate(BaseModel):
     parent_mobile: Optional[str] = ""
     standard: str = "Class 10"
     board: str = "CBSE"
+    stream: str = ""
     language: str = "English"
     subjects: List[str] = []
 
@@ -24,6 +25,7 @@ class ProfileUpdate(BaseModel):
     parent_mobile: Optional[str] = None
     standard: Optional[str] = None
     board: Optional[str] = None
+    stream: Optional[str] = None
     language: Optional[str] = None
     display_language: Optional[str] = Field(default=None, alias="displayLanguage")
     subjects: Optional[List[str]] = None

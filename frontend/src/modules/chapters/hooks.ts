@@ -39,8 +39,8 @@ export function useChapters() {
   )
 
   const loadSubjects = useCallback(
-    (board_id: string, standard_id: string) => {
-      dispatch(fetchSubjects({ board_id, standard_id }))
+    (board_id: string, standard_id: string, stream_id?: string) => {
+      dispatch(fetchSubjects({ board_id, standard_id, stream_id }))
     },
     [dispatch]
   )
@@ -53,8 +53,8 @@ export function useChapters() {
   )
 
   const loadChaptersWithProgress = useCallback(
-    (board_id: string, standard_id: string, subject_id: string) => {
-      dispatch(fetchChaptersWithProgress({ board_id, standard_id, subject_id }))
+    (board_id: string, standard_id: string, subject_id: string, stream_id?: string) => {
+      dispatch(fetchChaptersWithProgress({ board_id, standard_id, subject_id, stream_id }))
     },
     [dispatch]
   )
@@ -112,7 +112,12 @@ export function useChaptersBySubject(board_id: string, standard_id: string, subj
 /**
  * Hook to load chapters with progress for the Learn tab.
  */
-export function useChaptersWithProgress(board_id: string, standard_id: string, subject_id: string) {
+export function useChaptersWithProgress(
+  board_id: string,
+  standard_id: string,
+  subject_id: string,
+  stream_id?: string
+) {
   const dispatch = useDispatch<AppDispatch>()
   const { chaptersWithProgress, isLoading, error } = useSelector(
     (state: RootState) => state.chapters
@@ -120,9 +125,9 @@ export function useChaptersWithProgress(board_id: string, standard_id: string, s
 
   useEffect(() => {
     if (board_id && standard_id && subject_id) {
-      dispatch(fetchChaptersWithProgress({ board_id, standard_id, subject_id }))
+      dispatch(fetchChaptersWithProgress({ board_id, standard_id, subject_id, stream_id }))
     }
-  }, [dispatch, board_id, standard_id, subject_id])
+  }, [dispatch, board_id, standard_id, subject_id, stream_id])
 
   return { chapters: chaptersWithProgress, isLoading, error }
 }
@@ -130,15 +135,15 @@ export function useChaptersWithProgress(board_id: string, standard_id: string, s
 /**
  * Hook to load subjects with chapter counts.
  */
-export function useSubjectsWithChapters(board_id: string, standard_id: string) {
+export function useSubjectsWithChapters(board_id: string, standard_id: string, stream_id?: string) {
   const dispatch = useDispatch<AppDispatch>()
   const { subjects, isLoading, error } = useSelector((state: RootState) => state.chapters)
 
   useEffect(() => {
     if (board_id && standard_id) {
-      dispatch(fetchSubjects({ board_id, standard_id }))
+      dispatch(fetchSubjects({ board_id, standard_id, stream_id }))
     }
-  }, [dispatch, board_id, standard_id])
+  }, [dispatch, board_id, standard_id, stream_id])
 
   return { subjects, isLoading, error }
 }

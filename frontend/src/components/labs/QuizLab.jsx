@@ -195,13 +195,14 @@ export default function QuizLab({ profile, addXp, userId, onBack }) {
   useEffect(() => {
     const board = profile?.board || 'CBSE'
     const standard = profile?.standard || 'Class 10'
-    apiGetChapterSubjects(board, standard).then(subs => {
+    const stream = profile?.stream || ''
+    apiGetChapterSubjects(board, standard, stream).then(subs => {
       if (subs.length > 0) {
         setSubjects(subs)
         setSelSub(prev => subs.includes(prev) ? prev : subs[0])
       }
     })
-  }, [profile?.board, profile?.standard])
+  }, [profile?.board, profile?.standard, profile?.stream])
   
   // Setup state
   const [selSub, setSelSub] = useState(subjects[0] || "")

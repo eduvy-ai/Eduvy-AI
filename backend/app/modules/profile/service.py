@@ -25,6 +25,7 @@ class ProfileService:
         parent_mobile: str = "",
         standard: str = "Class 10",
         board: str = "CBSE",
+        stream: str = "",
         language: str = "English",
         subjects: list = None
     ) -> Dict:
@@ -41,6 +42,7 @@ class ProfileService:
             "parent_mobile": parent_mobile,
             "standard": standard,
             "board": board,
+            "stream": stream,
             "language": language,
             "subjects": subjects or []
         })
@@ -77,17 +79,18 @@ class ProfileService:
             raise HTTPException(status_code=400, detail="No fields to update")
         
         # Auto-reassign subjects when board, standard, or language changes
-        curriculum_fields = {'board', 'standard', 'language'}
+        curriculum_fields = {'board', 'standard', 'stream', 'language'}
         if curriculum_fields & set(updates.keys()):
             board = updates.get('board', existing.get('board', 'CBSE'))
             standard = updates.get('standard', existing.get('standard', 'Class 10'))
+            stream = updates.get('stream', existing.get('stream', ''))
             language = updates.get('language', existing.get('language', 'English'))
             try:
                 from app.modules.curriculum.service import CurriculumService
                 board_slug = board.lower().replace(" ", "-")
                 std_slug = standard.lower().replace(" ", "-")
                 medium_slug = language.lower().replace(" ", "-")
-                new_subjects = CurriculumService.get_subjects(board_slug, std_slug, medium_slug)
+                new_subjects = CurriculumService.get_subjects(board_slug, std_slug, medium_slug, stream)
                 if new_subjects:
                     updates['subjects'] = new_subjects
             except Exception:

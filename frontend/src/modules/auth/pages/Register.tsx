@@ -52,14 +52,27 @@ const Register: React.FC = () => {
   }, [language])
 
   // Fetch subjects when board, standard, or medium changes
-  const fetchSubjects = useCallback(async (b: string, s: string, m: string) => {
+  const fetchSubjects = useCallback(async (b: string, s: string, m: string, st: string) => {
     setLoadingCurriculum(true)
     try {
-      const res = await axiosInstance.get('/api/curriculum/subjects', { params: { board: b, standard: s, medium: m } })
+      const params: { board: string; standard: string; medium: string; stream?: string } = {
+        board: b,
+        standard: s,
+        medium: m,
+      }
+      if (['Class 11', 'Class 12'].includes(s) && st) {
+        params.stream = st
+      }
+
+      const res = await axiosInstance.get('/api/curriculum/subjects', { params })
       const subjs = Array.isArray(res.data) ? res.data : (res.data?.subjects || [])
       if (subjs.length > 0) {
         setAvailableSubjects(subjs)
         setSubjects([...subjs])
+      } else if (['Class 11', 'Class 12'].includes(s) && !st) {
+        // Stream must be selected before showing Class 11/12 subjects.
+        setAvailableSubjects([])
+        setSubjects([])
       } else {
         const fallback = [...getSubjectsForClass(s)]
         setAvailableSubjects(fallback)
@@ -83,9 +96,9 @@ const Register: React.FC = () => {
 
   useEffect(() => {
     if (step === 2) {
-      fetchSubjects(board, standard, language)
+      fetchSubjects(board, standard, language, stream)
     }
-  }, [board, standard, language, step, fetchSubjects])
+  }, [board, standard, language, stream, step, fetchSubjects])
 
   const toggleSubject = (subject: string) => {
     setSubjects((prev) =>

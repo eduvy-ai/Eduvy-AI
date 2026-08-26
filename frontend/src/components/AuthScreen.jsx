@@ -6,6 +6,7 @@ import { GraduationCap, Eye, EyeSlash } from '@phosphor-icons/react'
 
 // Static fallback for standards
 const CLASSES_FALLBACK = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)
+const STREAMS = ['Science', 'Commerce', 'Arts']
 
 // ── Curriculum API helpers ────────────────────────────────────
 async function fetchBoards() {
@@ -61,6 +62,7 @@ export default function AuthScreen({ onAuth }) {
   const [mobile, setMobile]     = useState('')
   const [standard, setStd]      = useState('Class 10')
   const [board, setBoard]       = useState('CBSE')
+  const [stream, setStream]     = useState('')
   const [language, setLang]     = useState('English')
   const [regStep, setRegStep]   = useState(1) // 1 = credentials, 2 = profile
 
@@ -74,6 +76,7 @@ export default function AuthScreen({ onAuth }) {
 
   // i18n — use selected language during registration, default to English for login
   const ui = li(mode === 'register' ? language : 'English')
+  const needsStream = standard.includes('11') || standard.includes('12')
 
   // Load boards once on mount
   useEffect(() => {
@@ -127,6 +130,10 @@ export default function AuthScreen({ onAuth }) {
   // ── Register submit ──
   const doRegister = async () => {
     setError('')
+    if (needsStream && !stream) {
+      setError('Please select your stream')
+      return
+    }
     setLoading(true)
     try {
       const { token, profile } = await apiRegister({
@@ -135,6 +142,7 @@ export default function AuthScreen({ onAuth }) {
         name: name.trim(),
         standard,
         board,
+        stream: needsStream ? stream : '',
         language,
         subjects: [], // auto-assigned by backend based on board+standard+medium
         mobile: mobile.trim(),
@@ -338,7 +346,13 @@ export default function AuthScreen({ onAuth }) {
                   <select
                     className="w-full bg-app-card2 border border-white/10 rounded-xl py-3 px-3.5 text-app-text text-sm outline-none cursor-pointer focus:ring-1 focus:ring-app-green/50"
                     value={standard}
-                    onChange={e => setStd(e.target.value)}
+                    onChange={e => {
+                      const nextStandard = e.target.value
+                      setStd(nextStandard)
+                      if (!(nextStandard.includes('11') || nextStandard.includes('12'))) {
+                        setStream('')
+                      }
+                    }}
                   >
                     {standardList.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -365,6 +379,20 @@ export default function AuthScreen({ onAuth }) {
                   {mediumList.map(l => <option key={l} value={l}>{l}</option>)}
                 </select>
               </div>
+
+              {needsStream && (
+                <div>
+                  <label className="text-[11px] text-app-muted font-semibold block mb-1.5">Stream</label>
+                  <select
+                    className="w-full bg-app-card2 border border-white/10 rounded-xl py-3 px-3.5 text-app-text text-sm outline-none cursor-pointer focus:ring-1 focus:ring-app-green/50"
+                    value={stream}
+                    onChange={e => setStream(e.target.value)}
+                  >
+                    <option value="">Select stream</option>
+                    {STREAMS.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              )}
 
               {error && (
                 <div className="text-xs text-app-red bg-app-red/15 rounded-lg py-2 px-3">{error}</div>

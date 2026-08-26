@@ -57,6 +57,7 @@ export interface ChapterListParams {
   board_id?: string
   standard_id?: string
   subject_id?: string
+  stream_id?: string
   is_active?: boolean
 }
 

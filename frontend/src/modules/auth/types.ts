@@ -10,6 +10,7 @@ export interface UserProfile {
   name: string
   standard: string
   board: string
+  stream?: string
   language: string
   displayLanguage: 'medium' | 'english'
   subjects: string[]
@@ -69,6 +70,7 @@ export const DEFAULT_PROFILE: Omit<UserProfile, 'id' | 'email'> = {
   name: '',
   standard: 'Class 10',
   board: 'CBSE',
+  stream: '',
   language: 'English',
   displayLanguage: 'medium',
   subjects: [],

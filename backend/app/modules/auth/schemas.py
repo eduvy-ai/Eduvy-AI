@@ -34,6 +34,7 @@ class ProfileResponse(BaseModel):
     name: str
     standard: str
     board: str
+    stream: str = ""
     language: str
     displayLanguage: str = "medium"
     subjects: List[str] = []

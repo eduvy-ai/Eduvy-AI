@@ -27,10 +27,17 @@ export const chaptersApi = {
   /**
    * Get subjects with chapter counts for a board+standard.
    */
-  getSubjects: async (board_id: string, standard_id: string): Promise<SubjectWithChapters[]> => {
+  getSubjects: async (
+    board_id: string,
+    standard_id: string,
+    stream_id?: string
+  ): Promise<SubjectWithChapters[]> => {
+    const params: { board_id: string; standard_id: string; stream_id?: string } = { board_id, standard_id }
+    if (stream_id) params.stream_id = stream_id
+
     const response = await axiosInstance.get<SubjectWithChapters[]>(
       `${BASE_URL}/subjects`,
-      { params: { board_id, standard_id } }
+      { params }
     )
     return response.data
   },
@@ -49,11 +56,19 @@ export const chaptersApi = {
   getWithProgress: async (
     board_id: string,
     standard_id: string,
-    subject_id: string
+    subject_id: string,
+    stream_id?: string
   ): Promise<ChapterWithProgress[]> => {
+    const params: { board_id: string; standard_id: string; subject_id: string; stream_id?: string } = {
+      board_id,
+      standard_id,
+      subject_id,
+    }
+    if (stream_id) params.stream_id = stream_id
+
     const response = await axiosInstance.get<ChapterWithProgress[]>(
       `${BASE_URL}/with-progress`,
-      { params: { board_id, standard_id, subject_id } }
+      { params }
     )
     return response.data
   },

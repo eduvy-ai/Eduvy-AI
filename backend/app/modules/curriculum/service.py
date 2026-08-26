@@ -9,6 +9,39 @@ from app.db.connection import get_db
 
 class CurriculumService:
     """Curriculum business logic."""
+
+    @staticmethod
+    def _resolve_stream_id(cur, stream: Optional[str]) -> Optional[str]:
+        """Resolve stream value (id or name) to canonical id."""
+        if not stream:
+            return None
+
+        raw = stream.strip()
+        if not raw:
+            return None
+
+        cur.execute("SELECT id FROM streams WHERE id = %s", (raw,))
+        row = cur.fetchone()
+        if row:
+            return row["id"]
+
+        slug = raw.lower().replace(" ", "-")
+        cur.execute("SELECT id FROM streams WHERE id = %s", (slug,))
+        row = cur.fetchone()
+        if row:
+            return row["id"]
+
+        cur.execute("SELECT id FROM streams WHERE LOWER(name) = LOWER(%s)", (raw,))
+        row = cur.fetchone()
+        return row["id"] if row else None
+
+    @staticmethod
+    def _is_stream_standard(standard: str) -> bool:
+        """Return True for Class 11/12 standards that require stream selection."""
+        if not standard:
+            return False
+        normalized = standard.strip().lower()
+        return "11" in normalized or "12" in normalized
     
     @staticmethod
     def list_boards() -> List[Dict]:
@@ -93,16 +126,21 @@ class CurriculumService:
         conn = get_db()
         try:
             cur = conn.cursor()
+            resolved_stream_id = CurriculumService._resolve_stream_id(cur, stream)
+
+            if CurriculumService._is_stream_standard(standard) and not resolved_stream_id:
+                # Prevent mixed-stream subject lists for Class 11/12 when stream is missing.
+                return []
             
             # First try to get from subjects table (new structure with streams)
-            if stream:
+            if resolved_stream_id:
                 # Class 11-12 with stream
                 cur.execute(
                     """SELECT name FROM subjects
                        WHERE board_id = %s AND standard_id = %s AND stream_id = %s
                          AND is_active = TRUE
                        ORDER BY sort_order""",
-                    (board, standard, stream)
+                    (board, standard, resolved_stream_id)
                 )
             else:
                 # Class 1-10 without stream

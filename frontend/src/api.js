@@ -23,11 +23,11 @@ function _authHeaders() {
 
 // ── Auth API ─────────────────────────────────────────────────
 
-export async function apiRegister({ email, password, name, standard, board, language, subjects, mobile, parent_mobile }) {
+export async function apiRegister({ email, password, name, standard, board, stream, language, subjects, mobile, parent_mobile }) {
   const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, name, standard, board, language, subjects, mobile: mobile || '', parent_mobile: parent_mobile || '' }),
+    body: JSON.stringify({ email, password, name, standard, board, stream: stream || '', language, subjects, mobile: mobile || '', parent_mobile: parent_mobile || '' }),
     signal: AbortSignal.timeout(60000),
   })
   const data = await safeJson(res)
@@ -980,9 +980,15 @@ export async function apiSaveDailyContent(contentType, content, language = 'Engl
 // ── Chapter Progress API ──────────────────────────────────────
 
 // Get subjects that have chapters seeded for a board+standard
-export async function apiGetChapterSubjects(board, standard) {
+export async function apiGetChapterSubjects(board, standard, stream = '') {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/chapters/subjects?board_id=${encodeURIComponent(board)}&standard_id=${encodeURIComponent(standard)}`, {
+    const params = new URLSearchParams({
+      board_id: String(board || ''),
+      standard_id: String(standard || ''),
+    })
+    if (stream) params.set('stream_id', String(stream))
+
+    const res = await fetch(`${API_BASE_URL}/api/chapters/subjects?${params.toString()}`, {
       headers: _authHeaders(),
       signal: AbortSignal.timeout(5000),
     })

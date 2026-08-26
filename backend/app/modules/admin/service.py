@@ -1485,13 +1485,42 @@ class AdminService:
                 temp_password = secrets.token_urlsafe(6)[:8]
                 actual_password = temp_password
                 must_change = True
+
+            # Keep subjects aligned with board+standard+medium+stream for all new students.
+            try:
+                from app.modules.curriculum.service import CurriculumService
+                board_slug = (board or "").lower().replace(" ", "-")
+                std_slug = (standard or "").lower().replace(" ", "-")
+                medium_slug = (language or "").lower().replace(" ", "-")
+                resolved_subjects = CurriculumService.get_subjects(
+                    board_slug,
+                    std_slug,
+                    medium_slug,
+                    stream,
+                )
+            except Exception:
+                resolved_subjects = []
             
             pw_hash = _bcrypt.hashpw(actual_password.encode(), _bcrypt.gensalt()).decode()
             user_id = str(uuid.uuid4())
             cur.execute(
-                """INSERT INTO users (id, name, email, password_hash, standard, board, stream, language, plan, school_id, must_change_password, temp_password)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-                (user_id, name.strip(), email, pw_hash, standard, board, stream or '', language, plan, school_id, must_change, temp_password)
+                """INSERT INTO users (id, name, email, password_hash, standard, board, stream, language, subjects, plan, school_id, must_change_password, temp_password)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                (
+                    user_id,
+                    name.strip(),
+                    email,
+                    pw_hash,
+                    standard,
+                    board,
+                    stream or '',
+                    language,
+                    json.dumps(resolved_subjects or []),
+                    plan,
+                    school_id,
+                    must_change,
+                    temp_password,
+                )
             )
             conn.commit()
             
@@ -1599,10 +1628,25 @@ class AdminService:
                     temp_password = secrets.token_urlsafe(6)[:8]
                     pw_hash = _bcrypt.hashpw(temp_password.encode(), _bcrypt.gensalt()).decode()
                     user_id = str(uuid.uuid4())
+
+                    try:
+                        from app.modules.curriculum.service import CurriculumService
+                        row_board = student_data.get("board", "CBSE")
+                        row_standard = student_data.get("standard", "Class 10")
+                        row_medium = student_data.get("language", "English")
+                        row_stream = student_data.get("stream", "")
+                        row_subjects = CurriculumService.get_subjects(
+                            row_board.lower().replace(" ", "-"),
+                            row_standard.lower().replace(" ", "-"),
+                            row_medium.lower().replace(" ", "-"),
+                            row_stream,
+                        )
+                    except Exception:
+                        row_subjects = []
                     
                     cur.execute(
-                        """INSERT INTO users (id, name, email, password_hash, standard, board, stream, language, plan, school_id, must_change_password, temp_password)
-                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,TRUE,%s)""",
+                        """INSERT INTO users (id, name, email, password_hash, standard, board, stream, language, subjects, plan, school_id, must_change_password, temp_password)
+                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,TRUE,%s)""",
                         (
                             user_id,
                             name,
@@ -1612,6 +1656,7 @@ class AdminService:
                             student_data.get("board", "CBSE"),
                             student_data.get("stream", ""),
                             student_data.get("language", "English"),
+                            json.dumps(row_subjects or []),
                             inherited_plan or student_data.get("plan", "free"),
                             school_id,
                             temp_password
@@ -1722,6 +1767,32 @@ class AdminService:
             if language is not None:
                 updates.append("language = %s")
                 params.append(language)
+
+            curriculum_changed = any(v is not None for v in [standard, board, stream, language])
+            if curriculum_changed:
+                cur.execute(
+                    "SELECT standard, board, stream, language FROM users WHERE id = %s",
+                    (user_id,),
+                )
+                current = cur.fetchone() or {}
+                next_standard = standard if standard is not None else current.get("standard", "Class 10")
+                next_board = board if board is not None else current.get("board", "CBSE")
+                next_stream = stream if stream is not None else current.get("stream", "")
+                next_language = language if language is not None else current.get("language", "English")
+
+                try:
+                    from app.modules.curriculum.service import CurriculumService
+                    next_subjects = CurriculumService.get_subjects(
+                        (next_board or "").lower().replace(" ", "-"),
+                        (next_standard or "").lower().replace(" ", "-"),
+                        (next_language or "").lower().replace(" ", "-"),
+                        next_stream,
+                    )
+                except Exception:
+                    next_subjects = []
+
+                updates.append("subjects = %s")
+                params.append(json.dumps(next_subjects or []))
             if plan is not None:
                 updates.append("plan = %s")
                 params.append(plan)

@@ -143,13 +143,14 @@ function AddBhoolModal({ profile, onClose, onSaved, ui }) {
   useEffect(() => {
     const board = profile?.board || 'CBSE'
     const standard = profile?.standard || 'Class 10'
-    apiGetChapterSubjects(board, standard).then(subs => {
+    const stream = profile?.stream || ''
+    apiGetChapterSubjects(board, standard, stream).then(subs => {
       if (subs.length > 0) {
         setSubjects(subs)
         setSubject(subs[0])
       }
     })
-  }, [profile?.board, profile?.standard])
+  }, [profile?.board, profile?.standard, profile?.stream])
 
   async function handleAIExplain() {
     if (!question || !wrongAns || !correctAns) return
@@ -311,10 +312,11 @@ export default function BhoolBazaarTab({ profile, addXp }) {
   useEffect(() => {
     const board = profile?.board || 'CBSE'
     const standard = profile?.standard || 'Class 10'
-    apiGetChapterSubjects(board, standard).then(subs => {
+    const stream = profile?.stream || ''
+    apiGetChapterSubjects(board, standard, stream).then(subs => {
       if (subs.length > 0) setUserSubjects(subs)
     })
-  }, [profile?.board, profile?.standard])
+  }, [profile?.board, profile?.standard, profile?.stream])
 
   const LIMIT = 20
 
