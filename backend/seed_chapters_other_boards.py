@@ -190,11 +190,51 @@ def main():
     
     # Class 11 & 12 Commerce
     for standard in ["class-11", "class-12"]:
-        for subject in ["Accountancy", "Business Studies", "Economics"]:
+        # Direct subject matches
+        for subject in ["Accountancy", "Economics"]:
             count = copy_chapters_from_cbse(cur, standard, "gseb", standard, subject, "commerce")
             if count > 0:
                 total += count
                 print(f"  ✓ {standard} {subject} (Commerce): {count} chapters")
+
+        # GSEB uses "Commerce" where CBSE uses "Business Studies".
+        # Copy chapter structure from CBSE Business Studies into GSEB Commerce.
+        source_subject = "Business Studies"
+        target_subject = "Commerce"
+        source_subject_id = get_subject_id(cur, "cbse", standard, source_subject, "commerce")
+        target_subject_id = get_subject_id(cur, "gseb", standard, target_subject, "commerce")
+        if source_subject_id and target_subject_id:
+            cur.execute(
+                """
+                SELECT chapter_number, chapter_name, description, topics
+                FROM chapters
+                WHERE board_id = 'cbse' AND standard_id = %s AND subject_id = %s
+                ORDER BY chapter_number
+                """,
+                (standard, source_subject_id)
+            )
+            chapters = cur.fetchall()
+            copied = 0
+            for ch in chapters:
+                cur.execute(
+                    """
+                    INSERT INTO chapters (board_id, standard_id, subject_id, stream_id, chapter_number, chapter_name, description, topics)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (board_id, standard_id, subject_id, chapter_number)
+                    DO UPDATE SET
+                        chapter_name = EXCLUDED.chapter_name,
+                        description = EXCLUDED.description,
+                        topics = EXCLUDED.topics,
+                        stream_id = EXCLUDED.stream_id
+                    """,
+                    ("gseb", standard, target_subject_id, "commerce", ch["chapter_number"], ch["chapter_name"], ch["description"], ch["topics"])
+                )
+                copied += 1
+            if copied > 0:
+                total += copied
+                print(f"  ✓ {standard} Commerce (mapped from CBSE Business Studies): {copied} chapters")
+        else:
+            print(f"  ⚠ Missing mapping IDs for GSEB commerce backfill on {standard}")
     
     # ═══════════════════════════════════════════════════════════════════
     # AP/TS Board (Andhra Pradesh / Telangana State Board)

@@ -362,19 +362,34 @@ class ChapterService:
             # Explicit query param takes precedence, then user profile stream.
             effective_stream_id = ChapterService._resolve_stream_id(cur, stream_id) or ChapterService._resolve_stream_id(cur, user_stream)
 
-            query = """SELECT c.subject_id, s.name as subject_name, COUNT(*) as chapter_count
-                   FROM chapters c
-                   LEFT JOIN subjects s ON c.subject_id = s.id
-                   WHERE c.board_id = %s AND c.standard_id = %s AND c.is_active = TRUE"""
-            params = [board_id, standard_id]
+            # Start from subjects so valid subjects are visible even when chapters are not seeded yet.
+            query = """
+                SELECT
+                    s.id AS subject_id,
+                    s.name AS subject_name,
+                    COUNT(c.id) AS chapter_count
+                FROM subjects s
+                LEFT JOIN chapters c
+                    ON c.subject_id = s.id
+                    AND c.board_id = %s
+                    AND c.standard_id = %s
+                    AND c.is_active = TRUE
+                WHERE s.board_id = %s
+                  AND s.standard_id = %s
+                  AND s.is_active = TRUE
+            """
+            params = [board_id, standard_id, board_id, standard_id]
 
             if effective_stream_id:
-                query += " AND COALESCE(c.stream_id, s.stream_id) = %s"
+                query += " AND s.stream_id = %s"
                 params.append(effective_stream_id)
+            else:
+                query += " AND s.stream_id IS NULL"
 
             query += """
-                   GROUP BY c.subject_id, s.name, s.sort_order
-                   ORDER BY s.sort_order, s.name"""
+                GROUP BY s.id, s.name, s.sort_order
+                ORDER BY s.sort_order, s.name
+            """
             
             cur.execute(query, tuple(params))
             return [dict(row) for row in cur.fetchall()]

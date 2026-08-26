@@ -352,6 +352,13 @@ async def import_global_curriculum(admin_scope: tuple = Depends(get_admin_with_s
     return await asyncio.to_thread(AdminService.import_global_curriculum, school_id)
 
 
+@router.post("/tools/backfill-gseb-commerce-baseline")
+async def backfill_gseb_commerce_baseline(admin_scope: tuple = Depends(get_admin_with_school)):
+    """Backfill missing GSEB Class 11/12 Commerce chapters (superadmin only)."""
+    admin_id, _school_id = admin_scope
+    return await asyncio.to_thread(AdminService.backfill_gseb_commerce_baseline, admin_id)
+
+
 # ── Chapters ──────────────────────────────────────────────────
 
 @router.get("/chapters")

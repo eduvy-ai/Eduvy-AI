@@ -108,6 +108,69 @@ async def _send_bulk_student_welcome_emails(
 
 class AdminService:
     """Admin panel business logic."""
+
+    _GSEB_COMMERCE_BASELINE_CHAPTERS = {
+        "Statistics": [
+            "Introduction to Statistics",
+            "Collection of Data",
+            "Organisation of Data",
+            "Presentation of Data",
+            "Measures of Central Tendency",
+            "Measures of Dispersion",
+            "Correlation",
+            "Index Numbers",
+            "Time Series",
+            "Probability Basics",
+        ],
+        "English": [
+            "Reading Comprehension",
+            "Writing Skills - Notice and Circular",
+            "Writing Skills - Report Writing",
+            "Writing Skills - Letter and Email",
+            "Grammar - Tenses and Modals",
+            "Grammar - Voice and Narration",
+            "Literature - Prose",
+            "Literature - Poetry",
+            "Vocabulary and Editing",
+            "Revision and Exam Practice",
+        ],
+        "Gujarati": [
+            "ગદ્ય વિભાગ - વાર્તા",
+            "ગદ્ય વિભાગ - નિબંધ",
+            "પદ્ય વિભાગ - કવિતા",
+            "વ્યાકરણ - નામ અને સર્વનામ",
+            "વ્યાકરણ - ક્રિયાપદ",
+            "વ્યાકરણ - સમાસ",
+            "પત્ર લેખન",
+            "નિબંધ લેખન",
+            "અવતરણ અને ભાવાર્થ",
+            "પુનરાવર્તન અને પ્રશ્નોત્તરી",
+        ],
+        "Computer Science": [
+            "Computer Fundamentals",
+            "Problem Solving with Python",
+            "Python Data Types and Operators",
+            "Control Flow and Loops",
+            "Functions and Modular Programming",
+            "Strings, Lists and Dictionaries",
+            "File Handling",
+            "Database Concepts",
+            "SQL Basics",
+            "Practical Programming and Revision",
+        ],
+    }
+
+    @staticmethod
+    def _require_super_admin(cur, admin_id: int) -> None:
+        """Ensure caller is a super admin account."""
+        cur.execute("SELECT role FROM admin_users WHERE id = %s", (admin_id,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Admin not found")
+
+        role = _normalize_role((row.get("role") or "").strip())
+        if role != "super_admin":
+            raise HTTPException(status_code=403, detail="Only super admins can run this operation")
     
     @staticmethod
     def setup(email: str, password: str, name: str) -> Dict:
@@ -260,6 +323,108 @@ class AdminService:
             cur.execute("SELECT school_id FROM admin_users WHERE id = %s", (admin_id,))
             row = cur.fetchone()
             return row["school_id"] if row else None
+        finally:
+            conn.close()
+
+    @staticmethod
+    def backfill_gseb_commerce_baseline(admin_id: int) -> Dict:
+        """Backfill baseline chapters for missing GSEB Class 11/12 Commerce subjects.
+
+        Superadmin only. Upserts deterministic baseline chapters for these subjects
+        only when they currently have zero active chapters:
+        - Statistics
+        - English
+        - Gujarati
+        - Computer Science
+        """
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            AdminService._require_super_admin(cur, admin_id)
+
+            standards = ["class-11", "class-12"]
+            total_upserts = 0
+            summary: Dict[str, Dict[str, int | str]] = {}
+
+            for standard in standards:
+                for subject_name, chapters in AdminService._GSEB_COMMERCE_BASELINE_CHAPTERS.items():
+                    cur.execute(
+                        """
+                        SELECT id
+                        FROM subjects
+                        WHERE board_id = %s AND standard_id = %s AND stream_id = %s AND name = %s
+                        LIMIT 1
+                        """,
+                        ("gseb", standard, "commerce", subject_name),
+                    )
+                    subject_row = cur.fetchone()
+
+                    key = f"{standard}:{subject_name}"
+                    if not subject_row:
+                        summary[key] = {"status": "subject_not_found", "upserts": 0}
+                        continue
+
+                    subject_id = subject_row["id"]
+                    cur.execute(
+                        """
+                        SELECT COUNT(*) AS cnt
+                        FROM chapters
+                        WHERE board_id = %s AND standard_id = %s AND subject_id = %s AND is_active = TRUE
+                        """,
+                        ("gseb", standard, subject_id),
+                    )
+                    existing = int(cur.fetchone()["cnt"])
+
+                    if existing > 0:
+                        summary[key] = {"status": "already_populated", "upserts": 0, "existing": existing}
+                        continue
+
+                    upserts = 0
+                    for idx, chapter_name in enumerate(chapters, start=1):
+                        cur.execute(
+                            """
+                            INSERT INTO chapters (
+                                board_id, standard_id, subject_id, stream_id,
+                                chapter_number, chapter_name, description, topics, is_active
+                            )
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE)
+                            ON CONFLICT (board_id, standard_id, subject_id, chapter_number)
+                            DO UPDATE SET
+                                chapter_name = EXCLUDED.chapter_name,
+                                description = EXCLUDED.description,
+                                topics = EXCLUDED.topics,
+                                stream_id = EXCLUDED.stream_id,
+                                is_active = TRUE
+                            """,
+                            (
+                                "gseb",
+                                standard,
+                                subject_id,
+                                "commerce",
+                                idx,
+                                chapter_name,
+                                f"Baseline chapter for {subject_name} ({standard}, GSEB Commerce)",
+                                "[]",
+                            ),
+                        )
+                        upserts += 1
+
+                    total_upserts += upserts
+                    summary[key] = {"status": "backfilled", "upserts": upserts}
+
+            conn.commit()
+            return {
+                "ok": True,
+                "operation": "backfill_gseb_commerce_baseline",
+                "total_upserts": total_upserts,
+                "summary": summary,
+            }
+        except HTTPException:
+            conn.rollback()
+            raise
+        except Exception as e:
+            conn.rollback()
+            raise HTTPException(status_code=500, detail=f"Backfill failed: {e}")
         finally:
             conn.close()
     

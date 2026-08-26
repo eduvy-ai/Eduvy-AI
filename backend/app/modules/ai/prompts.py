@@ -1800,6 +1800,41 @@ def build_system_prompt(profile: dict, mode: str, progress: dict = None, chapter
         "chapter_tutor",
     }
     
+    def _subject_playbook(subject: str, language: str) -> str:
+        """Return subject-specific pedagogy instructions when subject context is known."""
+        raw = (subject or "").strip().lower()
+        if not raw:
+            return ""
+
+        math_aliases = {
+            "mathematics", "math", "maths", "algebra", "geometry", "statistics", "business maths"
+        }
+        account_aliases = {
+            "accountancy", "accounts", "commerce", "book keeping", "bookkeeping", "financial accounting"
+        }
+
+        if raw in math_aliases:
+            return """
+SUBJECT TEACHING PLAYBOOK (MATHEMATICS):
+- Solve step-by-step like a blackboard class: Given -> Formula -> Substitution -> Calculation -> Final Answer.
+- Show one operation per line. Do not skip algebra jumps.
+- Keep symbols in plain text format (a/b, sqrt(x), x^2).
+- For equations, explain WHY each transformation is valid.
+- Include one quick self-check line so the student can verify the result.
+""".strip()
+
+        if raw in account_aliases:
+            return """
+SUBJECT TEACHING PLAYBOOK (ACCOUNTANCY / COMMERCE):
+- Teach in accounting workflow order: Transaction -> Journal Entry -> Ledger Posting -> Trial Balance impact.
+- Always state debit/credit rule explicitly for each entry.
+- Use concise tabular formatting when appropriate (Particulars | Dr | Cr).
+- For numerical questions, show workings line-by-line and close with final balance/treatment.
+- Highlight common exam mistakes (wrong side posting, omitted narration, carry-forward errors).
+""".strip()
+
+        return ""
+
     # For modes needing language enforcement but not full Study Coach treatment
     if mode in LANGUAGE_ENFORCED_MODES:
         mode_instruction = get_mode_instruction(mode)
@@ -1821,10 +1856,12 @@ def build_system_prompt(profile: dict, mode: str, progress: dict = None, chapter
         
         # Build chapter context section for chapter_tutor mode
         chapter_section = ""
+        subject_for_playbook = ""
         if mode == "chapter_tutor" and chapter_context:
             ch_name = chapter_context.get("name", "")
             ch_number = chapter_context.get("number", "")
             ch_subject = chapter_context.get("subject", "")
+            subject_for_playbook = ch_subject
             ch_board = chapter_context.get("board", board)
             ch_standard = chapter_context.get("standard", standard)
             ch_medium = chapter_context.get("medium", language)
@@ -1846,6 +1883,8 @@ def build_system_prompt(profile: dict, mode: str, progress: dict = None, chapter
                 topics_str=topics_str,
                 ch_overview=ch_overview
             )
+
+        subject_playbook = _subject_playbook(subject_for_playbook, language)
         
         # Get dynamic wrapper template and build final prompt
         wrapper_template = get_inline_template("language_enforced_wrapper")
@@ -1855,6 +1894,7 @@ def build_system_prompt(profile: dict, mode: str, progress: dict = None, chapter
             board=board,
             lang_rule=lang_rule,
             chapter_section=chapter_section,
+            subject_playbook=subject_playbook,
             mode_instruction=mode_instruction
         )
     
@@ -1884,6 +1924,9 @@ def build_system_prompt(profile: dict, mode: str, progress: dict = None, chapter
     
     # Build student context
     subjects_str = ", ".join(subjects) if subjects else "General"
+    current_subject = profile.get("current_subject", "") if profile else ""
+    current_subject_section = f"\nCurrent subject focus: {current_subject}" if current_subject else ""
+    subject_playbook = _subject_playbook(current_subject, language)
     
     # Build progress context if available
     progress_context = ""
@@ -1907,6 +1950,8 @@ def build_system_prompt(profile: dict, mode: str, progress: dict = None, chapter
         board=board,
         language=language,
         subjects_str=subjects_str,
+        current_subject_section=current_subject_section,
+        subject_playbook=subject_playbook,
         progress_context=progress_context,
         lang_rule=lang_rule,
         mode_instruction=mode_instruction
@@ -2389,6 +2434,7 @@ Student's Class: {standard}, {board} board
 
 {lang_rule}
 {chapter_section}
+{subject_playbook}
 ══════════════════════════════════════════════════════════════
 TASK INSTRUCTIONS
 ══════════════════════════════════════════════════════════════
@@ -2404,12 +2450,17 @@ Name: {name}
 Class/Standard: {standard}
 Board: {board}
 Medium/Language: {language}
-Subjects: {subjects_str}{progress_context}
+Subjects: {subjects_str}{current_subject_section}{progress_context}
 
 ══════════════════════════════════════════════════════════════
 LANGUAGE RULES (CRITICAL)
 ══════════════════════════════════════════════════════════════
 {lang_rule}
+
+══════════════════════════════════════════════════════════════
+SUBJECT PLAYBOOK (WHEN APPLICABLE)
+══════════════════════════════════════════════════════════════
+{subject_playbook}
 
 ══════════════════════════════════════════════════════════════
 TEACHING INSTRUCTIONS

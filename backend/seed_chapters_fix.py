@@ -459,6 +459,13 @@ def main():
         if count > 0:
             total += count
             print(f"  ✓ {standard} Accountancy (Commerce): {count} chapters")
+
+        # GSEB uses "Commerce" where CBSE uses "Business Studies".
+        chapters = get_cbse_chapters(cur, standard, "Business Studies", "commerce")
+        count = seed_chapters_direct(cur, "gseb", standard, "Commerce", chapters, "commerce")
+        if count > 0:
+            total += count
+            print(f"  ✓ {standard} Commerce (mapped from CBSE Business Studies): {count} chapters")
         
         chapters = get_cbse_chapters(cur, standard, "Economics", "commerce")
         count = seed_chapters_direct(cur, "gseb", standard, "Economics", chapters, "commerce")
