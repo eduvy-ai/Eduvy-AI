@@ -131,3 +131,24 @@ def test_subjects_with_data(client, seeded):
 def test_subjects_not_found_combo(client, seeded):
     r = client.get("/api/curriculum/subjects?board_id=cbse&standard_id=class-10&medium_id=hindi")
     assert r.status_code in (200, 404)
+
+
+def test_subjects_stream_filtered_for_class_11(client, db):
+    db.execute("INSERT INTO boards(id,name,sort_order,is_active) VALUES(?,?,?,?)", ("cbse", "CBSE", 1, 1))
+    db.execute("INSERT INTO standards(id,name,grade_num,sort_order,is_active) VALUES(?,?,?,?,?)", ("class-11", "Class 11", 11, 11, 1))
+    db.execute("INSERT INTO streams(id,name,sort_order,is_active) VALUES(?,?,?,?)", ("science", "Science", 1, 1))
+    db.execute("INSERT INTO streams(id,name,sort_order,is_active) VALUES(?,?,?,?)", ("commerce", "Commerce", 2, 1))
+
+    db.execute(
+        "INSERT INTO subjects(id,name,board_id,standard_id,stream_id,sort_order,is_active) VALUES(?,?,?,?,?,?,?)",
+        ("sub-phy", "Physics", "cbse", "class-11", "science", 1, 1),
+    )
+    db.execute(
+        "INSERT INTO subjects(id,name,board_id,standard_id,stream_id,sort_order,is_active) VALUES(?,?,?,?,?,?,?)",
+        ("sub-acc", "Accountancy", "cbse", "class-11", "commerce", 1, 1),
+    )
+    db.commit()
+
+    r = client.get("/api/curriculum/subjects?board=cbse&standard=class-11&stream=commerce")
+    assert r.status_code == 200
+    assert r.json() == ["Accountancy"]

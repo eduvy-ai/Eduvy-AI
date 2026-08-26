@@ -126,35 +126,44 @@ class CurriculumService:
         conn = get_db()
         try:
             cur = conn.cursor()
-            resolved_stream_id = CurriculumService._resolve_stream_id(cur, stream)
+            resolved_stream_id = None
+            try:
+                resolved_stream_id = CurriculumService._resolve_stream_id(cur, stream)
+            except Exception:
+                # Older schemas may not have streams table yet.
+                resolved_stream_id = None
 
             if CurriculumService._is_stream_standard(standard) and not resolved_stream_id:
                 # Prevent mixed-stream subject lists for Class 11/12 when stream is missing.
                 return []
             
-            # First try to get from subjects table (new structure with streams)
-            if resolved_stream_id:
-                # Class 11-12 with stream
-                cur.execute(
-                    """SELECT name FROM subjects
-                       WHERE board_id = %s AND standard_id = %s AND stream_id = %s
-                         AND is_active = TRUE
-                       ORDER BY sort_order""",
-                    (board, standard, resolved_stream_id)
-                )
-            else:
-                # Class 1-10 without stream
-                cur.execute(
-                    """SELECT name FROM subjects
-                       WHERE board_id = %s AND standard_id = %s AND stream_id IS NULL
-                         AND is_active = TRUE
-                       ORDER BY sort_order""",
-                    (board, standard)
-                )
-            
-            rows = cur.fetchall()
-            if rows:
-                return [r["name"] for r in rows]
+            # First try to get from subjects table (new structure with streams).
+            try:
+                if resolved_stream_id:
+                    # Class 11-12 with stream
+                    cur.execute(
+                        """SELECT name FROM subjects
+                           WHERE board_id = %s AND standard_id = %s AND stream_id = %s
+                             AND is_active = TRUE
+                           ORDER BY sort_order""",
+                        (board, standard, resolved_stream_id)
+                    )
+                else:
+                    # Class 1-10 without stream
+                    cur.execute(
+                        """SELECT name FROM subjects
+                           WHERE board_id = %s AND standard_id = %s AND stream_id IS NULL
+                             AND is_active = TRUE
+                           ORDER BY sort_order""",
+                        (board, standard)
+                    )
+
+                rows = cur.fetchall()
+                if rows:
+                    return [r["name"] for r in rows]
+            except Exception:
+                # Legacy deployments/tests without subjects table should fallback to curriculum table.
+                pass
             
             # Fallback to curriculum table (legacy) if no subjects found
             if medium:

@@ -543,6 +543,22 @@ CREATE TABLE IF NOT EXISTS mediums (
     is_active  INTEGER DEFAULT 1,
     school_id  INTEGER DEFAULT NULL
 );
+CREATE TABLE IF NOT EXISTS streams (
+    id         TEXT PRIMARY KEY,
+    name       TEXT NOT NULL,
+    sort_order INTEGER DEFAULT 0,
+    is_active  INTEGER DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS subjects (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    board_id    TEXT NOT NULL,
+    standard_id TEXT NOT NULL,
+    stream_id   TEXT DEFAULT NULL,
+    sort_order  INTEGER DEFAULT 0,
+    is_active   INTEGER DEFAULT 1,
+    school_id   INTEGER DEFAULT NULL
+);
 CREATE TABLE IF NOT EXISTS curriculum (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     board_id    TEXT NOT NULL,
