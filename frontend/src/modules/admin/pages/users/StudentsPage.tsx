@@ -363,6 +363,7 @@ const StudentsPage: React.FC = () => {
 
       if (newStudent.temp_password) {
         const mergedStudent = {
+          ...newStudent,
           xp: 0,
           streak: 0,
           is_drishti: false,
@@ -370,7 +371,6 @@ const StudentsPage: React.FC = () => {
           created_at: new Date().toISOString(),
           last_active: '',
           plan_expires_at: null,
-          ...newStudent,
         } as StudentUser
         setSelectedStudent(mergedStudent)
         setTempPassword({ value: newStudent.temp_password, mustChange: true })
